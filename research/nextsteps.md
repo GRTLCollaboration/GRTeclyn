@@ -1,5 +1,57 @@
 # Research Roadmap
 
+## Immediate plan (plain English)
+
+Two lanes: **Lane 1** publishes what we already found; **Lane 2** tries to stop
+exotic matter from flying apart. Prioritized by best results for least wasted
+time.
+
+### Lane 1: Harvest the papers (next 2–4 weeks)
+
+1. **Finish the collapsing-wormhole paper.** We showed that pulling support from
+   a spinning wormhole collapses it and launches a strong gravitational wave;
+   the draft is nearly done. Next: run a cheap, low-resolution **non-spinning**
+   collapse control so reviewers cannot say spin was never shown to matter.
+   Plug it into the draft and submit.
+2. **Publish the transient-FTL paper.** We showed FTL shortcuts are real in
+   simulation but die in seconds when the exotic “engine” disperses. Write it
+   honestly as a **warp precursor**, not a working drive — that proves the
+   pipeline and separates us from junk science.
+
+### Lane 2: Quest for stability (next 1–2 months)
+
+Warp drives still fly apart. Cage them with physics, not artificial computer
+pumps.
+
+3. **Attempt the sandwich** (normal matter caging exotic matter). Wrap
+   repulsive exotic matter in a heavy, stable normal-matter shell. Ask the
+   solver for this setup; expect it to struggle. Strategy: start at zero
+   gravity, place the matter, then slowly turn gravity up. **Abandon after two
+   weeks** if stuck.
+4. **Perfect spinning donut** (rotating eigenstate). Let exotic matter hold
+   itself by spinning as a balanced torus. Flat-space already works; turn
+   gravity on. If it holds for ~30 simulation seconds, that is a
+   self-sustaining FTL structure.
+
+### Safety net (if everything flies apart)
+
+5. **Write the no-go rulebook.** If sandwich and spinning donut both fail,
+   publish an **atlas of failure** — how and why these structures rip apart.
+   Ruling out a class of sci-fi drives under the laws of physics is a strong,
+   citable result.
+6. **Pulse engine** (riding the ripples). If no stable bubble, fire a sequence
+   of matter bursts and jump from one dying FTL wave to the next. Test a second
+   burst in the wake of the first directly — overlapping ripples are messy;
+   do not guess the overlap.
+
+### Immediate to-do
+
+1. Run the cheap non-spinning wormhole control.
+2. Submit the wormhole paper.
+3. Try the sandwich math — with a **2-week timer**.
+
+---
+
 ## Purpose
 
 This document is the top-level scientific roadmap for the repository. It
@@ -156,19 +208,25 @@ quantity-dependent), an \(L=128\), \(t=80\) intermediate-zone waveform check
 pump injection. The [draft](./rotatingwormhole/article/research.tex) already
 carries the required hedges.
 
-**Next action:** finish, do not extend. The named remaining gaps are:
-(i) a clean non-rotating control — the first attempt was pathological and was
-killed at \(t\approx13.5\); retry only with a *different* setup (lower AMR
-depth, tighter tagging, or a better-matched ID), not more GPUs on the same
-trajectory; (ii) a production apparent-horizon finder before any horizon mass
+**Next action:** finish rather than open a broad new campaign, but obtain one
+targeted non-rotating control before submission. The first attempt was
+pathological and was killed at \(t\approx13.5\); redesign it with a
+better-matched ID and tighter central tagging. A lower-AMR or smaller-domain
+run is acceptable as a cheap **morphology diagnostic** only if the collapse
+interval remains causally separated from the boundary; it is not convergence
+evidence and cannot be compared quantitatively with the production waveform.
+Do not spend more GPUs on the same pathological trajectory. The other named
+gaps remain: (ii) a production apparent-horizon finder before any horizon mass
 or spin is quoted; (iii) wave-zone or characteristic extraction before any
 precision energy, quasinormal-frequency, or detector claim.
 
 **Decision criterion:** submit with the current claim boundary — an engineered
 dynamical experiment, early-cut trigger only, proxy horizon, intermediate-zone
-waveform. Do not let the remaining gaps inflate into a new campaign; they are
-either cheap (documentation of the AH-finder gap) or explicitly out of scope
-for this paper (CCE).
+waveform. The control must either demonstrate a materially different
+non-rotating morphology or force the manuscript to remove rotation-specific
+causal language; \(m=0\) power dominance alone does not isolate rotation from
+toroidal geometry. Do not let the remaining gaps inflate into a new campaign:
+document the AH-finder gap and keep CCE explicitly out of scope.
 
 **Follow-up, gated:** the [natural \(m=2\) hunt](./rotatingwormhole/PRDM2CampaignPlan.md)
 (a genuinely non-axisymmetric burst) and the Phase-7 scale-matched redesign
@@ -226,16 +284,32 @@ throat), i.e. exists but is unstable.
 
 **Next action:** solve the smallest concentric canonical-plus-phantom
 configuration as **one self-consistent state** (both matter sectors and the
-constraints together, in the bicomplex model), not as superposed profiles. Then
-run a one-dimensional radial perturbation scan before any CMA-ES or MAP-Elites.
-Track the two charge budgets separately, the lowest radial normal mode, and the
-total ADM mass.
+constraints together, in the bicomplex model), not as superposed profiles.
+Do not cold-start the fully coupled solve. Use continuation:
+
+1. solve the flat-space matter profiles or a converged canonical shell;
+2. introduce gravity through a homotopy parameter, or—if changing \(G\) would
+   require invasive solver work—hold gravity fixed and ramp the phantom
+   amplitude/coupling from zero;
+3. use each converged state as the next initial guess, reduce the continuation
+   step after a failed Newton solve, and record folds or loss of convergence as
+   candidate existence boundaries.
+
+Only after reaching the physical coupling should the plan run a
+one-dimensional radial perturbation scan. Track the two charge budgets
+separately, the lowest radial normal mode, and the total ADM mass.
 
 **Decision criterion:** proceed to 3D optimization only if the object (i) is
 constraint-clean at \(t=0\) as a single solve, (ii) retains both sectors with
 flat \(Q_{\rm sphere}(t)\) over several crossing times, and (iii) shows no
 growing radial mode — all with the pump off. Only then test whether it also
 opens a 4D shortcut.
+
+**Stop-loss:** cap the feasibility phase at two weeks. If neither continuation
+path reaches a constraint-clean physical-coupling state after documented
+step-size and seed checks, preserve the partial branch/existence boundary and
+move the confinement effort to B1. Do not turn repeated Newton divergence into
+an open-ended solver project.
 
 **Avoid:** assuming a canonical shell "solves" stability, superposing two
 solved profiles and calling the result a bound state, or labeling a tuned
@@ -274,15 +348,25 @@ pasted onto an evolved grid. A clean first experiment places all relay stages
 in constraint-solved initial data and uses their initial positions and phases
 to stagger the transient response.
 
-**Next action:** infer each candidate's response kernel from the continuous
-emission sweep, then optimize a two-stage relay before attempting a longer
-chain. Compare the combined result with the linear superposition predicted by
-the single-stage kernels.
+**Next action:** use each candidate's single-stage response kernel only to
+define a **linear null hypothesis**, not to predict the relay. Evolve the
+two-stage system as a new constraint-solved nonlinear configuration and
+measure the interaction residual explicitly:
+\[
+  \Delta_{\rm NL}(t)
+  =R_{12}(t)-R_1(t)-R_2(t)+R_0(t),
+\]
+where \(R_0\) is the no-pulse baseline and all four responses use the same
+observable and alignment convention. Optimize the measured two-stage result,
+then classify whether constructive extension comes from approximate addition,
+nonlinear scalar interaction, or a changed curved background before attempting
+a longer chain.
 
 **Decision criterion:** require a continuous interval of trusted
 \(f_{\rm geo}(t_{\rm emit})>0\), bounded constraints, and no loss of source
-confinement beyond the known single-stage behavior. If the second stage merely
-adds more exotic matter without extending normalized lifetime, stop.
+confinement beyond the known single-stage behavior. Report
+\(\Delta_{\rm NL}\) rather than assuming it is small. If the second stage
+merely adds more exotic matter without extending normalized lifetime, stop.
 
 ## Priority C: exploit the platform in lower-risk directions
 
@@ -311,19 +395,113 @@ not as proof of acceleration.
 ### C2. Canonical-matter compact-object astrophysics
 
 The canonical sector avoids the exotic-matter interpretation problem and can
-reuse the search and waveform infrastructure.
+reuse the constraint solve, complex-scalar evolution, MAP-Elites/CMA-ES
+search, geodesic probes, and waveform extraction already developed for the
+exotic sector. It is not merely a fallback: canonical Q-balls and boson stars
+are self-gravitating compact objects with positive energy density, so their
+encounters, rotational instabilities, and radiation can be interpreted without
+assuming NEC-violating matter.
 
-Priorities:
+#### C2.1. Self-gravitating boson-star/Q-ball encounter waveforms
 
-1. self-gravitating boson-star/Q-ball encounter waveforms;
-2. compact rotating configurations and ergoregion-instability boundaries;
-3. directional GW emission with denser sources and extraction radii in the
-   actual wave zone;
-4. proper-time differences between specified worldlines, replacing
-   gauge-dependent “minimum lapse” stasis claims.
+**Question:** what gravitational-wave morphology distinguishes a solitonic
+compact-object encounter from a black-hole or neutron-star encounter?
 
-Every waveform campaign should optimize a wave-zone-validated observable, not
-raw local \(\Psi_4\) power.
+Start with constraint-solved pairs on controlled trajectories: head-on
+collision, grazing encounter, and bound inspiral. Sweep compactness, relative
+phase of the complex fields, impact parameter, and aligned/anti-aligned
+winding. The relative phase is physical when the objects share a complex
+field: it can change interference, merger, repulsion, and scalar ejection even
+when the initial masses and trajectories are identical.
+
+Measure the orbital and matter multipoles, remnant fate (merged soliton,
+dispersal, or black-hole formation), scalar energy loss, and
+\(\Psi_4^{\ell m}\). Establish isolated-star and large-separation controls
+before interpreting collision radiation.
+
+**Decision criterion:** a waveform family is useful only if the encounter
+survives a resolution and box-size ladder, the source remains outside the
+extraction spheres during the trusted interval, and the dominant modes show
+retarded-time alignment and approximate \(1/r\) scaling. Compare invariant
+inputs such as ADM mass, angular momentum, and compactness rather than raw
+field amplitude.
+
+#### C2.2. Compact rotating configurations and ergoregion instability
+
+**Question:** how much angular momentum can a horizonless rotating Q-ball or
+boson star support, and where does it become dynamically unstable?
+
+Use the profile-4 Q-torus pipeline as the initial seed, but solve the canonical
+field and metric self-consistently rather than treating the flat-space torus as
+an equilibrium. Continue families in \((\omega,m,\text{central amplitude})\)
+and classify them by ADM mass, \(J\), charge, compactness, and whether an
+ergoregion exists. An ergoregion is the region where the asymptotic time
+translation becomes spacelike (\(g_{tt}>0\) for the repository's
+\((-+++)\) convention); it is not a horizon.
+
+Evolve each candidate with numerical noise and small seeded
+non-axisymmetric perturbations. Track matter Fourier modes \(m=1,2,\ldots\),
+canonical energy/angular-momentum flux, scalar radiation, and
+\(\Psi_4^{\ell m}\). Exponential growth that converges with resolution is the
+instability signal; a large shift, \(g_{tt}\) sign change, or local
+\(\Psi_4\) spike alone is not.
+
+**Decision criterion:** map the stable/unstable boundary only from
+constraint-clean, long-duration evolutions. Report growth rates with
+resolution uncertainty and distinguish ergoregion instability from bar-mode
+instability, collapse, and ordinary matter dispersal.
+
+#### C2.3. Directional gravitational-wave emission from dense sources
+
+**Question:** can a compact, persistent source produce a reproducible angular
+anisotropy in radiated power, rather than the near-zone directional preference
+seen in the current `gw_beam` campaigns?
+
+Use denser self-gravitating canonical sources—encounters, rotating remnants,
+or deliberately asymmetric Q-torus stacks—so that the source quadrupole is
+both strong and localized. Optimize a bounded, wave-zone observable such as
+the fraction of radiated energy within a specified solid angle, not raw local
+\(|\Psi_4|\). Record the full angular power distribution and all relevant
+\((\ell,m)\) modes; a single detector direction can hide mode mixing or
+near-zone contamination.
+
+Extraction spheres must lie beyond the source and in a demonstrated wave
+zone, remain causally separated from the outer boundary, and show
+retarded-time agreement plus \(r\Psi_4\) consistency. Matter crossing an
+extraction sphere invalidates the directional measurement over that interval.
+
+**Decision criterion:** call emission directional only if the angular pattern
+and beam fraction persist across extraction radius, resolution, and box-size
+controls and exceed the corresponding symmetric-source null test.
+
+#### C2.4. Proper-time observables instead of lapse-based “stasis”
+
+**Question:** do two explicitly specified observers accumulate different
+elapsed proper times, and is that difference robust under gauge changes?
+
+The minimum lapse is a slicing diagnostic: changing the time coordinate can
+change \(\alpha_{\min}\) without changing what any clock measures. Replace it
+with worldline experiments. Define the endpoints and observer class before
+the run—for example, two stationary observers at fixed asymptotic locations,
+two freely falling timelike geodesics launched with identical local initial
+data, or a transported clock compared with a distant reference—and integrate
+\[
+  \tau=\int\sqrt{-g_{\mu\nu}\,dx^\mu dx^\nu}
+\]
+along each worldline between invariantly identified events. For accelerated
+observers, also report proper acceleration; for geodesics it should vanish up
+to numerical error.
+
+**Decision criterion:** report \(\Delta\tau\), worldline endpoints, initial
+tetrads, and acceleration together. The result must converge and remain
+consistent under reasonable lapse/shift gauge variations. Coordinate-time
+delay, minimum lapse, or coordinate speed may explain the evolution but cannot
+serve as the headline observable.
+
+Across C2, the first implementation target should be a small canonical
+profile-4 Q-torus control and a constraint-solved two-object encounter. Every
+waveform campaign should optimize a wave-zone-validated observable, not raw
+local \(\Psi_4\) power.
 
 ### C3. Exotic compact-object waveform library
 
@@ -350,6 +528,14 @@ canonical and phantom families, map:
 Use a Pareto archive rather than one weighted total. This can establish whether
 the data indicate a smooth trade-off or a sharp stability boundary. A robust
 no-go region for the tested scalar models would be a substantive result.
+
+**Promotion trigger:** if both B1 and B2 fail their passive-confinement gates,
+C4 becomes the primary physics program rather than a secondary synthesis task.
+Freeze the tested model class and parameter ranges before drawing conclusions;
+include converged positive controls, resolution/box checks, and separate
+physical dispersal from solver failure, gauge pathology, and boundary loss.
+The defensible claim is a no-go region for the **tested scalar families and
+ranges**, not a theorem excluding stable exotic matter in general.
 
 ## Reconciliation of the original five ideas
 
@@ -410,14 +596,15 @@ check completed does not count as done.
 ### Weeks 1--2
 
 1. **Rotating manuscript finalization (A3, Track 1).** The runbook is done and
-   the draft carries the hedges; this is now mostly writing plus one decision:
-   whether a redesigned non-rotating control (different AMR/tagging/ID, per the
-   lab record) is cheap enough to include, or whether the \(m=0\) power
-   dominance stands alone as the rotation attribution.
+   the draft carries the hedges; run one redesigned non-rotating control with a
+   better-matched ID and tighter tagging. A lower-AMR/smaller-box diagnostic
+   must remain causally clean and must not be presented as convergence
+   evidence.
    *Deliverable:* a submittable manuscript with the AH-finder and wave-zone
-   gaps documented as limitations.
-   *Check:* no claim in the abstract exceeds the early-cut / proxy-horizon /
-   intermediate-zone evidence tier.
+   gaps documented as limitations and the control result included.
+   *Check:* either the control distinguishes the morphology, or all
+   rotation-specific causal language is removed; no claim in the abstract
+   exceeds the early-cut / proxy-horizon / intermediate-zone evidence tier.
 2. **Static wormhole controls (A1, Track 1).** Launch the cheap control pair
    already identified: pump-on/no-trigger run and shifted-trigger run, plus the
    throat-vs-trapped-surface disambiguation.
@@ -425,14 +612,14 @@ check completed does not count as done.
    *Check:* the collapse time tracks the trigger, and the early \(\theta_+\le0\)
    surface is attributed (throat minimal surface vs genuine trapping).
 3. **Sandwich feasibility pilot (B2, Track 2).** Before committing to the full
-   two-sector methods work, attempt the smallest concentric
-   canonical-plus-phantom constraint solve in the existing bicomplex model —
-   static, spherical, one shell, one core.
+   two-sector methods work, continue the smallest concentric
+   canonical-plus-phantom state from a flat-space or canonical-only solution;
+   do not cold-start the fully coupled solve.
    *Deliverable:* a solved (or demonstrably unsolvable) `.gridinit` with
-   Ham/Mom below the postload gate.
-   *Check:* if the coupled solve converges, proceed to the radial scan; if it
-   diverges at every amplitude pairing, record the existence boundary and
-   re-weight toward B1 — that is signal, not wasted time.
+   Ham/Mom below the postload gate, or a documented partial continuation branch.
+   *Check / stop-loss:* if no continuation path reaches physical coupling
+   within two weeks after seed and step-size checks, preserve the boundary,
+   stop B2, and move the confinement effort to B1.
 4. **Common campaign record.** Freeze one schema for every future run:
    \(Q_{\rm sphere}\) per sector, ADM mass and angular momentum, injected pump
    work, world-tube \(f_{\rm geo}(t_{\rm emit})\), failure mode, validation tier.
@@ -493,9 +680,11 @@ check completed does not count as done.
   the explicit igniter/energy budget from step 9 — the honest framing is
   "ignition into a longer-lived basin", since the pump has been shown not to be
   a continuous prop.
-- **Nothing holds:** the lifetime/no-go atlas (C4) and the validated ECO
-  waveform catalog (C3) become the primary output — a defensible negative
-  result over the tested scalar families.
+- **Neither passive route holds:** immediately promote the lifetime/no-go atlas
+  (C4) to the primary physics program, with the model class and parameter
+  domain frozen in advance. The validated ECO waveform catalog (C3) remains a
+  companion output. The claim is a defensible negative result over the tested
+  scalar families and ranges, not a universal no-go theorem.
 
 The central strategic shift is simple: finish the strongest existing evidence,
 make confinement a measured research question with early cheap pilots, and let

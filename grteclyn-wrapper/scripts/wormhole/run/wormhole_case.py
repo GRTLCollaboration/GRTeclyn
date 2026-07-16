@@ -298,7 +298,7 @@ center = {center_x} {center_y} {center_z}
 
 max_level = {max_level}
 regrid_interval = {regrid_interval}
-regrid_threshold = 0.01
+regrid_threshold = {regrid_threshold}
 
 max_box_size = 32
 min_box_size = 16
@@ -532,6 +532,11 @@ def main() -> int:
     ap.add_argument("--omega", type=float, default=0.05)
     ap.add_argument("--m", type=int, default=1)
     ap.add_argument("--max-level", type=int, default=3)
+    ap.add_argument("--regrid-threshold", type=float, default=0.01,
+                    help="ChiTagger regrid threshold (default 0.01). Larger "
+                         "values tag less volume — use for norot controls "
+                         "where an expanding feature OOMs at the headline "
+                         "threshold.")
     ap.add_argument("--stop-time", type=float, default=None,
                     help="evolution stop time (default: r_outer + 6)")
     ap.add_argument("--box-size", type=float, default=DEFAULT_L,
@@ -759,6 +764,7 @@ def main() -> int:
         plot_interval=args.plot_interval, run_out=str(run_out),
         gridinit=str(gridinit),
         regrid_interval=regrid_interval_str(args.max_level),
+        regrid_threshold=args.regrid_threshold,
         num_extraction_radii=len(radii),
         extraction_radii_str=radii_str,
         extraction_levels_str=levels_str,
