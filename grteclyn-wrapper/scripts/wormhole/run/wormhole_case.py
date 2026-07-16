@@ -310,7 +310,7 @@ lo_boundary = {lo_boundary}
 nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
-dt_multiplier = 0.02
+dt_multiplier = {dt_multiplier}
 stop_time = {stop_time}
 
 max_spatial_derivative_order = 4
@@ -537,6 +537,9 @@ def main() -> int:
                          "values tag less volume — use for norot controls "
                          "where an expanding feature OOMs at the headline "
                          "threshold.")
+    ap.add_argument("--dt-multiplier", type=float, default=0.02,
+                    help="CFL-like dt multiplier (default 0.02). Lower this "
+                         "when a violent post-ramp / fine-level NaN appears.")
     ap.add_argument("--stop-time", type=float, default=None,
                     help="evolution stop time (default: r_outer + 6)")
     ap.add_argument("--box-size", type=float, default=DEFAULT_L,
@@ -765,6 +768,7 @@ def main() -> int:
         gridinit=str(gridinit),
         regrid_interval=regrid_interval_str(args.max_level),
         regrid_threshold=args.regrid_threshold,
+        dt_multiplier=args.dt_multiplier,
         num_extraction_radii=len(radii),
         extraction_radii_str=radii_str,
         extraction_levels_str=levels_str,
