@@ -333,7 +333,7 @@ kappa2 = 0.
 kappa3 = 1.
 covariantZ4 = 0
 
-sigma = 2.0
+sigma = {sigma}
 
 puncture_tracking.enabled = 0
 calculate_constraint_norms = 1
@@ -540,6 +540,9 @@ def main() -> int:
     ap.add_argument("--dt-multiplier", type=float, default=0.02,
                     help="CFL-like dt multiplier (default 0.02). Lower this "
                          "when a violent post-ramp / fine-level NaN appears.")
+    ap.add_argument("--sigma", type=float, default=2.0,
+                    help="Kreiss-Oliger dissipation coefficient (default 2.0). "
+                         "Raise modestly to damp under-resolved collapse noise.")
     ap.add_argument("--stop-time", type=float, default=None,
                     help="evolution stop time (default: r_outer + 6)")
     ap.add_argument("--box-size", type=float, default=DEFAULT_L,
@@ -769,6 +772,7 @@ def main() -> int:
         regrid_interval=regrid_interval_str(args.max_level),
         regrid_threshold=args.regrid_threshold,
         dt_multiplier=args.dt_multiplier,
+        sigma=args.sigma,
         num_extraction_radii=len(radii),
         extraction_radii_str=radii_str,
         extraction_levels_str=levels_str,

@@ -1,0 +1,109 @@
+{
+  "campaign": "eval118_validation",
+  "source_run": "runs/grtresna_qd/qball_traj_spiral_v2",
+  "source_eval": 118,
+  "objective_mode": "general_ftl",
+  "physics_frozen": {
+    "genome": "eval_000118 overrides",
+    "max_level": 3,
+    "regrid_threshold": 0.02,
+    "qball": "compact ODE + equilibrium amplitude",
+    "do_not_mutate": true
+  },
+  "defaults": {
+    "stop_time": 30.0,
+    "plot_interval": 144,
+    "grteclyn_frames": 0,
+    "grteclyn_psi4": 1,
+    "grteclyn_psi4_n_points": 128,
+    "consumer_radii": [12.0, 18.0, 24.0],
+    "geo_directions": "x y z",
+    "geo_emit_interval": 2.0,
+    "geo_max_emissions": 7,
+    "evolving_geodesic_mode": "hq",
+    "gauge_speed_factor": 1.41421356237
+  },
+  "runs": [
+    {
+      "id": "E118-RM",
+      "phase": 2,
+      "role": "medium_baseline",
+      "n_full": 256,
+      "l_full": 128.0,
+      "stop_time": 30.0,
+      "consumer_radii": [12.0, 18.0, 24.0],
+      "name_prefix": "e118_rm_L128_N256_t30"
+    },
+    {
+      "id": "E118-RC",
+      "phase": 3,
+      "role": "resolution_coarse",
+      "n_full": 192,
+      "l_full": 128.0,
+      "stop_time": 30.0,
+      "consumer_radii": [12.0, 18.0, 24.0],
+      "name_prefix": "e118_rc_L128_N192_t30",
+      "depends_on": ["E118-RM"]
+    },
+    {
+      "id": "E118-RF",
+      "phase": 3,
+      "role": "resolution_fine",
+      "n_full": 384,
+      "l_full": 128.0,
+      "stop_time": 30.0,
+      "consumer_radii": [12.0, 18.0, 24.0],
+      "name_prefix": "e118_rf_L128_N384_t30",
+      "depends_on": ["E118-RM"]
+    },
+    {
+      "id": "E118-DS",
+      "phase": 4,
+      "role": "domain_small",
+      "n_full": 192,
+      "l_full": 96.0,
+      "stop_time": 30.0,
+      "consumer_radii": [12.0, 18.0, 24.0],
+      "name_prefix": "e118_ds_L96_N192_t30",
+      "depends_on": ["E118-RM"]
+    },
+    {
+      "id": "E118-DL",
+      "phase": 4,
+      "role": "domain_large",
+      "n_full": 320,
+      "l_full": 160.0,
+      "stop_time": 30.0,
+      "consumer_radii": [12.0, 18.0, 24.0],
+      "name_prefix": "e118_dl_L160_N320_t30",
+      "depends_on": ["E118-RM"]
+    },
+    {
+      "id": "E118-GW",
+      "phase": 5,
+      "role": "gw_propagation",
+      "n_full": 320,
+      "l_full": 160.0,
+      "stop_time": 80.0,
+      "plot_interval": 48,
+      "consumer_radii": [24.0, 36.0, 48.0],
+      "name_prefix": "e118_gw_L160_N320_t80",
+      "depends_on": ["E118-RM", "E118-RC", "E118-RF", "E118-DS", "E118-DL"]
+    }
+  ],
+  "acceptance": {
+    "f_geo_positive": true,
+    "n_rays": 5,
+    "h_quality_ok": true,
+    "fine_vs_medium_rel_tol": 0.10,
+    "domain_l160_vs_l128_rel_tol": 0.10,
+    "gw_overlap_min": 0.9,
+    "gw_rel_l2_max": 0.25
+  },
+  "stop_condition": {
+    "run_id": "E118-RM",
+    "require_positive_f_geo": true,
+    "require_h_quality_ok": true,
+    "on_fail": "halt_matrix_diagnose_drift"
+  }
+}

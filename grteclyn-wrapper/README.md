@@ -322,9 +322,46 @@ metrics in flight and delete processed plotfiles immediately.
 | Requirement | How |
 |-------------|-----|
 | Sidecar consumer ON | `CONSUME_PLOTFILES=1` (shell) or `consume_plotfiles=True` (Python) |
-| Delete heavy HDF5 | `CONSUMER_DELETE=1` with `--keep-last 3` (HQ default) |
+| Delete heavy HDF5 | on by default with `--keep-last 3` (even if `GRTECLYN_FRAMES=0`); opt out with `GRTECLYN_KEEP_PLOTFILES=1` |
 | PNG frames written | Set `GRTECLYN_FRAMES_FIELDS` → outputs in `eval_*/frames/` |
 | Verify consumer alive | `ps aux \| grep consume_plotfiles` while GPU is busy |
+
+#### Plotfile pruning: failure mode and fix
+
+`--keep-last N` protects the newest `N` plotfiles; it does not delete a
+plotfile until extraction succeeds. A log entry such as
+`[ok] RadialRecipePlt00000 ... kept` means that the file was protected at that
+moment, not that it will be retained permanently. Once it falls outside the
+newest `N`, the consumer logs
+`[gc] deleted previously-processed RadialRecipePlt00000`.
+
+Two bugs previously allowed HQ plotfiles to accumulate:
+
+1. Metrics-only runs (`GRTECLYN_FRAMES=0`) silently disabled deletion.
+   Deletion is now independent of frame rendering. Set
+   `GRTECLYN_KEEP_PLOTFILES=1` only when retaining the HDF5 dumps is intentional.
+2. Watch mode queued the entire backlog before running GC. Extraction can take
+   minutes per multi-GB AMR dump, so old processed files remained while new
+   files accumulated. Watch mode now processes at most one worker-sized batch
+   per pass and runs GC before starting the next extraction batch.
+
+Production cadence must also let extraction keep up with evolution. The eval
+118 validation campaign uses `plot_interval=144` instead of `24`; this retains
+roughly 1.4--1.9 simulation-time-unit sampling while avoiding a plotfile every
+few wall-clock seconds. A live run normally has `keep_last + jobs` files at
+most (three protected files plus files currently being processed).
+
+Verify pruning with:
+
+```bash
+ps aux | grep consume_plotfiles | grep -- '--delete --keep-last 3'
+grep -h '\[gc\] deleted' ../runs/grtresna_promote/e118_*/run.log | tail
+```
+
+If the count keeps growing beyond `keep_last + jobs`, check whether consumer
+workers are blocked in NFS I/O (`D` state), then increase `plot_interval` or
+reduce extraction cost. Never delete an unprocessed plotfile merely to force
+the count down; that loses the corresponding Psi4/FTL sample.
 
 ### Smoke test (all stages)
 
@@ -1044,8 +1081,10 @@ Serial debug: build with `MPI=FALSE`, run `RANKS=1`.
 
 ### Build GRTeclyn (GPU evolution binary)
 
-The RadialRecipe GPU binary (`main3d.gnu.CUDA.ex`) is built **without MPI** and
+RadialRecipe supports **both** single-GPU and multi-GPU (MPI+CUDA). Build
 **without the conda/grtresna env g++** (nvcc requires gcc ≤ 12).
+
+#### Single-GPU RadialRecipe (default search / HQ)
 
 ```bash
 cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe
@@ -1053,11 +1092,62 @@ PATH="/usr/local/cuda/bin:$PATH" NO_MPI_CHECKING=TRUE \
   make USE_MPI=FALSE USE_CUDA=TRUE -j$(nproc)
 ```
 
+Produces `main3d.gnu.CUDA.ex`. Use for N≲256 / L≲128 HQ promotions that fit one H100.
+
 | Setting | Value | Why |
 |---------|-------|-----|
 | `USE_MPI` | `FALSE` | Single-GPU runs |
 | `USE_CUDA` | `TRUE` | GPU kernels (AMReX + CCZ4 RHS) |
 | **Do NOT** put grtresna env on PATH | — | Its `g++ 15.x` breaks nvcc's gcc ≤ 12 check |
+
+#### Multi-GPU RadialRecipe (MPI + CUDA)
+
+For Arena-OOM cases (large base grids, e.g. N=320/L=160 or N=384/L=128 with
+`max_level=3`), build the MPI binary the same way as RotatingWormholeCollapse:
+
+```bash
+cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe
+
+export PATH="/usr/local/cuda/bin:/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/bin:$PATH"
+export LD_LIBRARY_PATH="/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/lib:${LD_LIBRARY_PATH:-}"
+
+# USE_PARTICLES=TRUE is required so Weyl/ParticleInterpolator headers resolve.
+make -j8 USE_CUDA=TRUE USE_MPI=TRUE COMP=gnu CUDA_ARCH=90
+```
+
+Produces `main3d.gnu.MPI.CUDA.ex` (~137 MB). HQ replay / validation launchers
+drive it with explicit GPU binding:
+
+```bash
+# 2 ranks on physical GPUs 4 and 5, reusing an existing gridinit
+GRTECLYN_FRAMES=0 GRTECLYN_PSI4=1 \
+uv run python grteclyn-wrapper/scripts/campaigns/hq/replay_eval.py \
+  runs/grtresna_qd/qball_traj_spiral_v2/eval_000118 \
+  --name e118_dl_L160_N320_t30_mpi2_hq_eval000118 \
+  --gpu 4,5 --evolution-mpi-ranks 2 \
+  --n-full 320 --l-full 160 --stop-time 30 \
+  --evolving-geodesic --objective-mode general_ftl \
+  --gridinit runs/grtresna_promote/e118_dl_L160_N320_t30_hq_eval000118/initial_data.gridinit
+
+# Or via the eval-118 validation launcher:
+EVOLUTION_MPI_RANKS=2 GPU_ID=4,5 FORCE=1 \
+  bash grteclyn-wrapper/scripts/campaigns/hq/run_eval118_validation.sh E118-DL
+```
+
+| Flag / env | Effect |
+|------------|--------|
+| `--evolution-mpi-ranks N` / `EVOLUTION_MPI_RANKS` | MPI ranks for GPU evolution (must equal `#` of GPU ids) |
+| `--gpu a,b,...` / `GPU_ID` | Explicit physical GPU ids; each rank binds one via `GRTECLYN_GPU_IDS` |
+
+**Binding rule (same as wormhole):** do **not** rely on parent
+`CUDA_VISIBLE_DEVICES=0,1,…` + `LOCAL_RANK`. OpenMPI/prterun often drops that
+env. The runner wraps each rank with
+`CUDA_VISIBLE_DEVICES=${GRTECLYN_GPU_IDS[LOCAL_RANK]}`.
+
+**Known limitation (2026-07):** RadialRecipe MPI+CUDA currently segfaults at the
+first RK4 advance under AMR (`storeRKCoarseData` / `m_fillpatcher`) even when
+VRAM is fine. Single-GPU remains the production path until that AMReX/GRAMR
+path is fixed. Use multi-GPU only after a smoke advance past `t>0` succeeds.
 
 #### Build the RotatingWormholeCollapse binary (MPI + CUDA)
 

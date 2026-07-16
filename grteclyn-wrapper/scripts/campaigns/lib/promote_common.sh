@@ -29,9 +29,9 @@ INCLUDE_RESOLUTION_IN_NAME="${INCLUDE_RESOLUTION_IN_NAME:-0}"
 INCLUDE_STOP_TIME_IN_NAME="${INCLUDE_STOP_TIME_IN_NAME:-1}"
 
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
-# Live PNG frames during GPU (slow on HQ AMR; consumer lag fills disk). Override with
-# GRTECLYN_FRAMES=0 for metrics-only live runs — plotfiles are kept on disk and the
-# post-GPU backlog drain renders all PNG movies (see runner.drain_plotfile_backlog).
+# Live PNG frames during GPU (slow on HQ AMR). Override with GRTECLYN_FRAMES=0 for
+# metrics-only live runs. Plotfiles are still deleted on the fly (keep-last);
+# set GRTECLYN_KEEP_PLOTFILES=1 only if a later frame drain must re-read dumps.
 export GRTECLYN_FRAMES="${GRTECLYN_FRAMES:-1}"
 export GRTECLYN_CONSUMER_DRAIN="${GRTECLYN_CONSUMER_DRAIN:-0}"
 if [[ "${GRTRESNA_MATTER_SECTOR:-}" == "boson_star" ]]; then

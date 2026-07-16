@@ -96,19 +96,20 @@ def test_consumer_radii_default_when_env_empty(monkeypatch) -> None:
     assert consumer_radii_from_env() == (8.0, 12.0, 24.0)
 
 
-def test_metrics_only_consumer_does_not_delete_plotfiles(episode, monkeypatch) -> None:
+def test_metrics_only_consumer_deletes_plotfiles_by_default(episode, monkeypatch) -> None:
     monkeypatch.setenv("GRTECLYN_FRAMES", "0")
-    monkeypatch.delenv("GRTECLYN_DELETE_WITHOUT_FRAMES", raising=False)
+    monkeypatch.delenv("GRTECLYN_KEEP_PLOTFILES", raising=False)
     command = build_consume_command(episode, profile="radial", frames=False, delete=True)
-    assert "--delete" not in command
+    assert "--delete" in command
+    assert "--keep-last" in command
     assert "--frames-fields" not in command
 
 
-def test_metrics_only_consumer_can_delete_when_forced(episode, monkeypatch) -> None:
+def test_metrics_only_consumer_can_keep_plotfiles(episode, monkeypatch) -> None:
     monkeypatch.setenv("GRTECLYN_FRAMES", "0")
-    monkeypatch.setenv("GRTECLYN_DELETE_WITHOUT_FRAMES", "1")
+    monkeypatch.setenv("GRTECLYN_KEEP_PLOTFILES", "1")
     command = build_consume_command(episode, profile="radial", frames=False, delete=True)
-    assert "--delete" in command
+    assert "--delete" not in command
 
 
 def test_post_run_frames_default_on(monkeypatch) -> None:
@@ -122,7 +123,9 @@ def test_post_run_frames_off_for_fast_drain(monkeypatch) -> None:
 
 
 def test_consumer_delete_plotfiles_enabled_matrix(monkeypatch) -> None:
-    monkeypatch.delenv("GRTECLYN_DELETE_WITHOUT_FRAMES", raising=False)
+    monkeypatch.delenv("GRTECLYN_KEEP_PLOTFILES", raising=False)
     assert consumer_delete_plotfiles_enabled(frames=True, delete_requested=True) is True
-    assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=True) is False
+    assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=True) is True
     assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=False) is False
+    monkeypatch.setenv("GRTECLYN_KEEP_PLOTFILES", "1")
+    assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=True) is False

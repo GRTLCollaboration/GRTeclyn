@@ -218,6 +218,16 @@ def main() -> int:
         help="Parent output dir (default: runs/grtresna_promote)",
     )
     parser.add_argument("--gpu", default="0", help="CUDA device id(s)")
+    parser.add_argument(
+        "--evolution-mpi-ranks",
+        type=int,
+        default=1,
+        help=(
+            "MPI ranks for GPU evolution. For multi-GPU, pass the same number "
+            "of comma-separated physical ids to --gpu (for example "
+            "--evolution-mpi-ranks 2 --gpu 4,5)."
+        ),
+    )
     parser.add_argument("--n-full", type=int, default=96, help="Promoted base resolution")
     parser.add_argument(
         "--l-full",
@@ -462,6 +472,15 @@ def main() -> int:
 
     _apply_replay_consumer_env(overrides)
 
+    if args.evolution_mpi_ranks < 1:
+        parser.error("--evolution-mpi-ranks must be >= 1")
+    gpu_ids = [token.strip() for token in args.gpu.split(",") if token.strip()]
+    if args.evolution_mpi_ranks > 1 and len(gpu_ids) != args.evolution_mpi_ranks:
+        parser.error(
+            "--evolution-mpi-ranks must equal the number of comma-separated "
+            f"--gpu ids (got ranks={args.evolution_mpi_ranks}, ids={gpu_ids})"
+        )
+
     example = resolve_example("RadialRecipe")
     template = example.template
     executable = None
@@ -469,7 +488,7 @@ def main() -> int:
         executable = resolve_executable(
             None,
             example=example,
-            mpi_ranks=1,
+            mpi_ranks=args.evolution_mpi_ranks,
             comp="gnu",
             cuda=True,
             debug=False,

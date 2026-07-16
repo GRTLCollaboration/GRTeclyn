@@ -10,6 +10,7 @@
 #include "RadialRecipeMatterDispatch.hpp"
 #include "ScalarField.hpp"
 #include "SetupFunctions.hpp"
+#include "StateTypes.hpp"
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Reduce.H>

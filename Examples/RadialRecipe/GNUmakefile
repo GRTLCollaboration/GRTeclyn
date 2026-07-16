@@ -2,7 +2,7 @@ GRTECLYN_HOME = $(realpath ../..)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
-USE_PARTICLES = FALSE
+USE_PARTICLES = TRUE
 USE_RL ?= FALSE
 
 AMREX_HOME ?= $(realpath ../../../amrex)
@@ -14,12 +14,12 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/Particle/Make.package
 
 GRTECLYN_HOME = $(realpath ../..)
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
-src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
-            $(GRTECLYN_SOURCE)/CCZ4 \
+src_dirs := $(GRTECLYN_SOURCE)/CCZ4 \
             $(GRTECLYN_SOURCE)/Matter \
             $(GRTECLYN_SOURCE)/Grids \
             $(GRTECLYN_SOURCE)/GRTeclynCore \

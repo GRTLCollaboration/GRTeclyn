@@ -434,6 +434,25 @@ def main() -> None:
         keep_last = max(0, int(args.keep_last))
         protected = set(plot_dirs[-keep_last:]) if keep_last > 0 else set()
 
+        # Reclaim already-processed plotfiles before starting another expensive
+        # extraction batch. Otherwise GC is delayed by several minutes while
+        # the next multi-GB files are read from NFS.
+        if args.delete:
+            for p in plot_dirs:
+                if p in protected:
+                    continue
+                key = os.path.basename(p)
+                if not state.get(key):
+                    continue
+                if not _is_plotfile_ready(p, stable_seconds=float(args.stable_seconds)):
+                    continue
+                try:
+                    shutil.rmtree(p)
+                    if args.verbose:
+                        print(f"[gc] deleted previously-processed {key}")
+                except Exception as e:
+                    print(f"WARNING: failed to delete {p}: {e}")
+
         to_process = []
         for p in plot_dirs:
             key = os.path.basename(p)
@@ -445,6 +464,12 @@ def main() -> None:
 
         if not to_process:
             return 0
+
+        # In watch mode, process only one worker-sized batch per pass. This
+        # returns to the cleanup pass promptly instead of queueing the entire
+        # backlog while multi-GB plotfiles continue accumulating.
+        if args.watch:
+            to_process = to_process[: max(1, int(args.jobs))]
 
         print(
             f"Processing {len(to_process)} plotfile(s) "
@@ -594,25 +619,6 @@ def main() -> None:
                         print(f"[ok] {res['key']}  t={res['t']:.6g}  {res['status_str']}  ({res['dt_s']:.2f}s)")
                 else:
                     print(f"WARNING: failed to process {p}: {res.get('error', 'Unknown error')}")
-
-        # Cleanup pass: delete plotfiles that were processed earlier but were
-        # inside keep-last at the time. Once they are no longer protected, we
-        # can safely delete them.
-        if args.delete:
-            for p in plot_dirs:
-                if p in protected:
-                    continue
-                key = os.path.basename(p)
-                if not state.get(key):
-                    continue
-                if not _is_plotfile_ready(p, stable_seconds=float(args.stable_seconds)):
-                    continue
-                try:
-                    shutil.rmtree(p)
-                    if args.verbose:
-                        print(f"[gc] deleted previously-processed {key}")
-                except Exception as e:
-                    print(f"WARNING: failed to delete {p}: {e}")
 
         return processed_count
 

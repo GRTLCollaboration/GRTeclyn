@@ -29,6 +29,7 @@ TOP_K="${TOP_K:-0}"
 MIN_FTL_GEO_EVOL="${MIN_FTL_GEO_EVOL:-${MIN_OPERATIONAL_FTL:-0.0}}"
 GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
 DRY_RUN="${DRY_RUN:-0}"
+EVOLUTION_MPI_RANKS="${EVOLUTION_MPI_RANKS:-1}"
 REPLAY="${CAMPAIGNS_ROOT}/hq/replay_eval.py"
 
 # Optional space-separated KEY=VALUE pairs forwarded to replay_eval.py as
@@ -189,6 +190,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
       --name "${name}" \
       --runs-dir "${RUNS_DIR}" \
       --gpu "${GPU_ID}" \
+      --evolution-mpi-ranks "${EVOLUTION_MPI_RANKS}" \
       --n-full "${N_FULL}" \
       --l-full "${L_FULL}" \
       --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \
@@ -213,6 +215,7 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
       --name "${name}" \
       --runs-dir "${RUNS_DIR}" \
       --gpu "${GPU_ID}" \
+      --evolution-mpi-ranks "${EVOLUTION_MPI_RANKS}" \
       --n-full "${N_FULL}" \
       --l-full "${L_FULL}" \
       --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \

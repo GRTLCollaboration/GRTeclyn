@@ -97,15 +97,21 @@ def post_run_frames_enabled(*, explicit: bool | None = None) -> bool:
 def consumer_delete_plotfiles_enabled(*, frames: bool, delete_requested: bool) -> bool:
     """Whether processed plotfiles may be deleted.
 
-    Metrics-only live consumers (``frames=False``) must not delete AMR dumps
-    unless ``GRTECLYN_DELETE_WITHOUT_FRAMES=1`` — otherwise post-run frame
-    drains have nothing left to render.
+    When delete is requested, plotfiles are deleted by default (honor
+    ``--keep-last``), including metrics-only live consumers (``frames=False``).
+    HQ AMR dumps are multi-GB; keeping them without frames fills the disk.
+
+    Opt out only when a later frame drain must re-read the same dumps:
+    set ``GRTECLYN_KEEP_PLOTFILES=1``. ``frames`` is unused for the gate
+    (kept for call-site compatibility). Legacy
+    ``GRTECLYN_DELETE_WITHOUT_FRAMES`` is ignored (delete is already default).
     """
+    del frames  # call-site compatibility; delete no longer couples to frames
     if not delete_requested:
         return False
-    if frames:
-        return True
-    return _env_flag("GRTECLYN_DELETE_WITHOUT_FRAMES")
+    if _env_flag("GRTECLYN_KEEP_PLOTFILES"):
+        return False
+    return True
 
 
 def _resolve_n_points(default: int) -> int:

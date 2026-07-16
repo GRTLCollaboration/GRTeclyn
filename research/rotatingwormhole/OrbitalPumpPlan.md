@@ -44,6 +44,10 @@ perturbation.
   nonconvergent waveform systematics dominate.
 
 **⚠️ Caveats / open items.**
+- **Non-rotating (m=0/ω=0) control for the paper is still open** (A3): three
+  attempts — OOM @9.6 (ml=3), pathological kill ~13.5 (ml=3×2GPU), NaN `h11`
+  @12.34 (ml=2, thr=0.01, dt=0.02, σ=2). See § Lab journal A3. Burst attribution
+  currently rests on rotating-run **m=0 Ψ₄ dominance**, not a clean norot twin.
 - **J_z drift ~141%, Q_total drift ~116%** (both change sign) over the run.
   Decomposed 2026-07-15: ∫pump_work=0 (PD pump off); drift is **not** pump
   injection. Q_sphere retained (~5%). Do not quote global conservation.
@@ -147,15 +151,35 @@ a quiet throat — they abort without deep lapse. “Collapse anytime on command
 still in the gauge transient → throat minimal-surface proxy, not collapse. Robust
 collapse markers after support cut (t≳12).
 
-**A3 modes + non-rotating — MOSTLY DONE (norot re-run killed as pathological).**
+**A3 modes + non-rotating — PARTIAL (m-spectrum done; clean norot control still open).**
+
+**Why this control exists (paper point).** Reviewers will demand a non-spinning
+baseline next to the rotating collapse paper: same support-off trigger, same
+box/extraction, **m=0 / ω=0** ID. Goal is *not* to prove the norot case also
+makes a deep BH + GW twin — it is to show the **morphology differs without
+angular momentum** (or, if it somehow matches, that spin is not essential).
+Without that control, the claim that rotation matters for the collapse/GW story
+is circumstantial (today backed mainly by **m=0 power dominance** of the
+rotating Ψ₄). Target: cheap run to at least past support cut and through the
+headline burst window (~t=13–24), ideally t→40, with readable
+`collapse_diagnostics` / constraints — not a second production waveform paper.
+
 - Python directional / all-m: burst power **≳99.999% in m=0** (`conv_dx067`
   `psi4_mode_l2_all.dat`; headline directional beam_ratio ~1e−5).
-- Non-rotating ID: same torus \|Φ\| table, m=0, ω=0, exotic+throat1
-  (`torus_m0_om0p000_*_exotic_throat1`, Ham~0.51%, J_ADM=0, M_ADM≈−0.24).
-- `norot_m0_ramp` **attempt 1** (1×GPU): **Arena OOM** @ t≈9.6.
-- `norot_m0_ramp` **attempt 2** (MPI×2, GPUs 3+5, same L=64 / dx=0.5 / ml=3 /
-  ramp [8,10] / detectors 12/18/24 as headline) — **killed ~t=13.5 (2026-07-15
-  afternoon)** as a failed control branch, not as a clean A3 waveform twin:
+- Non-rotating ID (all attempts): same torus \|Φ\| table, m=0, ω=0, exotic+throat1
+  `runs/rotating_torus_id/torus_m0_om0p000_kappa1p00_dx0p5_L64_lam170_mu614450_exotic_throat1/initial_data.gridinit`
+  (Ham~0.51%, J_ADM=0, M_ADM≈−0.24). **No GRTresna re-solve** — reuse existing
+  m=0 gridinit; only evolution params change.
+
+**Attempt history**
+
+| # | Suffix / date | Params (vs headline) | Outcome |
+|---|---------------|----------------------|---------|
+| 1 | `norot_m0_ramp` | L=64, dx=0.5, **ml=3**, thr=0.01, dt=0.02, σ=2, ramp [8,10]→0, R_ext=12/18/24, 1×GPU | **Arena OOM** @ t≈9.6 |
+| 2 | `norot_m0_ramp` (2026-07-15) | same as headline + **MPI×2** (GPUs 3+5) | **Killed ~t=13.5** as pathological (expanding AH, no deep lapse, constraints climbing, ~80 GB/GPU) — see table below |
+| 3 | `norot_m0_ramp_ml2_thr01_proven` (2026-07-16) | **ml=2** (cap depth), thr=0.01, dt=0.02, **σ=2.0 (not bumped)**, same ramp/detectors/sponge 28–30, stop=40, 1×GPU 0, `--full-box`, `--no-frames` | **NaN in `h11` @ t=12.34** (passed old ~10.5 crash; died before ~14.5). FAB ~46 GB @ t~12; L1 already full-box by ramp; L2 ~8–9M cells |
+
+Attempt 2 snapshot (killed branch, not a waveform twin):
 
   | Quantity | Headline @ similar t | norot @ t≈13.5 |
   |----------|----------------------|----------------|
@@ -168,18 +192,31 @@ collapse markers after support cut (t≳12).
   | Level-3 cells | peak ~12.6M | **~37M** |
   | FAB / GPU | ~49 GB peak (1 GPU finished) | **~77 GB FAB/rank**, nvidia **~80 GB/GPU** (OOM edge) |
 
-  Tagging is `ChiTagger` (second derivatives of χ). Same `regrid_threshold=0.01`
-  as headline; norot’s expanding χ / AH-proxy feature tags a much larger volume
-  (~(18/9)³ volume scale) → memory, not a wrong box size. Constraints plot:
+Attempt 3 detail (`…_norot_m0_ramp_ml2_thr01_proven`):
+- **Intent:** keep proven numerics from the spinning run (thr / dt / σ) but drop
+  `max_level` 3→2 so ChiTagger cannot grow a third fine layer (OOM fix), without
+  masking physics via extra KO dissipation.
+- **Memory vs spin at t≈9.5:** headline ml=3 ~**15 GB** FAB (L1 ~0.59M cells);
+  norot ml=2 ~**33.5 GB** (L1 = full 2.1M box, L2 ~7.9M) — same tagger, larger
+  tagged *volume* because non-rotating matter / χ feature spreads.
+- **Crash:** diagnostics healthy until t≈12.32 (lapse≈0.992, χ≈0.215, \|K\|≈1.2);
+  then \|K\|→10⁵⁹ and floors in one step; abort `NaN in GRAMRLevel::post_timestep`
+  (`h11`, level 2). Still **no** headline deep-lapse morphology (min_a stayed ~0.99
+  until the NaN step).
+
+  Tagging is `ChiTagger` (second derivatives of χ, **no radial cutoff**). Same
+  `regrid_threshold=0.01` as headline; norot’s expanding χ / AH-proxy feature
+  tags a much larger volume → memory + under-resolved blowup, not a wrong box
+  size. Attempt-2 constraints plot:
   `…/norot_m0_ramp/output/plots/constraints_plot.png` (via `plot_diagnostic.sh`).
 
-  **Lab verdict:** this m=0 / ω=0 ID + support ramp does **not** reproduce the
-  headline deep-collapse morphology. It is an expanding tagged region with
-  runaway AH proxy, constraint growth, and charge loss — not a usable GW
-  rotation-vs-geometry twin. A3 attribution for the burst still rests on the
-  **m=0 power dominance** of the rotating runs; a clean non-rotating waveform
-  compare remains open (would need a different ID / ml / tagging strategy, not
-  more GPUs on this same trajectory).
+  **Lab verdict (unchanged after attempt 3):** this m=0 / ω=0 ID + support ramp
+  does **not** reproduce the headline deep-collapse morphology and has not yet
+  yielded a clean t→40 control. Expanding tagged region / NaN on fine level —
+  not a usable GW rotation-vs-geometry twin. A3 attribution for the burst still
+  rests on **m=0 power dominance** of the rotating runs. Next retry needs a
+  **different** strategy (tighter thr / radial tag limit / better-matched ID),
+  not more GPUs or σ bumps on the same trajectory.
 
 **A4 ADM — DONE.** On exotic_throat1 gridinit, R∈{16,20,24,28}:
 **M_ADM = 0.209 ± 0.001**, **J_ADM_z ≈ −1.93** (volume J_z(t=0)≈−1.47, same sign).
@@ -242,11 +279,13 @@ Mom similarly elevated. No Θ/Z_i or L∞ columns in `constraint_norms.dat`.
 |--------|-------|----------|-------|
 | `conv_dx040` | MPI×2, ml=3 | **DONE t=40** | fine ladder rung |
 | `bigbox_L128_ml2` | MPI×2, L=128, ml=2, R_ext=36/48 | **DONE t=80** | intermediate-zone check; ml=3 MPI L128 deadlocks at init |
+| `norot_m0_ramp_ml2_thr01_proven` | 1×GPU, ml=2, thr=0.01, dt=0.02, σ=2, ramp [8,10] | **NaN t=12.34** | cheap A3 control; passed ~10.5, died on `h11` |
 
 Finished: `torus_wh_collapse_ml3_gw`, `rerun_allm`, `conv_dx067`,
 `conv_dx040`, `bigbox_L128_ml2`. No simulations remain running.
 Killed / pruned: NaN arms (`noramp_ctrl`, `ramp_t16`, `torus_wh_control_ml3`);
-paused incomplete `conv_dx033` (bonus rung); **norot_m0_ramp** (pathological).
+paused incomplete `conv_dx033` (bonus rung); **norot_m0_ramp** (pathological);
+**norot_m0_ramp_ml2_thr01_proven** (NaN @ 12.34).
 
 ### Results summary (lab, not paper prose)
 
@@ -260,14 +299,19 @@ paused incomplete `conv_dx033` (bonus rung); **norot_m0_ramp** (pathological).
    the drift was wrong for this headline config.
 6. **Richardson convergence is quantity-dependent**, not a single order: selected
    geometry/Mom measures converge; Ham maximum and the burst waveform do not.
-7. **Non-rotating control (same torus, m=0/ω=0, same ramp): pathological** —
-   expanding AH proxy / χ tagging, Mom constraint ~2000× growth, no deep lapse;
-   killed at t≈13.5. Not a successful A3 waveform twin.
+7. **Non-rotating control (same torus, m=0/ω=0, same ramp): still open / failing** —
+   attempt 2 pathological (killed ~13.5); attempt 3 (ml=2, proven thr/dt/σ)
+   **NaN @ t=12.34** after passing the prior ~10.5 failure. Memory ≫ spinning
+   twin at same t because ChiTagger fills volume. Not a successful A3 waveform
+   twin; paper still needs a different cheap-control strategy or honest
+   “control attempted, morphology incompatible / unresolved” wording.
 
 ### Open follow-ups
 
-- A3 norot: only retry with a **different** setup (e.g. ml≤2, tighter tagging,
-  or a better-matched ID) — do **not** burn more GPUs on the same trajectory.
+- A3 norot: **ml=2 + proven thr/dt/σ already tried** and NaN’d @ 12.34. Next
+  options: raise `regrid_threshold` (tag less volume), add a radial tag cutoff,
+  or a better-matched ID — do **not** bump σ or burn more GPUs on the same
+  ml=2/thr=0.01 trajectory.
 - For precision radiation: obtain true wave-zone/CCE extraction and a complete
   coarse burst record; do not infer a waveform Richardson order from this ladder.
 - Add a production AH finder before quoting horizon mass or spin.

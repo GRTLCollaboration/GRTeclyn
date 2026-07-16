@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import signal
 import subprocess
 import sys
@@ -27,9 +28,38 @@ class RunResult:
     elapsed_seconds: float
 
 
-def build_command(executable: ExecutableConfig, params_path: Path, *extra_args: str) -> list[str]:
+def build_command(
+    executable: ExecutableConfig,
+    params_path: Path,
+    *extra_args: str,
+    cuda_devices: str | None = None,
+) -> list[str]:
     base = [str(executable.path), str(params_path), *extra_args]
     if executable.uses_mpi:
+        gpu_ids = [
+            token.strip()
+            for token in (cuda_devices or "").split(",")
+            if token.strip()
+        ]
+        if gpu_ids:
+            if len(gpu_ids) != executable.mpi_ranks:
+                raise ValueError(
+                    f"MPI ranks ({executable.mpi_ranks}) must match explicit "
+                    f"GPU ids ({len(gpu_ids)}): {cuda_devices}"
+                )
+            wrapper = (
+                'IFS="," read -ra _gpus <<< "${GRTECLYN_GPU_IDS}"; '
+                'export CUDA_VISIBLE_DEVICES="${_gpus[${OMPI_COMM_WORLD_LOCAL_RANK:-0}]}"; '
+                f"exec {shlex.join(base)}"
+            )
+            return [
+                "mpirun",
+                "-n",
+                str(executable.mpi_ranks),
+                "bash",
+                "-c",
+                wrapper,
+            ]
         return ["mpirun", "-n", str(executable.mpi_ranks), *base]
     return base
 
@@ -270,7 +300,17 @@ def run_episode(
             f"Executable not found: {executable.path}. Build {executable.example.name} first."
         )
 
-    env = _merged_env(cuda_devices=cuda_devices, extra_env=extra_env)
+    explicit_mpi_gpus = (
+        executable.uses_mpi
+        and cuda_devices is not None
+        and bool(cuda_devices.strip())
+    )
+    env = _merged_env(
+        cuda_devices=None if explicit_mpi_gpus else cuda_devices,
+        extra_env=extra_env,
+    )
+    if explicit_mpi_gpus:
+        env["GRTECLYN_GPU_IDS"] = cuda_devices
     if consumer_evolving_geodesic:
         env["GRTECLYN_EVOLVING_GEODESIC"] = "1"
     update_metadata(
@@ -284,7 +324,12 @@ def run_episode(
     )
 
     if check_params:
-        check_command = build_command(executable, episode.params_path, "check_params=1")
+        check_command = build_command(
+            executable,
+            episode.params_path,
+            "check_params=1",
+            cuda_devices=cuda_devices,
+        )
         check_result = _run_and_tee(check_command, episode.log_path, cwd=example_dir, env=env)
         if check_result.returncode != 0:
             update_metadata(episode, {"check_params_exit_code": check_result.returncode})
@@ -309,7 +354,11 @@ def run_episode(
         )
 
     try:
-        command = build_command(executable, episode.params_path)
+        command = build_command(
+            executable,
+            episode.params_path,
+            cuda_devices=cuda_devices,
+        )
         stop_sim_path = None
         if os.environ.get("GRTECLYN_SPLASH_EARLY_TERM", "").strip().lower() in {
             "1",
