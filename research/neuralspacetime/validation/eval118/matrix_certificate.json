@@ -1,0 +1,69 @@
+{
+  "campaign": "eval118_validation",
+  "created_at": "2026-07-16T23:20:01.786913+00:00",
+  "phase": "matrix_gate",
+  "runs": {
+    "RC": {
+      "f_geo": 0.19634592833289294,
+      "f_geo_pct": 19.63,
+      "N": 192,
+      "L": 128
+    },
+    "RM": {
+      "f_geo": 0.17383384475433386,
+      "f_geo_pct": 17.38,
+      "N": 256,
+      "L": 128
+    },
+    "RF": {
+      "f_geo": 0.18378855028088206,
+      "f_geo_pct": 18.38,
+      "N": 384,
+      "L": 128
+    },
+    "DS": {
+      "f_geo": 0.1727385905059366,
+      "f_geo_pct": 17.27,
+      "N": 192,
+      "L": 96
+    },
+    "DL": {
+      "f_geo": 0.17446127496152466,
+      "f_geo_pct": 17.45,
+      "N": 320,
+      "L": 160
+    }
+  },
+  "acceptance": {
+    "all_complete": true,
+    "f_geo_positive": true,
+    "h_quality_ok": true,
+    "n_rays_ok": true,
+    "fine_vs_medium_rel": 0.054163904722761745,
+    "fine_vs_medium_pass": true,
+    "domain_l160_vs_l128_rel": 0.0035963866899928172,
+    "domain_pass": true,
+    "richardson_f_geo": {
+      "coarse": 0.19634592833289294,
+      "medium": 0.17383384475433386,
+      "fine": 0.18378855028088206,
+      "order": null,
+      "continuum": null,
+      "gci_fine_percent": null,
+      "status": "rejected_extrapolation",
+      "reason": "non_monotonic_or_zero_dmf"
+    },
+    "domain_l96_vs_l128_rel": 0.006300581166717588
+  },
+  "verdict": "PASS",
+  "notes": [
+    "Fine vs medium |\u0394f_geo|/max = 5.4% \u2264 10% tol \u2192 pass",
+    "Domain L160 vs L128 |\u0394f_geo|/max = 0.36% \u2264 10% tol \u2192 pass",
+    "Richardson extrapolation rejected (non-monotonic RC\u2192RM\u2192RF); acceptance uses relative tol, not continuum estimate",
+    "Phase-5 E118-GW is unblocked"
+  ],
+  "artifacts": {
+    "resolution_ladder": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/research/neuralspacetime/validation/eval118/resolution_ladder.json",
+    "domain_ladder": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/research/neuralspacetime/validation/eval118/domain_ladder.json"
+  }
+}

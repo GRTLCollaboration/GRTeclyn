@@ -1,0 +1,266 @@
+\documentclass[twocolumn,aps,prd,nofootinbib,natbib]{revtex4-2}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{textcase}
+\graphicspath{{figures/}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+\urlstyle{same}
+
+\begin{document}
+
+\title{\MakeTextUppercase{Matter-First Discovery and Numerical Validation of a
+Transient Null-Geodesic Shortcut}}
+
+\author{\MakeTextUppercase{Nikita M. Shirokov}}
+\email{shirokov.nm@phystech.edu}
+\affiliation{\textit{Independent Researcher, Moscow, Russia}}
+\date{\today}
+
+\begin{abstract}
+We use a matter-first numerical-relativity pipeline to search for transient
+spacetimes that shorten null travel times relative to flat space between fixed
+endpoints. MAP-Elites proposes five-lump complex-scalar configurations,
+\texttt{GRTresna} solves the Einstein constraints, and \texttt{GRTeclyn} evolves
+the resulting data. The principal candidate, \texttt{eval\,118}, is a breathing,
+retrograde shell containing predominantly exotic scalar matter. In a production
+replay with domain size $L=128$, base resolution $N=256$, three refinement
+levels, and final time $t=30$, an evolving four-dimensional null-geodesic sweep
+finds a peak shortcut
+$f_{\rm geo}=17.38\%$ at emission time $t_{\rm emit}=8$, with all five rays
+reaching the receiver and maximum relative null-Hamiltonian drift
+$1.69\times10^{-3}$. The signal remains positive in five completed validation
+runs: $17.27$--$19.63\%$ across $N=192,256,384$ and $L=96,128,160$.
+The fine--medium difference is $5.4\%$, while changing $L=128$ to $160$
+changes the result by $0.36\%$. The resolution sequence is non-monotonic, so
+Richardson extrapolation and a continuum value are not claimed. Constraint
+norms remain bounded, but the matter disperses to about $25\%$ confinement by
+$t=30$. The result is therefore a numerically robust transient null shortcut
+supported by exotic matter, not a stable or practical warp drive.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Warp geometries are commonly studied by prescribing a metric and inferring the
+stress tensor required to support it~\cite{alcubierre94,bobrick21}. That approach
+does not by itself show that compatible initial data exist or that the geometry
+survives dynamical evolution. We instead search over matter configurations,
+solve the constraints, evolve the complete Einstein--matter system, and test
+transport with null rays in the time-dependent metric.
+
+Here ``shortcut'' means earlier arrival than a flat-space ray connecting the
+same asymptotic endpoints. No material object or light ray moves outside its
+local null cone. The central result is not a large coordinate light speed but a
+repeatable travel-time advantage measured by an evolving four-dimensional
+geodesic tracer.
+
+\section{Method}
+
+\subsection{Matter-first search}
+
+The search campaign \texttt{qball\_traj\_spiral\_v2} used MAP-Elites
+quality-diversity optimization~\cite{mouret15} over a 39-parameter family of five
+complex-scalar lumps. Each candidate specifies radii, phases, tilts, radial and
+azimuthal motion, exotic signs, breathing, and vertical oscillation.
+\texttt{GRTresna} constructs constraint-solved initial data; candidates failing
+the post-load Hamiltonian or momentum gate are rejected before evolution.
+Of 200 attempted candidates, 133 completed GPU evolution and nine occupied the
+$8\times8$ behavior archive. Candidate \texttt{eval\,118} had the largest
+search score, $603.39$.
+
+The scalar seed uses mass $m=1$, quartic coupling $\lambda=640$, parameter
+$\mu=85333$, frequency $\omega=0.8$, and an $m=1$ ODE profile. Four lumps have
+exotic fractions $0.75$--$0.91$ and one has $0.32$. All rotate retrograde, with
+$\omega_{\rm rot}=-0.04$ to $-0.15$, while a collective breathing mode and
+vertical oscillation drive the shell. These parameters define an engineered
+initial-data family rather than a stationary boson-star solution.
+
+\subsection{Evolution and validation matrix}
+
+We evolve the CCZ4 system with \texttt{GRTeclyn}~\cite{grteclyn,grchombo}.
+The headline run (RM) uses $L=128$, $N=256$, base spacing $h=0.5$, three
+refinement levels, and $t_{\rm stop}=30$. Resolution runs use the same domain
+with $N=192$ (RC), $256$ (RM), and $384$ (RF). Domain runs use matched
+$h=0.5$ with $(L,N)=(96,192)$ (DS), $(128,256)$ (RM), and $(160,320)$ (DL).
+All five simulations completed with exit code zero.
+
+\subsection{Evolving null-geodesic diagnostic}
+
+Null rays obey
+\begin{equation}
+ \dot x^\mu=g^{\mu\nu}k_\nu,\qquad
+ \dot k_\mu=-\frac{1}{2}\partial_\mu g^{\alpha\beta}k_\alpha k_\beta .
+\end{equation}
+They are integrated through an interpolated stack of evolved metric slices.
+For each emission time we define
+\begin{equation}
+ f_{\rm geo}=\max\left(0,
+ \frac{t_{\rm flat}-\Delta t_{\rm curved}}{t_{\rm flat}}\right).
+\end{equation}
+Seven launches at $t_{\rm emit}=0,2,\ldots,12$ use five rays each. A result is
+accepted only when all rays reach the receiver and the relative null-Hamiltonian
+drift remains below $10^{-2}$. Frozen-slice geodesics are retained as
+diagnostics but are not the transport certificate.
+
+\section{Results}
+
+\subsection{Null-shortcut certificate}
+
+The RM sweep gives $f_{\rm geo}=12.12,15.13,16.65,13.81,17.38,13.84,$ and
+$14.69\%$ for successive emission times. The maximum occurs at
+$t_{\rm emit}=8$; all $5/5$ rays arrive and the maximum relative Hamiltonian
+drift is $1.69\times10^{-3}$. The corresponding effective endpoint speed is
+$c/(1-f_{\rm geo})\simeq1.21c$, although every ray remains locally null.
+
+\begin{figure*}[tp]
+\centering
+\includegraphics[width=0.94\textwidth]{fig_fgeo_validation.png}
+\caption{\textbf{(a)} Evolving four-dimensional null-shortcut sweeps for the
+resolution and domain matrix. Every launch shown has $5/5$ rays reaching the
+receiver with acceptable null-Hamiltonian drift. \textbf{(b)} Peak value in
+each run. The effect remains positive across all tested discretizations and
+domains; the coarse resolution is visibly outside a monotonic convergence
+sequence.}
+\label{fig:fgeo_validation}
+\end{figure*}
+
+The validation values are
+\[
+\begin{array}{lcccc}
+\text{run} & L & N & h & f_{\rm geo}^{\rm peak}\\
+\hline
+\mathrm{RC} &128&192&0.667&19.63\%\\
+\mathrm{RM} &128&256&0.500&17.38\%\\
+\mathrm{RF} &128&384&0.333&18.38\%\\
+\mathrm{DS} & 96&192&0.500&17.27\%\\
+\mathrm{DL} &160&320&0.500&17.45\%
+\end{array}
+\]
+RF differs from RM by $5.4\%$ relative, below the predeclared $10\%$
+acceptance tolerance. DL differs from RM by $0.36\%$, and DS by $0.63\%$.
+The domain dependence is therefore small over $L=96$--$160$.
+
+\subsection{Resolution behavior and constraints}
+
+For a controlled Richardson estimate one would require
+\begin{equation}
+ Q(h)=Q_0+Ch^p
+\end{equation}
+with a consistent sign of successive differences. The resolution sequence
+$19.63\%\rightarrow17.38\%\rightarrow18.38\%$ is non-monotonic; consequently
+no positive order $p$, continuum value, or grid-convergence index is reported.
+The evidence supports robustness within a finite-resolution band, not
+asymptotic convergence.
+
+In RM, the volume-weighted norms remain below
+\[
+ \|\mathcal H\|_2=5.31\times10^{-3},\qquad
+ \|\mathcal M\|_2=7.48\times10^{-4}
+\]
+through $t=30$ (Fig.~\ref{fig:constraints}). Across RC, RM, and RF the maxima
+are $5.335,5.313,5.317\times10^{-3}$ and
+$7.497,7.478,7.478\times10^{-4}$, respectively. These are bounded and nearly
+resolution-independent, but also non-monotonic or plateaued; they do not
+justify Richardson extrapolation.
+
+\begin{figure}[htp]
+\centering
+\includegraphics[width=\linewidth]{fig_constraints.png}
+\caption{Volume-weighted Hamiltonian and momentum constraint norms for the
+headline RM run. Both remain bounded through the validated transport window.}
+\label{fig:constraints}
+\end{figure}
+
+\subsection{Matter persistence and preliminary curvature signal}
+
+The numerical evolution survives, but the matter structure does not remain
+compact. At $t=30$ the RM confinement fraction is $25.6\%$ and its rms spread
+has grown by a factor $2.76$. The corresponding values across the five-run
+matrix are $23$--$26\%$. The shortcut is therefore transient and cannot be
+interpreted as a durable transport corridor.
+
+Post-processed spherical extraction finds an $\ell=2,m=0$ curvature signal at
+$R_{\rm ext}=12,18,24$, with peak
+$|r\Psi_4^{2,0}|\simeq2.05\times10^{-2}$ at the innermost radius
+(Fig.~\ref{fig:psi4}). The RM record contains only 22 samples. It is sufficient
+to confirm that extraction is active, but not to support a spectral,
+quasinormal-mode, energy, or detector claim. A dedicated $L=160$, $t=80$ run
+with denser output and radii $24,36,48$ is reserved for that analysis.
+
+\begin{figure*}[tp]
+\centering
+\includegraphics[width=0.88\textwidth]{fig_psi4_preliminary.png}
+\caption{Preliminary post-processed $\ell=2,m=0$ curvature mode from the RM
+validation run, shown in extraction and retarded time. Sparse cadence and
+near/intermediate extraction radii preclude a quantitative waveform claim.}
+\label{fig:psi4}
+\end{figure*}
+
+\section{Discussion}
+
+The five-run matrix removes the strongest single-resolution and small-domain
+objections to the eval-118 shortcut. Its peak remains between $17.27\%$ and
+$19.63\%$, the fine--medium discrepancy is modest, and the domain dependence
+is below one percent. Constraint norms remain bounded and every geodesic trace
+passes the ray-completion and null-Hamiltonian gates.
+
+Three limitations define the claim. First, the matter is predominantly exotic,
+so the construction does not provide a conventional material source. Second,
+confinement falls to roughly one quarter by $t=30$; the geometry is a transient
+precursor, not a stable bubble. Third, the resolution sequence is not
+monotonic. Agreement under refinement is useful evidence, but it is not a
+continuum extrapolation. The preliminary $\Psi_4$ samples likewise do not yet
+establish a gravitational-wave spectrum.
+
+\section{Conclusion}
+
+A matter-first MAP-Elites search identified eval 118, a five-lump exotic
+complex-scalar shell producing an evolving null-geodesic shortcut. Production
+validation gives $f_{\rm geo}=17.38\%$ in the baseline run and
+$17.27$--$19.63\%$ over five resolution/domain tests, with all rays completing
+and acceptable null-Hamiltonian drift. The effect is numerically robust over
+the tested matrix but not Richardson-convergent, and the supporting matter
+disperses. The result is a reproducible transient spacetime shortcut, not a
+functional warp drive.
+
+\section{Code and Data Availability}
+
+The project repository contains the search configuration, frozen eval-118
+provenance, five run summaries, geodesic sweeps, constraint histories, and
+post-processed curvature modes. This manuscript directory contains only the
+figures used in the paper.
+
+\section{Acknowledgements}
+
+The author thanks Ilya Nachevsky for providing high-performance computing
+resources and acknowledges the GRTL collaboration for \texttt{GRChombo} and
+\texttt{GRTeclyn}.
+
+\begin{thebibliography}{99}
+\bibitem{alcubierre94} M.~Alcubierre,
+\textit{Class.\ Quantum Grav.}\ \textbf{11}, L73 (1994).
+\bibitem{bobrick21} A.~Bobrick and G.~Martire,
+\textit{Class.\ Quantum Grav.}\ \textbf{38}, 105009 (2021).
+\bibitem{mouret15} J.-B.~Mouret and J.~Clune,
+arXiv:1504.04909 (2015).
+\bibitem{grteclyn} GRTL Collaboration, \texttt{GRTeclyn}: a GPU-accelerated,
+AMReX-based numerical-relativity code,
+\url{https://github.com/GRTLCollaboration/GRTeclyn}.
+\bibitem{grchombo} T.~Andrade \textit{et al.},
+\textit{J.\ Open Source Softw.}\ \textbf{6}, 3703 (2021).
+\end{thebibliography}
+
+\end{document}

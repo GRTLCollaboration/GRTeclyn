@@ -1,0 +1,274 @@
+{
+  "summaries": {
+    "coarse": {
+      "path": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/e118_rc_L128_N192_t30_hq_eval000118",
+      "exists": true,
+      "git_commit": "8cb26b616dfaca4b1d5317b4cb84692864346111",
+      "simulation_exit_code": 0,
+      "L_full": 128.0,
+      "N_full": 192,
+      "h": 0.6666666666666666,
+      "stop_time": 30.0,
+      "max_level": 3,
+      "f_geo": 0.19634592833289294,
+      "f_geo_frozen_peak": 0.17477852411723707,
+      "t_emit": 8.0,
+      "n_rays": 5,
+      "n_reached": 5,
+      "h_quality_ok": true,
+      "max_h_rel_drift": 0.0018419374595884158,
+      "emit_sweep": [
+        [
+          0.0,
+          0.1302122842373524,
+          5
+        ],
+        [
+          2.0,
+          0.14608300515282138,
+          5
+        ],
+        [
+          4.0,
+          0.1781270436389477,
+          5
+        ],
+        [
+          6.0,
+          0.1916194728299839,
+          5
+        ],
+        [
+          8.0,
+          0.19634592833289294,
+          5
+        ],
+        [
+          10.0,
+          0.14361262347144838,
+          5
+        ],
+        [
+          12.0,
+          0.1564845425383376,
+          5
+        ]
+      ],
+      "emit_sweep_n": 7,
+      "score_total": 278.3205061797291,
+      "structural_persistence": 0.23032385891928908,
+      "confinement_final_frac": 0.2657137572467775,
+      "confinement_spread_ratio": 2.6876741275367486,
+      "numerical_survival": 1.0,
+      "exotic_penalty": -1.6,
+      "ftl_geo_evolving": 0.22609461325529037,
+      "ham_max": 0.0053348145228,
+      "mom_max": 0.00074968982585,
+      "psi4": {
+        "present": true,
+        "n_rows": 17,
+        "peak_abs_rpsi4_first_radius": 0.020694290736434133
+      },
+      "completeness": {
+        "geodesic": true,
+        "emit_sweep": true,
+        "score": true,
+        "constraints": true,
+        "psi4_l2m0": true,
+        "psi4_l2_all": true,
+        "psi4_directional": true
+      },
+      "trusted_time_source": 45.25483399593904,
+      "trusted_time_r24": 28.2842712474619
+    },
+    "medium": {
+      "path": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/e118_rm_L128_N256_t30_hq_eval000118",
+      "exists": true,
+      "git_commit": "8cb26b616dfaca4b1d5317b4cb84692864346111",
+      "simulation_exit_code": 0,
+      "L_full": 128.0,
+      "N_full": 256,
+      "h": 0.5,
+      "stop_time": 30.0,
+      "max_level": 3,
+      "f_geo": 0.17383384475433386,
+      "f_geo_frozen_peak": 0.19718040483562568,
+      "t_emit": 8.0,
+      "n_rays": 5,
+      "n_reached": 5,
+      "h_quality_ok": true,
+      "max_h_rel_drift": 0.0016897568949171976,
+      "emit_sweep": [
+        [
+          0.0,
+          0.12120665379302967,
+          5
+        ],
+        [
+          2.0,
+          0.15129319271111613,
+          5
+        ],
+        [
+          4.0,
+          0.16646690286856594,
+          5
+        ],
+        [
+          6.0,
+          0.13805944844173357,
+          5
+        ],
+        [
+          8.0,
+          0.17383384475433386,
+          5
+        ],
+        [
+          10.0,
+          0.13844982088738148,
+          5
+        ],
+        [
+          12.0,
+          0.14691516155199327,
+          5
+        ]
+      ],
+      "emit_sweep_n": 7,
+      "score_total": 334.9230862595788,
+      "structural_persistence": 0.255984061453061,
+      "confinement_final_frac": 0.255984061453061,
+      "confinement_spread_ratio": 2.75910646716311,
+      "numerical_survival": 1.0,
+      "exotic_penalty": -1.6,
+      "ftl_geo_evolving": 0.2223251735515689,
+      "ham_max": 0.0053128407715,
+      "mom_max": 0.00074776287071,
+      "psi4": {
+        "present": true,
+        "n_rows": 22,
+        "peak_abs_rpsi4_first_radius": 0.020514389186647355
+      },
+      "completeness": {
+        "geodesic": true,
+        "emit_sweep": true,
+        "score": true,
+        "constraints": true,
+        "psi4_l2m0": true,
+        "psi4_l2_all": true,
+        "psi4_directional": true
+      },
+      "trusted_time_source": 45.25483399593904,
+      "trusted_time_r24": 28.2842712474619
+    },
+    "fine": {
+      "path": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/e118_rf_L128_N384_t30_hq_eval000118",
+      "exists": true,
+      "git_commit": "2886595591839c8ca3bd984c11a6613a4621210c",
+      "simulation_exit_code": 0,
+      "L_full": 128.0,
+      "N_full": 384,
+      "h": 0.3333333333333333,
+      "stop_time": 30.0,
+      "max_level": 3,
+      "f_geo": 0.18378855028088206,
+      "f_geo_frozen_peak": 0.19862819290143272,
+      "t_emit": 8.0,
+      "n_rays": 5,
+      "n_reached": 5,
+      "h_quality_ok": true,
+      "max_h_rel_drift": 0.004131573009207422,
+      "emit_sweep": [
+        [
+          0.0,
+          0.11649475742132803,
+          5
+        ],
+        [
+          2.0,
+          0.13999268547183025,
+          5
+        ],
+        [
+          4.0,
+          0.1708225505226532,
+          5
+        ],
+        [
+          6.0,
+          0.15459368378652602,
+          5
+        ],
+        [
+          8.0,
+          0.18378855028088206,
+          5
+        ],
+        [
+          10.0,
+          0.13522485726959127,
+          5
+        ],
+        [
+          12.0,
+          0.13915145013371502,
+          5
+        ]
+      ],
+      "emit_sweep_n": 7,
+      "score_total": 339.3781718727712,
+      "structural_persistence": 0.24942116634120265,
+      "confinement_final_frac": 0.24942116634120265,
+      "confinement_spread_ratio": 2.810938406967707,
+      "numerical_survival": 1.0,
+      "exotic_penalty": -1.6,
+      "ftl_geo_evolving": 0.22910217791394555,
+      "ham_max": 0.0053173503718,
+      "mom_max": 0.0007477892186,
+      "psi4": {
+        "present": true,
+        "n_rows": 33,
+        "peak_abs_rpsi4_first_radius": 0.021307726870996416
+      },
+      "completeness": {
+        "geodesic": true,
+        "emit_sweep": true,
+        "score": true,
+        "constraints": true,
+        "psi4_l2m0": true,
+        "psi4_l2_all": true,
+        "psi4_directional": true
+      },
+      "trusted_time_source": 45.25483399593904,
+      "trusted_time_r24": 28.2842712474619
+    }
+  },
+  "spacings": {
+    "coarse": 0.6666666666666666,
+    "medium": 0.5,
+    "fine": 0.3333333333333333
+  },
+  "f_geo": {
+    "coarse": 0.19634592833289294,
+    "medium": 0.17383384475433386,
+    "fine": 0.18378855028088206
+  },
+  "richardson_f_geo": {
+    "coarse": 0.19634592833289294,
+    "medium": 0.17383384475433386,
+    "fine": 0.18378855028088206,
+    "order": null,
+    "continuum": null,
+    "gci_fine_percent": null,
+    "status": "rejected_extrapolation",
+    "reason": "non_monotonic_or_zero_dmf"
+  },
+  "fine_vs_medium_rel": 0.054163904722761745,
+  "pass_rel_tol": true,
+  "missing": {
+    "coarse": [],
+    "medium": [],
+    "fine": []
+  }
+}
