@@ -12,7 +12,25 @@
 enum
 {
     c_d1,
+    c_d1_v1,
+    c_d1_v2,
+    c_d1_v3,
+    c_d1_t11,
+    c_d1_t12,
+    c_d1_t13,
+    c_d1_t22,
+    c_d1_t23,
+    c_d1_t33,
     c_d2,
+    c_d2_v1,
+    c_d2_v2,
+    c_d2_v3,
+    c_d2_t11,
+    c_d2_t12,
+    c_d2_t13,
+    c_d2_t22,
+    c_d2_t23,
+    c_d2_t33,
     c_d2_mixed,
     c_diss,
     c_advec_up,
@@ -36,12 +54,22 @@ template <class deriv_t> class DerivativeTestsCompute
     operator()(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &out,
                const amrex::Array4<amrex::Real const> &in) const
     {
-        TensorArray::Rank1 out_d1 = m_deriv.diff1_scalar(ix, iy, iz, in, c_d1);
-        TensorArray::Rank1Sym out_d2 =
-            m_deriv.diff2_scalar(ix, iy, iz, in, c_d2);
+        Tensor::Rank1 out_d1 = m_deriv.d1_scalar(ix, iy, iz, in, c_d1);
 
-        TensorArray::Rank1 shift_up   = {2., 0., 3.};
-        TensorArray::Rank1 shift_down = {-2., 0., -3.};
+        Tensor::Rank2 out_d1_v = m_deriv.d1_vector(ix, iy, iz, in, c_d1_v1);
+
+        Tensor::Rank3 out_d1_t = m_deriv.d1_tensor(ix, iy, iz, in, c_d1_t11);
+
+        Tensor::Sym12Rank2 out_d2 = m_deriv.d2_scalar(ix, iy, iz, in, c_d2);
+
+        Tensor::Sym23Rank3 out_d2_v =
+            m_deriv.d2_vector(ix, iy, iz, in, c_d2_v1);
+
+        Tensor::Sym12Sym34Rank4 out_d2_t =
+            m_deriv.d2_tensor(ix, iy, iz, in, c_d2_t11);
+
+        Tensor::Rank1 shift_up   = {2., 0., 3.};
+        Tensor::Rank1 shift_down = {-2., 0., -3.};
 
         const amrex::Real out_advec_down =
             m_deriv.advection(ix, iy, iz, in, shift_down, c_advec_down);
@@ -56,8 +84,12 @@ template <class deriv_t> class DerivativeTestsCompute
         const auto out_cell_data = out.cellData(ix, iy, iz);
 
         out_cell_data[c_d1]         = out_d1(2);
-        out_cell_data[c_d2]         = out_d2(VAR_IDX0(2, 2));
-        out_cell_data[c_d2_mixed]   = out_d2(VAR_IDX0(0, 2));
+        out_cell_data[c_d1_v3]      = out_d1_v(2, 2);
+        out_cell_data[c_d1_t33]     = out_d1_t(2, 2, 2);
+        out_cell_data[c_d2]         = out_d2(2, 2);
+        out_cell_data[c_d2_v3]      = out_d2_v(2, 2, 2);
+        out_cell_data[c_d2_t33]     = out_d2_t(2, 2, 2, 2);
+        out_cell_data[c_d2_mixed]   = out_d2(0, 2);
         out_cell_data[c_diss]       = out_diss;
         out_cell_data[c_advec_down] = out_advec_down;
         out_cell_data[c_advec_up]   = out_advec_up;

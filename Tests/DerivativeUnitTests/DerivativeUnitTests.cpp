@@ -102,12 +102,30 @@ void run_derivative_unit_tests()
                     amrex::IntVect iv(ix, iy, iz);
                     const auto &cell_data = out_c_array.cellData(ix, iy, iz);
 
-                    INFO("diff1 (fourth order) at " << iv);
+                    INFO("diff1 scalar (fourth order) at " << iv);
                     CHECK(cell_data[c_d1] == doctest::Approx(2. * x * (z - 0.5))
                                                  .epsilon(test_threshold));
 
-                    INFO("diff2 (fourth order) at " << iv);
+                    INFO("diff1 vector (fourth order) at " << iv);
+                    CHECK(cell_data[c_d1_v3] ==
+                          doctest::Approx(2. * x * (z - 0.5))
+                              .epsilon(test_threshold));
+
+                    INFO("diff1 tensor (fourth order) at " << iv);
+                    CHECK(cell_data[c_d1_t33] ==
+                          doctest::Approx(2. * x * (z - 0.5))
+                              .epsilon(test_threshold));
+
+                    INFO("diff2 scalar (fourth order) at " << iv);
                     CHECK(cell_data[c_d2] ==
+                          doctest::Approx(2. * x).epsilon(test_threshold));
+
+                    INFO("diff2 vector (fourth order) at " << iv);
+                    CHECK(cell_data[c_d2_v3] ==
+                          doctest::Approx(2. * x).epsilon(test_threshold));
+
+                    INFO("diff2 tensor (fourth order) at " << iv);
+                    CHECK(cell_data[c_d2_t33] ==
                           doctest::Approx(2. * x).epsilon(test_threshold));
 
                     INFO("mixed diff2 (fourth order) at " << iv);
