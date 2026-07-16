@@ -167,7 +167,7 @@ ScalarField<potential_t, deriv_t>::add_matter_rhs(
         // includes non conformal parts of chris not included in chris_ULL
         rhs_cell_data[c_Pi] +=
             h_UU(i, j) * (-0.5 * d1_chi(j) * vars.lapse() * d1_phi(i) +
-                          vars.chi() * vars.lapse() * d2_phi(VAR_IDX0(i, j)) +
+                          vars.chi() * vars.lapse() * d2_phi(i, j) +
                           vars.chi() * d1_lapse(i) * d1_phi(j));
         FOR (k)
         {

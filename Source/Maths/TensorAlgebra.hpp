@@ -227,12 +227,12 @@ compute_trace(const TensorArray::Rank2 &tensor_LL,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace(const Tensor::Rank2 &tensor_LL,
-              const Tensor::Sym12Rank2 &inverse_metric_sym)
+              const Tensor::Sym12Rank2 &sym_inverse_metric)
 {
     amrex::Real trace = 0.;
     FOR (i, j)
     {
-        trace += inverse_metric_sym(VAR_IDX0(i, j)) * tensor_LL(i, j);
+        trace += sym_inverse_metric(i, j) * tensor_LL(i, j);
     }
     return trace;
 }
@@ -356,9 +356,9 @@ make_trace_free(TensorArray::Rank2 &tensor_LL, const TensorArray::Rank2 &metric,
 
 template <int size = AMREX_SPACEDIM>
 void make_trace_free(
-    Tensor::GeneralRank2<size - 1, size - 1> &tensor_LL,
-    const Tensor::GeneralRank2<size - 1, size - 1> &metric,
-    const Tensor::GeneralRank2<size - 1, size - 1> &inverse_metric)
+    Tensor::GeneralRank<2, size - 1, size - 1> &tensor_LL,
+    const Tensor::GeneralRank<2, size - 1, size - 1> &metric,
+    const Tensor::GeneralRank<2, size - 1, size - 1> &inverse_metric)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     auto trace                  = compute_trace(tensor_LL, inverse_metric);
@@ -386,7 +386,7 @@ make_symmetric(amrex::Array2D<amrex::Real, 0, size - 1, 0, size - 1> &tensor_LL)
 
 template <int size>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-make_symmetric(Tensor::GeneralRank2<size, size> &tensor_LL)
+make_symmetric(Tensor::GeneralRank<2, size, size> &tensor_LL)
 {
     for (int i = 0; i < size; ++i)
     {
@@ -527,12 +527,7 @@ epsilon()
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank3
 epsilon_test()
 {
-    Tensor::Rank3 epsilon{};
-
-    FOR (i, j, k)
-    {
-        epsilon(i, j, k) = 0.;
-    }
+    Tensor::Rank3 epsilon(0.);
 
     epsilon(0, 1, 2) = 1.0;
     epsilon(1, 2, 0) = 1.0;
@@ -590,15 +585,7 @@ epsilon4D()
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::SpaceTime
 epsilon4D_test()
 {
-    Tensor::SpaceTime epsilon4D{};
-
-    for (int i = 0; i < SPACETIME_DIM; ++i)
-        for (int j = 0; j < SPACETIME_DIM; ++j)
-            for (int k = 0; k < SPACETIME_DIM; ++k)
-                for (int l = 0; l < SPACETIME_DIM; ++l)
-                {
-                    epsilon4D(i, j, k, l) = 0.0;
-                }
+    Tensor::SpaceTime epsilon4D(0.);
 
     // Fortran order!
     epsilon4D(0, 1, 2, 3) = 1.0;

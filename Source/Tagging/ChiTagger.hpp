@@ -37,12 +37,11 @@ class ChiTagger
                const amrex::Array4<amrex::TagBox::TagType> &tags,
                const amrex::Array4<amrex::Real const> &state) const
     {
-        const auto d2_chi      = m_deriv.diff2_scalar(i, j, k, state, c_chi);
+        const auto d2_chi      = m_deriv.d2_scalar(i, j, k, state, c_chi);
         amrex::Real mod_d2_chi = 0;
         FOR (idir, jdir)
         {
-            int idx     = VAR_IDX0(idir, jdir);
-            mod_d2_chi += d2_chi(idx) * d2_chi(idx);
+            mod_d2_chi += d2_chi(idir, jdir) * d2_chi(idir, jdir);
         }
         amrex::Real criterion = m_dx * std::sqrt(mod_d2_chi);
 

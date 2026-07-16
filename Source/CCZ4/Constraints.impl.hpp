@@ -179,7 +179,7 @@ Constraints::constraints_t Constraints::constraint_equations(
         Tensor::Rank3 covd_A{};
         FOR (i, j, k)
         {
-            covd_A(i, j, k) = d1_A(VAR_IDX0(j, k), i);
+            covd_A(i, j, k) = d1_A(j, k, i);
             FOR (l)
             {
                 covd_A(i, j, k) += -chris.ULL(l, i, j) * vars.A(l, k) -
