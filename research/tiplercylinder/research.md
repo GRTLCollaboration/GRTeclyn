@@ -33,6 +33,24 @@ pattern, but with *rotating* lumps/columns as the ansatz):
   while gaining coordinate velocity. The payoff metric is the exit velocity of
   a timelike geodesic through the channel vs its entry velocity.
 
+  **Two hard physics constraints on Mode B (bind the objective design):**
+  1. *No net gain from a stationary source.* In a stationary, asymptotically
+     flat spacetime the timelike Killing energy E = −u_t of a free-falling
+     particle is conserved: whatever coordinate speed it gains inside, it pays
+     back on exit. Coordinate exit velocity alone is gauge-dependent. A
+     genuine net boost therefore requires **time dependence** (ramping the
+     spins, a traveling activation wave along the stack) or a Penrose-like
+     exchange of energy/angular momentum with the rotating matter — and the
+     probe must report the E and L_z budgets, not just velocities.
+  2. *Geometry matters: co-rotating stack ≠ linear channel.* A co-rotating
+     z-stack of tori drags space **azimuthally**; on the axis the dragging is
+     purely rotational (like the interior of a rotating shell), so a particle
+     dropped down the bore is spun up, not launched. The *linear* drag channel
+     comes from the **counter-rotating pair** (x = ±d), whose azimuthal drags
+     add along the mid-channel. A co-rotating stack is the natural *Mode A*
+     (Sagnac) object; the railgun arm keeps the counter-rotating geometry or
+     uses a time-dependent stack.
+
 We are not hunting time machines; CTCs appear below only as the mathematical
 extreme end of the same measurement, useful for calibrating how far up the
 ladder a configuration got.
@@ -114,11 +132,29 @@ This machinery **already exists and is validated**:
   modulation is the four-lobe dispersal pattern. Winding complex scalar is
   mandatory for any rotating profile.
 
-For the cylinder: replace the wormhole throat profile f(r,θ) with a
-**cylindrical envelope** f(ρ, z) — a column (or z-stack of tori) of winding
-field centered on the z-axis. New profile module
-`grtresna/profiles/cylinder_winding.py` + envelope painting; the GRTresna
-matter model and evolution code are reused as-is.
+For the cylinder, two profile routes, in order of preference:
+
+1. **Q-torus eigenstate stack (preferred — available since 2026-07-13).** The
+   rotating-wormhole program solved the genuine 2D spinning Q-torus eigenstate
+   Φ = f(ρ,z)e^{i(mφ−ωt)} (`grtresna/profiles/qball_torus.py`, GRTresna
+   profile 4, ID driver `scripts/wormhole/id/solve_torus.{py,sh}`) and
+   validated it in evolution: charge-retention half-life ≈ 27–28 vs 13–16 for
+   twisted painted profiles, and the t≈13.5 blow-up gone
+   ([OrbitalPumpPlan Phase 8](../rotatingwormhole/OrbitalPumpPlan.md)). Build
+   the finite column as a **z-stack of 3–5 profile-4 tori** re-solved by
+   GRTresna as one constraint solve. This is the only rotating object class
+   the pipeline has shown to both rotate and persist.
+   *Caveat (paid for elsewhere):* a stack of separately-solved eigenstates is
+   NOT an eigenstate of the combined system — expect inter-torus dynamics
+   (merger for canonical, phantom self-repulsion for exotic). Stack
+   persistence at Δz spacings is Phase 2's first experiment, not an
+   assumption.
+2. **Hand-painted envelope (fallback).** f(ρ,z) = A·sech(ρ/σ_ρ)^p·(z-window)
+   via a new `grtresna/profiles/cylinder_winding.py`, as originally planned.
+   Use only if the stacked eigenstates interact too strongly to keep their
+   structure.
+
+Either way the GRTresna matter model and evolution code are reused as-is.
 
 ### (b) SECONDARY: self-gravitating stable-branch boson star / Q-ball stack
 
@@ -140,6 +176,13 @@ Q-ball-type potentials (already in `grtresna/profiles/qball_ode.py` /
 `qball_couplings.py`) are exactly the stabilizing family. Treat "does the
 winding Q-torus hold axisymmetry" as an explicit early experiment, watched in
 the frames, not assumed.
+
+> **Update 2026-07-16: answered.** The isolated exotic profile-4 Q-torus
+> (m=1, ω=0.25) evolved cleanly to t=30 with no non-axisymmetric blow-up and
+> roughly doubled charge retention (OrbitalPumpPlan Phase 8). It still slowly
+> spreads (flat-space eigenstate + phantom self-repulsion) — a *canonical*
+> profile-4 torus, which this plan can use, may do better and has not yet been
+> evolved (needs the non-exotic complex evolution branch).
 
 ### (c) FALLBACK ONLY: boosted-lump trajectories
 
@@ -269,6 +312,12 @@ end-effect-limited.
    gauge-dependent; the geodesic integration with trust flags is the honest
    measurement. A family of drop points and initial velocities gives the
    channel's "acceleration map".
+   **Required alongside the velocities:** the quasi-conserved energy
+   E = −u_t and angular momentum L_z = u_φ along the worldline. For a
+   (quasi-)stationary configuration E must stay flat — a "boost" at constant
+   E is pure gauge and scores zero. Only E gained during a demonstrably
+   time-dependent phase (spin ramp, activation wave, matter back-reaction)
+   counts, and the source's J_z budget must show the corresponding exchange.
 
 ### Phase 4 — Campaigns (QD → CMA-ES), hard-gated from day one
 
@@ -291,7 +340,11 @@ end-effect-limited.
    (new, from the Phase 3 parser) on the 8×8 archive. Search dimensions:
    column radius σ_ρ, z-extent, amplitude A (κ-style), winding m ∈ {1,2},
    ω ∈ [0, 0.2], potential couplings (Q-ball family), phantom on/off, and for
-   the pair arm: separation d and relative winding sign.
+   the pair arm: separation d and relative winding sign. For the Q-torus
+   stack arm additionally: number of tori N_t ∈ {3..5}, inter-torus spacing
+   Δz, per-torus (ω, m), and the winding-sign pattern along the stack
+   (all-co, alternating, mirrored) — spacing and spin optimization of the
+   stack is exactly the MAP-Elites question.
 3. **Stage 0** at the standard search grid (N=128, L=64, t_stop=16),
    `scripts/campaigns/tipler_cylinder/run_qd.sh` cloned from the qball launcher
    with shared `search_common.sh`. **Stage 1** CMA-ES warm-start from archive
@@ -317,17 +370,22 @@ end-effect-limited.
 
 ## 5. First milestones (concrete, ordered)
 
-1. `cylinder_winding.py` profile + GRTresna solve of a single winding column
-   (m=1, ω=0.05, canonical-first, then phantom) to Ham/Mom < 1%; structural
-   regression tests on the gridinit.
+1. **Q-torus stack ID:** reuse `solve_torus.{py,sh}` + profile 4 to solve a
+   3-torus co-rotating z-stack (canonical-first, then phantom) to
+   Ham/Mom < 1%; structural regression tests on the gridinit (three |Φ|²
+   maxima along z, both winding channels, J_z ≠ 0). Fallback:
+   `cylinder_winding.py` envelope column as originally planned.
 2. Coarse evolution smoke (64³, t=8) via a `wormhole_case.sh`-style launcher
-   with the consumer sidecar; confirm J_z conservation and no dispersal cliff —
-   including the box-size discrimination run.
+   with the consumer sidecar; confirm J_z conservation, stack integrity
+   (tori neither merge nor fly apart), and no dispersal cliff — including the
+   box-size discrimination run.
 3. β^φ frame-dragging parser + `frame_dragging_strength` descriptor.
 4. Sagnac probe mode in the evolving-geodesic tracer, with ω=0 null test and
    small-ω linear calibration.
 5. Counter-rotating column pair ID (`GRTresnaIndependentScalars`, opposite
-   winding) + railgun probe (drop-in timelike geodesic through the channel).
+   winding) + railgun probe (drop-in timelike geodesic through the channel,
+   with the E = −u_t / L_z accounting from Phase 3 — stationary-phase "boost"
+   at constant E scores zero).
 6. `spin_ftl` and `spacetime_railgun` objectives with multiplicative gates;
    clone the QD launcher; 50-eval shakeout before any full campaign.
 
