@@ -25,6 +25,7 @@ Two physics bugs invalidated the spiral_v2 champion and its validation matrix:
 |------|--------|-------|
 | **`runs/grtresna_qd/qball_traj_bicomplex_v1/`** | **DONE — QD archive** | 200/200 evals; champion `eval_000087` score **825.2**. |
 | **`runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/`** | **FRESH — active CMA-ES** | Warm-start from QD champion; 8 GPUs; target 150. **Current work.** |
+| `runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/` | freeze snapshot | HQ/matrix source (`CHAMPION.json`); re-freeze if best moves |
 | `runs/qball_traj_bicomplex_cmaes_v1.launch.log` | live log | CMA-ES launcher log |
 | `runs/grtresna_promote/e118_bicomplex_pumpon_L64_N128_t16/` | Phase-5 diag | eval-118 genome, bicomplex, pump on |
 | `runs/grtresna_promote/e118_bicomplex_pumpoff_tstop4_L64_N128_t16/` | Phase-5 diag | same genome, igniter off after t=4 |
@@ -38,41 +39,53 @@ Sections below on spiral_v2 / eval-118 HQ are **historical** until superseded by
 ### Forward plan
 
 ```
-1. QD (NOW)     → finish qball_traj_bicomplex_v1 (~200 evals, 8 GPUs)
-2. CMA-ES       → local refinement around the bicomplex archive champion
-3. Validation   → RC/RM/RF/DS/DL (+ HQ promote) on the refined top scorer only
-4. Paper        → update research.tex / research.pdf from the new top scorer
-                  (replace eval-118 numbers; drop NO-GO claims)
+1. QD           → DONE (qball_traj_bicomplex_v1, champion eval_000087 @ 825.2)
+2. CMA-ES       → running (qball_traj_bicomplex_cmaes_v1, target 150)
+3. Validation   → HQ + RC/RM/RF/DS/DL on the CMA-ES champion only (scripts ready)
+4. Paper        → update research.tex / research.pdf from the validated champion
 ```
 
 **Diagrams:** [mapelites-campaign-stages.svg](./mapelites-campaign-stages.svg) (outer ladder),
 [mapelites-end-to-end.svg](./mapelites-end-to-end.svg) (outer + inner loop),
 [mapelites-matter-first.svg](./mapelites-matter-first.svg).
 
-Do not promote or write article numbers from spiral_v2 / eval-118. Wait for the bicomplex QD (then CMA-ES) champion.
+Do not promote or write article numbers from spiral_v2 / eval-118.
 
-### CMA-ES launch (after QD finishes) — wired
+### CMA-ES launch — wired (in flight)
 
 Launcher mirrors QD physics (bicomplex `EXTRA_SETS`, igniter `RL_PUMP_STOP_TIME=4`,
-score weights, pins). Generic `cmaes/run.sh` now forwards `EXTRA_SETS`.
+score weights, pins). Output: `runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/`.
+
+### HQ + Richardson — ready (post CMA-ES)
+
+Campaign folder (keep future promote/resolution work here, not in `hq/`):
+
+`grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/`
+
+| File | Role |
+|------|------|
+| `manifest.json` | RM/RC/RF (+ optional DS/DL/GW) |
+| `campaign.env.sh` | Physics + paths for this campaign only |
+| `freeze.sh` | Snapshot champion |
+| `run.sh` | One cell |
+| `launch.sh` | Freeze → RM; `LAUNCH_LADDER=1` → RC+RF |
+
+Shared engine: `promote/lib/` + `hq/{run_batch,replay_eval}.py`.  
+NO-GO archive: `promote/_archive/eval118/`.
 
 ```bash
 cd grteclyn-wrapper
-# Optional smoke (no GPU):
-#   DRY_RUN=1 bash scripts/campaigns/qball_trajectory/cmaes_run.sh
+P=scripts/campaigns/promote/bicomplex_cmaes_v1
 
-RUN_NAME=qball_traj_bicomplex_cmaes_v1 \
-WARM_START_TRAJECTORY=../runs/grtresna_qd/qball_traj_bicomplex_v1/trajectory.jsonl \
-WARM_START_TOP_K=1 \
-TARGET_EVALS=150 \
-GPU_IDS="0 1 2 3 4 5 6 7" \
-  nohup bash scripts/campaigns/qball_trajectory/cmaes_run.sh \
-  > ../runs/qball_traj_bicomplex_cmaes_v1.launch.log 2>&1 &
+bash $P/freeze.sh
+DRY_RUN=1 bash $P/run.sh BCMA-RM
+bash $P/launch.sh
+# LAUNCH_LADDER=1 SKIP_FREEZE=1 bash $P/launch.sh
 ```
 
-Output: `runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/`.  
-Preflight: first warm-start member score should ≈ QD champion (currently
-`eval_000087` ~825). Large mismatch ⇒ missing EXTRA_SETS / pump / geo emit.
+**Order:** RM (1 GPU) → RC (1 GPU) + RF (2 GPUs, frames on). Series = RC+RM+RF at L=128.  
+Frozen source: `runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/`.  
+New campaigns: add `scripts/campaigns/promote/<campaign_name>/` (do not dump scripts into `hq/`).
 
 ---
 

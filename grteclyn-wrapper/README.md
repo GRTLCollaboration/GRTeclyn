@@ -1131,7 +1131,7 @@ uv run python grteclyn-wrapper/scripts/campaigns/hq/replay_eval.py \
 
 # Or via the eval-118 validation launcher:
 EVOLUTION_MPI_RANKS=2 GPU_ID=4,5 FORCE=1 \
-  bash grteclyn-wrapper/scripts/campaigns/hq/run_eval118_validation.sh E118-DL
+  # eval-118 validation is NO-GO; archived under scripts/campaigns/promote/_archive/eval118/
 ```
 
 | Flag / env | Effect |

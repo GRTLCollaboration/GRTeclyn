@@ -8,19 +8,17 @@
 # Uses the MPI+CUDA RadialRecipe binary (main3d.gnu.MPI.CUDA.ex) via
 # resolve_executable preference; single-rank unless EVOLUTION_MPI_RANKS>1.
 #
-# Usage:
-#   bash scripts/campaigns/hq/run_eval118_bicomplex_diag.sh            # both
-#   bash scripts/campaigns/hq/run_eval118_bicomplex_diag.sh pump-on
-#   bash scripts/campaigns/hq/run_eval118_bicomplex_diag.sh pump-off
-#   DRY_RUN=1 bash scripts/campaigns/hq/run_eval118_bicomplex_diag.sh
+# Usage (NO-GO archive — do not use for paper numbers):
+#   bash scripts/campaigns/promote/_archive/eval118/bicomplex_diag.sh
 set -euo pipefail
 
-# NOTE: env.sh overwrites SCRIPT_DIR; keep launcher path under HQ_DIR.
-HQ_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ARCHIVE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+HQ_DIR="$(cd -- "${ARCHIVE_DIR}/../../../hq" && pwd)"
 CAMPAIGNS_ROOT="$(cd -- "${HQ_DIR}/.." && pwd)"
 SCRIPTS_ROOT="$(cd -- "${CAMPAIGNS_ROOT}/.." && pwd)"
-# shellcheck source=../../lib/env.sh
+# shellcheck source=../../../../lib/env.sh
 source "${SCRIPTS_ROOT}/lib/env.sh"
+REPLAY="${HQ_DIR}/replay_eval.py"
 
 VARIANT="${1:-both}"
 SOURCE_EVAL="${SOURCE_EVAL:-${GRTECLYN_ROOT}/runs/grtresna_qd/qball_traj_spiral_v2/eval_000118}"
@@ -41,7 +39,6 @@ if [[ ! -d "${SOURCE_EVAL}" ]]; then
   exit 2
 fi
 
-REPLAY="${HQ_DIR}/replay_eval.py"
 COMMON_ARGS=(
   "${SOURCE_EVAL}"
   --runs-dir "${RUNS_DIR}"

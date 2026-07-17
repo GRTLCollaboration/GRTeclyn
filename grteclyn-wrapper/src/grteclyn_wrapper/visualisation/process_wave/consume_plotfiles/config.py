@@ -114,6 +114,16 @@ _FIELD_FRAME_CONFIGS: Dict[str, dict] = {
 }
 
 
+def _frames_stable_movie_enabled() -> bool:
+    """Fixed colorbars across time (no per-frame percentile bounce)."""
+    return os.environ.get("GRTECLYN_FRAMES_STABLE_MOVIE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def _field_frame_config(field: str) -> dict:
     cfg = dict(_FIELD_FRAME_CONFIGS.get(field, {"zlim": (None, None), "cmap": "viridis", "label": field}))
     env_key = f"GRTECLYN_FRAMES_ZLIM_{field.upper()}"
@@ -122,4 +132,9 @@ def _field_frame_config(field: str) -> dict:
         parts = [p.strip() for p in override.split(",")]
         if len(parts) == 2:
             cfg["zlim"] = (float(parts[0]), float(parts[1]))
+            # Explicit clim must win over per_frame_zlim or movies bounce.
+            cfg.pop("per_frame_zlim", None)
+    if _frames_stable_movie_enabled():
+        cfg.pop("per_frame_zlim", None)
+        cfg.pop("auto_zlim", None)
     return cfg

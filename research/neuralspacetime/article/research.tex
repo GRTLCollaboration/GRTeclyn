@@ -167,8 +167,10 @@ near-misses, and over reinforcement learning, which would require dense
 credit assignment across expensive GPU evolutions with sparse, delayed
 rewards. After MAP-Elites identifies a high-scoring basin, CMA-ES is the
 mandatory local refiner that tunes the champion genome before any
-high-resolution replay or validation matrix; the discovery stage itself
-remains deliberately diversity-preserving.
+high-resolution replay or validation matrix. Both discovery stages run on
+a deliberately coarse GRTeclyn grid ($L$, $N$, \texttt{max\_level}) chosen
+for evaluation throughput; production claims are deferred to the later
+HQ / resolution matrix (Sec.~\ref{sec:stages}).
 
 \subsection{Methodological Rigor}
 \label{subsec:rigor}

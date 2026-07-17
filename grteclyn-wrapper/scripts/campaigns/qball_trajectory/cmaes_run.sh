@@ -31,7 +31,8 @@ export WARM_START_JITTER="${WARM_START_JITTER:-0.05}"
 export SIGMA0="${SIGMA0:-0.05}"
 export TARGET_EVALS="${TARGET_EVALS:-150}"
 export MAX_GENERATIONS="${MAX_GENERATIONS:-50}"
-export KEEP_TOP_EVAL_DIRS="${KEEP_TOP_EVAL_DIRS:-3}"
+# Keep enough elites that HQ/matrix can still find the champion if freeze is late.
+export KEEP_TOP_EVAL_DIRS="${KEEP_TOP_EVAL_DIRS:-10}"
 export GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
 export POPULATION="${POPULATION:-$(wc -w <<< "${GPU_IDS}")}"
 
