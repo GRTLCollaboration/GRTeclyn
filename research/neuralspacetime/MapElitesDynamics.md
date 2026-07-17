@@ -6,6 +6,76 @@
 
 ---
 
+## Status (2026-07-17) — start here
+
+**Paper (current draft):** [article/research.pdf](./article/research.pdf) · source [article/research.tex](./article/research.tex)
+
+### Bug fix landed (eval-118 NO-GO)
+
+Two physics bugs invalidated the spiral_v2 champion and its validation matrix:
+
+1. **ID ↔ evolution sign mismatch** — GRTresna applied per-lump phantom signs in the constraint solve, but evolution used single-complex `grtresna_complex_scalar` with one global canonical sign. Cauchy pairing broken.
+2. **Illegal PD pump** — pump forced `d_t Π` without a matching `T_μν`, so `∇_μ T^{μν} ≠ 0`.
+
+**Cure (committed):** fail-closed sign gate; campaign switched to `grtresna_bicomplex_scalar` (per-lump signs retained in Phi±); `pump_work` diagnostics + `SCORE_PUMP_ENERGY_WEIGHT`; transient igniter via `RL_PUMP_STOP_TIME`. Quarantine notes: `runs/grtresna_qd/qball_traj_spiral_v2/eval_000118/NO_GO.txt`, `validation/eval118/NO_GO.txt`.
+
+### Run directories — what is fresh vs archived
+
+| Path | Status | Notes |
+|------|--------|-------|
+| **`runs/grtresna_qd/qball_traj_bicomplex_v1/`** | **DONE — QD archive** | 200/200 evals; champion `eval_000087` score **825.2**. |
+| **`runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/`** | **FRESH — active CMA-ES** | Warm-start from QD champion; 8 GPUs; target 150. **Current work.** |
+| `runs/qball_traj_bicomplex_cmaes_v1.launch.log` | live log | CMA-ES launcher log |
+| `runs/grtresna_promote/e118_bicomplex_pumpon_L64_N128_t16/` | Phase-5 diag | eval-118 genome, bicomplex, pump on |
+| `runs/grtresna_promote/e118_bicomplex_pumpoff_tstop4_L64_N128_t16/` | Phase-5 diag | same genome, igniter off after t=4 |
+| `runs/grtresna_promote/e118_bicomplex_PHASE5_DECISION.txt` | decision note | Shortcut still present under corrected physics |
+| `runs/grtresna_qd/qball_traj_spiral_v2/` | **NO-GO / archived** | Old single-complex campaign; do not use scores for paper |
+| `runs/grtresna_promote/qball_traj_spiral_v2_*` | **NO-GO / archived** | HQ/promotion of eval-118 under broken pairing |
+| `research/neuralspacetime/validation/eval118/` | **NO-GO** | RC/RM/RF/DS/DL matrix void; re-run after new champion |
+
+Sections below on spiral_v2 / eval-118 HQ are **historical** until superseded by the bicomplex champion.
+
+### Forward plan
+
+```
+1. QD (NOW)     → finish qball_traj_bicomplex_v1 (~200 evals, 8 GPUs)
+2. CMA-ES       → local refinement around the bicomplex archive champion
+3. Validation   → RC/RM/RF/DS/DL (+ HQ promote) on the refined top scorer only
+4. Paper        → update research.tex / research.pdf from the new top scorer
+                  (replace eval-118 numbers; drop NO-GO claims)
+```
+
+**Diagrams:** [mapelites-campaign-stages.svg](./mapelites-campaign-stages.svg) (outer ladder),
+[mapelites-end-to-end.svg](./mapelites-end-to-end.svg) (outer + inner loop),
+[mapelites-matter-first.svg](./mapelites-matter-first.svg).
+
+Do not promote or write article numbers from spiral_v2 / eval-118. Wait for the bicomplex QD (then CMA-ES) champion.
+
+### CMA-ES launch (after QD finishes) — wired
+
+Launcher mirrors QD physics (bicomplex `EXTRA_SETS`, igniter `RL_PUMP_STOP_TIME=4`,
+score weights, pins). Generic `cmaes/run.sh` now forwards `EXTRA_SETS`.
+
+```bash
+cd grteclyn-wrapper
+# Optional smoke (no GPU):
+#   DRY_RUN=1 bash scripts/campaigns/qball_trajectory/cmaes_run.sh
+
+RUN_NAME=qball_traj_bicomplex_cmaes_v1 \
+WARM_START_TRAJECTORY=../runs/grtresna_qd/qball_traj_bicomplex_v1/trajectory.jsonl \
+WARM_START_TOP_K=1 \
+TARGET_EVALS=150 \
+GPU_IDS="0 1 2 3 4 5 6 7" \
+  nohup bash scripts/campaigns/qball_trajectory/cmaes_run.sh \
+  > ../runs/qball_traj_bicomplex_cmaes_v1.launch.log 2>&1 &
+```
+
+Output: `runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/`.  
+Preflight: first warm-start member score should ≈ QD champion (currently
+`eval_000087` ~825). Large mismatch ⇒ missing EXTRA_SETS / pump / geo emit.
+
+---
+
 ## HQ promotion — `qball_traj_spiral_v2_t30_hq_eval000118` (COMPLETE 2026-07-02, t=30)
 
 Extended HQ replay of v2 score leader **eval 118** at **256³ / L=128 / max_level=3 /

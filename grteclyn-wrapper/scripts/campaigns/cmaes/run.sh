@@ -76,12 +76,21 @@ if [[ -n "${PIN_DIMS:-}" ]]; then
   for kv in ${PIN_DIMS}; do PIN_ARGS+=(--pin-dimension "${kv}"); done
 fi
 
+# Extra --set overrides for keys that are NOT search-space dimensions
+# (e.g. grtresna_matter_model=bicomplex). Must match QD EXTRA_SETS or CMA-ES
+# silently falls back to single-complex (eval-118 NO-GO class).
+EXTRA_SET_ARGS=()
+if [[ -n "${EXTRA_SETS:-}" ]]; then
+  for kv in ${EXTRA_SETS}; do EXTRA_SET_ARGS+=(--set "${kv}"); done
+fi
+
 TARGET_EVALS_ARGS=()
 [[ -n "${TARGET_EVALS}" ]] && TARGET_EVALS_ARGS+=(--target-evals "${TARGET_EVALS}")
 
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${PRE_ARGS[@]}" \
+  "${EXTRA_SET_ARGS[@]}" \
   optimize \
   --objective-mode "${OBJECTIVE_MODE}" \
   --random-injection-fraction "${RANDOM_INJECTION_FRACTION}" \

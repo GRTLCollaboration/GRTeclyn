@@ -13,11 +13,13 @@ from typing import Any
 from grteclyn_wrapper.__main__ import build_parser
 from grteclyn_wrapper.cli.grtresna_context import build_grtresna_search_context
 from grteclyn_wrapper.grtresna.matter.models import (
+    GRTRESNA_BICOMPLEX_SCALAR_MODEL,
     GRTRESNA_COMPLEX_SCALAR_MODEL,
     GRTRESNA_EXAMPLE_BOSON_STAR_BH,
     matter_selection_base_overrides,
     resolve_matter_selection,
 )
+from grteclyn_wrapper.grtresna.matter.sign_consistency import SignMismatchError
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
 from grteclyn_wrapper.search.optimize import (
     TRAJECTORY_BOSON_PROFILE_CHOICES,
@@ -306,16 +308,47 @@ def test_trajectory_boson_lumps_all_canonical_by_default() -> None:
 
 
 def test_trajectory_boson_exotic_lumps() -> None:
-    """Per-lump exotic flag works for boson trajectory."""
+    """Per-lump exotic flags require bicomplex so evolution retains signs."""
     ov = _boson_trajectory_overrides(num_lumps=3)
+    ov["grtresna_matter_model"] = GRTRESNA_BICOMPLEX_SCALAR_MODEL
     ov["trajectory_lump0_exotic"] = 1.0
     ov["trajectory_lump1_exotic"] = 0.0
     ov["trajectory_lump2_exotic"] = 1.0
     cfg = build_grtresna_config(ov, GRTresnaConfig())
 
+    assert cfg.matter_model == GRTRESNA_BICOMPLEX_SCALAR_MODEL
     assert cfg.lumps[0]["exotic"] == 1
     assert cfg.lumps[1]["exotic"] == 0
     assert cfg.lumps[2]["exotic"] == 1
+    # Bicomplex wiring maps exotic→sign (−1 / +1) for Phi± evolution.
+    from grteclyn_wrapper.grtresna.fields.lump import lump_sign
+    from grteclyn_wrapper.grtresna.matter.wiring import (
+        evolution_overrides_from_bicomplex_scalar,
+    )
+
+    signs = tuple(lump_sign(L) for L in cfg.lumps)
+    assert signs == (-1, 1, -1)
+    evo = evolution_overrides_from_bicomplex_scalar(
+        mass=float(cfg.scalar_mass),
+        lam=float(cfg.scalar_lambda),
+        field_signs=signs,
+        bs_omega=float(cfg.bs_omega or 0.0),
+    )
+    assert evo["recipe_matter_model"] == GRTRESNA_BICOMPLEX_SCALAR_MODEL
+    assert evo["recipe_scalar_field_signs"] == "-1 1 -1"
+
+
+def test_trajectory_boson_exotic_lumps_rejected_on_single_complex() -> None:
+    """Single-complex + mixed exotic is the eval-118 failure mode — hard fail."""
+    ov = _boson_trajectory_overrides(num_lumps=3)
+    ov["trajectory_lump0_exotic"] = 1.0
+    ov["trajectory_lump1_exotic"] = 0.0
+    ov["trajectory_lump2_exotic"] = 1.0
+    try:
+        build_grtresna_config(ov, GRTresnaConfig())
+    except SignMismatchError:
+        return
+    raise AssertionError("expected SignMismatchError for single-complex + exotic")
 
 
 def test_trajectory_boson_reads_scalar_mass_and_omega() -> None:

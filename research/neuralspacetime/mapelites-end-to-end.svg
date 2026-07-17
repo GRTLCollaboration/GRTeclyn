@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="280" viewBox="0 0 1040 280" role="img" aria-labelledby="title desc">
-  <title id="title">Matter-first discovery loop</title>
-  <desc id="desc">MAP-Elites proposes a 39-D Q-ball genome; GRTresna solves constraints; post-load gate rejects bad data; GRTeclyn evolves on GPU; 4D probes measure transport; score/archive retains elites that seed later proposals.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="360" viewBox="0 0 1040 360" role="img" aria-labelledby="title desc">
+  <title id="title">Matter-first discovery loop and campaign ladder</title>
+  <desc id="desc">Outer stages: MAP-Elites discovery, CMA-ES refinement, then HQ/matrix validation. Inner loop: genome proposal, GRTresna solve, post-load gate, GRTeclyn GPU evolution, 4D probes, score/archive.</desc>
   <defs>
     <marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L8,3 z" fill="#000000"/>
     </marker>
   </defs>
-  <rect x="0" y="0" width="1040" height="280" fill="#ffffff"/>
+  <rect x="0" y="0" width="1040" height="360" fill="#ffffff"/>
   <style>
     text { font-family: "Times New Roman", Times, Georgia, serif; fill: #000000; }
     .box { fill: #ffffff; stroke: #000000; stroke-width: 1.5; }
@@ -14,37 +14,63 @@
     .desc { font-size: 12px; text-anchor: middle; }
     .edge { fill: none; stroke: #000000; stroke-width: 1.6; marker-end: url(#arrow); }
     .lbl { font-size: 12px; font-style: italic; text-anchor: middle; }
+    .band { font-size: 13px; font-weight: 700; text-anchor: start; }
   </style>
 
-  <rect class="box" x="20"  y="70" width="140" height="70" rx="5"/>
-  <text class="name" x="90"  y="98">MAP-Elites</text>
-  <text class="desc" x="90"  y="118">39-D Q-ball genome</text>
+  <text class="band" x="20" y="28">Outer campaign: discovery → refine → validate</text>
 
-  <rect class="box" x="190" y="70" width="140" height="70" rx="5"/>
-  <text class="name" x="260" y="98">GRTresna</text>
-  <text class="desc" x="260" y="118">solve constraints</text>
+  <rect class="box" x="40"  y="42" width="200" height="52" rx="5"/>
+  <text class="name" x="140" y="64">MAP-Elites</text>
+  <text class="desc" x="140" y="82">diverse archive</text>
 
-  <rect class="box" x="360" y="70" width="140" height="70" rx="5"/>
-  <text class="name" x="430" y="98">post-load gate</text>
-  <text class="desc" x="430" y="118">reject bad data</text>
+  <rect class="box" x="300" y="42" width="200" height="52" rx="5"/>
+  <text class="name" x="400" y="64">CMA-ES refine</text>
+  <text class="desc" x="400" y="82">tune top eval</text>
 
-  <rect class="box" x="530" y="70" width="140" height="70" rx="5"/>
-  <text class="name" x="600" y="98">GRTeclyn</text>
-  <text class="desc" x="600" y="118">GPU evolution</text>
+  <rect class="box" x="560" y="42" width="200" height="52" rx="5"/>
+  <text class="name" x="660" y="64">HQ + matrix</text>
+  <text class="desc" x="660" y="82">RC/RM/RF · DS/DL</text>
 
-  <rect class="box" x="700" y="70" width="140" height="70" rx="5"/>
-  <text class="name" x="770" y="98">4D probes</text>
-  <text class="desc" x="770" y="118">rays, norms, confinement</text>
+  <rect class="box" x="820" y="42" width="180" height="52" rx="5"/>
+  <text class="name" x="910" y="64">paper numbers</text>
+  <text class="desc" x="910" y="82">refined champion</text>
 
-  <rect class="box" x="870" y="70" width="150" height="70" rx="5"/>
-  <text class="name" x="945" y="98">score/archive</text>
-  <text class="desc" x="945" y="118">retain elite</text>
+  <path class="edge" d="M240 68 L300 68"/>
+  <path class="edge" d="M500 68 L560 68"/>
+  <path class="edge" d="M760 68 L820 68"/>
 
-  <path class="edge" d="M160 105 L190 105"/>
-  <path class="edge" d="M330 105 L360 105"/>
-  <path class="edge" d="M500 105 L530 105"/>
-  <path class="edge" d="M670 105 L700 105"/>
-  <path class="edge" d="M840 105 L870 105"/>
-  <path class="edge" d="M945 140 L945 200 L90 200 L90 140"/>
-  <text class="lbl" x="520" y="222">mutate elites / sample feasible box</text>
+  <text class="band" x="20" y="130">Inner evaluation loop (each QD / CMA-ES candidate)</text>
+
+  <rect class="box" x="20"  y="150" width="140" height="70" rx="5"/>
+  <text class="name" x="90"  y="178">propose θ</text>
+  <text class="desc" x="90"  y="198">39-D Q-ball genome</text>
+
+  <rect class="box" x="190" y="150" width="140" height="70" rx="5"/>
+  <text class="name" x="260" y="178">GRTresna</text>
+  <text class="desc" x="260" y="198">solve constraints</text>
+
+  <rect class="box" x="360" y="150" width="140" height="70" rx="5"/>
+  <text class="name" x="430" y="178">post-load gate</text>
+  <text class="desc" x="430" y="198">reject bad data</text>
+
+  <rect class="box" x="530" y="150" width="140" height="70" rx="5"/>
+  <text class="name" x="600" y="178">GRTeclyn</text>
+  <text class="desc" x="600" y="198">GPU evolution</text>
+
+  <rect class="box" x="700" y="150" width="140" height="70" rx="5"/>
+  <text class="name" x="770" y="178">4D probes</text>
+  <text class="desc" x="770" y="198">rays, norms, confinement</text>
+
+  <rect class="box" x="870" y="150" width="150" height="70" rx="5"/>
+  <text class="name" x="945" y="178">score/archive</text>
+  <text class="desc" x="945" y="198">retain elite</text>
+
+  <path class="edge" d="M160 185 L190 185"/>
+  <path class="edge" d="M330 185 L360 185"/>
+  <path class="edge" d="M500 185 L530 185"/>
+  <path class="edge" d="M670 185 L700 185"/>
+  <path class="edge" d="M840 185 L870 185"/>
+  <path class="edge" d="M945 220 L945 280 L90 280 L90 220"/>
+  <text class="lbl" x="520" y="302">MAP-Elites: mutate elites · CMA-ES: local covariance update</text>
+  <text class="lbl" x="520" y="338">HQ / validation only after CMA-ES champion is frozen</text>
 </svg>

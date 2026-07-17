@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="200" viewBox="0 0 1040 200" role="img" aria-labelledby="title desc">
+  <title id="title">Campaign stages after MAP-Elites</title>
+  <desc id="desc">Outer campaign ladder: MAP-Elites discovery, CMA-ES local refinement of the champion, then HQ replay and resolution/domain validation before paper numbers.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#000000"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1040" height="200" fill="#ffffff"/>
+  <style>
+    text { font-family: "Times New Roman", Times, Georgia, serif; fill: #000000; }
+    .box { fill: #ffffff; stroke: #000000; stroke-width: 1.5; }
+    .name { font-size: 15px; font-weight: 700; text-anchor: middle; }
+    .desc { font-size: 12px; text-anchor: middle; }
+    .edge { fill: none; stroke: #000000; stroke-width: 1.6; marker-end: url(#arrow); }
+    .lbl { font-size: 12px; font-style: italic; text-anchor: middle; }
+    .head { font-size: 14px; font-weight: 700; text-anchor: start; }
+  </style>
+
+  <text class="head" x="20" y="28">Outer campaign ladder (paper pipeline)</text>
+
+  <rect class="box" x="20"  y="55" width="200" height="80" rx="5"/>
+  <text class="name" x="120" y="88">1. MAP-Elites</text>
+  <text class="desc" x="120" y="110">diverse archive / champion</text>
+
+  <rect class="box" x="280" y="55" width="200" height="80" rx="5"/>
+  <text class="name" x="380" y="88">2. CMA-ES refine</text>
+  <text class="desc" x="380" y="110">local hill-climb on top eval</text>
+
+  <rect class="box" x="540" y="55" width="200" height="80" rx="5"/>
+  <text class="name" x="640" y="88">3. HQ + matrix</text>
+  <text class="desc" x="640" y="110">RC/RM/RF · DS/DL · promote</text>
+
+  <rect class="box" x="800" y="55" width="220" height="80" rx="5"/>
+  <text class="name" x="910" y="88">4. Paper update</text>
+  <text class="desc" x="910" y="110">numbers from refined champion</text>
+
+  <path class="edge" d="M220 95 L280 95"/>
+  <path class="edge" d="M480 95 L540 95"/>
+  <path class="edge" d="M740 95 L800 95"/>
+
+  <text class="lbl" x="520" y="170">Do not HQ or publish from MAP-Elites alone  refine first, then validate</text>
+</svg>

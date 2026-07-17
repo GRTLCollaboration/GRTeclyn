@@ -1361,6 +1361,21 @@ pkill -KILL -f 'runs/grtresna_search|runs/grtresna_qd|campaigns/qd/run.sh|campai
 nvidia-smi   # expect 0 MiB, no running processes
 ```
 
+### Research manuscript (TikZ / tectonic)
+
+The neuralspacetime article (`research.tex`, TikZ + pgfplots figures) is compiled
+on this machine with **tectonic**:
+
+```bash
+cd ../research/neuralspacetime/article
+/home/jovyan/.local/bin/tectonic --keep-logs research.tex
+# → research.pdf
+```
+
+Source: [`../research/neuralspacetime/article/research.tex`](../research/neuralspacetime/article/research.tex) ·
+PDF: [`../research/neuralspacetime/article/research.pdf`](../research/neuralspacetime/article/research.pdf) ·
+campaign journal: [`../research/neuralspacetime/MapElitesDynamics.md`](../research/neuralspacetime/MapElitesDynamics.md).
+
 ### Related docs
 
 | Doc | Content |
@@ -1370,6 +1385,7 @@ nvidia-smi   # expect 0 MiB, no running processes
 | [`src/grteclyn_wrapper/gw_search/README.md`](src/grteclyn_wrapper/gw_search/README.md) | LIGO matched-filter methodology |
 | [`src/grteclyn_wrapper/visualisation/README.md`](src/grteclyn_wrapper/visualisation/README.md) | Plotting module reference |
 | [`SELFGRAV_HANDOFF.md`](SELFGRAV_HANDOFF.md) | Self-grav boson star fix + caveats |
+| [`../research/neuralspacetime/article/research.tex`](../research/neuralspacetime/article/research.tex) | Manuscript source (compile with tectonic above) |
 | [`../research/neuralspacetime/MapElitesDynamics.md`](../research/neuralspacetime/MapElitesDynamics.md) | FTL trajectory campaign lab journal |
 | [`../research/rotatingwormhole/OrbitalPumpPlan.md`](../research/rotatingwormhole/OrbitalPumpPlan.md) | Rotating wormhole: Q-torus eigenstate support, collapse trigger |
 | [`../research/grlab/LabJournal.md`](../research/grlab/LabJournal.md) | GW beam + splash lab journal |

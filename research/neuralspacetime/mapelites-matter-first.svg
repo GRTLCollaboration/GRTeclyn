@@ -44,8 +44,8 @@
   <text class="head" x="780" y="40">Matter-first (this work)</text>
 
   <rect class="box" x="615" y="80" width="330" height="70" rx="5"/>
-  <text class="step" x="780" y="108">1. MAP-Elites proposes matter</text>
-  <text class="sub" x="780" y="130">39-D Q-ball genome</text>
+  <text class="step" x="780" y="108">1. MAP-Elites → CMA-ES</text>
+  <text class="sub" x="780" y="130">diverse search, then local refine</text>
 
   <rect class="box" x="615" y="180" width="330" height="70" rx="5"/>
   <text class="step" x="780" y="208">2. GRTresna + post-load gate</text>

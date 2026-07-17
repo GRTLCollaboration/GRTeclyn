@@ -126,7 +126,14 @@ def resolve_executable(
     cuda: bool = True,
     debug: bool = False,
 ) -> ExecutableConfig:
-    """Return an executable config without requiring the binary to exist yet."""
+    """Return an executable config without requiring the binary to exist yet.
+
+    When ``mpi_ranks==1`` and CUDA is on, prefer the MPI-linked binary
+    (``main3d.*.MPI.CUDA.ex``) if it already exists — that is the production
+    RadialRecipe artifact.  Single-rank launches still run without ``mpirun``
+    (OpenMPI singleton); multi-rank keeps selecting the MPI name via
+    ``default_executable_name``.
+    """
 
     example_cfg = example if isinstance(example, ExampleConfig) else resolve_example(example)
 
@@ -137,6 +144,15 @@ def resolve_executable(
             cuda=cuda,
             debug=debug,
         )
+        if int(mpi_ranks) == 1 and cuda and not debug:
+            mpi_linked = example_cfg.dir / default_executable_name(
+                mpi_ranks=2,
+                comp=comp,
+                cuda=cuda,
+                debug=debug,
+            )
+            if mpi_linked.is_file():
+                path = mpi_linked
     else:
         path = Path(executable).expanduser()
         if not path.is_absolute():

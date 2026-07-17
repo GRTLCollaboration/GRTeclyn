@@ -92,9 +92,10 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         raise SystemExit(f"No data rows found in {path}")
 
     arr = np.asarray(rows, dtype=float)
-    if arr.shape[1] not in (4, 7, 8, 10, 14, 23):
+    if arr.shape[1] not in (4, 7, 8, 10, 14, 15, 23):
         raise SystemExit(
-            f"Unexpected number of columns in {path}: got {arr.shape[1]}, expected 4, 7, 8, 10, 14, or 23"
+            f"Unexpected number of columns in {path}: "
+            f"got {arr.shape[1]}, expected 4, 7, 8, 10, 14, 15, or 23"
         )
 
     t = arr[:, 0]

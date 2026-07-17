@@ -55,9 +55,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 QD_RUN="${SCRIPT_DIR}/../qd/run.sh"
 
 # --- QD run identity / scale (override via env) ---
-export QD_NAME="${QD_NAME:-qball_traj_spiral_v2}"
+# Fresh archive after eval-118 NO-GO (single-complex sign drop). Do not resume
+# qball_traj_spiral_v2.
+export QD_NAME="${QD_NAME:-qball_traj_bicomplex_v1}"
 export QD_TARGET_EVALS="${QD_TARGET_EVALS:-200}"
-export GPU_IDS="${GPU_IDS:-0 1 2 3}"
+export GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
 export BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
 export QD_ITERATIONS="${QD_ITERATIONS:-20}"
 
@@ -71,6 +73,11 @@ export GRTRESNA_MATTER_COUPLING="${GRTRESNA_MATTER_COUPLING:-canonical}"
 export GRTRESNA_FULL_Z=1
 # Fail-closed sign gate is default; never allow the corrupted pairing in QD.
 export GRTRESNA_ALLOW_SIGN_MISMATCH="${GRTRESNA_ALLOW_SIGN_MISMATCH:-0}"
+# Honest open-system pump accounting in the score (does not restore Bianchi).
+export SCORE_PUMP_ENERGY_WEIGHT="${SCORE_PUMP_ENERGY_WEIGHT:-40}"
+# Transient igniter: k_p=0 after t*; score f_geo only for t_emit>=t* (unset to
+# leave the pump on for the full stop_time).
+export RL_PUMP_STOP_TIME="${RL_PUMP_STOP_TIME:-4}"
 # Bicomplex plot channels for frames / confinement.
 export FRAMES_FIELDS="${FRAMES_FIELDS:-scalar_activity phi Pi phi_lump0 Pi_lump0 phi_lump1 Pi_lump1 phi_lump2 Pi_lump2 chi chi_minus_1 local_speed shift1 rho_req}"
 export PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity phi}"

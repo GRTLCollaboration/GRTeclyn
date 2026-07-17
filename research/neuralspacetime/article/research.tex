@@ -165,8 +165,10 @@ already cleared the scored falsification gate. We prefer this over a pure
 CMA-ES hill-climb, which collapses onto one basin and discards diverse
 near-misses, and over reinforcement learning, which would require dense
 credit assignment across expensive GPU evolutions with sparse, delayed
-rewards. CMA-ES remains available as a later local refiner once a basin is
-found; the discovery stage is deliberately diversity-preserving.
+rewards. After MAP-Elites identifies a high-scoring basin, CMA-ES is the
+mandatory local refiner that tunes the champion genome before any
+high-resolution replay or validation matrix; the discovery stage itself
+remains deliberately diversity-preserving.
 
 \subsection{Methodological Rigor}
 \label{subsec:rigor}
@@ -188,12 +190,14 @@ Three pillars distinguish this pipeline from geometry-first studies:
 
 \begin{itemize}
     \item[(i)] An end-to-end matter-first discovery pipeline---MAP-Elites
-    proposal, constraint solve, GPU evolution, and matched evolving-geodesic
-    scoring---with an explicit reward rule applied to every evaluation
+    proposal, CMA-ES local refinement of the archive champion, constraint
+    solve, GPU evolution, and matched evolving-geodesic scoring---with an
+    explicit reward rule applied to every evaluation
     (Secs.~\ref{sec:pipeline}--\ref{sec:methodology}).
-    \item[(ii)] A completed search campaign and hierarchical validation
-    protocol that promote archive elites to longer, higher-resolution runs
-    and a resolution/domain matrix (Sec.~\ref{sec:results}).
+    \item[(ii)] A hierarchical campaign protocol: quality-diversity search,
+    CMA-ES hill-climb on the top genome, then longer higher-resolution
+    replay and a resolution/domain matrix only on the refined champion
+    (Sec.~\ref{sec:results}).
     \item[(iii)] Explicit numerical limits of the surviving candidates:
     non-monotonic resolution behavior, dispersing exotic matter, and
     preliminary finite-radius curvature extraction---not passenger transport
@@ -440,19 +444,51 @@ $S=603.39$.
 
 \begin{itemize}
     \item \textbf{Stage 1 --- MAP-Elites discovery:}
-    200 evaluations at $L=64$, $N=128$, one refinement level, and $t=16$.
-    The campaign produced 133 completed GPU evolutions and selected
-    candidate~118, score $603.39$.
-    \item \textbf{Stage 2 --- production replay:} the frozen champion genome is
-    re-solved and evolved at $L=128$, $N=256$, three refinement levels, and
-    $t=30$, using seven emission times and five rays per launch.
-    \item \textbf{Stage 3 --- numerical matrix:} matched coarse/medium/fine
+    quality-diversity search at $L=64$, $N=128$, one refinement level, and
+    $t=16$ (bicomplex matter; per-lump gravitational signs retained in
+    evolution). Produces a diverse archive and a provisional score leader.
+    \item \textbf{Stage 2 --- CMA-ES refinement:} warm-start from the
+    MAP-Elites champion (and optionally its nearest elites); local
+    covariance-matrix adaptation at the \emph{same} search resolution and
+    scoring rule. Only the refined top genome is promoted further.
+    \item \textbf{Stage 3 --- production replay (HQ):} the frozen CMA-ES
+    champion is re-solved and evolved at higher resolution / longer
+    $t_{\mathrm{stop}}$ (e.g.\ $L=128$, $N=256$, three refinement levels),
+    using multiple emission times and multi-ray geodesic probes.
+    \item \textbf{Stage 4 --- numerical matrix:} matched coarse/medium/fine
     resolution runs and small/medium/large domains test whether the shortcut
     survives discretization and boundary changes.
-    \item \textbf{Stage 4 --- waveform run:} after the matrix gate passes, a
-    dedicated $L=160$, $N=320$, $t=80$ run samples $\Psi_4$ more densely at
-    $R_{\rm ext}=24,36,48$.
+    \item \textbf{Stage 5 --- waveform run:} after the matrix gate passes, a
+    dedicated longer run samples $\Psi_4$ more densely at several extraction
+    radii.
 \end{itemize}
+
+\noindent\textit{Note.} Earlier spiral\_v2 / candidate~118 numbers are
+quarantined (ID/evolution sign mismatch); paper tables will be rewritten from
+the bicomplex MAP-Elites~$\to$~CMA-ES champion once Stages~1--2 complete.
+
+\begin{figure}[t]
+\centering
+\resizebox{0.98\columnwidth}{!}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  box/.style={draw, rounded corners=1pt, align=center,
+              text width=20mm, minimum height=10mm, inner sep=1.5pt},
+  flow/.style={-{Latex[length=1.5mm]}, thick}
+]
+\node[box] (me) at (0,0) {\textbf{MAP-Elites}\\diverse archive};
+\node[box] (cma) at (2.8,0) {\textbf{CMA-ES}\\refine champion};
+\node[box] (hq) at (5.6,0) {\textbf{HQ + matrix}\\RC/RM/RF, DS/DL};
+\node[box] (paper) at (8.4,0) {\textbf{Paper}\\update numbers};
+\draw[flow] (me)--(cma);
+\draw[flow] (cma)--(hq);
+\draw[flow] (hq)--(paper);
+\end{tikzpicture}}
+\caption{Outer campaign ladder. High-resolution replay and the
+resolution/domain matrix run only on the CMA-ES-refined champion, not on a
+raw MAP-Elites elite.}
+\label{fig:campaign-stages}
+\end{figure}
 
 \begin{figure*}[t]
 \centering
@@ -463,7 +499,7 @@ $S=603.39$.
               text width=22mm, minimum height=11mm, inner sep=1.5pt},
   flow/.style={-{Latex[length=1.5mm]}, thick}
 ]
-\node[box] (proposal) at (0,0) {\textbf{MAP-Elites}\\39-D genome};
+\node[box] (proposal) at (0,0) {\textbf{propose $\theta$}\\39-D genome};
 \node[box] (solve) at (3.0,0) {\textbf{GRTresna}\\solve constraints};
 \node[box] (gate) at (6.0,0) {\textbf{post-load gate}\\reject inconsistent};
 \node[box] (evolve) at (9.0,0) {\textbf{GRTeclyn}\\GPU evolution};
@@ -476,11 +512,12 @@ $S=603.39$.
 \draw[flow] (probe)--(archive);
 \draw[flow] (archive.south) -- ++(0,-8mm) -|
   node[pos=0.50, below, font=\scriptsize\itshape]
-  {mutate elites or sample feasible genome} (proposal.south);
+  {MAP-Elites mutate / CMA-ES covariance update} (proposal.south);
 \end{tikzpicture}}
-\caption{Automated matter-first search loop. Failed constraint solves and
-post-load checks are logged but never enter GPU evolution; successful
-evaluations compete for one elite per MAP-Elites behavior cell.}
+\caption{Inner evaluation loop shared by MAP-Elites and CMA-ES. Failed
+constraint solves and post-load checks never enter GPU evolution; successful
+evaluations compete for archive cells (MAP-Elites) or update the CMA
+distribution.}
 \label{fig:pipeline}
 \end{figure*}
 
@@ -494,13 +531,14 @@ one champion, it maintains an $8\times8$ archive with at most one elite per
 behavior cell. A candidate displaces the occupant of its cell only if its score
 $S(\theta)$ [Eq.~\eqref{eq:score}] is higher. The two archive axes are peak
 shortcut strength and FTL lifetime, so the campaign can keep short-lived strong
-channels and longer weaker ones side by side. The campaign scheduled 200
-evaluations: 133 completed GPU evolution, 50 failed the post-load gate, 15
-failed the initial constraint solve, and two failed during evolution. Nine
-cells were occupied ($14.06\%$ coverage). All nontrivial elites lie in the
-highest lifetime row, while peak strength spans the archive. The best score
-rose from $216.4$ to $603.39$ and last improved at batch 15, when
-candidate~118 entered cell $(7,7)$.
+channels and longer weaker ones side by side. The bicomplex campaign
+(\texttt{qball\_traj\_bicomplex\_v1}) scheduled 200 evaluations: 148 completed
+GPU evolution, 50 failed the post-load gate, one failed the GRTresna admission
+gate, and one failed the constraint solve. Nine cells were occupied
+($14.06\%$ coverage). All nontrivial elites lie in the highest lifetime row,
+while peak strength spans the archive. The best score rose from $690.1$ to
+$825.19$ and last improved at batch~10, when candidate~87 entered cell
+$(7,7)$.
 
 \begin{figure}[t]
 \centering
@@ -517,15 +555,15 @@ candidate~118 entered cell $(7,7)$.
 ]
 \nextgroupplot[
   ylabel={best score},
-  ymin=180,ymax=640,
-  ytick={200,300,400,500,600}
+  ymin=650,ymax=860,
+  ytick={650,700,750,800,850}
 ]
 \addplot[black,very thick,mark=*,mark size=1.8pt]
   table[x=batch,y=best]{data/campaign_progress.txt};
 \addplot[only marks,mark=square*,mark size=3pt]
-  coordinates {(15,603.394)};
-\node[anchor=south west,font=\scriptsize] at (axis cs:15.2,603.394)
-  {champion: $603.39$};
+  coordinates {(10,825.194)};
+\node[anchor=north west,font=\scriptsize] at (axis cs:10.2,820)
+  {champion: $825.19$};
 
 \nextgroupplot[
   xlabel={MAP-Elites batch (8 evaluations)},
@@ -537,44 +575,45 @@ candidate~118 entered cell $(7,7)$.
   table[x=batch,y=coverage]{data/campaign_progress.txt};
 \end{groupplot}
 \end{tikzpicture}
-\caption{MAP-Elites search progress over 200 evaluations. Top: best score in
-the archive. Bottom: fraction of occupied behavior cells. The final champion
-enters cell $(7,7)$ at batch~15 with score $603.39$. Curves are read directly
-from the stored campaign history.}
+\caption{MAP-Elites search progress over 200 evaluations
+(\texttt{qball\_traj\_bicomplex\_v1}). Top: running best archive score.
+Bottom: fraction of occupied behavior cells. The final champion
+(candidate~87) enters cell $(7,7)$ at batch~10 with score $825.19$.
+Curves are read from the stored campaign history.}
 \label{fig:qd_progress}
 \end{figure}
 
 \subsection{Archive outcome and promotion}
 
-The winner combines a search-tier evolving shortcut of $17.65\%$ with
-operational score $0.347$, constraint-health score $0.949$, and unit
-numerical survival. Its five radial scales span $R_0=1.96$--$7.52$; four
-lump sign variables round to phantom and one rounds to canonical. All angular
-velocities are retrograde,
-$-0.15\lesssim\omega_{\rm rot}\lesssim-0.04$, with near-zero radial speeds,
-collective breathing amplitude $1.60$, and vertical amplitude $1.50$.
-Promotion freezes these physics parameters: only numerical resolution,
-domain, duration, output cadence, and extraction radii change.
+The bicomplex winner (candidate~87, $S=825.19$) combines a search-tier
+evolving shortcut of $f_{\rm geo}=25.3\%$ with operational score $0.396$,
+constraint-growth score $0.983$, and confinement retention $0.396$
+(dispersion-gated). Its five radial scales span $R_0=2.53$--$5.64$; three
+lumps are phantom and two are canonical
+(\texttt{recipe\_scalar\_field\_signs} $=+1,-1,-1,+1,-1$). All angular
+velocities are retrograde and slow
+($|\omega_{\rm rot}|\lesssim 0.05$). CMA-ES refinement of this genome is the
+next stage; HQ and the resolution/domain matrix run only after that
+local hill-climb freezes the champion.
 
 \begin{table}[t]
-\caption{Candidate-118 search and validation hand-off. Scores from different
-durations are not compared as precision observables.}
+\caption{Provisional MAP-Elites hand-off for candidate~87 (search tier only).
+HQ / matrix rows will be filled after CMA-ES refinement.}
 \label{tab:search_handoff}
 \begin{ruledtabular}
 \begin{tabular}{lccc}
 stage & $(L,N,t_{\rm stop})$ & rays & peak $f_{\rm geo}$ \\
 \hline
-MAP-Elites & $(64,128,16)$ & $3/3$ & $17.65\%$ \\
-HQ baseline RM & $(128,256,30)$ & $5/5$ & $17.38\%$ \\
-fine RF & $(128,384,30)$ & $5/5$ & $18.38\%$ \\
-large-domain DL & $(160,320,30)$ & $5/5$ & $17.45\%$ \\
+MAP-Elites & $(64,128,16)$ & $3/3$ & $25.35\%$ \\
+CMA-ES refine & --- & --- & (in progress) \\
+HQ / matrix & --- & --- & (pending) \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
-The longer production runs expose dispersion that the $t=16$ search only
-partly samples. Consequently, structural persistence and total score fall
-even though the evolving null shortcut remains positive.
+Search-tier confinement already falls to $\sim40\%$ by $t=16$, so longer
+production runs are expected to stress structural persistence even if the
+evolving null shortcut remains positive.
 
 \section{Diagnostics and Probe Validation}
 \label{sec:probes}

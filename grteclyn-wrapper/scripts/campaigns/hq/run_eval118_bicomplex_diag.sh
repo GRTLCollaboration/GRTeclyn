@@ -5,6 +5,9 @@
 #   1) pump-on   — search-tier sanity (pump stays on for full stop_time)
 #   2) pump-off  — transient igniter (RL_PUMP_STOP_TIME); f_geo from post-stop rays
 #
+# Uses the MPI+CUDA RadialRecipe binary (main3d.gnu.MPI.CUDA.ex) via
+# resolve_executable preference; single-rank unless EVOLUTION_MPI_RANKS>1.
+#
 # Usage:
 #   bash scripts/campaigns/hq/run_eval118_bicomplex_diag.sh            # both
 #   bash scripts/campaigns/hq/run_eval118_bicomplex_diag.sh pump-on
@@ -12,8 +15,9 @@
 #   DRY_RUN=1 bash scripts/campaigns/hq/run_eval118_bicomplex_diag.sh
 set -euo pipefail
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-CAMPAIGNS_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+# NOTE: env.sh overwrites SCRIPT_DIR; keep launcher path under HQ_DIR.
+HQ_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CAMPAIGNS_ROOT="$(cd -- "${HQ_DIR}/.." && pwd)"
 SCRIPTS_ROOT="$(cd -- "${CAMPAIGNS_ROOT}/.." && pwd)"
 # shellcheck source=../../lib/env.sh
 source "${SCRIPTS_ROOT}/lib/env.sh"
@@ -22,6 +26,7 @@ VARIANT="${1:-both}"
 SOURCE_EVAL="${SOURCE_EVAL:-${GRTECLYN_ROOT}/runs/grtresna_qd/qball_traj_spiral_v2/eval_000118}"
 RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_promote}"
 GPU_ID="${GPU_ID:-0}"
+EVOLUTION_MPI_RANKS="${EVOLUTION_MPI_RANKS:-1}"
 N_FULL="${N_FULL:-128}"
 L_FULL="${L_FULL:-64}"
 STOP_TIME="${STOP_TIME:-16.0}"
@@ -36,11 +41,12 @@ if [[ ! -d "${SOURCE_EVAL}" ]]; then
   exit 2
 fi
 
-REPLAY="${SCRIPT_DIR}/replay_eval.py"
+REPLAY="${HQ_DIR}/replay_eval.py"
 COMMON_ARGS=(
   "${SOURCE_EVAL}"
   --runs-dir "${RUNS_DIR}"
   --gpu "${GPU_ID}"
+  --evolution-mpi-ranks "${EVOLUTION_MPI_RANKS}"
   --n-full "${N_FULL}"
   --l-full "${L_FULL}"
   --grtresna-domain-l "${L_FULL}"
@@ -71,25 +77,22 @@ run_one() {
   shift
   local log="${RUNS_DIR}/${name}.log"
   mkdir -p "${RUNS_DIR}"
-  echo "[diag] === ${name} ===" | tee -a "${log}"
+  echo "[diag] === ${name} (mpi_ranks=${EVOLUTION_MPI_RANKS} gpu=${GPU_ID}) ===" | tee -a "${log}"
   if [[ "${DRY_RUN}" == "1" ]]; then
     echo "[diag] dry-run: uv run python ${REPLAY} ${COMMON_ARGS[*]} --name ${name} $*" | tee -a "${log}"
     return 0
   fi
-  # shellcheck disable=SC2086
   uv run python "${REPLAY}" "${COMMON_ARGS[@]}" --name "${name}" "$@" \
     2>&1 | tee -a "${log}"
 }
 
 case "${VARIANT}" in
   pump-on|both)
-    # Search-tier: pump stays on; no post-pump geo filter.
     unset RL_PUMP_STOP_TIME || true
     export GRTECLYN_EVOLVING_GEODESIC_MODE=search
     run_one "e118_bicomplex_pumpon_L${L_FULL%.*}_N${N_FULL}_t${STOP_TIME%.*}"
     ;;&
   pump-off|both)
-    # Igniter: force k_p=0 after t*; accept f_geo only for t_emit>=stop.
     export RL_PUMP_STOP_TIME
     export GRTECLYN_EVOLVING_GEODESIC_MODE=hq
     run_one \
