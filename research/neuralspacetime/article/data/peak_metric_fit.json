@@ -1,0 +1,35 @@
+{
+  "source": "e118_gw metric_stack RadialRecipePlt02016.npz",
+  "t_peak_frozen_f_geo": 20.1600000000004,
+  "note": "Descriptive polynomial fit on equatorial r-bins; not a fundamental analytic metric. Geometry is non-axisymmetric.",
+  "axisymmetric_r_binned": {
+    "lapse": {
+      "r2": 0.9990852541083307,
+      "expression": "1.222 +0.01213 r -0.005123 r^2 +7.049e-05 r^3 +1.365e-05 r^4"
+    },
+    "shift_x": {
+      "r2": 0.9357192086370117,
+      "expression": "0.007749 -0.007283 r +0.0001022 r^2 +0.0002517 r^3 -2.002e-05 r^4"
+    },
+    "chi": {
+      "r2": 0.9991540287140481,
+      "expression": "1.148 +0.006724 r -0.01833 r^2 +0.002852 r^3 -0.000124 r^4"
+    }
+  },
+  "x_axis_cut": {
+    "lapse": {
+      "r2": 0.7729452253125066,
+      "expression": "1.229 -0.005384 r -0.0002964 r^2 +4.047e-05 r^3 -1.428e-05 r^4"
+    },
+    "shift_x": {
+      "r2": 0.47521502794795967,
+      "expression": "-0.002584 +0.003411 r -0.0008116 r^2 -5.231e-05 r^3 +1.608e-05 r^4"
+    },
+    "chi": {
+      "r2": 0.9161028723478095,
+      "expression": "1.138 -0.001442 r -0.00548 r^2 +0.0001002 r^3 +6.052e-05 r^4"
+    }
+  },
+  "alpha_angular_scatter_fraction": 0.6491773737697348,
+  "peak_frozen_f_geo_RM": 0.246
+}

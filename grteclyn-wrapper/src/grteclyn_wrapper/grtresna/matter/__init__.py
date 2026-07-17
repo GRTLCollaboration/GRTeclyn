@@ -28,6 +28,12 @@ from .models import (
     resolve_matter_selection,
     uses_boson_solve,
 )
+from .sign_consistency import (
+    SignConsistencyReport,
+    SignMismatchError,
+    assert_id_evolution_sign_consistency,
+    check_id_evolution_sign_consistency,
+)
 from .splash import apply_splash_overrides, splash_evolution_overrides
 from .wiring import (
     EVOLUTION_MATTER_KEYS,
@@ -58,9 +64,13 @@ __all__ = [
     "MATTER_SECTOR_SCALAR",
     "MatterModelSpec",
     "MatterSelection",
+    "SignConsistencyReport",
+    "SignMismatchError",
     "apply_boson_star_overrides",
     "apply_scalar_exotic_coupling",
     "apply_splash_overrides",
+    "assert_id_evolution_sign_consistency",
+    "check_id_evolution_sign_consistency",
     "evolution_overrides_from_complex_scalar",
     "evolution_overrides_from_config",
     "evolution_overrides_from_metadata",

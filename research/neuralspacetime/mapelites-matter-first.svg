@@ -1,69 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="560" viewBox="0 0 1040 560" role="img" aria-labelledby="title desc">
-  <title id="title">Matter-first versus metric-first discovery</title>
-  <desc id="desc">Metric-first starts from a chosen metric and derives the required stress energy. Matter-first proposes matter, solves the constraints, evolves the spacetime, and measures FTL in the evolved field.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="520" viewBox="0 0 1040 520" role="img" aria-labelledby="title desc">
+  <title id="title">Geometry-first versus matter-first discovery</title>
+  <desc id="desc">Geometry-first prescribes a metric and reads off stress-energy. Matter-first proposes matter, solves constraints, evolves, and scores with 4D probes.</desc>
   <defs>
     <marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L8,3 z" fill="#000000" />
+      <path d="M0,0 L0,6 L8,3 z" fill="#000000"/>
     </marker>
   </defs>
-
-  <rect x="0" y="0" width="1040" height="560" fill="#ffffff" />
-
+  <rect x="0" y="0" width="1040" height="520" fill="#ffffff"/>
   <style>
     text { font-family: "Times New Roman", Times, Georgia, serif; fill: #000000; }
-    .box { fill: #ffffff; stroke: #000000; stroke-width: 1.6; }
-    .step { font-size: 18px; text-anchor: middle; }
-    .sub { font-size: 15px; font-style: italic; text-anchor: middle; }
-    .edge { fill: none; stroke: #000000; stroke-width: 1.8; marker-end: url(#arrow); }
-    .head { font-size: 21px; font-weight: 700; text-anchor: middle; }
+    .box { fill: #ffffff; stroke: #000000; stroke-width: 1.5; }
+    .step { font-size: 16px; font-weight: 700; text-anchor: middle; }
+    .sub { font-size: 13px; text-anchor: middle; }
+    .edge { fill: none; stroke: #000000; stroke-width: 1.6; marker-end: url(#arrow); }
+    .head { font-size: 18px; font-weight: 700; text-anchor: middle; }
     .panel { fill: none; stroke: #000000; stroke-width: 1.2; stroke-dasharray: 4 4; }
   </style>
 
-  <!-- left column: metric-first -->
-  <rect class="panel" x="40" y="70" width="420" height="450" rx="8" />
-  <text class="head" x="250" y="50">Metric-first (classic)</text>
+  <rect class="panel" x="40" y="55" width="440" height="430" rx="8"/>
+  <text class="head" x="260" y="40">Geometry-first (classic)</text>
 
-  <rect class="box" x="100" y="95"  width="300" height="62" rx="6" />
-  <text class="step" x="250" y="122">1. Choose target metric</text>
-  <text class="sub"  x="250" y="144">Alcubierre / Natario</text>
+  <rect class="box" x="95" y="80" width="330" height="70" rx="5"/>
+  <text class="step" x="260" y="108">1. Prescribe g</text>
+  <text class="sub" x="260" y="130">Alcubierre / Natario</text>
 
-  <rect class="box" x="100" y="205" width="300" height="62" rx="6" />
-  <text class="step" x="250" y="232">2. Read off stress energy</text>
-  <text class="sub"  x="250" y="254">exotic, often singular</text>
+  <rect class="box" x="95" y="180" width="330" height="70" rx="5"/>
+  <text class="step" x="260" y="208">2. Read off T = G/8π</text>
+  <text class="sub" x="260" y="230">exotic, often singular</text>
 
-  <rect class="box" x="100" y="315" width="300" height="62" rx="6" />
-  <text class="step" x="250" y="342">3. Hope matter exists</text>
-  <text class="sub"  x="250" y="364">to source this metric</text>
+  <rect class="box" x="95" y="280" width="330" height="70" rx="5"/>
+  <text class="step" x="260" y="308">3. Hope matter exists</text>
+  <text class="sub" x="260" y="330">no consistent IVP</text>
 
-  <rect class="box" x="100" y="425" width="300" height="62" rx="6" />
-  <text class="step" x="250" y="452">FTL baked into</text>
-  <text class="sub"  x="250" y="474">coordinates</text>
+  <rect class="box" x="95" y="380" width="330" height="70" rx="5"/>
+  <text class="step" x="260" y="408">4. FTL in coordinates</text>
+  <text class="sub" x="260" y="430">need not survive evolution</text>
 
-  <path class="edge" d="M250 157 L250 205" />
-  <path class="edge" d="M250 267 L250 315" />
-  <path class="edge" d="M250 377 L250 425" />
+  <path class="edge" d="M260 150 L260 180"/>
+  <path class="edge" d="M260 250 L260 280"/>
+  <path class="edge" d="M260 350 L260 380"/>
 
-  <!-- right column: matter-first -->
-  <rect class="panel" x="580" y="70" width="420" height="450" rx="8" />
-  <text class="head" x="790" y="50">Matter-first (this work)</text>
+  <rect class="panel" x="560" y="55" width="440" height="430" rx="8"/>
+  <text class="head" x="780" y="40">Matter-first (this work)</text>
 
-  <rect class="box" x="640" y="95"  width="300" height="62" rx="6" />
-  <text class="step" x="790" y="122">1. Propose matter lumps</text>
-  <text class="sub"  x="790" y="144">fields, boosts, mass</text>
+  <rect class="box" x="615" y="80" width="330" height="70" rx="5"/>
+  <text class="step" x="780" y="108">1. MAP-Elites proposes matter</text>
+  <text class="sub" x="780" y="130">39-D Q-ball genome</text>
 
-  <rect class="box" x="640" y="205" width="300" height="62" rx="6" />
-  <text class="step" x="790" y="232">2. Solve constraints</text>
-  <text class="sub"  x="790" y="254">geometry the matter sources</text>
+  <rect class="box" x="615" y="180" width="330" height="70" rx="5"/>
+  <text class="step" x="780" y="208">2. GRTresna + post-load gate</text>
+  <text class="sub" x="780" y="230">constraint-clean initial data</text>
 
-  <rect class="box" x="640" y="315" width="300" height="62" rx="6" />
-  <text class="step" x="790" y="342">3. Evolve spacetime</text>
-  <text class="sub"  x="790" y="364">t = 0 to stop time</text>
+  <rect class="box" x="615" y="280" width="330" height="70" rx="5"/>
+  <text class="step" x="780" y="308">3. GRTeclyn evolves on GPU</text>
+  <text class="sub" x="780" y="330">full 3+1 dynamics</text>
 
-  <rect class="box" x="640" y="425" width="300" height="62" rx="6" />
-  <text class="step" x="790" y="452">4. Measure FTL</text>
-  <text class="sub"  x="790" y="474">in the evolved field</text>
+  <rect class="box" x="615" y="380" width="330" height="70" rx="5"/>
+  <text class="step" x="780" y="408">4. 4D probes → score/archive</text>
+  <text class="sub" x="780" y="430">evolving null shortcut f_geo</text>
 
-  <path class="edge" d="M790 157 L790 205" />
-  <path class="edge" d="M790 267 L790 315" />
-  <path class="edge" d="M790 377 L790 425" />
+  <path class="edge" d="M780 150 L780 180"/>
+  <path class="edge" d="M780 250 L780 280"/>
+  <path class="edge" d="M780 350 L780 380"/>
 </svg>
