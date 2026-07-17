@@ -1,9 +1,20 @@
 from __future__ import annotations
 
+import os
+
 from .gw_beam import gw_beam_total
 from .splash import SURVIVAL_FORGIVENESS_WELL
 from .types import ScoringContext
 from .weights import HEALTH_COMPONENTS
+
+
+def _pump_energy_weight() -> float:
+    """SCORE_PUMP_ENERGY_WEIGHT env (default 40); taxes pump_energy_penalty."""
+    raw = os.environ.get("SCORE_PUMP_ENERGY_WEIGHT", "40")
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return 40.0
 
 
 def compute_total(
@@ -228,11 +239,16 @@ def _general_ftl_total(
             + 60.0 * components.get("energy_condition", 0.0)
         )
         + 40.0 * exotic_penalty_weight * components.get("exotic_penalty", 0.0)
+        # Honest open-system tax on PD-pump injection (see penalties.pump_energy_penalty).
+        # Does not restore Bianchi by itself; pair with rl_pump_stop_time for a
+        # conservative measurement window.
+        + _pump_energy_weight() * components.get("pump_energy_penalty", 0.0)
         + 200.0 * horizon
     )
     notes.append(
         "objective_mode=general_ftl: gauge-invariant shortcut + curvature reward; "
-        "graded horizon penalty; warp-motor shaping disabled"
+        "graded horizon penalty; warp-motor shaping disabled; "
+        f"pump_energy_weight={_pump_energy_weight():.1f}"
     )
     return total
 

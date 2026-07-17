@@ -885,6 +885,152 @@ void RadialRecipeLevel::specificPostTimeStep()
         const amrex::Real r_at_min_theta_plus =
             (count_r_theta > 0.0) ? (sum_r_theta / count_r_theta) : 0.0;
 
+        // Pump control-effort diagnostic: instantaneous power injected by the
+        // PD/open-loop matter pump into the scalar momentum equations,
+        //   P = integral alpha * (Pi · S_Pi) sqrt(gamma) dV.
+        // Zero when the pump is off (num_sites < 1) or past rl_pump_stop_time.
+        // Ported from SupportedWormholeLevel; MAP-Elites penalises the
+        // time-integral so the search favours minimal artificial forcing.
+        amrex::Real pump_work = 0.0;
+        {
+            const bool bicomplex =
+                RadialRecipeMatter::uses_bicomplex_scalar(simParams());
+            const int n_fields = bicomplex ? 2 : 1;
+            const RLMatterPumpParams pump =
+                RadialRecipeMatter::build_rl_pump(simParams(), n_fields, time);
+            if (pump.num_sites >= 1)
+            {
+                const amrex::Real cell_vol =
+                    dx_arr[0] * dx_arr[1] * dx_arr[2];
+                amrex::ReduceOps<amrex::ReduceOpSum> reduce_ops_pw;
+                amrex::ReduceData<amrex::Real> reduce_data_pw(reduce_ops_pw);
+                using ReduceTuplePW = typename decltype(reduce_data_pw)::Type;
+                const amrex::Real pw_time = time;
+                for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
+                     mfi.isValid(); ++mfi)
+                {
+                    const amrex::Box &bx = mfi.validbox();
+                    const auto arr       = state_fine.const_array(mfi);
+                    reduce_ops_pw.eval(
+                        bx, reduce_data_pw,
+                        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuplePW
+                        {
+                            const amrex::Real x =
+                                prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0];
+                            const amrex::Real y =
+                                prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1];
+                            const amrex::Real z =
+                                prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2];
+                            const amrex::Real lapse = arr(i, j, k, c_lapse);
+                            const amrex::Real chi = amrex::max(
+                                arr(i, j, k, c_chi), amrex::Real(1.0e-10));
+                            const amrex::Real sqrt_gamma =
+                                amrex::Real(1.0) / (chi * std::sqrt(chi));
+                            const amrex::Real phi1p = arr(i, j, k, c_phi);
+                            const amrex::Real phi2p = arr(i, j, k, c_phi2);
+                            const amrex::Real Pi1p  = arr(i, j, k, c_Pi);
+                            const amrex::Real Pi2p  = arr(i, j, k, c_Pi2);
+                            const amrex::Real phi1m =
+                                bicomplex ? arr(i, j, k, c_phi_m) : 0.0;
+                            const amrex::Real phi2m =
+                                bicomplex ? arr(i, j, k, c_phi2_m) : 0.0;
+                            const amrex::Real Pi1m =
+                                bicomplex ? arr(i, j, k, c_Pi_m) : 0.0;
+                            const amrex::Real Pi2m =
+                                bicomplex ? arr(i, j, k, c_Pi2_m) : 0.0;
+
+                            amrex::Real s1p = 0.0, s2p = 0.0;
+                            amrex::Real s1m = 0.0, s2m = 0.0;
+                            const amrex::Real gov = pump.governor;
+                            if (pump.k_p > 0.0)
+                            {
+                                const amrex::Real kp = pump.k_p;
+                                const amrex::Real kd = pump.k_d;
+                                const amrex::Real inv_a = 1.0 / lapse;
+                                const amrex::Real tw =
+                                    (pump.target_width > 0.0) ? pump.target_width
+                                                              : pump.width;
+                                for (int s = 0; s < pump.num_sites; ++s)
+                                {
+                                    const auto &site = pump.sites[s];
+                                    if (site.amplitude <= 0.0)
+                                        continue;
+                                    const amrex::Real env =
+                                        RLRuntime::compute_site_envelope(
+                                            x, y, z, site, tw,
+                                            pump.target_profile);
+                                    if (env < 1.0e-8)
+                                        continue;
+                                    const amrex::Real amp_t =
+                                        (pump.target_amp > 0.0) ? pump.target_amp
+                                                                : site.amplitude;
+                                    const amrex::Real g   = amp_t * env;
+                                    const amrex::Real arg =
+                                        -site.frequency * pw_time + site.phase;
+                                    const amrex::Real tphi1 = g * std::cos(arg);
+                                    const amrex::Real tphi2 = g * std::sin(arg);
+                                    const amrex::Real tPi1 =
+                                        site.frequency * tphi2 * inv_a;
+                                    const amrex::Real tPi2 =
+                                        -site.frequency * tphi1 * inv_a;
+                                    const amrex::Real w = gov * env;
+                                    if (!bicomplex || site.field_sign >= 0)
+                                    {
+                                        s1p += w * (-kp * (phi1p - tphi1) -
+                                                    kd * (Pi1p - tPi1));
+                                        s2p += w * (-kp * (phi2p - tphi2) -
+                                                    kd * (Pi2p - tPi2));
+                                    }
+                                    else
+                                    {
+                                        s1m += w * (-kp * (phi1m - tphi1) -
+                                                    kd * (Pi1m - tPi1));
+                                        s2m += w * (-kp * (phi2m - tphi2) -
+                                                    kd * (Pi2m - tPi2));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                for (int s = 0; s < pump.num_sites; ++s)
+                                {
+                                    const amrex::Real base =
+                                        RLRuntime::compute_site_base(
+                                            x, y, z, pump.sites[s], pump.width,
+                                            gov);
+                                    if (base <= 0.0)
+                                        continue;
+                                    const amrex::Real arg =
+                                        pump.sites[s].frequency * pw_time +
+                                        pump.sites[s].phase;
+                                    const amrex::Real dc = base * std::cos(arg);
+                                    const amrex::Real ds = base * std::sin(arg);
+                                    if (!bicomplex ||
+                                        pump.sites[s].field_sign >= 0)
+                                    {
+                                        s1p += dc;
+                                        s2p += ds;
+                                    }
+                                    else
+                                    {
+                                        s1m += dc;
+                                        s2m += ds;
+                                    }
+                                }
+                            }
+                            const amrex::Real power =
+                                lapse *
+                                (Pi1p * s1p + Pi2p * s2p + Pi1m * s1m +
+                                 Pi2m * s2m) *
+                                sqrt_gamma * cell_vol;
+                            return {power};
+                        });
+                }
+                pump_work = amrex::get<0>(reduce_data_pw.value());
+                amrex::ParallelDescriptor::ReduceRealSum(pump_work);
+            }
+        }
+
         GRParmParse pp;
         std::string output_path = "./";
         pp.load("output_path", output_path, std::string("./"));
@@ -912,7 +1058,7 @@ void RadialRecipeLevel::specificPostTimeStep()
                 {"min_lapse", "min_chi", "max_abs_K", "min_lapse_x",
                  "min_lapse_y", "min_lapse_z", "max_ah_r", "min_theta_plus",
                  "r_at_min_theta_plus",
-                 "min_phi", "max_phi", "min_Pi", "max_Pi"});
+                 "min_phi", "max_phi", "min_Pi", "max_Pi", "pump_work"});
         }
         diag_file.write_time_data_line({static_cast<double>(min_lapse),
                                         static_cast<double>(min_chi),
@@ -926,7 +1072,8 @@ void RadialRecipeLevel::specificPostTimeStep()
                                         static_cast<double>(min_phi),
                                         static_cast<double>(max_phi),
                                         static_cast<double>(min_Pi),
-                                        static_cast<double>(max_Pi)});
+                                        static_cast<double>(max_Pi),
+                                        static_cast<double>(pump_work)});
 
         if (simParams().calculate_energy_conditions)
         {

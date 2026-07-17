@@ -10,6 +10,8 @@ This module detects that mismatch before GPU time is spent.
 
 from __future__ import annotations
 
+import logging
+import os
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
@@ -18,6 +20,11 @@ from .models import (
     is_bicomplex_scalar_model,
     is_complex_scalar_model,
 )
+
+logger = logging.getLogger(__name__)
+
+# Explicit opt-out for legacy debugging only. Default is fail-closed.
+_ALLOW_MISMATCH_ENV = "GRTRESNA_ALLOW_SIGN_MISMATCH"
 
 
 @dataclass(frozen=True)
@@ -187,8 +194,35 @@ def check_id_evolution_sign_consistency(
     )
 
 
+def allow_sign_mismatch() -> bool:
+    """True only when ``GRTRESNA_ALLOW_SIGN_MISMATCH=1`` (legacy debug)."""
+    return os.environ.get(_ALLOW_MISMATCH_ENV, "0").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
 def assert_id_evolution_sign_consistency(cfg: Any) -> SignConsistencyReport:
-    """Raise :class:`SignMismatchError` when ID/evolution signs disagree."""
+    """Raise :class:`SignMismatchError` when ID/evolution signs disagree.
+
+    Honours ``GRTRESNA_ALLOW_SIGN_MISMATCH=1`` as a warning-only downgrade for
+    debugging corrupted archives. Production / QD default is hard-fail.
+    """
     report = check_id_evolution_sign_consistency(cfg)
+    if report.ok:
+        return report
+    if allow_sign_mismatch():
+        logger.warning(
+            "ID/evolution sign mismatch ALLOWED by %s=1: %s",
+            _ALLOW_MISMATCH_ENV,
+            report.reason,
+        )
+        return report
     report.raise_if_mismatch()
     return report
+
+
+def enforce_id_evolution_sign_consistency(cfg: Any) -> SignConsistencyReport:
+    """Alias used at config-build / solve entry points (fail-closed)."""
+    return assert_id_evolution_sign_consistency(cfg)

@@ -69,14 +69,34 @@ def read_collapse_metrics(path: Path) -> CollapseMetrics | None:
     phi_max = max((row[11] for row in rows if len(row) >= 14), default=None)
     pi_min = min((row[12] for row in rows if len(row) >= 14), default=None)
     pi_max = max((row[13] for row in rows if len(row) >= 14), default=None)
-    bary_x = rows[-1][14] if len(rows[-1]) >= 15 else None
-    bary_y = rows[-1][15] if len(rows[-1]) >= 16 else None
-    bary_z = rows[-1][16] if len(rows[-1]) >= 17 else None
-    rho_sum = rows[-1][17] if len(rows[-1]) >= 18 else None
-    j_z_initial, j_z_final = _endpoints(rows, 18)
-    q_total_initial, q_total_final = _endpoints(rows, 19)
-    q_sphere_initial, q_sphere_final = _endpoints(rows, 20)
-    rho_sphere_initial, rho_sphere_final = _endpoints(rows, 21)
+
+    # Layouts:
+    #   RadialRecipe (new): 15 cols, pump_work at index 14 (no bary block).
+    #   RotatingWormholeCollapse: >=23 cols, bary at 14-16, pump_work at 22.
+    n_cols = len(rows[-1])
+    wormhole_layout = n_cols >= 23
+    radial_pump_layout = n_cols == 15
+    bary_x = rows[-1][14] if wormhole_layout else None
+    bary_y = rows[-1][15] if wormhole_layout else None
+    bary_z = rows[-1][16] if wormhole_layout else None
+    rho_sum = rows[-1][17] if wormhole_layout else None
+    j_z_initial, j_z_final = _endpoints(rows, 18) if wormhole_layout else (None, None)
+    q_total_initial, q_total_final = (
+        _endpoints(rows, 19) if wormhole_layout else (None, None)
+    )
+    q_sphere_initial, q_sphere_final = (
+        _endpoints(rows, 20) if wormhole_layout else (None, None)
+    )
+    rho_sphere_initial, rho_sphere_final = (
+        _endpoints(rows, 21) if wormhole_layout else (None, None)
+    )
+
+    pump_col: int | None = None
+    if wormhole_layout:
+        pump_col = 22
+    elif radial_pump_layout:
+        pump_col = 14
+    pump_energy, pump_energy_norm = _integrate_pump_work(rows, pump_col)
 
     return CollapseMetrics(
         final_time=final_time,
@@ -105,4 +125,35 @@ def read_collapse_metrics(path: Path) -> CollapseMetrics | None:
         rho_sphere_initial=rho_sphere_initial,
         rho_sphere_final=rho_sphere_final,
         rho_sphere_retention=_retention(rho_sphere_initial, rho_sphere_final),
+        pump_energy=pump_energy,
+        pump_energy_norm=pump_energy_norm,
     )
+
+
+def _integrate_pump_work(
+    rows: list[list[float]], pump_col: int | None
+) -> tuple[float | None, float | None]:
+    """Trapezoid-integrate pump_work(t); normalize by early |rho| proxy if present."""
+    if pump_col is None:
+        return None, None
+    series = [(row[0], row[pump_col]) for row in rows if len(row) > pump_col]
+    if len(series) < 2:
+        if len(series) == 1:
+            return 0.0, 0.0
+        return None, None
+    energy = 0.0
+    for (t0, p0), (t1, p1) in zip(series, series[1:]):
+        energy += 0.5 * (p0 + p1) * (t1 - t0)
+    # Normalize by a crude matter-energy proxy when wormhole rho_sphere exists;
+    # otherwise by max(|pump_work|)*T so the penalty stays O(1).
+    norm = abs(energy)
+    if len(rows[0]) >= 22:
+        rho0 = abs(rows[0][21])
+        if rho0 > 1.0e-12:
+            norm = abs(energy) / rho0
+    else:
+        tmax = series[-1][0] - series[0][0]
+        peak = max(abs(p) for _, p in series)
+        denom = max(peak * max(tmax, 1.0e-12), 1.0e-12)
+        norm = abs(energy) / denom
+    return float(energy), float(norm)

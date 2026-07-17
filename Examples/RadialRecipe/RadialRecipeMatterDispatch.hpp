@@ -72,13 +72,19 @@ inline void setup_derived_quantities(int state_index,
 //! (RL-updated) simulation parameters.  When RL is off every amplitude is 0, so
 //! the pump is numerically inactive regardless of the (unseeded) centres.
 inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
-                                        int num_fields)
+                                        int num_fields, double time = 0.0)
 {
     RLMatterPumpParams pump;
     int n = params.rl_num_lumps;
     if (n > GRTRESNA_MAX_INDEPENDENT_SCALARS)
         n = GRTRESNA_MAX_INDEPENDENT_SCALARS;
     if (n < 0)
+        n = 0;
+    // Transient igniter: after rl_pump_stop_time the pump is fully off so the
+    // measured window is a conservative Einstein-Klein-Gordon evolution.
+    const bool pump_stopped =
+        (params.rl_pump_stop_time >= 0.0 && time >= params.rl_pump_stop_time);
+    if (pump_stopped)
         n = 0;
     pump.num_sites       = n;
     pump.width           = params.rl_pump_width;
@@ -88,8 +94,8 @@ inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
         RLRuntime::cached_L2_Ham(), pump.governor_center, pump.governor_width);
     pump.num_fields      = num_fields;
     // Closed-loop PD "trap" controller gains (0 => legacy open-loop source).
-    pump.k_p             = params.rl_pump_kp;
-    pump.k_d             = params.rl_pump_kd;
+    pump.k_p             = pump_stopped ? 0.0 : params.rl_pump_kp;
+    pump.k_d             = pump_stopped ? 0.0 : params.rl_pump_kd;
     pump.target_profile  = params.rl_pump_target_profile;
     pump.target_width    = params.rl_pump_target_width;
     pump.target_amp      = params.rl_pump_target_amp;
@@ -120,7 +126,7 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
     if (uses_independent_scalars(params))
     {
         const RLMatterPumpParams pump =
-            build_rl_pump(params, params.recipe_num_scalar_fields);
+            build_rl_pump(params, params.recipe_num_scalar_fields, time);
 
         GRTresnaIndependentScalars matter(
             params.recipe_num_scalar_fields, params.recipe_scalar_field_signs,
@@ -135,7 +141,7 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
     }
     else if (uses_complex_scalar(params))
     {
-        const RLMatterPumpParams pump = build_rl_pump(params, 1);
+        const RLMatterPumpParams pump = build_rl_pump(params, 1, time);
 
         ComplexScalarField matter(params.recipe_scalar_mass,
                                   params.recipe_scalar_lambda,
@@ -151,7 +157,7 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
     }
     else if (uses_bicomplex_scalar(params))
     {
-        const RLMatterPumpParams pump = build_rl_pump(params, 2);
+        const RLMatterPumpParams pump = build_rl_pump(params, 2, time);
 
         BiComplexScalarField matter(params.recipe_scalar_mass,
                                     params.recipe_scalar_lambda,

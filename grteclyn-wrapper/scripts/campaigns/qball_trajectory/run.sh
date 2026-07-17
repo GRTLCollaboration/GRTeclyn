@@ -61,11 +61,19 @@ export GPU_IDS="${GPU_IDS:-0 1 2 3}"
 export BATCH_SIZE="${BATCH_SIZE:-$(wc -w <<< "${GPU_IDS}")}"
 export QD_ITERATIONS="${QD_ITERATIONS:-20}"
 
-# --- Matter model: boson star on trajectory orbits ---
+# --- Matter model: bicomplex boson star on trajectory orbits ---
+# Per-lump exotic flags must survive into evolution T_ab. Single-complex
+# (grtresna_complex_scalar) silently drops them (eval-118 NO-GO). Bicomplex
+# evolves Phi+ (canonical) and Phi- (phantom) with matched signs.
 export GRTRESNA_MATTER_SECTOR=boson_star
 export GRTRESNA_ANSATZ=trajectory
 export GRTRESNA_MATTER_COUPLING="${GRTRESNA_MATTER_COUPLING:-canonical}"
 export GRTRESNA_FULL_Z=1
+# Fail-closed sign gate is default; never allow the corrupted pairing in QD.
+export GRTRESNA_ALLOW_SIGN_MISMATCH="${GRTRESNA_ALLOW_SIGN_MISMATCH:-0}"
+# Bicomplex plot channels for frames / confinement.
+export FRAMES_FIELDS="${FRAMES_FIELDS:-scalar_activity phi Pi phi_lump0 Pi_lump0 phi_lump1 Pi_lump1 phi_lump2 Pi_lump2 chi chi_minus_1 local_speed shift1 rho_req}"
+export PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity phi}"
 
 # --- Objective ---
 export OBJECTIVE_MODE="${OBJECTIVE_MODE:-general_ftl}"
@@ -111,6 +119,7 @@ export PLOT_INTERVAL="${PLOT_INTERVAL:-320}"
 #   trajectory_r_min — matches C++ TRAJECTORY_R_MIN; spiral clamp uses stop_time.
 #   stop_time        — duplicated here so speed/radius clamps see evolution length.
 export EXTRA_SETS="${EXTRA_SETS:-\
+grtresna_matter_model=grtresna_bicomplex_scalar \
 grtresna_scalar_mu=85333 \
 grtresna_qball_ode_profile=1 \
 grtresna_qball_equilibrium_amplitude=1 \
@@ -141,8 +150,9 @@ export POSTLOAD_MAX_HAM_L2="${POSTLOAD_MAX_HAM_L2:-3e-2}"
 
 echo "== Q-ball trajectory QD: ${QD_NAME} =="
 echo "   GPUs: ${GPU_IDS} (batch=${BATCH_SIZE})  target_evals=${QD_TARGET_EVALS}"
+echo "   Matter: grtresna_bicomplex_scalar (per-lump exotic signs retained in evolution)"
 echo "   Search: 39-D pinned (includes v_rad spiral drift per lump)"
-echo "   Score:  general_ftl + SCORE_EXOTIC_PENALTY_WEIGHT=${SCORE_EXOTIC_PENALTY_WEIGHT} + SCORE_FTL_DISPERSION_GATE=${SCORE_FTL_DISPERSION_GATE}"
+echo "   Score:  general_ftl + SCORE_EXOTIC_PENALTY_WEIGHT=${SCORE_EXOTIC_PENALTY_WEIGHT} + SCORE_FTL_DISPERSION_GATE=${SCORE_FTL_DISPERSION_GATE} + SCORE_PUMP_ENERGY_WEIGHT=${SCORE_PUMP_ENERGY_WEIGHT:-40}"
 echo "   Pipeline: max_grtresna=${MAX_CONCURRENT_GRTRESNA} scoring_workers=${SCORING_WORKERS:-<#GPUs>} (scoring runs off the GPU-lease path)"
 
 if [[ "${PIPELINE_MONITOR:-1}" == "1" ]]; then

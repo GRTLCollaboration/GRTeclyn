@@ -12,6 +12,7 @@ from pathlib import Path
 
 from ..io.conversion import convert_chombo_to_gridinit
 from ..matter.models import finalize_solver_config
+from ..matter.sign_consistency import enforce_id_evolution_sign_consistency
 from ..matter.wiring import write_matter_metadata
 from .config import GRTresnaConfig
 from .convergence import parse_convergence
@@ -149,6 +150,9 @@ def solve(
     work_dir.mkdir(parents=True, exist_ok=True)
 
     finalize_solver_config(cfg)
+    # Refuse to solve when ID exotic signs disagree with the evolution model
+    # (single-complex + per-lump phantom is the eval-118 failure mode).
+    enforce_id_evolution_sign_consistency(cfg)
     exe = _find_executable(cfg)
 
     outputs_dir = work_dir / "Outputs"
@@ -265,7 +269,10 @@ def solve(
         **convert_kwargs,
     )
 
-    if cfg.lumps or cfg.matter_model == "grtresna_complex_scalar":
+    if cfg.lumps or cfg.matter_model in (
+        "grtresna_complex_scalar",
+        "grtresna_bicomplex_scalar",
+    ):
         write_matter_metadata(gridinit_path.with_suffix(".matter.json"), cfg)
 
     if cfg.cleanup:

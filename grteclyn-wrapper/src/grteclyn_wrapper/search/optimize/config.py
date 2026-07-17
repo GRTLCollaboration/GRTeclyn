@@ -489,11 +489,23 @@ def build_grtresna_config(
     def _enable_exotic_safe_solver() -> None:
         apply_exotic_safe_solver(cfg)
 
+    def _gate_signs(out: "GRTresnaConfig") -> "GRTresnaConfig":
+        # Fail-closed ID ↔ evolution gravitational-sign consistency (eval-118
+        # bug class). Opt out only with GRTRESNA_ALLOW_SIGN_MISMATCH=1.
+        from ...grtresna.matter.sign_consistency import (
+            enforce_id_evolution_sign_consistency,
+        )
+
+        enforce_id_evolution_sign_consistency(out)
+        return out
+
     def _return_scalar() -> "GRTresnaConfig":
-        return finalize_independent_scalar_config(
-            cfg,
-            overrides,
-            enable_exotic_safe_solver=_enable_exotic_safe_solver,
+        return _gate_signs(
+            finalize_independent_scalar_config(
+                cfg,
+                overrides,
+                enable_exotic_safe_solver=_enable_exotic_safe_solver,
+            )
         )
 
     def _get_float(key: str, default: float) -> float:
@@ -528,14 +540,14 @@ def build_grtresna_config(
         )
         if cfg.lumps and any(int(lump.get("exotic", 0)) for lump in cfg.lumps):
             _enable_exotic_safe_solver()
-        return cfg
+        return _gate_signs(cfg)
 
     if apply_boson_star_overrides(
         cfg,
         overrides,
         enable_exotic_safe_solver=_enable_exotic_safe_solver,
     ):
-        return cfg
+        return _gate_signs(cfg)
 
     # Global (ansatz-independent) initial-shift seed: aligns a non-zero beta^i
     # with the matter momentum flux so the warp/channel mechanism is reachable.

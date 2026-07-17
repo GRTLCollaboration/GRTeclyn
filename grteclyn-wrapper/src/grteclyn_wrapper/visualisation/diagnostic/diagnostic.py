@@ -143,6 +143,9 @@ def load_collapse_diagnostics(path: Path) -> Dict[str, np.ndarray]:
         out["Q_sphere"] = arr[:, 20]
         out["rho_sphere"] = arr[:, 21]
         out["pump_work"] = arr[:, 22]
+    elif arr.shape[1] >= 15:
+        # RadialRecipe: pump_work appended after max_Pi (col index 14).
+        out["pump_work"] = arr[:, 14]
 
     idx = np.argsort(out["t"])
     for k in list(out.keys()):

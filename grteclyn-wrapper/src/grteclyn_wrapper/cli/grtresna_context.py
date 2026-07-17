@@ -99,7 +99,9 @@ def build_grtresna_search_context(
     if use_grtresna and grtresna_ansatz == "sh":
         overrides = {**overrides, "grtresna_sh_lumps": grtresna_lumps}
     if use_grtresna:
-        overrides = {**overrides, **matter_selection_base_overrides(matter)}
+        # Matter-selection defaults first; campaign EXTRA_SETS / --set win so an
+        # explicit grtresna_matter_model=grtresna_bicomplex_scalar is preserved.
+        overrides = {**matter_selection_base_overrides(matter), **overrides}
     if boson_allow_exotic:
         overrides["grtresna_boson_allow_exotic"] = 1.0
     if nonspherical and not use_grtresna:

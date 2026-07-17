@@ -1,8 +1,23 @@
 from __future__ import annotations
 
 import math
+import os
 
 from .types import ScoringContext
+
+
+def _post_pump_emit_ok(t_emit: float) -> bool:
+    """False when t_emit is before RL_PUMP_STOP_TIME (igniter still on)."""
+    raw = os.environ.get("RL_PUMP_STOP_TIME", "").strip()
+    if not raw:
+        return True
+    try:
+        stop = float(raw)
+    except (TypeError, ValueError):
+        return True
+    if stop < 0.0:
+        return True
+    return t_emit + 1.0e-12 >= stop
 
 SOLVED_FTL_SCALE = 3.0e-3
 # Peak must clear c by >SOLVED_PEAK_FLOOR to earn any solved-FTL credit,
@@ -240,7 +255,13 @@ def compute_ftl_components(
         # 4D evolving trace ran -- it is authoritative for geodesic FTL ranking.
         frozen_timeavg = geo_timeavg
         frozen_peak = components.get("ftl_geo_peak", 0.0)
-        if evo_trustworthy and math.isfinite(evo_geo.f_geo) and evo_geo.f_geo > GEO_FTL_FLOOR:
+        post_pump_ok = _post_pump_emit_ok(float(evo_geo.t_emit))
+        if (
+            evo_trustworthy
+            and post_pump_ok
+            and math.isfinite(evo_geo.f_geo)
+            and evo_geo.f_geo > GEO_FTL_FLOOR
+        ):
             evo_mag = _geo_magnitude(evo_geo.f_geo)
             components["ftl_geo_evolving"] = evo_mag * structural_persistence
             components["operational_ftl_geodesic"] = 0.0
@@ -250,7 +271,12 @@ def compute_ftl_components(
         else:
             components["ftl_geo_evolving"] = 0.0
             components["operational_ftl_geodesic"] = 0.0
-            if evo_geo.n_reached == 0:
+            if not post_pump_ok:
+                notes.append(
+                    f"4D evolving peak at t_emit={evo_geo.t_emit:.3g} rejected: "
+                    "before RL_PUMP_STOP_TIME (pump still on)"
+                )
+            elif evo_geo.n_reached == 0:
                 notes.append(
                     "4D evolving trace: no rays reached detector; "
                     "frozen geodesic credit zeroed"

@@ -35,6 +35,10 @@ class CollapseMetrics:
     rho_sphere_initial: float | None = None
     rho_sphere_final: float | None = None
     rho_sphere_retention: float | None = None
+    # Time-integral of instantaneous pump_work (Bianchi-violating injection).
+    # Score penalises pump_energy_norm so the search minimises artificial forcing.
+    pump_energy: float | None = None
+    pump_energy_norm: float | None = None
 
 
 @dataclass(frozen=True)

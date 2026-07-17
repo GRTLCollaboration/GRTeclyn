@@ -180,3 +180,91 @@ def test_metadata_from_complex_scalar_drops_per_lump_signs() -> None:
     assert meta.scalar_sign == 1
     # Metadata alone looks "canonical"; the rail must inspect the lumps.
     assert check_id_evolution_sign_consistency(cfg).ok is False
+
+
+def test_build_grtresna_config_raises_on_eval118_style_mismatch() -> None:
+    """Integration: config builder refuses single-complex + exotic lumps."""
+    from grteclyn_wrapper.search.optimize.config import build_grtresna_config
+
+    overrides = {
+        "grtresna_matter_model": GRTRESNA_COMPLEX_SCALAR_MODEL,
+        "grtresna_matter_sector": "boson_star",
+        "grtresna_scalar_mass": 1.0,
+        "grtresna_scalar_lambda": 640.0,
+        "grtresna_bs_omega": 0.8,
+        "trajectory_mode": 1,
+        "trajectory_num_lumps": 2,
+        "trajectory_lump0_R0": 4.0,
+        "trajectory_lump0_omega_rot": -0.05,
+        "trajectory_lump0_phase0": 0.0,
+        "trajectory_lump0_tilt_theta": 0.0,
+        "trajectory_lump0_tilt_phi": 0.0,
+        "trajectory_lump0_v_rad": 0.0,
+        "trajectory_lump0_well_depth": 0.15,
+        "trajectory_lump0_exotic": 0.2,
+        "trajectory_lump1_R0": 5.0,
+        "trajectory_lump1_omega_rot": -0.05,
+        "trajectory_lump1_phase0": 1.0,
+        "trajectory_lump1_tilt_theta": 0.0,
+        "trajectory_lump1_tilt_phi": 0.0,
+        "trajectory_lump1_v_rad": 0.0,
+        "trajectory_lump1_well_depth": 0.15,
+        "trajectory_lump1_exotic": 0.9,
+        "trajectory_well_width": 1.667,
+    }
+    with pytest.raises(SignMismatchError):
+        build_grtresna_config(overrides)
+
+
+def test_build_grtresna_config_accepts_bicomplex_mixed_exotic() -> None:
+    from grteclyn_wrapper.search.optimize.config import build_grtresna_config
+
+    overrides = {
+        "grtresna_matter_model": GRTRESNA_BICOMPLEX_SCALAR_MODEL,
+        "grtresna_matter_sector": "boson_star",
+        "grtresna_scalar_mass": 1.0,
+        "grtresna_scalar_lambda": 640.0,
+        "grtresna_bs_omega": 0.8,
+        "trajectory_mode": 1,
+        "trajectory_num_lumps": 2,
+        "trajectory_lump0_R0": 4.0,
+        "trajectory_lump0_omega_rot": -0.05,
+        "trajectory_lump0_phase0": 0.0,
+        "trajectory_lump0_tilt_theta": 0.0,
+        "trajectory_lump0_tilt_phi": 0.0,
+        "trajectory_lump0_v_rad": 0.0,
+        "trajectory_lump0_well_depth": 0.15,
+        "trajectory_lump0_exotic": 0.1,
+        "trajectory_lump1_R0": 5.0,
+        "trajectory_lump1_omega_rot": -0.05,
+        "trajectory_lump1_phase0": 1.0,
+        "trajectory_lump1_tilt_theta": 0.0,
+        "trajectory_lump1_tilt_phi": 0.0,
+        "trajectory_lump1_v_rad": 0.0,
+        "trajectory_lump1_well_depth": 0.15,
+        "trajectory_lump1_exotic": 0.9,
+        "trajectory_well_width": 1.667,
+    }
+    cfg = build_grtresna_config(overrides)
+    assert cfg.matter_model == GRTRESNA_BICOMPLEX_SCALAR_MODEL
+    evo = evolution_overrides_from_config(cfg)
+    assert evo["recipe_matter_model"] == GRTRESNA_BICOMPLEX_SCALAR_MODEL
+    assert evo["recipe_scalar_field_signs"] == "1 -1"
+
+
+def test_allow_sign_mismatch_env_downgrades_to_warning(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from grteclyn_wrapper.grtresna.matter.sign_consistency import (
+        assert_id_evolution_sign_consistency,
+    )
+
+    monkeypatch.setenv("GRTRESNA_ALLOW_SIGN_MISMATCH", "1")
+    cfg = GRTresnaConfig(
+        matter_model=GRTRESNA_COMPLEX_SCALAR_MODEL,
+        scalar_sign=1,
+        lumps=[_lump(exotic=1)],
+    )
+    report = assert_id_evolution_sign_consistency(cfg)
+    assert report.ok is False  # still reports mismatch
+    # but does not raise

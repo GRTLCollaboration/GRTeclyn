@@ -163,19 +163,33 @@ def _run_cpu_grtresna_gates(
             gate_config=gate_config,
         )
     except Exception as exc:  # noqa: BLE001 - record and continue
+        from ..grtresna.matter.sign_consistency import SignMismatchError
+
         fitness = GRTRESNA_REJECTION_BASE_FITNESS + GRTRESNA_REJECTION_MAX_EXTRA_FITNESS
-        update_metadata(episode, {
+        is_sign = isinstance(exc, SignMismatchError)
+        meta = {
             "grtresna_error": repr(exc),
             "simulation_exit_code": None,
-        })
+        }
+        if is_sign:
+            meta.update(
+                {
+                    "rejected_sign_mismatch": True,
+                    "grtresna_rejected": True,
+                    "grtresna_rejection_reason": str(exc),
+                }
+            )
+        update_metadata(episode, meta)
         return Evaluation(
             score=-fitness,
-            components={"grtresna_rejection": -fitness},
-            notes=[repr(exc)],
+            components={
+                "rejected_sign_mismatch" if is_sign else "grtresna_rejection": -fitness
+            },
+            notes=[f"rejected_sign_mismatch: {exc}" if is_sign else repr(exc)],
             episode_path=str(episode.path),
             exit_code=None,
             preflight_rejected=False,
-            reason=repr(exc),
+            reason=str(exc) if is_sign else repr(exc),
             metrics={},
         )
 

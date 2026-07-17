@@ -33,6 +33,7 @@ from .sign_consistency import (
     SignMismatchError,
     assert_id_evolution_sign_consistency,
     check_id_evolution_sign_consistency,
+    enforce_id_evolution_sign_consistency,
 )
 from .splash import apply_splash_overrides, splash_evolution_overrides
 from .wiring import (
@@ -71,6 +72,7 @@ __all__ = [
     "apply_splash_overrides",
     "assert_id_evolution_sign_consistency",
     "check_id_evolution_sign_consistency",
+    "enforce_id_evolution_sign_consistency",
     "evolution_overrides_from_complex_scalar",
     "evolution_overrides_from_config",
     "evolution_overrides_from_metadata",

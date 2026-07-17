@@ -15,6 +15,11 @@ GEO_NEC_SCALE = 5.0e-4      # effective-NEC violation of evolved geometry
 # right through that band -- this is what lets the search minimise exotic
 # content *among* the geometries that actually sustain a channel.
 MATTER_CEILING = 1.6
+# Pump-work penalty: honest open-system accounting for the PD controller.
+# Does NOT restore nabla_mu T^munu=0 by itself; it taxes artificial forcing so
+# MAP-Elites prefers configs that need less pump.  Scale is on pump_energy_norm.
+PUMP_ENERGY_SCALE = 0.25
+PUMP_ENERGY_CEILING = 1.6
 
 
 def compute_penalty_components(ctx: ScoringContext) -> None:
@@ -89,6 +94,28 @@ def compute_penalty_components(ctx: ScoringContext) -> None:
         notes.append(
             "exotic matter required "
             f"(matter={matter_exotic:.2f}, geometric={geo_exotic:.2f} of full penalty)"
+        )
+
+    # Pump-energy penalty (RadialRecipe / wormhole pump_work column).  Passive when
+    # the diagnostic is absent or the pump was never on.
+    pump_term = 0.0
+    if metrics.collapse is not None and metrics.collapse.pump_energy_norm is not None:
+        pump_term = graded(
+            abs(metrics.collapse.pump_energy_norm),
+            PUMP_ENERGY_SCALE,
+            PUMP_ENERGY_CEILING,
+        )
+    components["pump_energy_penalty"] = -pump_term
+    if pump_term > 0.05:
+        pe = (
+            metrics.collapse.pump_energy
+            if metrics.collapse is not None
+            else None
+        )
+        notes.append(
+            f"pump work taxed (norm={pump_term:.2f}"
+            + (f", energy={pe:.3g}" if pe is not None else "")
+            + "); open-system accounting, not a closed GR solution while pump is on"
         )
 
     qei_violation = 0.0

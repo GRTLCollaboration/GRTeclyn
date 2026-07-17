@@ -56,6 +56,7 @@ EVOLUTION_MATTER_KEYS: tuple[str, ...] = (
     "rl_pump_kd",
     "rl_pump_target_profile",
     "rl_pump_target_width",
+    "rl_pump_stop_time",
 )
 
 # Full metric in plotfiles for evolved FTL/EC scoring plus matter channels.
@@ -189,6 +190,19 @@ def _pump_controller_overrides(
         "rl_pump_kp": _PUMP_CONTROLLER_KP,
         "rl_pump_kd": _PUMP_CONTROLLER_KD,
     }
+    # Optional transient igniter: when set via env RL_PUMP_STOP_TIME (>=0),
+    # force the pump off after that time so f_geo can be measured in a
+    # conservative Einstein-Klein-Gordon window.
+    import os
+
+    stop_raw = os.environ.get("RL_PUMP_STOP_TIME", "").strip()
+    if stop_raw:
+        try:
+            stop_t = float(stop_raw)
+            if stop_t >= 0.0:
+                overrides["rl_pump_stop_time"] = stop_t
+        except (TypeError, ValueError):
+            pass
     if mass > 0.0:
         overrides["rl_pump_target_profile"] = int(PROFILE_SECH_BOUND)
         if selfgrav:

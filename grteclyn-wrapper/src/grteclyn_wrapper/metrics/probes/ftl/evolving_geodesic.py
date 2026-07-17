@@ -17,6 +17,7 @@ Emission protocol
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Sequence
@@ -418,6 +419,33 @@ def _emission_times(
     return times if len(times) > 1 else None
 
 
+def _pump_stop_time_for_geo() -> float | None:
+    """Return rl_pump_stop_time from env when configured (>=0), else None."""
+    raw = os.environ.get("RL_PUMP_STOP_TIME", "").strip()
+    if not raw:
+        return None
+    try:
+        stop = float(raw)
+    except (TypeError, ValueError):
+        return None
+    return stop if stop >= 0.0 else None
+
+
+def _eligible_emit_reports(
+    reports: list[tuple[float, EvolvingGeodesicFtlReport]],
+) -> list[tuple[float, EvolvingGeodesicFtlReport]]:
+    """Keep launches with t_emit >= pump-stop when the igniter is configured.
+
+    If every launch is pre-stop (too short a run), fall back to all reports so
+    the probe still returns a number, but the peak_note will flag the filter.
+    """
+    stop = _pump_stop_time_for_geo()
+    if stop is None:
+        return reports
+    kept = [(te, rep) for te, rep in reports if te + 1.0e-12 >= stop]
+    return kept if kept else reports
+
+
 def compute_evolving_geodesic_ftl_emission_sweep(
     field: MetricField,
     *,
@@ -454,11 +482,20 @@ def compute_evolving_geodesic_ftl_emission_sweep(
         reports.append((float(te), rep))
 
     sweep = tuple((te, float(rep.f_geo), int(rep.n_reached)) for te, rep in reports)
-    best_te, best = max(reports, key=lambda tr: _report_probe_score(tr[1]))
+    # When the transient igniter pump is configured (RL_PUMP_STOP_TIME>=0),
+    # only accept peak f_geo from launches at/after the pump-free window so
+    # the headline shortcut is measured on a conservative EKG segment.
+    eligible = _eligible_emit_reports(reports)
+    best_te, best = max(eligible, key=lambda tr: _report_probe_score(tr[1]))
     sweep_note = "emit_sweep: " + ", ".join(
         f"t={te:.2f}->f={rep.f_geo:.3f}(n{rep.n_reached})" for te, rep in reports
     )
     peak_note = f"peak f_geo={best.f_geo:.3f} at t_emit={best_te:.2f} over {len(reports)} launches"
+    if len(eligible) < len(reports):
+        peak_note += (
+            f" (post-pump window: kept {len(eligible)}/{len(reports)} launches "
+            f"with t_emit>=rl_pump_stop_time)"
+        )
 
     return EvolvingGeodesicFtlReport(
         f_geo=best.f_geo,
