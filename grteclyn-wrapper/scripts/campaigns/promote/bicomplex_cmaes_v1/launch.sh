@@ -37,7 +37,7 @@ if [[ "${LAUNCH_LADDER}" != "1" ]]; then
   echo "After RM gate, Richardson companions:"
   echo "  LAUNCH_LADDER=1 SKIP_FREEZE=1 bash $0"
   echo "  GPU_ID=1 bash ${RUN} BCMA-RC    # 1 GPU"
-  echo "  GPU_ID=2 bash ${RUN} BCMA-RF    # 2 GPUs → 2,3"
+  echo "  GPU_ID=2 bash ${RUN} BCMA-RF    # 3 GPUs → 2,3,4"
   exit 0
 fi
 
@@ -47,7 +47,7 @@ echo
 echo "== Richardson companions =="
 echo "-- BCMA-RC GPU=${rc_gpu} (1 GPU)"
 GPU_ID="${rc_gpu}" bash "${RUN}" BCMA-RC
-echo "-- BCMA-RF GPU=${rf_start},$((rf_start + 1)) (2 GPUs)"
+echo "-- BCMA-RF GPU=${rf_start} (3 GPUs, auto-expanded by run_matrix.sh)"
 GPU_ID="${rf_start}" bash "${RUN}" BCMA-RF
 
 echo

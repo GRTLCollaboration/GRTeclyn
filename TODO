@@ -1,1 +1,1 @@
-1. Make gpu preflight check mandatory for all runing jobs
+1.Modify cma es optimisation for continious batching.
