@@ -58,9 +58,11 @@ Constraint norms stay bounded, but matter confinement falls to about $11\%$
 by $t=30$. The evolution uses a bicomplex scalar model that preserves
 per-lump canonical/phantom signs through both the constraint solve and the
 dynamical stress tensor, together with an external trajectory controller
-that is switched off at $t=4$. We therefore claim a numerically robust
-\emph{transient} shortcut in a controlled, driven system---not a
-conservative Einstein--Klein--Gordon solution or passenger drive.
+that is switched off at $t=4$. Because the headline geodesic is launched at
+$t_{\rm emit}=4$---after pump-off---the $20.2\%$ transit advantage is measured
+in a freely evolving Einstein--Klein--Gordon region. We therefore claim a
+numerically robust \emph{transient} shortcut after a controlled ignition
+phase---not a passenger drive or a permanently maintained warp bubble.
 \end{abstract}
 
 \maketitle
@@ -97,8 +99,8 @@ shortcut appears. In this paper ``FTL'' and ``null shortcut'' mean the same
 operational claim: an \emph{effective} reduction of null travel time relative
 to flat space between the same asymptotic endpoints---never local superluminal
 motion outside the light cone. The fractional advantage is $f_{\rm geo}$
-[Eq.~\eqref{eq:f_geo}]; for example $f_{\rm geo}=0.17$ means the curved
-transit is $17\%$ shorter than the flat comparison.
+[Eq.~\eqref{eq:f_geo}]; for example $f_{\rm geo}=0.20$ means the curved
+transit is $20\%$ shorter than the flat comparison.
 
 \begin{figure*}[t]
 \centering
@@ -170,7 +172,7 @@ near-misses, and over reinforcement learning, which would require dense
 credit assignment across expensive GPU evolutions with sparse, delayed
 rewards. After MAP-Elites identifies a high-scoring basin, CMA-ES warm-starts
 from the archive champion and locally refines the genome before any
-high-resolution replay or validation matrix. In the present campaign,
+high-resolution replay or resolution ladder. In the present campaign,
 MAP-Elites saturates at candidate~87 ($S=825.19$) and CMA-ES raises the
 score to $852.15$ (candidate~146), a ${\sim}3.3\%$ relative lift driven by
 improved confinement-gated persistence rather than a larger raw shortcut.
@@ -204,11 +206,11 @@ Three pillars distinguish this pipeline from geometry-first studies:
     (Secs.~\ref{sec:pipeline}--\ref{sec:methodology}).
     \item[(ii)] A hierarchical campaign protocol: quality-diversity search,
     CMA-ES hill-climb on the top genome, then longer higher-resolution
-    replay and a resolution/domain matrix only on the refined champion
-    (Sec.~\ref{sec:results}).
+    replay and a three-run resolution ladder (RC/RM/RF) only on the refined
+    champion (Sec.~\ref{sec:results}).
     \item[(iii)] Explicit numerical limits of the surviving candidates:
-    dispersing exotic matter and externally driven dynamics---not passenger
-    transport (Sec.~\ref{sec:discussion}).
+    dispersing exotic matter and a transient ignition-phase controller---not
+    passenger transport (Sec.~\ref{sec:discussion}).
 \end{itemize}
 
 \section{Matter-First Pipeline}
@@ -680,7 +682,7 @@ $852.15$ (candidate~146, $\Delta S\approx+27$). The improvement is not a
 bigger raw shortcut---the search-tier $f_{\rm geo}$ actually \emph{decreased}
 from $25.3\%$ to $20.1\%$---but a better confinement-gated persistence
 ($0.396\to0.417$). CMA-ES converged to a genome with nearly static lump
-placement: very slow angular velocities and negligible breathing, producing a
+placement: very slow angular velocities and small breathing, producing a
 quasi-static scaffold that keeps matter confined longer
 (Fig.~\ref{fig:lump_dynamics}).
 
@@ -743,8 +745,8 @@ F_{\rm op}=\frac{t_B^{\rm flat}-t_B^{\rm curved}}{t_B^{\rm flat}},
 f_{\rm geo}=\max\!\left(0,\;\frac{t_{\rm flat}-t_{\rm min}}{t_{\rm flat}}\right),
 \label{eq:f_geo}
 \end{equation}
-so $f_{\rm geo}=0$ means no shortcut and $f_{\rm geo}=0.17$ means the curved
-transit is $17\%$ shorter than the flat comparison. A launch is accepted only if
+so $f_{\rm geo}=0$ means no shortcut and $f_{\rm geo}=0.20$ means the curved
+transit is $20\%$ shorter than the flat comparison. A launch is accepted only if
 its rays stay physical: the relative drift in the null Hamiltonian
 $g^{\mu\nu}k_\mu k_\nu=0$ must remain below $10^{-2}$, which rejects rays that
 have accumulated interpolation error. The simulation itself runs to $t=30$, but
@@ -800,14 +802,14 @@ followed by rotation into the laboratory frame through the two tilt angles.
 Thus each lump spirals radially, rotates in a different plane, and shares a
 collective radial ``breathing'' and vertical oscillation. For candidate~146,
 $A_{\rm b}=0.083$, $\omega_{\rm b}=0.429$, $A_z=2.32$, and
-$\omega_z=0.016$. The breathing amplitude is negligible compared with the
-earlier MAP-Elites champion (87 had $A_{\rm b}\approx0.08$), so radial
-motion is dominated by the per-lump drifts. The initial radii are
+$\omega_z=0.016$. Breathing remains similarly small in the MAP-Elites
+champion (87 had $A_{\rm b}\approx0.078$); what CMA-ES changed is the orbital
+drive. The initial radii are
 $R_0=(3.69,5.50,2.83,5.59,2.61)$; all angular velocities are negative,
 $\omega_{\rm rot}=(-0.0017,-0.0007,-0.0031,-0.0009,-0.0049)$, so all five
 trajectories are retrograde but extremely slow. Radial drifts are small
 [$v_r=(-0.060,-0.010,\,0.001,-0.005,-0.006)$]; the slow rotation and
-drift---compared with the aggressive spiraling of earlier campaigns---is
+drift---roughly an order of magnitude quieter than candidate~87---is
 what CMA-ES converged to in order to maximize confinement-gated persistence.
 Lumps 0 and 3 are canonical; lumps 1, 2, and 4 are phantom after rounding.
 
@@ -856,8 +858,8 @@ and arrow mark the start and end of that window. Colors and labels identify
 the lumps ($+$ canonical, $-$ phantom), and the dashed line marks the
 $x$-directed null-probe axis. The magnification is representational: the
 centers are plotted at their unscaled positions. CMA-ES converged to very slow angular velocities
-($|\omega_{\rm rot}|\lesssim5\times10^{-3}$) and negligible breathing
-($A_{\rm b}=0.08$), producing a quasi-static scaffold that maximizes
+($|\omega_{\rm rot}|\lesssim5\times10^{-3}$) and small breathing
+($A_{\rm b}=0.083$), producing a quasi-static scaffold that maximizes
 confinement-gated persistence.}
 \label{fig:lump_dynamics}
 \end{figure*}
@@ -927,10 +929,11 @@ $5/5$ rays reaching and passes the null-Hamiltonian quality gate.}
 
 \subsection{Resolution matrix}
 
-The resolution ladder holds the domain fixed at $L=128$ and varies the grid:
-coarse RC ($N=192$, $h=0.667$), medium RM ($N=256$, $h=0.500$), and fine RF
-($N=384$, $h=0.333$). RM is the headline HQ baseline; paper numbers come
-from this run. A domain ladder (DS/DL) is deferred.
+The completed validation matrix is a three-run resolution ladder at fixed
+domain $L=128$: coarse RC ($N=192$, $h=0.667$), medium RM ($N=256$,
+$h=0.500$), and fine RF ($N=384$, $h=0.333$). RM is the headline HQ
+baseline; paper numbers come from this run. No domain ladder (DS/DL) was
+run for candidate~146; that check is deferred to future work.
 
 \begin{table}[t]
 \caption{Candidate-146 resolution matrix. All runs use $L=128$, three AMR
@@ -1096,14 +1099,16 @@ yields $f_{\rm geo}=20.2\%$ in the headline RM run---light $20\%$
 earlier---and $20.2$--$20.4\%$ across the three-run resolution ladder
 (fine--medium relative difference ${\ll}1\%$). The frozen-peak $f_{\rm geo}$
 reaches ${\sim}29.5\%$, stable across resolutions. All rays pass quality
-gates ($5/5$ reaching, $h_{\rm rel}^{\rm max}\le3.8\times10^{-3}$). The
-bicomplex matter model preserves per-lump canonical/phantom signs through
-both the constraint solve and the evolution. The PD controller switches off
-at $t=4$; after pump-off, the system evolves freely. Confinement falls to
-${\sim}11\%$ by $t=30$, so the shortcut is transient. Candidate~146 is
-therefore a reproducible, continuum-stable numerical warp precursor produced
-by an automated two-stage search, not a continuum-extrapolated or functional
-warp drive.
+gates ($5/5$ reaching; matrix-wide $h_{\rm rel}^{\rm max}\le3.8\times10^{-3}$,
+with $2.19\times10^{-3}$ in the headline RM run). The bicomplex matter model
+preserves per-lump canonical/phantom signs through both the constraint solve
+and the evolution. The PD controller switches off at $t=4$; because the
+headline geodesic launches at $t_{\rm emit}=4$, the $20.2\%$ advantage is
+measured in freely evolving Einstein--Klein--Gordon dynamics. Confinement
+falls to ${\sim}11\%$ by $t=30$, so the shortcut is transient. Candidate~146
+is therefore a reproducible, continuum-stable numerical warp precursor
+produced by an automated two-stage search, not a continuum-extrapolated or
+functional warp drive.
 
 \section{Code and Data Availability}
 
