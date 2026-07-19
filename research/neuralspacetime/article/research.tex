@@ -37,32 +37,24 @@
 \date{\today}
 
 \begin{abstract}
-We build an automated pipeline that searches for warp-precursor spacetimes by
-proposing matter, solving the Einstein constraints, evolving the spacetime in
-full $3{+}1$ numerical relativity, and testing whether null rays between fixed
-asymptotic endpoints arrive earlier than in flat space. MAP-Elites explores a
-39-dimensional family of bicomplex-scalar Q-ball shells; \texttt{GRTresna}
-solves the constraints; \texttt{GRTeclyn} evolves on GPUs; and a
-four-dimensional evolving null-geodesic tracer measures the fractional
-travel-time advantage $f_{\rm geo}$. MAP-Elites saturates at candidate~87
-($S=825.19$); CMA-ES warm-started from that elite raises the search score to
-$852.15$ (candidate~146, $\Delta S\approx+27$). The improvement is
-confinement-gated persistence, not a larger raw geodesic excess. In the
-headline validation run ($L=128$, $N=256$, three AMR levels, $t=30$), light
-arrives $20.2\%$ earlier than the matched flat path, with all five rays
-reaching and maximum relative null-Hamiltonian drift
-$2.19\times10^{-3}$. The resolution ladder (RC/RM/RF at
-$N=192/256/384$) yields $20.4\%/20.2\%/20.2\%$, with fine--medium relative
-difference $\ll1\%$. Frozen-peak $f_{\rm geo}$ reaches ${\sim}29.5\%$.
-Constraint norms stay bounded, but matter confinement falls to about $11\%$
-by $t=30$. The evolution uses a bicomplex scalar model that preserves
-per-lump canonical/phantom signs through both the constraint solve and the
-dynamical stress tensor, together with an external trajectory controller
-that is switched off at $t=4$. Because the headline geodesic is launched at
-$t_{\rm emit}=4$---after pump-off---the $20.2\%$ transit advantage is measured
-in a freely evolving Einstein--Klein--Gordon region. We therefore claim a
-numerically robust \emph{transient} shortcut after a controlled ignition
-phase---not a passenger drive or a permanently maintained warp bubble.
+We present an automated matter-first pipeline for discovering warp-precursor
+spacetimes: an optimizer proposes matter, a constraint solver
+(\texttt{GRTresna}) builds initial data, a GPU evolution code
+(\texttt{GRTeclyn}) advances the full $3{+}1$ Einstein equations, and null
+geodesics integrated through the \emph{time-evolving} metric test whether
+light arrives earlier than in flat space. MAP-Elites quality-diversity search
+over a 39-dimensional bicomplex Q-ball genome saturates at candidate~87
+($S=825$); CMA-ES refinement raises the score to $852$ (candidate~146) by
+improving confinement-gated persistence. In the headline validation run
+($L=128$, $N=256$, three AMR levels, $t=30$), null rays arrive $20.2\%$
+earlier than the matched flat path ($5/5$ rays reaching, all quality gates
+passed). A three-run Richardson ladder (coarse/medium/fine, $N=192/256/384$)
+yields $20.4\%/20.2\%/20.2\%$ with fine--medium relative difference
+${\ll}1\%$. An external ignition controller switches off at $t=4$; because
+the headline geodesic launches at $t_{\rm emit}=4$, the $20.2\%$ advantage
+is measured in freely evolving Einstein--Klein--Gordon dynamics. Matter
+confinement falls to ${\sim}11\%$ by $t=30$: the shortcut is transient, not
+a passenger drive.
 \end{abstract}
 
 \maketitle
@@ -93,9 +85,11 @@ soon as time advances---so the archive fills with numerical failures rather than
 competing mechanisms.
 
 We therefore invert the loop (Fig.~\ref{fig:matter_first}). The optimizer
-proposes matter; \texttt{GRTresna} returns constraint-compatible initial data;
-\texttt{GRTeclyn} evolves the spacetime; and probes ask whether a null
-shortcut appears. In this paper ``FTL'' and ``null shortcut'' mean the same
+proposes matter; \texttt{GRTresna} (a constraint solver that returns
+initial data satisfying the Hamiltonian and momentum constraints) builds the
+initial slice; \texttt{GRTeclyn}~\cite{grteclyn,grchombo} (a GPU-accelerated,
+AMReX-based CCZ4 evolution code) advances the spacetime; and probes ask
+whether a null shortcut appears. In this paper ``FTL'' and ``null shortcut'' mean the same
 operational claim: an \emph{effective} reduction of null travel time relative
 to flat space between the same asymptotic endpoints---never local superluminal
 motion outside the light cone. The fractional advantage is $f_{\rm geo}$
@@ -164,21 +158,15 @@ discovers loopholes.
 
 The search engine is MAP-Elites~\cite{mouret15}, a quality-diversity algorithm
 that keeps one elite per cell of a behavior archive rather than a single global
-optimum. Here the archive axes are peak shortcut strength and FTL lifetime, so
-distinct transport mechanisms can coexist---but only among candidates that
-already cleared the scored falsification gate. We prefer this over a pure
-CMA-ES hill-climb, which collapses onto one basin and discards diverse
-near-misses, and over reinforcement learning, which would require dense
-credit assignment across expensive GPU evolutions with sparse, delayed
-rewards. After MAP-Elites identifies a high-scoring basin, CMA-ES warm-starts
-from the archive champion and locally refines the genome before any
-high-resolution replay or resolution ladder. In the present campaign,
-MAP-Elites saturates at candidate~87 ($S=825.19$) and CMA-ES raises the
-score to $852.15$ (candidate~146), a ${\sim}3.3\%$ relative lift driven by
-improved confinement-gated persistence rather than a larger raw shortcut.
-Both discovery stages run on a deliberately coarse GRTeclyn grid ($L$, $N$,
-\texttt{max\_level}) chosen for evaluation throughput; production claims are
-deferred to the later HQ / resolution matrix (Sec.~\ref{sec:stages}).
+optimum. We prefer this over a pure CMA-ES hill-climb, which collapses onto
+one basin and discards diverse near-misses, and over reinforcement learning,
+which would require dense credit assignment across expensive GPU evolutions
+with sparse, delayed rewards. After MAP-Elites identifies a high-scoring
+basin, CMA-ES warm-starts from the archive champion and locally refines the
+genome before any high-resolution replay or resolution ladder
+(Sec.~\ref{sec:methodology}). Both discovery stages run on a deliberately
+coarse grid chosen for evaluation throughput; production claims are deferred
+to the later HQ / resolution matrix (Sec.~\ref{sec:stages}).
 
 \subsection{Methodological Rigor}
 \label{subsec:rigor}
@@ -206,7 +194,9 @@ Three pillars distinguish this pipeline from geometry-first studies:
     (Secs.~\ref{sec:pipeline}--\ref{sec:methodology}).
     \item[(ii)] A hierarchical campaign protocol: quality-diversity search,
     CMA-ES hill-climb on the top genome, then longer higher-resolution
-    replay and a three-run resolution ladder (RC/RM/RF) only on the refined
+    replay and a three-run Richardson resolution ladder
+    (RC/RM/RF~= coarse/medium/fine at fixed domain, varying grid spacing
+    $h=L/N$) only on the refined
     champion (Sec.~\ref{sec:results}).
     \item[(iii)] Explicit numerical limits of the surviving candidates:
     dispersing exotic matter and a transient ignition-phase controller---not
@@ -294,26 +284,38 @@ $\phi\propto e^{-i\omega t}$ makes $\Pi=\dot\phi\neq0$, so by
 Eq.~\eqref{eq:scalar_sources} the lump carries a momentum density $S_i$ and can
 source a nontrivial shift---the ingredient a transport channel needs. Each lump
 starts from a spherically symmetric equilibrium profile obtained by solving the
-radial ODE for the chosen sextic potential ($m=1$, $\lambda=640$,
-$\mu=85333$, $\omega=0.8$); these fixed microphysical constants are not
-searched.
+radial ODE for a sextic potential,
+\begin{equation}
+V(|\Phi|)=\tfrac12 m^2|\Phi|^2 - \tfrac14\lambda|\Phi|^4
+          +\tfrac16\mu|\Phi|^6,
+\label{eq:sextic}
+\end{equation}
+with fixed parameters $m=1$, $\lambda=640$, $\mu=85333$, $\omega=0.8$.
+The attractive quartic ($\lambda>0$) provides self-binding; the repulsive
+sextic ($\mu>0$) is \emph{required} for a stable three-dimensional Q-ball---a
+pure quartic is the critical case and either collapses or disperses.
+The ratio $\lambda^2/\mu$ sets the minimum internal frequency
+$\omega_{\min}\approx0.316$; $\omega=0.8$ lies in the thick-wall regime where
+the equilibrium soliton decays to zero within ${\sim}7$ code units, making it
+compact enough to fit multiple lumps inside the evolution box. These
+microphysical constants are not searched.
 
 \subsection{Shell Parameterization}
 \label{sec:shell}
 
 The search vector has 39 dimensions because the arrangement of the lumps, not
-the lump microphysics, is what is optimized. Five lumps each carry seven
-searchable placement parameters---orbital radius $R_0$, phase, two tilt angles,
-radial velocity, angular (rotation) velocity, and a source-sign selector---giving
+the lump microphysics, is what is optimized. The shell contains five lumps---the
+maximum supported by the solver's state layout---giving enough independent
+tilted orbits to produce multi-stream frame dragging while keeping the search
+space tractable. Each lump carries seven searchable placement
+parameters---orbital radius $R_0$, phase, two tilt angles, radial velocity,
+angular (rotation) velocity, and a source-sign selector---giving
 $5\times7=35$ per-lump dimensions. Four collective variables set the shell's
 breathing amplitude and frequency and its vertical oscillation amplitude and
 frequency, for $35+4=39$ in total (Fig.~\ref{fig:genome}). Although sampled
 continuously, the sign variable is applied as the binary selector above; it
 lets the optimizer choose which initial-data lumps source positive or negative
 stress-energy.
-MAP-Elites~\cite{mouret15} keeps one elite per cell of an $8\times8$ behavior
-archive indexed by peak shortcut strength and FTL lifetime, which preserves
-distinct mechanism families rather than collapsing onto a single optimum.
 
 \begin{figure}[t]
 \centering
@@ -360,6 +362,50 @@ $8\times8$ archive indexed by peak shortcut and FTL lifetime. Q-ball
 microphysics is held fixed.}
 \label{fig:genome}
 \end{figure}
+
+\subsection{Lump orbit parameterization}
+\label{sec:orbits}
+
+Each lump moves in its own tilted orbital plane. The support center of lump $k$
+is prescribed by
+\begin{align}
+r_k(t)&=\max\!\left[r_{\min},R_{0,k}+v_{r,k}t+
+A_{\rm b}\sin(\omega_{\rm b}t)\right], \nonumber\\
+\varphi_k(t)&=\varphi_{0,k}+\omega_{{\rm rot},k}t,\qquad
+z_{\rm b}(t)=A_z\sin(\omega_z t),
+\label{eq:lump_trajectory}
+\end{align}
+followed by rotation into the laboratory frame through the two tilt angles
+$(\theta_k,\phi_k)$. Thus each lump spirals radially (drift $v_{r,k}$),
+rotates in its own plane (angular velocity $\omega_{{\rm rot},k}$; negative
+values are retrograde), and shares a collective radial breathing $(A_{\rm b},
+\omega_{\rm b})$ and vertical oscillation $(A_z,\omega_z)$. The range of
+possible orbits includes retrograde and prograde configurations, fast and slow
+rotation, radially drifting spirals, and nearly static scaffolds.
+
+\subsection{Trajectory controller (PD pump)}
+\label{sec:pd_pump}
+
+During evolution, a proportional--derivative (PD) controller drives the two
+real components of each complex field toward a moving target profile at the
+prescribed support center:
+\begin{equation}
+\begin{aligned}
+\left.\partial_t\Pi_A\right|_{\rm PD}
+  &=-w k_p(\phi_A-\phi_A^\star)\\
+  &\quad-w k_d(\Pi_A-\Pi_A^\star),\qquad A=1,2 ,
+\end{aligned}
+\label{eq:pd_pump}
+\end{equation}
+with gains $k_p=12$, $k_d=7$, and $w$ the product of a localized envelope and
+a constraint-sensitive governor. This is an external, non-Lagrangian source in
+the scalar momentum equations; no corresponding pump stress-energy is added to
+$T_{\mu\nu}$, so $\nabla_\mu T^{\mu\nu}=0$ is not exact while the pump is
+active. The pump switches off at $t_{\rm pump}=4$; after that, the matter
+evolves freely under Einstein--Klein--Gordon dynamics. The scoring function
+credits 4D geodesic transport only for emission times $t_{\rm emit}\ge
+t_{\rm pump}$, so the headline shortcut is always measured in the free
+evolution window.
 
 \subsection{Constraint gate and source-model consistency}
 \label{sec:selfconsistent}
@@ -469,7 +515,7 @@ champion is re-run at production resolution for validation.
 \begin{itemize}
     \item \textbf{Stage 1 --- MAP-Elites discovery (fast search grid):}
     quality-diversity search at
-    $L=64$, $N=128$ ($h=0.5$),
+    $L=64$, $N=128$ (grid spacing $h\equiv L/N=0.5$),
     \texttt{max\_level}$=1$,
     \texttt{regrid\_threshold}$=0.1$,
     and $t_{\rm stop}=16$
@@ -585,7 +631,7 @@ behavior cell. A candidate displaces the occupant of its cell only if its score
 $S(\theta)$ [Eq.~\eqref{eq:score}] is higher. The two archive axes are peak
 shortcut strength and FTL lifetime, so the campaign can keep short-lived strong
 channels and longer weaker ones side by side. The bicomplex campaign
-(\texttt{qball\_traj\_bicomplex\_v1}) scheduled 200 evaluations: 148 completed
+scheduled 200 evaluations: 148 completed
 GPU evolution, 50 failed the post-load gate, one failed the GRTresna admission
 gate, and one failed the constraint solve. Nine cells were occupied
 ($14.06\%$ coverage). All nontrivial elites lie in the highest lifetime row,
@@ -596,20 +642,18 @@ $(7,7)$.
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}
-\begin{groupplot}[
-  group style={group size=1 by 2, vertical sep=6mm, xlabels at=edge bottom},
+\begin{axis}[
   width=0.94\columnwidth,
-  height=0.38\columnwidth,
+  height=0.50\columnwidth,
+  xlabel={MAP-Elites batch (8 evaluations)},
+  ylabel={best score},
   xmin=0,xmax=25,
+  ymin=650,ymax=860,
   xtick={0,5,10,15,20,25},
+  ytick={650,700,750,800,850},
   grid=major,grid style={gray!18},
   tick label style={font=\small},
   label style={font=\small}
-]
-\nextgroupplot[
-  ylabel={best score},
-  ymin=650,ymax=860,
-  ytick={650,700,750,800,850}
 ]
 \addplot[black,very thick,mark=*,mark size=1.8pt]
   table[x=batch,y=best]{data/campaign_progress.txt};
@@ -617,22 +661,10 @@ $(7,7)$.
   coordinates {(10,825.194)};
 \node[anchor=north west,font=\scriptsize] at (axis cs:10.2,820)
   {champion: $825.19$};
-
-\nextgroupplot[
-  xlabel={MAP-Elites batch (8 evaluations)},
-  ylabel={coverage [\%]},
-  ymin=0,ymax=16,
-  ytick={0,5,10,15}
-]
-\addplot[blue!65!black,very thick,mark=triangle*,mark size=1.8pt]
-  table[x=batch,y=coverage]{data/campaign_progress.txt};
-\end{groupplot}
+\end{axis}
 \end{tikzpicture}
-\caption{MAP-Elites search progress over 200 evaluations
-(\texttt{qball\_traj\_bicomplex\_v1}). Top: running best archive score.
-Bottom: fraction of occupied behavior cells. The final champion
-(candidate~87) enters cell $(7,7)$ at batch~10 with score $825.19$.
-Curves are read from the stored campaign history.}
+\caption{MAP-Elites running best score over 200 evaluations. The champion
+(candidate~87) enters cell $(7,7)$ at batch~10 with $S=825.19$.}
 \label{fig:qd_progress}
 \end{figure}
 
@@ -664,10 +696,9 @@ Curves are read from the stored campaign history.}
   {CMA champion: $852.15$};
 \end{axis}
 \end{tikzpicture}
-\caption{CMA-ES refinement progress over 150 evaluations
-(\texttt{qball\_traj\_bicomplex\_cmaes\_v1}), warm-started from MAP-Elites
-champion~87. Dashed line: MAP-Elites best ($825.19$). The running best
-exceeds the ME baseline early and reaches $852.15$ at eval~146.}
+\caption{CMA-ES refinement progress over 150 evaluations, warm-started from
+MAP-Elites champion~87. Dashed line: MAP-Elites best ($825.19$). The running
+best exceeds the baseline early and reaches $852.15$ at candidate~146.}
 \label{fig:cmaes_progress}
 \end{figure}
 
@@ -761,14 +792,27 @@ matrix the peak sits at $t_{\rm emit}=4$ (just after the PD pump switches off)
 and has already fallen by $t_{\rm emit}=12$, so the window covers the opening
 of the channel rather than cutting it off.
 
-\subsection{Probe controls}
+\subsection{Probe controls and calibration}
 
-Prescribed Alcubierre~\cite{alcubierre94} ($f_{\rm geo}\approx32\%$) and
-Minkowski ($f_{\rm geo}=0$) calibrate the codebase. A previously identified
-negative control, \texttt{eval\,086}, has a positive frozen-slice diagnostic
-but fails the evolving HQ trace. The CMA-ES champion (candidate~146) supplies
-the positive case: every accepted launch in all three resolution-matrix runs
-has $5/5$ rays reaching and passes the null-Hamiltonian gate.
+Three controls bracket the probe's dynamic range before any candidate is
+evaluated.
+\begin{itemize}
+  \item \textbf{Minkowski (flat):} $f_{\rm geo}=0$ by construction; verifies
+    that the tracer introduces no spurious shortcut on trivial data.
+  \item \textbf{Prescribed Alcubierre}~\cite{alcubierre94}\textbf{:} a
+    moving-bubble metric ($v_s=0.5$, bubble radius~$2$, wall width~$2$) is
+    built analytically and fed to the evolving tracer, yielding
+    $f_{\rm geo}\approx32\%$ with $5/5$ rays reaching. This confirms
+    that the 4D probe recovers a known coordinate shortcut.
+  \item \textbf{Negative control (eval\,086):} an earlier campaign candidate
+    whose frozen-slice diagnostic shows $f_{\rm geo}\approx5.8\%$, but whose
+    4D evolving HQ trace collapses to $0\%$ ($0/5$ rays). This false positive
+    motivated the design rule that the evolving trace is authoritative: frozen
+    peaks alone do not certify transport.
+\end{itemize}
+The positive campaign control is the CMA-ES champion (candidate~146): every
+accepted launch in all three resolution-matrix runs has $5/5$ rays reaching
+and passes the null-Hamiltonian gate.
 
 \section{Results: Candidate-146 Warp Precursor}
 \label{sec:results}
@@ -789,54 +833,23 @@ field-map movies were produced.
 
 \subsection{Matter dynamics}
 
-The five Q-balls do not share one rigid orbit. Lump $k$ moves in its own tilted
-orbital plane, with the support center prescribed by
-\begin{align}
-r_k(t)&=\max\!\left[r_{\min},R_{0,k}+v_{r,k}t+
-A_{\rm b}\sin(\omega_{\rm b}t)\right], \nonumber\\
-\varphi_k(t)&=\varphi_{0,k}+\omega_{{\rm rot},k}t,\qquad
-z_{\rm b}(t)=A_z\sin(\omega_z t),
-\label{eq:lump_trajectory}
-\end{align}
-followed by rotation into the laboratory frame through the two tilt angles.
-Thus each lump spirals radially, rotates in a different plane, and shares a
-collective radial ``breathing'' and vertical oscillation. For candidate~146,
-$A_{\rm b}=0.083$, $\omega_{\rm b}=0.429$, $A_z=2.32$, and
-$\omega_z=0.016$. Breathing remains similarly small in the MAP-Elites
-champion (87 had $A_{\rm b}\approx0.078$); what CMA-ES changed is the orbital
-drive. The initial radii are
-$R_0=(3.69,5.50,2.83,5.59,2.61)$; all angular velocities are negative,
+Candidate~146 uses five lumps with source signs
+$s_k=(+1,-1,-1,+1,-1)$: two canonical and three phantom (exotic).
+The collective breathing is small ($A_{\rm b}=0.083$,
+$\omega_{\rm b}=0.429$), the vertical oscillation is moderate ($A_z=2.32$,
+$\omega_z=0.016$), and the initial radii are
+$R_0=(3.69,5.50,2.83,5.59,2.61)$. All angular velocities are negative,
 $\omega_{\rm rot}=(-0.0017,-0.0007,-0.0031,-0.0009,-0.0049)$, so all five
 trajectories are retrograde but extremely slow. Radial drifts are small
 [$v_r=(-0.060,-0.010,\,0.001,-0.005,-0.006)$]; the slow rotation and
-drift---roughly an order of magnitude quieter than candidate~87---is
+drift---roughly an order of magnitude quieter than MAP-Elites champion~87---is
 what CMA-ES converged to in order to maximize confinement-gated persistence.
-Lumps 0 and 3 are canonical; lumps 1, 2, and 4 are phantom after rounding.
 
 Figure~\ref{fig:lump_dynamics} shows these prescribed support-center
-trajectories at four times. The Q-ball fields are initially boosted along the
-corresponding motion. During evolution, a localized proportional--derivative
-(PD) controller drives the two real components of the complex field toward a
-moving target profile:
-\begin{equation}
-\begin{aligned}
-\left.\partial_t\Pi_A\right|_{\rm PD}
-  &=-w k_p(\phi_A-\phi_A^\star)\\
-  &\quad-w k_d(\Pi_A-\Pi_A^\star),\qquad A=1,2 ,
-\end{aligned}
-\label{eq:pd_pump}
-\end{equation}
-with $k_p=12$, $k_d=7$, and $w$ the product of a localized envelope and a
-constraint-sensitive governor. This is the precise meaning of the ``moving
-well.'' It is an external, non-Lagrangian source in the scalar momentum
-equations; no corresponding pump stress-energy is added to $T_{\mu\nu}$.
-Therefore $\nabla_\mu T^{\mu\nu}=0$ is not exact and the contracted Bianchi
-identity is not satisfied by a closed matter system.
-
-The PD controller is active only during the early ignition phase: the pump
-switches off at $t_{\rm pump}=4$ (\texttt{rl\_pump\_stop\_time}). After that
-the matter evolves freely under Einstein--Klein--Gordon dynamics with the
-bicomplex stress-energy. The bounded constraints
+trajectories [Eq.~\eqref{eq:lump_trajectory}] at four times. The Q-ball
+fields are initially boosted along the corresponding motion. The PD
+trajectory controller (Sec.~\ref{sec:pd_pump}) drives the lumps during
+the ignition phase ($t<4$) and then switches off. The bounded constraints
 ($\|\mathcal H\|_2\le4.73\times10^{-3}$,
 $\|\mathcal M\|_2\le9.16\times10^{-4}$ in RM) show that the evolution remains
 numerically controlled. The support centers are the intended
@@ -863,6 +876,34 @@ centers are plotted at their unscaled positions. CMA-ES converged to very slow a
 confinement-gated persistence.}
 \label{fig:lump_dynamics}
 \end{figure*}
+
+\subsection{Transport mechanism}
+
+The shortcut arises from the interplay of matter momentum and geometry.
+Each Q-ball lump oscillates with $\Pi\neq0$
+[Eq.~\eqref{eq:scalar_sources}], sourcing a momentum density $S_i$ that
+enters the momentum constraint and generates a nontrivial shift $\beta^i$.
+The shift tilts the local light cones in the direction of the matter current;
+null rays propagating through this region accumulate a coordinate-time advance
+relative to the flat reference path (Fig.~\ref{fig:shortcut_cartoon}).
+All five orbits in candidate~146 are retrograde
+($\omega_{\rm rot}<0$) but extremely slow
+($|\omega_{\rm rot}|\lesssim5\times10^{-3}$), so the scaffold is
+quasi-static: CMA-ES traded a larger instantaneous shortcut (the MAP-Elites
+champion had $f_{\rm geo}=25.3\%$ at search tier) for better
+confinement-gated persistence ($0.396\to0.417$), selecting slow orbits that
+keep matter confined longer.
+
+The peak $f_{\rm geo}$ occurs at $t_{\rm emit}=4$, precisely when the PD
+pump switches off and the surviving confined scaffold begins its free
+evolution (Sec.~\ref{sec:pd_pump}). At later emission times, the matter has
+dispersed further and the channel weakens---by $t_{\rm emit}=12$ the
+shortcut is substantially reduced (Fig.~\ref{fig:fgeo_validation}).
+Configurations that scored lower in the archive failed for the same
+reason: their supporting matter dispersed and the transport channel closed
+with it (Sec.~\ref{sec:dispersion}). The dispersion gate in the scoring
+function [Eq.~\eqref{eq:score}] explicitly penalizes this failure mode,
+steering the search toward genomes that maintain confinement.
 
 \subsection{4D falsification certificate}
 
@@ -1032,7 +1073,76 @@ Nothing physical moves outside its local light cone. The quoted
 ${\sim}20\%$ is a \emph{null-geodesic timing advantage} through the evolved
 geometry relative to a flat reference path between the same endpoints.
 Coordinate light-speed maps visualize the tilted cones but do not establish
-the result by themselves.
+the result by themselves. Figure~\ref{fig:shortcut_cartoon} illustrates the
+mechanism schematically.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[>=Latex, font=\footnotesize]
+% --- layout constants ---
+\def\xA{0.5}   \def\xB{6.6}
+\def\tflat{3.5} \def\tmin{2.80}
+\def\lumpL{2.2} \def\lumpR{5.0}
+
+% --- lump-region band (drawn first, behind everything) ---
+\fill[blue!6] (\lumpL,0) rectangle (\lumpR,3.9);
+\draw[blue!25] (\lumpL,0) -- (\lumpL,3.9);
+\draw[blue!25] (\lumpR,0) -- (\lumpR,3.9);
+\node[blue!40] at (3.6,3.65) {matter region};
+
+% --- axes ---
+\draw[-{Latex[length=2mm]}, thick] (0,-0.1) -- (0,4.2)
+  node[above] {$t$};
+\draw[-{Latex[length=2mm]}, thick] (-0.1,0) -- (7.3,0)
+  node[right] {$x$};
+
+% --- flat null ray (dashed) ---
+\draw[black!40, dashed, line width=1pt] (\xA,0) -- (\xB,\tflat);
+
+% --- curved null ray (arrives earlier, thick solid) ---
+\draw[black, line width=1.5pt, -{Latex[length=2.5mm]}]
+  (\xA,0) .. controls (1.5,0.45) and (\lumpL,0.6) ..
+  (3.6,1.15) .. controls (\lumpR,1.7) and (6.0,2.2) .. (\xB,\tmin);
+
+% --- arrival-time markers on right margin ---
+\draw[black!40, thin] (\xB,\tflat) -- (7.15,\tflat);
+\draw[black, thin]    (\xB,\tmin)  -- (7.15,\tmin);
+\node[anchor=west, black!50, font=\scriptsize] at (7.2,\tflat)
+  {$t_{\rm flat}$};
+\node[anchor=west, font=\scriptsize] at (7.2,\tmin)
+  {$t_{\rm min}$};
+
+% --- 20% saving bracket (centered between the two ticks) ---
+\draw[{Latex[length=1.2mm]}-{Latex[length=1.2mm]},
+      red!70!black, line width=0.8pt]
+  (7.0,\tmin) -- (7.0,\tflat);
+\node[red!70!black, font=\scriptsize, anchor=west] at (7.05,3.15)
+  {$20\%$};
+
+% --- endpoint dots ---
+\fill (\xA,0) circle (1.8pt);
+\fill (\xB,0) circle (1.8pt);
+\node[below=3pt] at (\xA,0) {A};
+\node[below=3pt] at (\xB,0) {B};
+
+% --- legend below the x-axis, no overlap possible ---
+\node[anchor=north west, inner sep=0pt] at (0.3,-0.55) {%
+  \begin{tikzpicture}[font=\scriptsize]
+    \draw[black!40, dashed, line width=1pt] (0,0.3) -- ++(0.6,0)
+      node[right, black] {flat-space null ray};
+    \draw[black, line width=1.5pt] (0,0) -- ++(0.6,0)
+      node[right, black] {curved null ray (through matter)};
+  \end{tikzpicture}};
+\end{tikzpicture}
+\caption{Spacetime diagram of the null-geodesic shortcut. A photon emitted at
+A propagates toward receiver~B. In flat space (dashed) the transit takes
+$t_{\rm flat}$. Inside the Q-ball matter region (shaded band) the geometry
+bends null paths so that the ray through the curved spacetime (solid) arrives
+at~B in $t_{\rm min}<t_{\rm flat}$. The bracket on the right marks the
+${\sim}20\%$ coordinate-time saving. The ray never leaves its local light
+cone.}
+\label{fig:shortcut_cartoon}
+\end{figure}
 
 \section{Discussion}
 \label{sec:discussion}
@@ -1060,20 +1170,6 @@ higher-resolution production evolution. The honest summary is that a
 \emph{transient} shortcut is reproducible and robust, while a
 \emph{long-lived}, well-confined channel remains an open problem.
 
-\subsection{Interpretation}
-
-Candidate~146 demonstrates that matter-first search with 4D falsification can
-identify a constraint-gated, transiently driven evolution whose transport gain
-survives production resolution and refinement. The strongest claim is
-continuum stability of the measured null timing: the resolution ladder
-RC--RM--RF yields $20.4\%/20.2\%/20.2\%$ with fine--medium relative
-difference ${\ll}1\%$, and all ray-quality gates pass across all three runs.
-The bicomplex matter model preserves per-lump canonical/phantom signs through
-both the constraint solve and the evolution, so the sign-mismatch caveat of
-earlier single-field campaigns no longer applies. The PD controller is active
-only for $t<4$; after pump-off, the system evolves under standard
-Einstein--Klein--Gordon dynamics with the bicomplex stress-energy.
-
 \subsection{Applications and next steps}
 
 The pipeline supports (i)~inverse design of null transport under
@@ -1084,6 +1180,20 @@ add a pump-work diagnostic to quantify the energy deposited during the ignition
 phase, and extend the evolution to longer $t_{\rm stop}$ to track late-time
 dispersal. Longer-term goals include optimizing for non-dispersing matter
 models and confinement world-tube objectives.
+
+\subsection{Computational cost}
+
+All runs were performed on a single 8-GPU node (NVIDIA H100 80\,GB HBM3).
+MAP-Elites and CMA-ES each dispatch one \texttt{GRTeclyn} evolution per GPU
+in parallel, with concurrent \texttt{GRTresna} constraint solves running on
+CPU (MPI, 8 ranks per solve). A 200-evaluation MAP-Elites campaign at search
+resolution ($N=128$, $t_{\rm stop}=16$) completes in approximately two
+wall-clock hours; the 150-evaluation CMA-ES refinement takes a similar time.
+The production validation stage is sequential: the headline RM run
+($N=256$, $t_{\rm stop}=30$, three AMR levels) fits on a single GPU; the
+fine Richardson run RF ($N=384$) required three GPUs due to memory
+constraints. Total wall-clock time from the start of MAP-Elites to the
+completion of the three-run resolution matrix was approximately ten hours.
 
 \section{Conclusion}
 \label{sec:conclusion}
