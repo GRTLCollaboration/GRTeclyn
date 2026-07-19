@@ -1,0 +1,126 @@
+Plot / table data provenance — candidate-146 bicomplex CMA-ES HQ
+=================================================================
+Repo root: /home/jovyan/nachevsky/test/simulation/GRTeclyn
+Article:   research/neuralspacetime/article/
+Figures:   research/neuralspacetime/figures/
+
+All article PGFPlots tables under article/data/ are reduced extracts.
+Paths below are the authoritative run artifacts they were built from.
+
+
+1) Search progress plots
+------------------------
+
+fig:qd_progress  (research.tex)
+  Article table:
+    data/campaign_progress.txt
+      columns: batch, best, coverage
+  Source run:
+    runs/grtresna_qd/qball_traj_bicomplex_v1/trajectory.jsonl
+  Derived metric:
+    per-batch running best score + archive coverage
+  Key numbers:
+    ME champion score 825.19 → eval_000087 in that campaign
+
+
+fig:cmaes_progress  (research.tex)
+  Article table:
+    data/cmaes_progress.txt
+      columns: eval, best
+  Source run:
+    runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/trajectory.jsonl
+  Derived metric:
+    running-best score vs evaluation index (0..149)
+  Key numbers:
+    CMA champion score 852.15 → eval_000146
+  ME baseline dashed line in figure uses 825.194 from ME handoff
+
+
+2) HQ geodesic / Richardson plots
+---------------------------------
+
+fig:fgeo_validation  (research.tex)
+  Article table:
+    data/fgeo_sweeps.txt
+      columns: t, RC, RM, RF
+      values: 100 * f_geo from emit_sweep (percent)
+  Source runs / fields:
+    RC: runs/grtresna_promote/bcma_rc_L128_N192_t30_hq_eval000146/small_data/evolving_geodesic.json
+        → emit_sweep  (and peak f_geo / f_geo_frozen_peak)
+    RM: runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/small_data/evolving_geodesic.json
+        → emit_sweep  (headline HQ numbers)
+    RF: runs/grtresna_promote/bcma_rf_L128_N384_t30_hq_eval000146/small_data/evolving_geodesic.json
+        → emit_sweep
+  Companion score summaries (same runs):
+    .../score.json
+
+
+fig:constraints  (research.tex)
+  Article table:
+    data/constraints_rm.txt
+      columns: t, ham, mom  (decimated)
+  Source:
+    runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/data/constraint_norms.dat
+
+
+3) Matter / lump trajectory figure
+----------------------------------
+
+fig:lump_dynamics  (research.tex)
+  Image file:
+    research/neuralspacetime/figures/fig_eval146_lump_trajectories.png
+  Genome / matter source (frozen champion):
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146/initial_data.matter.json
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146/metadata.json
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146/score.json
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/CHAMPION.json
+  Original CMA eval (pre-freeze):
+    runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/eval_000146/
+
+
+4) Tables / in-text HQ numbers (not plotted, but same runs)
+-----------------------------------------------------------
+
+tab:search_handoff / tab:matrix / 4D certificate text
+  ME-87:
+    runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000087/
+    (score from trajectory / archive; S=825.19)
+  CMA-146 freeze pointer:
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/CHAMPION.json
+  HQ-RM headline (f_geo=0.20211 → 20.21%, frozen peak ≈29.45%,
+                  h_rel_max≈2.19e-3, t_emit=4, 5/5 rays):
+    runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/small_data/evolving_geodesic.json
+  Confinement timeseries (72% → ~11% narrative):
+    runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/small_data/confinement.dat
+  RC / RF matrix companions:
+    runs/grtresna_promote/bcma_rc_L128_N192_t30_hq_eval000146/small_data/evolving_geodesic.json
+    runs/grtresna_promote/bcma_rf_L128_N384_t30_hq_eval000146/small_data/evolving_geodesic.json
+    (+ each run's small_data/confinement.dat and data/constraint_norms.dat)
+
+
+5) TikZ-only figures (no external numeric tables)
+-------------------------------------------------
+
+fig:matter_first, fig:genome, fig:campaign-stages, fig:pipeline
+  Drawn in research.tex (no article/data/*.txt inputs).
+
+
+6) Stale article/data files (NOT used by current research.tex)
+--------------------------------------------------------------
+
+  data/peak_metric_profiles.txt   — removed GW / peak-fit section
+  data/peak_metric_fit.json       — removed GW / peak-fit section
+  data/psi4_rm.txt                — removed Psi4 section
+
+Stale figure still on disk (not included in research.tex):
+  research/neuralspacetime/figures/fig_eval118_lump_trajectories.png
+  research/neuralspacetime/figures/fig_eval118_peak_metric_fit.png
+
+
+Quick regeneration map
+----------------------
+  campaign_progress.txt  ← ME trajectory.jsonl
+  cmaes_progress.txt     ← CMA trajectory.jsonl
+  fgeo_sweeps.txt        ← RC/RM/RF evolving_geodesic.json emit_sweep (*100)
+  constraints_rm.txt     ← RM data/constraint_norms.dat (decimated)
+  fig_eval146_*.png      ← frozen eval_000146 initial_data.matter.json genome

@@ -643,7 +643,7 @@ Curves are read from the stored campaign history.}
   xlabel={CMA-ES evaluation},
   ylabel={running best score},
   xmin=0,xmax=150,
-  ymin=820,ymax=860,
+  ymin=820,ymax=862,
   ytick={820,830,840,850,860},
   grid=major,grid style={gray!18},
   tick label style={font=\small},
@@ -652,12 +652,14 @@ Curves are read from the stored campaign history.}
 \addplot[black,very thick]
   table[x=eval,y=best]{data/cmaes_progress.txt};
 \addplot[gray,dashed,thick,domain=0:150]{825.194};
-\node[anchor=south west,font=\scriptsize,text=gray] at (axis cs:2,825.5)
+\node[anchor=north west,font=\scriptsize,text=gray,fill=white,inner sep=1pt]
+  at (axis cs:3,824.6)
   {ME baseline: $825.19$};
 \addplot[only marks,mark=square*,mark size=3pt,red]
   coordinates {(146,852.145)};
-\node[anchor=south west,font=\scriptsize,text=red] at (axis cs:100,852.5)
-  {champion: $852.15$};
+\node[anchor=north east,font=\scriptsize,text=red,fill=white,inner sep=1pt]
+  at (axis cs:143,859.5)
+  {CMA champion: $852.15$};
 \end{axis}
 \end{tikzpicture}
 \caption{CMA-ES refinement progress over 150 evaluations
@@ -846,12 +848,14 @@ driven configuration, not a bound five-body soliton.
 \includegraphics[width=0.98\textwidth]{fig_eval146_lump_trajectories.png}
 \caption{Three-dimensional dynamics encoded by the frozen candidate-146 genome.
 Panels show the five prescribed PD-controller centers at
-$t=0,4,16,$ and $30$; short fading trails cover the preceding four code-time
-units and indicate the direction of motion. Colors and labels identify the
-lumps ($+$ canonical, $-$ phantom), and the dashed line marks the
-$x$-directed null-probe axis. The translucent halos schematically indicate
-the compact support scale and are not density isosurfaces. Note the nearly
-static arrangement: CMA-ES converged to very slow angular velocities
+$t=0,4,16,$ and $30$. Filled circles are the centers at the stated times.
+To make the small motion legible, each local trajectory glyph covers four
+code-time units before and after the snapshot (where available), with its
+displacement about the filled center magnified by $4\times$; the hollow circle
+and arrow mark the start and end of that window. Colors and labels identify
+the lumps ($+$ canonical, $-$ phantom), and the dashed line marks the
+$x$-directed null-probe axis. The magnification is representational: the
+centers are plotted at their unscaled positions. CMA-ES converged to very slow angular velocities
 ($|\omega_{\rm rot}|\lesssim5\times10^{-3}$) and negligible breathing
 ($A_{\rm b}=0.08$), producing a quasi-static scaffold that maximizes
 confinement-gated persistence.}
@@ -889,20 +893,20 @@ essential physics. The endpoint timing corresponds to an effective
 $c/(1-f_{\rm geo})\simeq1.25c$ relative to the matched flat path; locally the
 ray remains null.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
 \begin{tikzpicture}
-\begin{groupplot}[
-  group style={group size=2 by 1,horizontal sep=1.4cm},
-  width=0.455\textwidth,height=0.31\textwidth,
+\begin{axis}[
+  width=0.94\columnwidth,height=0.58\columnwidth,
   grid=major,grid style={gray!20},
   tick label style={font=\small},label style={font=\small},
-  legend style={font=\scriptsize,draw=none}
-]
-\nextgroupplot[
+  legend style={
+    at={(0.5,1.04)},anchor=south,
+    font=\scriptsize,draw=none
+  },
   xlabel={$t_{\rm emit}$},ylabel={$f_{\rm geo}$ [\%]},
   xmin=0,xmax=12,ymin=0,ymax=22,
-  legend columns=3,legend pos=north east
+  legend columns=3
 ]
 \addplot[blue,mark=*] table[x=t,y=RC]{data/fgeo_sweeps.txt};
 \addlegendentry{RC ($N{=}192$)}
@@ -910,24 +914,16 @@ ray remains null.
 \addlegendentry{RM ($N{=}256$)}
 \addplot[red,mark=triangle*] table[x=t,y=RF]{data/fgeo_sweeps.txt};
 \addlegendentry{RF ($N{=}384$)}
-\nextgroupplot[
-  ybar,bar width=14pt,
-  xlabel={validation run},ylabel={peak $f_{\rm geo}$ [\%]},
-  symbolic x coords={RC,RM,RF},xtick=data,
-  ymin=0,ymax=22
-]
-\addplot[fill=gray!45,draw=black] coordinates
-{(RC,20.44) (RM,20.21) (RF,20.19)};
-\end{groupplot}
+\end{axis}
 \end{tikzpicture}
-\caption{\textbf{Left:} evolving null-geodesic emission sweeps
+\caption{Evolving null-geodesic emission sweeps
 ($t_{\rm emit}=0,2,\ldots,12$) for all three resolution-matrix runs; the
 metric evolves to $t=30$, but late launches lack enough remaining geometry
-for a complete transit. \textbf{Right:} accepted peak in each run (all at
-$t_{\rm emit}=4$, just after PD pump-off). Every point shown has $5/5$ rays
-reaching and passes the null-Hamiltonian quality gate.}
+for a complete transit. All runs peak at $t_{\rm emit}=4$, just after PD
+pump-off, and agree within $0.26$ percentage points. Every point shown has
+$5/5$ rays reaching and passes the null-Hamiltonian quality gate.}
 \label{fig:fgeo_validation}
-\end{figure*}
+\end{figure}
 
 \subsection{Resolution matrix}
 
