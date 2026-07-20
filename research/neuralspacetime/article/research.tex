@@ -29,7 +29,7 @@
 
 \begin{document}
 
-\title{\texorpdfstring{\MakeTextUppercase{Matter-First Automated Discovery of Transient Warp Precursors}}{Matter-First Automated Discovery of Transient Warp Precursors}}
+\title{\texorpdfstring{\MakeTextUppercase{Matter-First Automated Discovery of Transient Spacetime Shortcuts}}{Matter-First Automated Discovery of Transient Spacetime Shortcuts}}
 
 \author{\MakeTextUppercase{Nikita M. Shirokov}}
 \email{shirokov.nm@phystech.edu}
@@ -178,7 +178,9 @@ energy-condition violations associated with FTL spacetimes. The value of this
 work is that an automated, matter-first Cauchy pipeline can discover,
 construct, and dynamically track constraint-satisfying FTL geometries---a
 necessary first step toward computationally searching the positive-energy
-sector with the same falsification stack.
+sector with the same falsification stack. As a first probe of that sector, a
+matched canonical-only (positive-energy) search within the present ansatz
+finds no evolving timing advantage (Sec.~\ref{sec:canonical_bound}).
 
 \subsection{Methodological Rigor}
 \label{subsec:rigor}
@@ -425,6 +427,18 @@ campaign default switches the pump off at $t_{\rm pump}=4$; scoring credits
 pump-free HQ twin with $t_{\rm pump}=0$ (Sec.~\ref{sec:pump_free}) tests
 whether the shortcut survives with the PD term identically off from $t=0$.
 
+The controller should be read as a \emph{numerical guide} that positions the
+confined scaffold, not as a physical part of the reported spacetime. Two facts
+insulate the transport claim from its non-conservation of stress-energy. First,
+the pump is off throughout the scored window: the headline geodesic launches at
+$t_{\rm emit}=4=t_{\rm pump}$, so the metric it samples has been evolved by the
+freely conserved Einstein--Klein--Gordon system ($\nabla_\mu T^{\mu\nu}=0$)
+for the entire flight. Second, the pump-free twin (Sec.~\ref{sec:pump_free})
+reproduces the advantage with the PD term identically off from $t=0$,
+where $\nabla_\mu T^{\mu\nu}=0$ holds exactly at every step. The CCZ4
+constraint damping keeps the geometry and matter synchronized during the brief
+ignition phase, but we do not rely on that phase for any timing number.
+
 \subsection{Constraint gate and source-model consistency}
 \label{sec:selfconsistent}
 
@@ -441,6 +455,59 @@ that afflicted earlier single-field campaigns. The post-load Hamiltonian and
 momentum gate, together with bounded CCZ4 constraint growth during
 evolution, therefore establishes both numerical control and source-model
 consistency for the bicomplex sector.
+
+\subsection{Phantom sector: action and evolution equations}
+\label{sec:phantom_action}
+
+Because the exotic sign is central to the claim, we state exactly what the
+\texttt{grtresna\_bicomplex\_scalar} model integrates. Each complex scalar is
+canonical, with action
+\begin{equation}
+S[\Phi]=\int d^4x\,\sqrt{-g}\left(
+-g^{\mu\nu}\partial_\mu\Phi^{*}\partial_\nu\Phi-V(|\Phi|)\right),
+\label{eq:canonical_action}
+\end{equation}
+and $V$ the sextic potential of Eq.~\eqref{eq:sextic}. Writing
+$\Pi=n^\mu\partial_\mu\Phi$ for the conjugate momentum along the normal
+$n^\mu$, both the canonical field $\Phi_{+}$ and the exotic field $\Phi_{-}$
+obey the \emph{same} $3{+}1$ Klein--Gordon system,
+\begin{align}
+\partial_t\Phi_{\pm} &= \alpha\,\Pi_{\pm}+\beta^i\partial_i\Phi_{\pm},
+\nonumber\\
+\partial_t\Pi_{\pm} &= \beta^i\partial_i\Pi_{\pm}
+   +\alpha\!\left(K\,\Pi_{\pm}+\gamma^{ij}D_iD_j\Phi_{\pm}
+   -\frac{\partial V}{\partial\Phi_{\pm}^{*}}\right)\nonumber\\
+&\quad +\gamma^{ij}\partial_i\alpha\,\partial_j\Phi_{\pm},
+\label{eq:kg_evolution}
+\end{align}
+with $D_i$ the spatial covariant derivative and $\alpha,\beta^i,\gamma_{ij}$
+the usual lapse, shift, and spatial metric. The two sectors are therefore
+governed by identical, right-sign (non-ghost) kinetic operators; there is no
+wrong-sign kinetic term and hence none of the gradient or ghost instabilities
+that afflict a genuine phantom Lagrangian
+$\mathcal L=+\partial_\mu\phi\,\partial^\mu\phi^{*}-V$.
+
+The exotic character enters at exactly one place: the \emph{gravitational
+coupling}. The two sectors add to the Einstein source with opposite sign,
+\begin{equation}
+G_{\mu\nu}=8\pi\left(T_{\mu\nu}[\Phi_{+}]-T_{\mu\nu}[\Phi_{-}]\right),
+\label{eq:bicomplex_source}
+\end{equation}
+so $\Phi_{-}$ is a negative-energy (ghost-\emph{gravitational}) source while
+retaining canonical, well-posed field dynamics. This sign flip is applied
+consistently to $\rho$, $S_i$, and $S_{ij}$ in both the \texttt{GRTresna}
+constraint solve [Eq.~\eqref{eq:signed_sources}] and the \texttt{GRTeclyn}
+stress tensor, which is what removes the initial-data / evolution mismatch of
+earlier single-field campaigns. We are explicit that
+Eq.~\eqref{eq:bicomplex_source} is equivalent to reversing the effective
+gravitational constant for the exotic sector ($G\to-G$ for $\Phi_{-}$); it is a
+controlled model of the negative-energy source required to violate the null
+energy condition, not a claim that a fundamental phantom field theory has been
+made well posed. The practical payoff of this choice is that the late-time
+dispersion reported below (Sec.~\ref{sec:dispersion}) is \emph{structural}---the
+finite lifetime of thick-wall Q-balls together with an unbound orbital
+arrangement---rather than a manifestation of a phantom kinetic instability,
+since the fields themselves never leave the stable Klein--Gordon sector.
 
 \subsection{Scoring: how every evaluation is rewarded}
 \label{sec:scoring}
@@ -475,9 +542,21 @@ Second, the persistence and operational terms $P_{\rm ftl},F_{\rm op}$ are
 \emph{dispersion-gated}---multiplied by the fraction of matter still
 confined---so a candidate cannot bank a coordinate superluminal channel after
 its lumps have flown apart. The exotic penalty $X_{\rm exotic}<0$ charges for
-energy-condition violation at campaign weight $w_x$. All single scores quoted
-later are values of this $S$ on a $t=16$ evolution: search rankings, not
-physical observables, and never compared across runs of different duration.
+energy-condition violation at campaign weight $w_x$. This penalty is
+deliberately sub-dominant to transport: at the campaign value $w_x=0.2$ and the
+graded floor $X_{\rm exotic}\ge-1.6$, the exotic term reaches at most
+$40\,w_x|X_{\rm exotic}|\approx13$ points, under $7\%$ of the $\approx200$
+points a $20\%$ evolving shortcut earns ($1000\,f_{\rm geo}^{\rm evol}$). The
+optimizer is thus permitted to spend exotic matter freely in exchange for
+genuine null-transport gain, which is why the archive populates the
+phantom-supported sector rather than being pinned to $X_{\rm exotic}=0$.
+Search-tier scores
+quoted later (archive and CMA-ES rankings) are values of this $S$ on a
+$t=16$ evolution: search rankings, not physical observables. The only $S$
+values reported from production ($t=30$) runs appear in the pump-free
+comparison (Table~\ref{tab:pump_compare}), where they are compared solely
+against each other at matched duration; we never compare $S$ across runs of
+different duration.
 
 \begin{table}[t]
 \caption{Reward terms in the campaign objective [Eq.~\eqref{eq:score}], applied
@@ -812,6 +891,50 @@ matrix the peak sits at $t_{\rm emit}=4$ (just after the PD pump switches off)
 and has already fallen by $t_{\rm emit}=12$, so the window covers the opening
 of the channel rather than cutting it off.
 
+\subsection{Null-constraint accuracy along the flight path}
+\label{sec:null_accuracy}
+
+The $10^{-2}$ acceptance gate is a conservative safety bound, not the achieved
+accuracy. Two mechanisms keep the ray far tighter. First, whenever the absolute
+null Hamiltonian exceeds $10^{-6}$ the momentum is re-projected onto the local
+null cone before the next Runge--Kutta step, so interpolation error cannot
+accumulate secularly. Second, the normalized null constraint stays small between
+projections. Figure~\ref{fig:null_constraint} plots the gauge-independent ratio
+$k_\mu k^\mu/(k^t)^2$ along the headline candidate-146 ray ($t_{\rm emit}=4$,
+RM) as it crosses the matter region. It peaks at
+$4.1\times10^{-3}$ near the strong-field core and has a median of
+$3.0\times10^{-4}$---roughly one to two orders of magnitude below the $10^{-2}$
+gate---confirming that the ray remains strictly null and is not drifting into a
+timelike or spacelike trajectory. The complementary relative-drift diagnostic
+recorded by the probe, $h_{\rm rel}^{\rm max}=2.19\times10^{-3}$ in RM, tells
+the same story.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{semilogyaxis}[
+  width=0.97\columnwidth,height=0.58\columnwidth,
+  xlabel={$x$ (propagation coordinate)},
+  ylabel={$k_\mu k^\mu/(k^t)^2$},
+  xmin=56.8,xmax=71.2,ymin=1e-6,ymax=2e-2,
+  grid=major,grid style={gray!20},
+  tick label style={font=\small},label style={font=\small}
+]
+\addplot[black,thick] table[x=x,y=kk_over_kt2]{data/null_constraint_ray.txt};
+\addplot[red,dashed,thick,domain=56.8:71.2]{1e-2};
+\node[anchor=north,font=\scriptsize,text=red,fill=white,inner sep=1pt]
+  at (axis cs:64,9.0e-3)
+  {acceptance gate $10^{-2}$};
+\end{semilogyaxis}
+\end{tikzpicture}
+\caption{Normalized null constraint $k_\mu k^\mu/(k^t)^2$ along the headline
+candidate-146 ray ($t_{\rm emit}=4$, RM) from emitter~A ($x=56.8$) to
+receiver~B ($x=71.2$). The ray stays one to two orders of magnitude below the
+$10^{-2}$ acceptance gate (dashed), peaking at $4.1\times10^{-3}$ in the
+strong-field core.}
+\label{fig:null_constraint}
+\end{figure}
+
 \subsection{Probe controls and calibration}
 
 Three controls bracket the probe's dynamic range before any candidate is
@@ -989,6 +1112,63 @@ $5/5$ rays reaching and passes the null-Hamiltonian quality gate.}
 \label{fig:fgeo_validation}
 \end{figure}
 
+\subsection{Endpoint gauge and proper-time invariance}
+\label{sec:endpoint_gauge}
+
+The timing advantage of Eq.~\eqref{eq:f_geo} compares two \emph{coordinate}
+transit durations between the same fixed endpoints. In moving-puncture gauge
+this is only a physical statement if the endpoints behave as nearly stationary,
+nearly flat observers; a deep lapse well ($\alpha\ll1$) at the endpoints could
+in principle manufacture a coordinate advance with no proper-time content. We
+therefore report the metric at the two probe endpoints. The emitter and
+receiver sit on the propagation axis at
+$A=(x,y,z)=(56.8,64,64)$ and $B=(71.2,64,64)$ in the $L=128$ box centered on
+$(64,64,64)$ (a corridor of coordinate length $t_{\rm flat}=14.4$).
+Table~\ref{tab:endpoint_gauge} lists the lapse $\alpha$ and shift magnitude
+$|\beta^i|$ there through the emission window. At the headline launch
+$t_{\rm emit}=4$ the endpoints are close to flat and stationary:
+$\alpha_A=0.96$, $\alpha_B=0.99$, and $|\beta^i|\lesssim3.5\times10^{-2}$.
+The lapse never enters the dangerous $\alpha\ll1$ regime; at late times it
+drifts modestly \emph{above} unity ($\alpha\lesssim1.2$), which if anything
+makes the coordinate advantage conservative, since a stationary clock with
+$\alpha>1$ accumulates proper time faster than coordinate time.
+
+\begin{table}[t]
+\caption{Lapse $\alpha$ and shift magnitude $|\beta^i|$ at the fixed probe
+endpoints $A$ (emitter) and $B$ (receiver) in RM, sampled through the emission
+window. The endpoints remain near-stationary ($|\beta^i|\ll1$) and out of any
+deep-lapse well ($\alpha\ge0.95$ at launch).
+Source: \texttt{endpoint\_gauge\_rm.txt}.}
+\label{tab:endpoint_gauge}
+\begin{ruledtabular}
+\begin{tabular}{rcccc}
+$t$ & $\alpha_A$ & $|\beta^i|_A$ & $\alpha_B$ & $|\beta^i|_B$ \\
+\hline
+ 0 & $1.000$ & $0$                  & $1.000$ & $0$ \\
+ 4 & $0.960$ & $4.5\times10^{-3}$   & $0.993$ & $3.5\times10^{-2}$ \\
+ 8 & $0.946$ & $1.7\times10^{-2}$   & $1.048$ & $9.3\times10^{-2}$ \\
+12 & $1.179$ & $1.2\times10^{-2}$   & $1.209$ & $1.3\times10^{-2}$ \\
+15 & $1.172$ & $6.9\times10^{-2}$   & $1.118$ & $7.1\times10^{-2}$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+To remove the residual gauge dependence entirely, we re-express the timing
+advantage in the proper time of a static receiver at $B$, whose clock ticks at
+$d\tau=\sqrt{-g_{00}(B)}\,dt$. Integrating the measured $g_{00}(B,t)$ from
+$t_{\rm emit}$ to each arrival, the curved signal reaches $B$ at proper time
+$\tau_{\rm curved}=12.61$, while the matched flat-rate signal
+(coordinate arrival $t_{\rm emit}+t_{\rm flat}$) reaches it at
+$\tau_{\rm flat}=15.66$, giving a proper-time advantage
+\begin{equation}
+f_{\rm geo}^{\tau}=\frac{\tau_{\rm flat}-\tau_{\rm curved}}{\tau_{\rm flat}}
+=19.5\%,
+\label{eq:proper_time_fgeo}
+\end{equation}
+within $0.7$ percentage points of the coordinate value $20.2\%$. The advantage
+is therefore not a lapse/shift artifact: it survives conversion to the physical
+clock of a stationary receiver.
+
 \subsection{Resolution and domain matrix}
 
 Validation comprises two complementary tests of candidate~146
@@ -998,7 +1178,10 @@ and fine RF ($N=384$, $h=0.333$)---probes continuum stability. At fixed
 grid spacing $h=0.500$, a domain ladder---DS ($L=96$, $N=192$) and DL
 ($L=160$, $N=320$)---probes sensitivity to outer-boundary placement. The
 medium-resolution, intermediate-domain run RM is the reference
-configuration quoted elsewhere in this paper.
+configuration quoted elsewhere in this paper. All evolutions impose
+non-periodic Sommerfeld (radiative) outer boundary conditions on all six
+faces, so the domain ladder isolates the effect of moving those radiative
+boundaries in or out.
 
 \begin{table}[t]
 \caption{Resolution and domain matrix for candidate~146. Every run uses
@@ -1046,8 +1229,12 @@ For unequal spacings, a Richardson estimate assumes
 The $f_{\rm geo}$ sequence $20.44\%\to20.21\%\to20.19\%$ is monotonically
 decreasing and continuum-stable (fine--medium relative difference $0.1\%$),
 but the absolute gap is too small for a clean order extraction from
-$f_{\rm geo}$ alone. We therefore measure the observed order on the
-constraint norms themselves
+$f_{\rm geo}$ alone. Applying Eq.~\eqref{eq:richardson_order} directly to the
+triplet with the actual spacings $(h_c,h_m,h_f)=(0.667,0.500,0.333)$ returns an
+unstable exponent ($p\approx8.7$) whose value is set by the fine--medium
+difference of a single significant figure; the sequence is thus consistent with
+rapid convergence but does not pin down $p$ on its own. We therefore measure the
+observed order on the constraint norms themselves
 (Fig.~\ref{fig:constraint_convergence}). Over the ignition window
 $1.5\le t\le5$, the Hamiltonian residual converges at median observed order
 $p_{\mathcal H}\approx3.3$ and the momentum residual at
@@ -1119,7 +1306,7 @@ typesetting only; maxima are evaluated from the full data.}
 \subsection{Frozen versus evolving shortcut, and confinement}
 
 RM's frozen-peak $f_{\rm geo}$ reaches $29.45\%$, compared with the evolving
-4D sweep peak of $20.21\%$. The ${\sim}9\%$ gap is physical: the frozen
+4D sweep peak of $20.21\%$. The ${\sim}9$-percentage-point gap is physical: the frozen
 trace assumes that one snapshot persists for the entire ray flight, whereas
 the 4D trace samples the actual changing metric and therefore ``sees'' the
 channel open and then weaken during propagation. Only the latter is used for
@@ -1351,8 +1538,9 @@ model. Three specific limitations follow.
     route to new mechanism families.
   \item \textbf{$\mathbb{R}^3$ spatial topology.} The \texttt{GRTresna}
     constraint solve and the \texttt{GRTeclyn} Cauchy evolution both operate
-    on a topologically trivial spatial slice ($\mathbb{R}^3$ with periodic or
-    Sommerfeld boundary conditions). Topological features that exist only in
+    on a topologically trivial spatial slice ($\mathbb{R}^3$ with the
+    non-periodic Sommerfeld radiative boundaries described in
+    Sec.~\ref{sec:results}). Topological features that exist only in
     the full four-dimensional manifold---wormhole throats, handles, or other
     nontrivial $\mathbb{R}^4$ structures---cannot be represented on the
     initial slice and are therefore invisible to the search. Discovering
