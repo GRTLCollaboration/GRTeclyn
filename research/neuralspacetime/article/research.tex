@@ -168,6 +168,14 @@ genome before any high-resolution replay or resolution ladder
 coarse grid chosen for evaluation throughput; production claims are deferred
 to the later HQ / resolution matrix (Sec.~\ref{sec:stages}).
 
+We acknowledge that the headline champion (candidate~146) relies on a phantom
+scalar sector and therefore does \emph{not} bypass the standard
+energy-condition violations associated with FTL spacetimes. The value of this
+work is that an automated, matter-first Cauchy pipeline can discover,
+construct, and dynamically track constraint-satisfying FTL geometries---a
+necessary first step toward computationally searching the positive-energy
+sector with the same falsification stack.
+
 \subsection{Methodological Rigor}
 \label{subsec:rigor}
 
@@ -401,11 +409,17 @@ with gains $k_p=12$, $k_d=7$, and $w$ the product of a localized envelope and
 a constraint-sensitive governor. This is an external, non-Lagrangian source in
 the scalar momentum equations; no corresponding pump stress-energy is added to
 $T_{\mu\nu}$, so $\nabla_\mu T^{\mu\nu}=0$ is not exact while the pump is
-active. The pump switches off at $t_{\rm pump}=4$; after that, the matter
-evolves freely under Einstein--Klein--Gordon dynamics. The scoring function
-credits 4D geodesic transport only for emission times $t_{\rm emit}\ge
-t_{\rm pump}$, so the headline shortcut is always measured in the free
-evolution window.
+active. The volume-integrated pump power
+$P=\int\alpha\,(\Pi\cdot S_\Pi)\sqrt{\gamma}\,dV$ recorded in
+\texttt{collapse\_diagnostics.dat} integrates to
+$E_{\rm pump}\simeq1.6\times10^{-17}$ over the ignition window of the
+pump-on HQ run---consistent with floating-point noise relative to the
+matter amplitude ($|\phi|_{\rm max}\sim7\times10^{-2}$). The pump therefore
+acts as a soft navigational trap rather than a large energy injector. The
+campaign default switches the pump off at $t_{\rm pump}=4$; scoring credits
+4D geodesic transport only for $t_{\rm emit}\ge t_{\rm pump}$. A dedicated
+pump-free HQ twin with $t_{\rm pump}=0$ (Sec.~\ref{sec:pump_free}) tests
+whether the shortcut survives with the PD term identically off from $t=0$.
 
 \subsection{Constraint gate and source-model consistency}
 \label{sec:selfconsistent}
@@ -1004,18 +1018,52 @@ central region: in $1{+}\log$ slicing those modes propagate at characteristic
 speeds up to ${\sim}\sqrt{2}\,c$, so a one-way crossing from the outer
 boundary requires $t\gtrsim L/(2\sqrt{2})\approx45$.
 
-For unequal spacings, a Richardson estimate would assume
+For unequal spacings, a Richardson estimate assumes
 \begin{equation}
  Q(h)=Q_0+Ch^p,\qquad
  \frac{Q_c-Q_m}{Q_m-Q_f}
  =\frac{h_c^p-h_m^p}{h_m^p-h_f^p}.
+ \label{eq:richardson_order}
 \end{equation}
-The sequence $20.44\%\to20.21\%\to20.19\%$ is monotonically decreasing,
-consistent with convergence. The fine--medium difference is so small
-($0.02\%$ absolute) that the extracted convergence order would be dominated
-by numerical noise. We therefore accept continuum stability of the $20.2\%$
-result without quoting a formal extrapolated value or grid-convergence
-index.
+The $f_{\rm geo}$ sequence $20.44\%\to20.21\%\to20.19\%$ is monotonically
+decreasing and continuum-stable (fine--medium relative difference $0.1\%$),
+but the absolute gap is too small for a clean order extraction from
+$f_{\rm geo}$ alone. We therefore measure the observed order on the
+constraint norms themselves
+(Fig.~\ref{fig:constraint_convergence}). Over the ignition window
+$1.5\le t\le5$, the Hamiltonian residual converges at median observed order
+$p_{\mathcal H}\approx3.3$ and the momentum residual at
+$p_{\mathcal M}\approx2.8$, consistent with the high-order finite-difference
+scheme. At late times the three resolutions already sit on top of each
+other to within a few percent, so the order estimator becomes
+noise-dominated---as expected once the continuum residual is reached. We
+accept the $20.2\%$ shortcut as continuum-stable without quoting a formal
+extrapolated value.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{semilogyaxis}[
+  width=0.97\columnwidth,height=0.62\columnwidth,
+  xlabel={$t$},ylabel={$\|\mathcal H\|_{L^2}$},
+  xmin=0,xmax=30,ymin=5e-4,ymax=8e-3,
+  grid=major,grid style={gray!20},
+  legend style={font=\scriptsize,draw=none,at={(0.98,0.05)},anchor=south east}
+]
+\addplot[blue,thin] table[x=t,y=ham_RC]{data/constraints_resolution.txt};
+\addlegendentry{RC ($N{=}192$)}
+\addplot[black,thick] table[x=t,y=ham_RM]{data/constraints_resolution.txt};
+\addlegendentry{RM ($N{=}256$)}
+\addplot[red,dashed,thick] table[x=t,y=ham_RF]{data/constraints_resolution.txt};
+\addlegendentry{RF ($N{=}384$)}
+\end{semilogyaxis}
+\end{tikzpicture}
+\caption{Hamiltonian constraint norm across the Richardson ladder.
+The three resolutions overlie closely; the observed order extracted from
+Eq.~\eqref{eq:richardson_order} in the ignition window is
+$p_{\mathcal H}\approx3.3$ (median).}
+\label{fig:constraint_convergence}
+\end{figure}
 
 \subsection{Evolution constraints}
 
@@ -1171,6 +1219,58 @@ higher-resolution production evolution. The honest summary is that a
 \emph{transient} shortcut is reproducible and robust, while a
 \emph{long-lived}, well-confined channel remains an open problem.
 
+\subsection{Limitations of the matter-first approach}
+\label{sec:limitations}
+
+The matter-first strategy has complementary strengths and weaknesses relative
+to the geometry-first route~\cite{helmerich2024warpfactory}.
+Geometry-first prescribes $g_{\mu\nu}$ directly, so it can explore
+arbitrary metric deformations---including topologically nontrivial
+spacetimes---without specifying a matter Lagrangian. Its weakness is that the
+implied $T_{\mu\nu}=G_{\mu\nu}/8\pi$ is read off, not solved: there is no
+guarantee that the stress-energy corresponds to a consistent initial-value
+problem, and under dynamical evolution the configuration typically disperses
+or collapses. For an automated search evaluating hundreds of candidates, most
+deformations of $g_{\mu\nu}$ either violate the constraints or fail at the
+first time step, so the archive fills with numerical failures rather than
+competing mechanisms.
+
+Matter-first inverts this: every candidate is constraint-satisfying by
+construction, and the geometry is whatever the proposed matter sources. The
+cost is that the search is confined to the span of the chosen matter
+model. Three specific limitations follow.
+\begin{enumerate}
+  \item \textbf{Ansatz dependence.} The pipeline discovers only what the
+    parameterized matter family can express. The 39-dimensional bicomplex
+    Q-ball genome covers orbital arrangements of five solitons but cannot
+    represent, e.g., anisotropic fluids, higher-spin fields, or engineered
+    equation-of-state shells. Broadening the matter sector is the most direct
+    route to new mechanism families.
+  \item \textbf{$\mathbb{R}^3$ spatial topology.} The \texttt{GRTresna}
+    constraint solve and the \texttt{GRTeclyn} Cauchy evolution both operate
+    on a topologically trivial spatial slice ($\mathbb{R}^3$ with periodic or
+    Sommerfeld boundary conditions). Topological features that exist only in
+    the full four-dimensional manifold---wormhole throats, handles, or other
+    nontrivial $\mathbb{R}^4$ structures---cannot be represented on the
+    initial slice and are therefore invisible to the search. Discovering
+    such configurations would require either an extended initial-data
+    formalism (e.g., puncture or excision methods for nontrivial topology)
+    or a geometry-first seed that is subsequently evolved.
+  \item \textbf{Ignition-phase controller.} The PD pump
+    (Sec.~\ref{sec:pd_pump}) is a non-Lagrangian external source. While
+    it switches off before the measurement window, the initial conditions it
+    creates are not those of a freely prepared system. Removing the pump
+    entirely---or replacing it with a self-consistent confinement mechanism
+    such as a self-gravitating boson star---remains open.
+\end{enumerate}
+
+The two approaches are therefore complementary: geometry-first is better
+suited to exploring exotic topologies and unconstrained metric deformations,
+while matter-first provides constraint-satisfying, dynamically evolvable
+candidates that can be scored by a 4D transport test. A hybrid strategy---using
+geometry-first motifs as seeds for a matter-first refinement loop---is a
+natural next step.
+
 \subsection{Applications and next steps}
 
 The pipeline supports (i)~inverse design of null transport under
@@ -1181,6 +1281,97 @@ add a pump-work diagnostic to quantify the energy deposited during the ignition
 phase, and extend the evolution to longer $t_{\rm stop}$ to track late-time
 dispersal. Longer-term goals include optimizing for non-dispersing matter
 models and confinement world-tube objectives.
+
+\subsection{Laboratory Casimir bounds on null-timing shortcuts}
+\label{sec:casimir_bounds}
+
+The exotic negative energy that supports candidate~146 is a continuum
+phantom Q-ball sector in geometric units ($G=c=1$), not a laboratory
+vacuum stress. A natural question is whether a known quantum-vacuum
+source---the Casimir effect~\cite{casimir1948}---could produce a
+measurable null-timing advantage in a silicon-photonic waveguide, as
+suggested by cavity-warp proposals~\cite{white2011warp}. The answer,
+under linearized semiclassical gravity, is decisively negative.
+
+For ideal parallel plates of separation $a$, the Casimir energy density
+is
+\begin{equation}
+  \rho_{\rm cas}
+  = -\frac{\pi^2\hbar c}{720\,a^4}.
+  \label{eq:casimir_rho}
+\end{equation}
+At $a=10\,\mathrm{nm}$ this gives
+$\rho_{\rm cas}\simeq-4.3\times10^{4}\,\mathrm{J\,m^{-3}}$
+(mass-equivalent density
+$\simeq-4.8\times10^{-13}\,\mathrm{kg\,m^{-3}}$).
+Coupling to spacetime geometry proceeds through
+$G/c^4\simeq8.3\times10^{-45}\,\mathrm{s^{2}\,kg^{-1}\,m^{-1}}$.
+For a $1\,\mathrm{km}$ waveguide of transverse width $5\,\mu\mathrm{m}$
+and gap $a$, the total negative energy
+$E_{\rm neg}=\rho_{\rm cas}\,a\,w\,L$ induces a linearized metric
+perturbation of order
+$h\sim(G/c^4)\,|E_{\rm neg}|/L$. The corresponding timing advantage
+relative to a flat null path of the same coordinate length is
+\begin{equation}
+  f_{\rm geo}^{\rm bound}\sim h,\qquad
+  \Delta t\sim h\,L/c.
+  \label{eq:casimir_fbound}
+\end{equation}
+We emphasize that $f_{\rm geo}^{\rm bound}$ is a semiclassical upper
+bound on the \emph{same timing ratio} defined in
+Eq.~\eqref{eq:f_geo}; it is \emph{not} the 4D geodesic diagnostic
+measured on the evolving metric stack, and it is not obtained by
+evolving a Casimir $T_{\mu\nu}$ in \texttt{GRTeclyn}. At laboratory
+amplitudes the metric perturbation lies many orders of magnitude below
+double-precision significance on any practical numerical-relativity
+grid, so a full Cauchy evolution would report numerical zero, not a
+physical shortcut.
+
+\begin{table}[t]
+\caption{Static Casimir upper bounds for a $1\,\mathrm{km}$
+silicon-photonic waveguide of width $5\,\mu\mathrm{m}$.
+Amplification is the factor by which $|E_{\rm neg}|$ must increase
+to reach $f_{\rm geo}=10^{-6}$.
+Script: \texttt{casimir\_null\_timing\_bounds.py}.}
+\label{tab:casimir_bounds}
+\begin{ruledtabular}
+\begin{tabular}{rllll}
+$a$ [nm]
+  & $\rho_{\rm cas}$ [J/m$^3$]
+  & $\Delta t$ [s]
+  & $f_{\rm geo}^{\rm bound}$
+  & amp. to $10^{-6}$ \\
+\hline
+100 & $-4.3\times10^{0}$  & $6.0\times10^{-62}$ & $1.8\times10^{-56}$ & $6\times10^{49}$ \\
+ 10 & $-4.3\times10^{4}$  & $6.0\times10^{-59}$ & $1.8\times10^{-53}$ & $6\times10^{46}$ \\
+  1 & $-4.3\times10^{8}$  & $6.0\times10^{-56}$ & $1.8\times10^{-50}$ & $6\times10^{43}$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+Table~\ref{tab:casimir_bounds} summarizes three gaps. Even the optimistic
+$a=1\,\mathrm{nm}$ case yields
+$\Delta t\sim6\times10^{-56}\,\mathrm{s}$---about $37$ orders of
+magnitude below the $\sim10^{-19}\,\mathrm{s}$ resolution of the best
+atomic clocks, and
+$f_{\rm geo}^{\rm bound}\sim10^{-50}$ versus the
+$f_{\rm geo}=20.2\%$ geodesic shortcut of candidate~146.
+Static Casimir cavities are therefore irrelevant for high-frequency
+trading, photonic interconnects, or any near-term timing application.
+
+Closing that gap would require artificially amplifying the vacuum
+stress by $\gtrsim10^{40}$ relative to Eq.~\eqref{eq:casimir_rho}.
+Proposed routes include the dynamical Casimir effect (relativistically
+modulated boundaries)~\cite{wilson2011dce}, plasmonic metamaterials that
+concentrate vacuum fluctuations, and electromagnetically induced
+transparency / slow-light media that change the baseline null speed
+against which a geometric shortcut is measured. None of these
+amplifiers is implemented in the present matter-first pipeline; they
+remain open semiclassical modelling targets, not claims of laboratory
+feasibility. The practical message of this subsection is diagnostic:
+the automated search discovers large $f_{\rm geo}$ only because it is
+allowed to explore continuum exotic matter far outside known laboratory
+stress-energy budgets.
 
 \subsection{Computational cost}
 
@@ -1219,7 +1410,10 @@ measured in freely evolving Einstein--Klein--Gordon dynamics. Confinement
 falls to ${\sim}11\%$ by $t=30$, so the shortcut is transient. Candidate~146
 is therefore a reproducible, continuum-stable numerical warp precursor
 produced by an automated two-stage search, not a continuum-extrapolated or
-functional warp drive.
+functional warp drive. Semiclassical Casimir bounds
+(Sec.~\ref{sec:casimir_bounds}) confirm that known laboratory vacuum
+stresses fall $\gtrsim40$ orders of magnitude short of the exotic budget
+implied by a percent-level $f_{\rm geo}$.
 
 \section{Code and Data Availability}
 
@@ -1230,6 +1424,11 @@ resolution-matrix validation summaries (RC/RM/RF evolving geodesic artifacts,
 constraint histories, and confinement timeseries). Figure files live in
 \texttt{research/\allowbreak neuralspacetime/\allowbreak figures/}; the
 article directory holds the reduced numerical tables used by TikZ/PGFPlots.
+The Casimir bound script and table
+(Sec.~\ref{sec:casimir_bounds}) live under
+\texttt{research/\allowbreak neuralspacetime/}
+(\texttt{casimir\_null\_timing\_bounds.py},
+\texttt{article/data/casimir\_bounds.txt}).
 MAP-Elites and CMA-ES trajectory files are under
 \texttt{runs/grtresna\_qd/} and \texttt{runs/grtresna\_cmaes/}.
 
@@ -1284,6 +1483,23 @@ numerical-relativity code,
 \bibitem{grchombo}
 T.~Andrade \textit{et al.},
 \newblock J.\ Open Source Softw.\ \textbf{6}, 3703 (2021).
+
+\bibitem{casimir1948}
+H.~B.~G.~Casimir,
+\newblock ``On the attraction between two perfectly conducting plates,''
+\newblock Proc.\ Kon.\ Ned.\ Akad.\ Wetensch.\ \textbf{51}, 793 (1948).
+
+\bibitem{white2011warp}
+H.~White,
+\newblock ``Warp Field Mechanics 101,''
+\newblock NASA Johnson Space Center / 100 Year Starship Symposium (2011).
+
+\bibitem{wilson2011dce}
+C.~M.~Wilson, G.~Johansson, A.~Pourkabirian, M.~Simoen, J.~R.~Johansson,
+T.~Duty, F.~Nori, and P.~Delsing,
+\newblock ``Observation of the dynamical Casimir effect in a superconducting
+circuit,''
+\newblock Nature \textbf{479}, 376 (2011).
 
 \end{thebibliography}
 
