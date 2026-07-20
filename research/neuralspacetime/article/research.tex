@@ -51,10 +51,14 @@ earlier than the matched flat path ($5/5$ rays reaching, all quality gates
 passed). A three-run Richardson ladder (coarse/medium/fine, $N=192/256/384$)
 yields $20.4\%/20.2\%/20.2\%$ with fine--medium relative difference
 ${\ll}1\%$. An external ignition controller switches off at $t=4$; because
-the headline geodesic launches at $t_{\rm emit}=4$, the $20.2\%$ advantage
-is measured in freely evolving Einstein--Klein--Gordon dynamics. Matter
-confinement falls to ${\sim}11\%$ by $t=30$: the shortcut is transient, not
-a passenger drive.
+the geodesic that defines the quoted advantage launches at
+$t_{\rm emit}=4$, the $20.2\%$ timing difference is measured in freely
+evolving Einstein--Klein--Gordon dynamics. Repeating the evolution with
+the controller disabled from $t=0$ yields evolving $f_{\rm geo}=20.5\%$
+($5/5$ rays), while late-time confinement is weaker (${\sim}2\%$ versus
+${\sim}11\%$ at $t=30$). A matched-spacing domain ladder
+($L=96$ and $L=160$ at $h=0.500$) agrees with the $L=128$ baseline to
+within $0.12\%$. In all cases the channel is transient.
 \end{abstract}
 
 \maketitle
@@ -415,7 +419,7 @@ $P=\int\alpha\,(\Pi\cdot S_\Pi)\sqrt{\gamma}\,dV$ recorded in
 $E_{\rm pump}\simeq1.6\times10^{-17}$ over the ignition window of the
 pump-on HQ run---consistent with floating-point noise relative to the
 matter amplitude ($|\phi|_{\rm max}\sim7\times10^{-2}$). The pump therefore
-acts as a soft navigational trap rather than a large energy injector. The
+acts as a soft trajectory guide rather than a large energy injector. The
 campaign default switches the pump off at $t_{\rm pump}=4$; scoring credits
 4D geodesic transport only for $t_{\rm emit}\ge t_{\rm pump}$. A dedicated
 pump-free HQ twin with $t_{\rm pump}=0$ (Sec.~\ref{sec:pump_free}) tests
@@ -550,10 +554,12 @@ champion is re-run at production resolution for validation.
     \texttt{regrid\_threshold}$=0.02$,
     $t_{\rm stop}=30$---with multiple emission times and multi-ray geodesic
     probes. Paper headline numbers come from this stage, not from MAP-Elites.
-    \item \textbf{Stage 4 --- resolution matrix:} matched coarse/medium/fine
-    resolution runs (RC/RM/RF at fixed $L=128$, $N=192/256/384$) test
-    whether the shortcut survives discretization changes at the production
-    \texttt{max\_level}. Domain-ladder and waveform runs are deferred.
+    \item \textbf{Stage 4 --- resolution and domain matrix:} matched
+    coarse/medium/fine resolution runs (RC/RM/RF at fixed $L=128$,
+    $N=192/256/384$) test continuum stability at the production
+    \texttt{max\_level}; matched-spacing domain runs (DS/DL at
+    $h=0.500$, $L=96/160$) test boundary sensitivity on the same
+    $t_{\rm stop}$ window.
 \end{itemize}
 
 \begin{table}[t]
@@ -983,40 +989,52 @@ $5/5$ rays reaching and passes the null-Hamiltonian quality gate.}
 \label{fig:fgeo_validation}
 \end{figure}
 
-\subsection{Resolution matrix}
+\subsection{Resolution and domain matrix}
 
-The completed validation matrix is a three-run resolution ladder at fixed
-domain $L=128$: coarse RC ($N=192$, $h=0.667$), medium RM ($N=256$,
-$h=0.500$), and fine RF ($N=384$, $h=0.333$). RM is the headline HQ
-baseline; paper numbers come from this run. No domain ladder (DS/DL) was
-run for candidate~146; that check is deferred to future work.
+Validation comprises two complementary tests of candidate~146
+(Table~\ref{tab:matrix}). At fixed domain $L=128$, a three-run resolution
+ladder---coarse RC ($N=192$, $h=0.667$), medium RM ($N=256$, $h=0.500$),
+and fine RF ($N=384$, $h=0.333$)---probes continuum stability. At fixed
+grid spacing $h=0.500$, a domain ladder---DS ($L=96$, $N=192$) and DL
+($L=160$, $N=320$)---probes sensitivity to outer-boundary placement. The
+medium-resolution, intermediate-domain run RM is the reference
+configuration quoted elsewhere in this paper.
 
 \begin{table}[t]
-\caption{Candidate-146 resolution matrix. All runs use $L=128$, three AMR
-levels (\texttt{max\_level}$=3$, \texttt{regrid\_threshold}$=0.02$), and stop
-at $t=30$. Peak $f_{\rm geo}$ is the best evolving 4D shortcut; frozen peak
-is the maximum of the frozen-slice $f_{\rm geo}$ time series.}
+\caption{Resolution and domain matrix for candidate~146. Every run uses
+three AMR levels (\texttt{max\_level}$=3$,
+\texttt{regrid\_threshold}$=0.02$) and terminates at $t=30$. Peak
+$f_{\rm geo}$ is the maximum evolving 4D null-geodesic timing advantage;
+frozen peak is the maximum of the frozen-slice $f_{\rm geo}$ time series.
+RC/RM/RF change $h$ at fixed $L$; DS/DL change $L$ at fixed $h$.}
 \label{tab:matrix}
 \begin{ruledtabular}
-\begin{tabular}{llrrrrr}
-run & $N$ & $h$ & peak $f_{\rm geo}$ & frozen peak & $t_{\rm emit}$ \\
+\begin{tabular}{lrrrrrr}
+run & $L$ & $N$ & $h$ & peak $f_{\rm geo}$ & frozen peak & $t_{\rm emit}$ \\
 \hline
-RC & 192 & 0.667 & 20.44\% & 29.15\% & 4 \\
-RM & 256 & 0.500 & 20.21\% & 29.45\% & 4 \\
-RF & 384 & 0.333 & 20.19\% & 29.54\% & 4 \\
+RC & 128 & 192 & 0.667 & 20.44\% & 29.15\% & 4 \\
+RM & 128 & 256 & 0.500 & 20.21\% & 29.45\% & 4 \\
+RF & 128 & 384 & 0.333 & 20.19\% & 29.54\% & 4 \\
+DS & 96 & 192 & 0.500 & 20.19\% & 29.21\% & 4 \\
+DL & 160 & 320 & 0.500 & 20.22\% & 29.44\% & 4 \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
-Across the resolution ladder, the same genome shortens null travel by
-$20.19$--$20.44\%$ relative to flat space. The fine--medium relative
-difference is $(20.21-20.19)/20.21=0.1\%$, far below the preregistered
-$10\%$ matrix tolerance. The frozen-peak $f_{\rm geo}$ is similarly stable
-at ${\sim}29.5\%$ across all three resolutions. For the $L=128$ domain, the
-$t=30$ stop precedes the arrival of boundary-reflected gauge modes at the
-central region: in $1{+}\log$ slicing those modes propagate at characteristic
-speeds up to ${\sim}\sqrt{2}\,c$, so a one-way crossing from the outer
-boundary requires $t\gtrsim L/(2\sqrt{2})\approx45$.
+On the resolution ladder the evolving timing advantage spans
+$20.19$--$20.44\%$. The fine--medium relative difference is
+$(20.21-20.19)/20.21=0.1\%$, well below the preregistered $10\%$
+tolerance. The frozen-peak $f_{\rm geo}$ remains near ${\sim}29.5\%$ at
+all three resolutions. On the domain ladder, evolving
+$f_{\rm geo}=20.19\%$ (DS) and $20.22\%$ (DL) differ from RM by at most
+$0.12\%$; each run returns five of five completed rays with the
+null-Hamiltonian quality gate satisfied. The agreement indicates that
+outer-boundary reflections do not set the reported timing advantage on
+the interval $t\le30$. That conclusion is consistent with a causal
+estimate for the $L=128$ box: in $1{+}\log$ slicing, gauge modes with
+characteristic speeds up to ${\sim}\sqrt{2}\,c$ require
+$t\gtrsim L/(2\sqrt{2})\approx45$ for a one-way trip from the outer
+boundary to the central region.
 
 For unequal spacings, a Richardson estimate assumes
 \begin{equation}
@@ -1115,6 +1133,64 @@ factor $3.27$. The peak shortcut at $t_{\rm emit}=4$ occurs just as the pump
 switches off, and the evolving $f_{\rm geo}$ curve falls steadily at later
 emission times. Successful ray transport therefore coexists with substantial
 dispersal: the channel is transient.
+
+\subsection{Evolution with the PD controller disabled}
+\label{sec:pump_free}
+
+Because the PD trajectory controller (Sec.~\ref{sec:pd_pump}) is an
+external, non-Lagrangian source, we repeat the HQ evolution of
+candidate~146 with the controller disabled from $t=0$
+($t_{\rm pump}=0$), holding all other settings fixed ($L=128$, $N=256$,
+three AMR levels, $t=30$). Table~\ref{tab:pump_compare} compares this
+pump-free integration (PF-RM) with the default pump-on twin (RM;
+$t_{\rm pump}=4$).
+
+\begin{table}[t]
+\caption{Matched HQ comparison of candidate~146 with the PD controller on
+through $t=4$ (RM) and disabled from $t=0$ (PF-RM). Both runs use
+$L=128$, $N=256$, and $t=30$. Evolving $f_{\rm geo}$ is the 4D
+null-geodesic timing advantage; $E_{\rm pump}$ is the integrated pump work
+recorded in \texttt{collapse\_diagnostics.dat}; $S$ is the final
+\texttt{general\_ftl} score.}
+\label{tab:pump_compare}
+\begin{ruledtabular}
+\begin{tabular}{lcc}
+metric & RM ($t_{\rm pump}=4$) & PF-RM ($t_{\rm pump}=0$) \\
+\hline
+evolving $f_{\rm geo}$ & $20.21\%$ & $20.46\%$ \\
+rays / $h$ quality & $5/5$, pass & $5/5$, pass \\
+best $t_{\rm emit}$ & $4$ & $12$ \\
+$E_{\rm pump}$ & $1.6\times10^{-17}$ & $0$ \\
+confined ($t{=}0\to30$) & $72\%\to11\%$ & $72\%\to2\%$ \\
+rms spread ratio & $3.27$ & $3.07$ \\
+final score $S$ & $126.3$ & $47.0$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+With the PD term off, the evolving timing advantage remains
+$f_{\rm geo}=20.46\%$---within $1.2\%$ of the pump-on value---with all five
+rays reaching and the null-Hamiltonian quality gate satisfied. The
+integrated pump work vanishes identically, so the advantage cannot be
+ascribed to external PD energy injection; the corresponding pump-on
+integral is only ${\sim}10^{-17}$, consistent with floating-point noise
+relative to the matter amplitude. The emission peak shifts from
+$t_{\rm emit}=4$ to $t_{\rm emit}=12$, indicating a slower opening of the
+null channel in the absence of the controller, while the peak amplitude
+is essentially unchanged.
+
+The principal effect of the brief ignition-phase controller is therefore
+on matter retention rather than on $f_{\rm geo}$. At $t=30$ the pump-on
+run still confines ${\sim}11\%$ of the matter, compared with ${\sim}2\%$
+when the controller is off; the rms spread ratios remain comparable
+(${\sim}3$). The composite score decreases from $S=126.3$ (RM) to
+$S=47.0$ (PF-RM) for the same reason: confinement- and horizon-gated
+terms penalize the more rapidly dispersing pump-free evolution, while
+the geodesic timing advantage itself is essentially unchanged. A short
+PD drive in the default campaign thus delays dispersal of the supporting
+lumps. In both integrations the observed shortcut remains a transient
+precursor---a null-timing advantage coexisting with dispersing exotic
+matter.
 
 \subsection{What moves faster than light}
 
@@ -1219,6 +1295,33 @@ higher-resolution production evolution. The honest summary is that a
 \emph{transient} shortcut is reproducible and robust, while a
 \emph{long-lived}, well-confined channel remains an open problem.
 
+\subsection{Canonical-only (positive-energy) search bound}
+\label{sec:canonical_bound}
+
+To test whether the same five-lump bicomplex Q-ball genome can produce a
+gauge-invariant timing advantage without phantom sources, we reran the
+MAP-Elites campaign of Sec.~\ref{sec:methodology} with every per-lump
+exotic amplitude pinned to zero, retaining the canonical Klein--Gordon
+sector, retrograde-orbit bias, and postload constraint gates. Over
+$200$ evaluations ($105$ GPU-accepted; $95$ rejected at the postload
+Hamiltonian $L^2$ gate), the archive champion reached only
+$S\approx47.4$ (eval.~130), and the evolving geodesic fraction
+satisfied
+\begin{equation}
+  \max_{\theta\in\mathcal{A}_{\rm can}}
+  f_{\rm geo}^{\rm evol}(\theta)
+  = 0
+  \qquad
+  (N_{\mathrm{ok}}=105).
+  \label{eq:canonical_bound}
+\end{equation}
+Several accepted genomes developed coordinate
+$\max v_{\rm loc}>1$ or early apparent horizons, but none completed a
+null-timing advantage under the evolving-geodesic certificate. Within this
+ansatz and search budget, a completed $f_{\rm geo}>0$ therefore appears to
+require the phantom sector used by candidate~146; the positive-energy
+search remains open for broader matter families and longer $t_{\rm stop}$.
+
 \subsection{Limitations of the matter-first approach}
 \label{sec:limitations}
 
@@ -1257,11 +1360,13 @@ model. Three specific limitations follow.
     formalism (e.g., puncture or excision methods for nontrivial topology)
     or a geometry-first seed that is subsequently evolved.
   \item \textbf{Ignition-phase controller.} The PD pump
-    (Sec.~\ref{sec:pd_pump}) is a non-Lagrangian external source. While
-    it switches off before the measurement window, the initial conditions it
-    creates are not those of a freely prepared system. Removing the pump
-    entirely---or replacing it with a self-consistent confinement mechanism
-    such as a self-gravitating boson star---remains open.
+    (Sec.~\ref{sec:pd_pump}) is a non-Lagrangian external source. Evolving
+    the same genome with $t_{\rm pump}=0$ (Sec.~\ref{sec:pump_free})
+    preserves the ${\sim}20\%$ timing advantage while reducing late-time
+    confinement, confirming that the controller mainly retards dispersal.
+    A fully self-consistent confinement mechanism (for example a
+    self-gravitating boson star) would remove the need for any external
+    drive.
 \end{enumerate}
 
 The two approaches are therefore complementary: geometry-first is better
@@ -1275,12 +1380,13 @@ natural next step.
 
 The pipeline supports (i)~inverse design of null transport under
 energy-condition penalties, (ii)~QD atlases of mechanism families, and
-(iii)~Pareto maps of shortcut versus exotic cost and persistence. Immediate
-priorities are to run a domain ladder (DS/DL) to verify boundary insensitivity,
-add a pump-work diagnostic to quantify the energy deposited during the ignition
-phase, and extend the evolution to longer $t_{\rm stop}$ to track late-time
-dispersal. Longer-term goals include optimizing for non-dispersing matter
-models and confinement world-tube objectives.
+(iii)~Pareto maps of shortcut versus exotic cost and persistence.
+The canonical-only MAP-Elites bound of Sec.~\ref{sec:canonical_bound}
+already constrains the all-$+\rho$ slice of the present ansatz.
+Immediate priorities include longer $t_{\rm stop}$ integrations to track
+late-time dispersal and broader positive-energy matter families.
+Longer-term goals include non-dispersing matter models and confinement
+world-tube objectives.
 
 \subsection{Laboratory Casimir bounds on null-timing shortcuts}
 \label{sec:casimir_bounds}
@@ -1397,31 +1503,43 @@ whether light arrives earlier than in flat space. MAP-Elites saturated at
 candidate~87 ($S=825.19$); CMA-ES improved the search score to $852.15$
 (candidate~146), a lift driven by confinement-gated persistence rather than a
 larger raw shortcut. The CMA-ES champion, a bicomplex five-lump Q-ball shell,
-yields $f_{\rm geo}=20.2\%$ in the headline RM run---light $20\%$
-earlier---and $20.2$--$20.4\%$ across the three-run resolution ladder
-(fine--medium relative difference ${\ll}1\%$). The frozen-peak $f_{\rm geo}$
-reaches ${\sim}29.5\%$, stable across resolutions. All rays pass quality
-gates ($5/5$ reaching; matrix-wide $h_{\rm rel}^{\rm max}\le3.8\times10^{-3}$,
-with $2.19\times10^{-3}$ in the headline RM run). The bicomplex matter model
-preserves per-lump canonical/phantom signs through both the constraint solve
-and the evolution. The PD controller switches off at $t=4$; because the
-headline geodesic launches at $t_{\rm emit}=4$, the $20.2\%$ advantage is
-measured in freely evolving Einstein--Klein--Gordon dynamics. Confinement
-falls to ${\sim}11\%$ by $t=30$, so the shortcut is transient. Candidate~146
-is therefore a reproducible, continuum-stable numerical warp precursor
-produced by an automated two-stage search, not a continuum-extrapolated or
-functional warp drive. Semiclassical Casimir bounds
-(Sec.~\ref{sec:casimir_bounds}) confirm that known laboratory vacuum
-stresses fall $\gtrsim40$ orders of magnitude short of the exotic budget
-implied by a percent-level $f_{\rm geo}$.
+yields $f_{\rm geo}=20.2\%$ in the RM validation run---a $20\%$ null
+timing advantage relative to flat space---and $20.2$--$20.4\%$ across the
+resolution ladder (fine--medium relative difference ${\ll}1\%$). Matched
+domain runs at $h=0.500$ ($L=96$ and $L=160$) agree with RM to within
+$0.12\%$. The frozen-peak $f_{\rm geo}$ reaches ${\sim}29.5\%$ and is
+stable across resolutions. All rays pass quality gates ($5/5$ reaching;
+matrix-wide $h_{\rm rel}^{\rm max}\le3.8\times10^{-3}$, with
+$2.19\times10^{-3}$ in RM). The bicomplex matter model preserves per-lump
+canonical/phantom signs through both the constraint solve and the
+evolution. With the PD controller off from $t=0$, the evolving advantage
+remains $20.5\%$, while late-time confinement is weaker; the controller
+mainly retards dispersal rather than generating the timing difference.
+When the controller is on through $t=4$ and the geodesic launches at
+$t_{\rm emit}=4$, the $20.2\%$ advantage is measured in freely evolving
+Einstein--Klein--Gordon dynamics. Confinement falls to ${\sim}11\%$ by
+$t=30$, so the shortcut is transient. A matched canonical-only
+MAP-Elites campaign (all exotic amplitudes pinned to zero) found no
+evolving $f_{\rm geo}>0$ in $105$ accepted evaluations
+(Sec.~\ref{sec:canonical_bound}), so the present ansatz does not yet
+yield a positive-energy shortcut under the same falsification stack.
+Candidate~146 is therefore a reproducible, continuum- and domain-stable
+numerical warp precursor from an automated two-stage search, not a
+continuum-extrapolated or functional warp drive. Semiclassical Casimir
+bounds (Sec.~\ref{sec:casimir_bounds}) confirm that known laboratory
+vacuum stresses fall $\gtrsim40$ orders of magnitude short of the exotic
+budget implied by a percent-level $f_{\rm geo}$.
 
 \section{Code and Data Availability}
 
 The project repository contains the campaign configuration and archive,
 candidate-146 frozen provenance (under \texttt{runs/\allowbreak
-grtresna\_promote/\allowbreak sources/}), the three completed
-resolution-matrix validation summaries (RC/RM/RF evolving geodesic artifacts,
-constraint histories, and confinement timeseries). Figure files live in
+grtresna\_promote/\allowbreak sources/}), and the completed validation
+summaries (RC/RM/RF resolution ladder, DS/DL domain ladder, and the
+pump-free PF-RM twin: evolving-geodesic reports, constraint histories, and
+confinement timeseries). The canonical-only MAP-Elites archive
+\texttt{qball\_traj\_canonical\_v1} (Sec.~\ref{sec:canonical_bound})
+lives under \texttt{runs/\allowbreak grtresna\_qd/}. Figure files live in
 \texttt{research/\allowbreak neuralspacetime/\allowbreak figures/}; the
 article directory holds the reduced numerical tables used by TikZ/PGFPlots.
 The Casimir bound script and table

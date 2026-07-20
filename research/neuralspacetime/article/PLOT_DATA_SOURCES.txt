@@ -97,6 +97,24 @@ tab:search_handoff / tab:matrix / 4D certificate text
     runs/grtresna_promote/bcma_rf_L128_N384_t30_hq_eval000146/small_data/evolving_geodesic.json
     (+ each run's small_data/confinement.dat and data/constraint_norms.dat)
 
+  Domain ladder (tab:matrix DS/DL rows; matched h=0.500):
+    DS: runs/grtresna_promote/bcma_ds_L96_N192_t30_hq_eval000146/
+        evolving f_geo=20.19%, frozen peak=29.21%, S=125.9
+    DL: runs/grtresna_promote/bcma_dl_L160_N320_t30_hq_eval000146/
+        evolving f_geo=20.22%, frozen peak=29.44%, S=126.6
+    (each: small_data/evolving_geodesic.json, score.json)
+
+  tab:pump_compare / sec:pump_free (pump-on vs pump-free twin):
+    RM:  runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/
+         small_data/evolving_geodesic.json, small_data/confinement.dat,
+         score.json, data/collapse_diagnostics.dat
+    PF:  runs/grtresna_promote/bcma_pfrm_L128_N256_t30_hq_eval000146/
+         (same artifacts; rl_pump_stop_time=0 in params.txt)
+    Pump-work table:
+    data/pump_work_budget.txt
+      ← research/neuralspacetime/analysis/pump_work_budget.py
+         (RM E_pump≈1.6e-17; PF E_pump=0)
+
 
 5) TikZ-only figures (no external numeric tables)
 -------------------------------------------------
