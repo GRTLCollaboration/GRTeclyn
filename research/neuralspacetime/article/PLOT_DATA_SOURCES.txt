@@ -93,6 +93,20 @@ fig:lump_dynamics  (research.tex)
   Original CMA eval (pre-freeze):
     runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/eval_000146/
 
+fig:rf_field_maps  (research.tex; evolving field maps, finest run RF N=384)
+  Image files (copied verbatim from RF frame series):
+    figures/fig_rf_rho_{t0,t4,t16,t30}.png    <- frames/rho_req_z/frames/frame_z_{0000,0612,2412,4500}.png
+    figures/fig_rf_shift_{t0,t4,t16,t30}.png   <- frames/shift1_z/frames/frame_z_{0000,0612,2412,4500}.png
+  Source run frames:
+    runs/grtresna_promote/bcma_rf_L128_N384_t30_hq_eval000146/frames/{rho_req_z,shift1_z}/frames/
+  Frame->time map: t = step/4500 * 30  (step 0000->t0, 0612->t~4.08, 2412->t~16.08, 4500->t30)
+
+fig:lump_topdown  (research.tex; unscaled x-y projection at grid scale)
+  Inline TikZ coordinates taken directly from "lump_centers" in:
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146/initial_data.matter.json
+  Signs from "scalar_field_signs" = [1,-1,-1,1,-1]
+  (canonical: lumps 0,3 ; phantom: lumps 1,2,4)
+
 
 4) Tables / in-text HQ numbers (not plotted, but same runs)
 -----------------------------------------------------------
@@ -176,6 +190,22 @@ tab:endpoint_gauge  (research.tex; sec:endpoint_gauge)
     A=(56.8,64,64), B=(71.2,64,64); at t_emit=4 alpha_A=0.96, alpha_B=0.99
     proper-time advantage f_geo^tau = 19.5% vs coord 20.2%
     (tau_curved=12.61, tau_flat=15.66)
+
+  Corridor proper-length numbers (sec:endpoint_gauge text; no table):
+    integral of sqrt(gamma_xx) over x in [56.8, 71.2] at y=z=64,
+    from the RM metric stack npz files ('g' field, g[...,1,1]):
+      t=0.00  -> 13.853
+      t=4.32  -> 13.603   (stored slice nearest headline launch)
+      flight window t in [3.6, 15.6] -> min 13.079, max 13.667
+    conservative proper-length-referenced advantage:
+      (13.079 - 11.49)/13.079 = 12.2%
+
+  Post-load gate values quoted in sec:selfconsistent (candidate 146):
+    runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/eval_000146/metadata.json
+      postload_gate: max_hamiltonian_l2 = 5.87e-3, max_momentum_l2 = 1.08e-4
+    gate thresholds (absolute L2, both): 1e-2
+      grteclyn-wrapper/src/grteclyn_wrapper/projection/postload_gate.py
+      scripts/campaigns/lib/search_common.sh (POSTLOAD_MAX_{HAM,MOM}_L2)
 
   Generator (both tables + proper-time correction):
     research/neuralspacetime/analysis/endpoint_gauge_and_null_constraint.py

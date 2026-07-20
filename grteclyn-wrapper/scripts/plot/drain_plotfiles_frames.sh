@@ -22,6 +22,8 @@ RUN_DIR="${1:?RUN_DIR required}"
 RUN_DIR="$(cd "${RUN_DIR}" && pwd)"
 
 export GRTECLYN_FRAMES=1
+# Fixed colorbars across time (no per-frame percentile bounce in movies).
+export GRTECLYN_FRAMES_STABLE_MOVIE="${GRTECLYN_FRAMES_STABLE_MOVIE:-1}"
 export GRTECLYN_CONSUMER_DRAIN=0
 export GRTECLYN_CONSUMER_DRAIN_MINIMAL=1
 # Psi4 already extracted during fast drain — skip on backlog (saves ~20s/plotfile).
