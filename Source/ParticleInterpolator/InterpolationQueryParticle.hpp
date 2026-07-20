@@ -94,17 +94,6 @@ class InterpolationQueryParticle
                          "for diagnostic variables!");
         }
 
-        // for now we do not allow derivatives
-        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
-        {
-            if (deriv[dir] != 0)
-            {
-                amrex::Abort(
-                    "InterpolationQueryParticle::addComp(): "
-                    "Derivative interpolation is not yet implemented :/ !");
-            }
-        }
-
         auto result = m_comps.find(deriv);
         if (result == m_comps.end())
         {

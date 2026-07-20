@@ -234,8 +234,6 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 {
     const int ncomp = num_components;
 
-    AMREX_ASSERT(mfab.nComp() >= start_comp + ncomp);
-
     if (this->NumberOfParticlesAtLevel(lev) == 0)
         return;
 
@@ -262,6 +260,21 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         const int num_particles = par_iter.numParticles();
         auto fab_array          = mfab[par_iter].const_array();
 
+        Derivative derivs[ncomp];
+        InterpolationQueryParticle::out_t *comps[ncomp];
+        int comp_counts[ncomp];
+
+        // Gather comp map into arrays so it can be used on GPU
+        int num_derivs = 0;
+        for (auto comps_it = m_query->compsBegin();
+             comps_it != m_query->compsEnd(); ++comps_it)
+        {
+            derivs[num_derivs]      = comps_it->first;
+            comps[num_derivs]       = comps_it->second.data();
+            comp_counts[num_derivs] = static_cast<int>(comps_it->second.size());
+            ++num_derivs;
+        }
+
         amrex::ParallelFor(
             num_particles,
             [=] AMREX_GPU_DEVICE(int ip)
@@ -278,7 +291,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
-                                            start_comp, ncomp);
+                                            derivs, comps, comp_counts,
+                                            num_derivs, 1 / dxi[0]);
 
                 // write results to SOA
                 for (int icomp = 0; icomp < ncomp; ++icomp)
@@ -656,6 +670,8 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values(
 #endif
 
     // Apply parity
+
+    int comp_idx = 0;
     for (auto deriv_it = query.compsBegin(); deriv_it != query.compsEnd();
          ++deriv_it)
     {
@@ -670,7 +686,7 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values(
             const int comp           = entry.comp;
             amrex::ParticleReal *out = entry.out_data_ptr;
 
-            const int k = comp - start_comp; // reindex from 0
+            const int k = comp - start_comp;
             AMREX_ASSERT(k >= 0 && k < num_components);
 
             for (int ip = 0; ip < num_points; ++ip)
@@ -682,8 +698,9 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values(
                 int parity = get_var_parity(comp, ip, query, dkey,
                                             variable_type, entry.parity);
 
-                out[ip] = parity * m_query_data[k][recv_idx];
+                out[ip] = parity * m_query_data[comp_idx][recv_idx];
             }
+            comp_idx++;
         }
     }
 }
