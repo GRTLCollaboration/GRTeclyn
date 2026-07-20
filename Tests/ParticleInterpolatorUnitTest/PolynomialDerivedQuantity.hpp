@@ -86,6 +86,7 @@ class PolynomialDerivedQuantity
     }
 
     // Compute function
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE
     void
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
@@ -119,5 +120,6 @@ class PolynomialDerivedQuantity
   private:
     int m_c_poly; // destination comp
 };
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 #endif /* POLYNOMIALDERIVEDQUANTITY_HPP_ */

@@ -44,6 +44,7 @@
 // We interpolate them to some specified (x,y,z) points using the
 // ParticleInterpolator class.
 
+// NOLINTBEGIN(readability-function-cognitive-complexity)
 void run_particle_interpolator_test()
 {
     // Use an input file that is in the same directory as this file for the
@@ -228,3 +229,4 @@ void run_particle_interpolator_test()
     }
     amrex::Finalize();
 }
+// NOLINTEND(readability-function-cognitive-complexity)

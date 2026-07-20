@@ -37,7 +37,6 @@ class InterpolationQueryParticle
     template <int num_components> friend class ParticleInterpolator;
 
     size_t m_num_points;
-
     std::array<const amrex::ParticleReal *, AMREX_SPACEDIM> m_coords{};
     comp_map_t m_comps{};
     VariableType m_variable_type{}; // for a given InterpolationQueryParticle
