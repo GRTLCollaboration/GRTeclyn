@@ -110,7 +110,7 @@ class PolynomialDerivedQuantity
 
         // write via cell data
         auto cell      = a_array.cellData(i, j, k);
-        cell[m_c_poly] = 42.0 + x * x + y * y * z * z;
+        cell[m_c_poly] = pow(x, 3) * pow(y, 3) * pow(z, 3);
     }
 
     // Constructor

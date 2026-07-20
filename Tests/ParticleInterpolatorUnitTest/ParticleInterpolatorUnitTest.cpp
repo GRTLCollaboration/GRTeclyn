@@ -117,8 +117,15 @@ void run_particle_interpolator_test()
         // Allocate vectors for writing
         std::vector<amrex::ParticleReal> A_local(
             n_local); // for storing derived polynomial
+        std::vector<amrex::ParticleReal> A_dx(
+            n_local); // for storing derived polynomial first derivative
+        std::vector<amrex::ParticleReal> A_dxdy(
+            n_local); // for storing derived polynomial second derivative
+
         std::vector<amrex::ParticleReal> B_local(
             n_local); // for storing state polynomial
+        std::vector<amrex::ParticleReal> B_dzdz(
+            n_local); // for storing state polynomial second derivative
         std::vector<amrex::ParticleReal> interp_x_local(n_local);
         std::vector<amrex::ParticleReal> interp_y_local(n_local);
         std::vector<amrex::ParticleReal> interp_z_local(n_local);
@@ -141,18 +148,25 @@ void run_particle_interpolator_test()
         query_derived.setCoords(0, interp_x_local.data())
             .setCoords(1, interp_y_local.data())
             .setCoords(2, interp_z_local.data())
-            .addComp(0, A_local.data(), VariableType::derived, BCParity::even,
-                     Derivative::LOCAL);
+            .addComp(0, A_local.data(), VariableType::derived,
+                     BCParity::odd_xyz, Derivative::LOCAL)
+            .addComp(0, A_dx.data(), VariableType::derived, BCParity::odd_xyz,
+                     Derivative::dx)
+            .addComp(0, A_dxdy.data(), VariableType::derived, BCParity::odd_xyz,
+                     Derivative::dxdy);
 
         // set-up query for state variable B
         InterpolationQueryParticle query_state(n_local);
         query_state.setCoords(0, interp_x_local.data())
             .setCoords(1, interp_y_local.data())
             .setCoords(2, interp_z_local.data())
-            .addComp(c_polystate, B_local.data(), VariableType::state);
+            .addComp(c_polystate, B_local.data(), VariableType::state,
+                     BCParity::even, Derivative::LOCAL)
+            .addComp(c_polystate, B_dzdz.data(), VariableType::state,
+                     BCParity::even, Derivative::dzdz);
 
         // set up interpolation using Particles for derived vars
-        ParticleInterpolator<1> interpolator_derived;
+        ParticleInterpolator<3> interpolator_derived;
 
         interpolator_derived.setup(&gr_amr);
         interpolator_derived.interp(
@@ -160,7 +174,7 @@ void run_particle_interpolator_test()
             0.0); // do not refresh particles as the query remains the same
 
         // set up interpolation using Particles for state vars
-        ParticleInterpolator<1> interpolator_state;
+        ParticleInterpolator<2> interpolator_state;
         interpolator_state.setup(&gr_amr);
         interpolator_state.interp(
             query_state,
@@ -172,8 +186,14 @@ void run_particle_interpolator_test()
             amrex::ParticleReal y = interp_y_local[ipoint] - center[1];
             amrex::ParticleReal z = interp_z_local[ipoint] - center[2];
 
-            amrex::ParticleReal A_known = 42. + x * x + y * y * z * z;
-            amrex::ParticleReal B_known = pow(z, 3);
+            amrex::ParticleReal A_known = pow(x, 3) * pow(y, 3) * pow(z, 3);
+            amrex::ParticleReal A_known_dx =
+                3 * pow(x, 2) * pow(y, 3) * pow(z, 3);
+            amrex::ParticleReal A_known_dxdy =
+                3 * pow(x, 2) * 3 * pow(y, 2) * pow(z, 3);
+
+            amrex::ParticleReal B_known      = pow(z, 3);
+            amrex::ParticleReal B_known_dzdz = 6 * z;
 
             INFO("Interpolated A is "
                  << A_local[ipoint] << " at point x = " << x << " y = " << y
@@ -182,8 +202,28 @@ void run_particle_interpolator_test()
                  << B_local[ipoint] << " at point x = " << x << " y = " << y
                  << " z = " << z << ". The true value should be " << B_known);
 
+            INFO("Interpolated A dx is "
+                 << A_dx[ipoint] << " at point x = " << x << " y = " << y
+                 << " z = " << z << ". The true value should be "
+                 << A_known_dx);
+
+            INFO("Interpolated A dxdy is "
+                 << A_dxdy[ipoint] << " at point x = " << x << " y = " << y
+                 << " z = " << z << ". The true value should be "
+                 << A_known_dxdy);
+
+            INFO("Interpolated B dzdz is "
+                 << B_dzdz[ipoint] << " at point x = " << x << " y = " << y
+                 << " z = " << z << ". The true value should be "
+                 << B_known_dzdz);
+
             CHECK(A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
+            CHECK(A_dx[ipoint] == doctest::Approx(A_known_dx).epsilon(1e-10));
+            CHECK(A_dxdy[ipoint] ==
+                  doctest::Approx(A_known_dxdy).epsilon(1e-10));
             CHECK(B_local[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
+            CHECK(B_dzdz[ipoint] ==
+                  doctest::Approx(B_known_dzdz).epsilon(1e-10));
         }
     }
     amrex::Finalize();
