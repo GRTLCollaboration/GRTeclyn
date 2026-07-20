@@ -236,12 +236,12 @@ template <int N> class Lagrange
                   (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
-        build_stencil(xpos, i0, weights_local[0], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1], 0);
-        build_stencil(xpos, i0, weights_d1[0], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1], 1);
-        build_stencil(xpos, i0, weights_d2[0], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1], 2);
+        build_stencil(xpos, i0, weights_local[0], lo_reflective[0],
+                      hi_reflective[0], domain_ncell[1], 0);
+        build_stencil(xpos, i0, weights_d1[0], lo_reflective[0],
+                      hi_reflective[0], domain_ncell[0], 1);
+        build_stencil(xpos, i0, weights_d2[0], lo_reflective[0],
+                      hi_reflective[0], domain_ncell[0], 2);
 #if AMREX_SPACEDIM >= 2
         build_stencil(ypos, j0, weights_local[1], lo_reflective[1],
                       hi_reflective[1], domain_ncell[1], 0);
@@ -253,12 +253,12 @@ template <int N> class Lagrange
 #endif
 
 #if AMREX_SPACEDIM == 3
-        build_stencil(zpos, k0, weights_local[2], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1], 0);
-        build_stencil(zpos, k0, weights_d1[2], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1], 1);
-        build_stencil(zpos, k0, weights_d2[2], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1], 2);
+        build_stencil(zpos, k0, weights_local[2], lo_reflective[2],
+                      hi_reflective[2], domain_ncell[2], 0);
+        build_stencil(zpos, k0, weights_d1[2], lo_reflective[2],
+                      hi_reflective[2], domain_ncell[2], 1);
+        build_stencil(zpos, k0, weights_d2[2], lo_reflective[2],
+                      hi_reflective[2], domain_ncell[2], 2);
 #endif
     }
 
