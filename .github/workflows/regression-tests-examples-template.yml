@@ -9,22 +9,30 @@ on:
       example_name:            # this is the name of the example
         required: true
         type: string
+      use_twopunctures:
+        required: false
+        type: boolean
+        default: false
+      compare_subdir:
+        required: true
+        type: string
 
 jobs:
   run_tests:
     runs-on: ubuntu-24.04
     env:
       AMREX_HOME: ${{ github.workspace }}/amrex
-      EXECUTABLE_SUFFIX: 3d.gnu.MPI.ex
+      TWOPUNCTURES_HOME: ${{ github.workspace }}/TwoPunctures
       PARAMETER_FILE: params_test.txt
       BUILD_ARGS: >-
         COMP=gnu
         USE_MPI=TRUE
         USE_CCACHE=TRUE
+        ${{ (inputs.use_twopunctures && ' USE_TWOPUNCTURES=TRUE') || '' }}
       TOLERANCES: >-
         --abs_tol 1e-10
         --rel_tol 1e-10
-      COMPARE_DIR: ${{ github.workspace }}/.github/workflows/data
+      COMPARE_BASE_DIR: ${{ github.workspace }}/.github/workflows/data
 
     steps:
     - name: Checkout GRTeclyn
@@ -35,6 +43,17 @@ jobs:
       uses: ./.github/workflows/regression-tests-setup
       with:
         gcc_version: ${{ inputs.gcc_version }}
+        use_twopunctures: ${{ inputs.use_twopunctures }}
+
+    - name: Set derived environment variables
+      run: |
+        if [ "${{ inputs.use_twopunctures }}" = "true" ]; then
+          echo "EXECUTABLE_SUFFIX=3d.gnu.MPI.TwoPunctures.ex" >> $GITHUB_ENV
+        else
+          echo "EXECUTABLE_SUFFIX=3d.gnu.MPI.ex" >> $GITHUB_ENV
+        fi
+        echo "COMPARE_DIR=${{ env.COMPARE_BASE_DIR }}/${{ inputs.compare_subdir }}" >> $GITHUB_ENV
+      shell: bash
 
     - name: Build example
       run: make -j 4 ${{ env.BUILD_ARGS }}
@@ -59,7 +78,7 @@ jobs:
     - name: Compare plotfile from final step with saved plotfile
       run: >
         mpiexec -n 1 ./fcompare.gnu.MPI.ex ${{ env.TOLERANCES }}
-        ${{ env.COMPARE_DIR }}/${{ inputs.example_name }}/plt00008_compare plt00008
+        ${{ env.COMPARE_DIR }}/plt00008_compare plt00008
       working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
 
     - name: Download particle_compare tool
@@ -73,7 +92,7 @@ jobs:
       if: ${{ inputs.example_name == 'BinaryBH' }}
       run: |
         chmod +x particle_compare.exe
-        export OLD_PLT_FILES=${{ env.COMPARE_DIR }}/${{ inputs.example_name }}/plt00008_compare
+        export OLD_PLT_FILES=${{ env.COMPARE_DIR }}/plt00008_compare
         export OPT="particles"
         ./particle_compare.exe ${{ env.TOLERANCES }} $OLD_PLT_FILES plt00008 $OPT
       working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
