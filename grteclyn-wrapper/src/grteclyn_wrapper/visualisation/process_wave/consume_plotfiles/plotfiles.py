@@ -80,7 +80,12 @@ def _truncate_if_exists(path: Path) -> None:
 
 
 def _is_plotfile_ready(plot_dir: str, stable_seconds: float) -> bool:
-    """Best-effort check that the plotfile is not being written right now."""
+    """Best-effort check that the plotfile is not being written right now.
+
+    On NFS the Header may be visible before Level data files are flushed.
+    We verify Level_0/Cell_D_00000 also exists to avoid reading an
+    incomplete plotfile.
+    """
     header = os.path.join(plot_dir, "Header")
     if not os.path.isfile(header):
         return False
@@ -88,4 +93,7 @@ def _is_plotfile_ready(plot_dir: str, stable_seconds: float) -> bool:
         mtime = os.path.getmtime(header)
     except OSError:
         return False
-    return (time.time() - mtime) >= stable_seconds
+    if (time.time() - mtime) < stable_seconds:
+        return False
+    level0_data = os.path.join(plot_dir, "Level_0", "Cell_D_00000")
+    return os.path.isfile(level0_data)

@@ -20,6 +20,30 @@ from .frames.slice import _render_slice_frame
 from .plotfiles import _parse_plot_index
 
 
+def _load_plotfile_with_retry(yt, p: str, retries: int = 3, delay_s: float = 10.0, verbose: bool = False):
+    """Load a plotfile, retrying on NFS visibility errors.
+
+    Under NFS close-to-open semantics the plotfile metadata can report the
+    file as present while the data blocks are not yet readable on this client,
+    yielding transient FileNotFoundError/OSError.  Retry a few times with a
+    fixed backoff before giving up.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            return yt.load(p)
+        except (FileNotFoundError, OSError) as exc:
+            last_exc = exc
+            if attempt < retries:
+                if verbose:
+                    print(
+                        f"WARNING: yt.load failed for {os.path.basename(p)} "
+                        f"(attempt {attempt + 1}/{retries + 1}): {exc}; retrying in {delay_s}s"
+                    )
+                time.sleep(delay_s)
+    raise last_exc
+
+
 def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_frame_idx: int) -> dict:
     import yt
     
@@ -50,7 +74,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
     }
 
     try:
-        ds = yt.load(p)
+        ds = _load_plotfile_with_retry(yt, p, verbose=args_dict.get("verbose", False))
         t = float(ds.current_time)
         result["t"] = t
         key = result["key"]

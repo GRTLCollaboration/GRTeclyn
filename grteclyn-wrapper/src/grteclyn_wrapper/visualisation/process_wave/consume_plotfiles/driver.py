@@ -64,7 +64,7 @@ def main() -> None:
         default=[0.0, 0.0, 0.0],
         help="Extraction center (x y z) in code units",
     )
-    parser.add_argument("--stable-seconds", type=float, default=5.0, help="Require Header mtime older than this")
+    parser.add_argument("--stable-seconds", type=float, default=30.0, help="Require Header mtime older than this (30s default for NFS)")
     parser.add_argument("--poll-seconds", type=float, default=2.0, help="Polling interval when --watch")
     parser.add_argument("--watch", action="store_true", help="Keep running and process new plotfiles")
     parser.add_argument(

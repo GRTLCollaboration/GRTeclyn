@@ -387,15 +387,57 @@ moment, not that it will be retained permanently. Once it falls outside the
 newest `N`, the consumer logs
 `[gc] deleted previously-processed RadialRecipePlt00000`.
 
-Two bugs previously allowed HQ plotfiles to accumulate:
+Three bugs previously caused HQ plotfile data loss or accumulation:
 
-1. Metrics-only runs (`GRTECLYN_FRAMES=0`) silently disabled deletion.
-   Deletion is now independent of frame rendering. Set
-   `GRTECLYN_KEEP_PLOTFILES=1` only when retaining the HDF5 dumps is intentional.
-2. Watch mode queued the entire backlog before running GC. Extraction can take
-   minutes per multi-GB AMR dump, so old processed files remained while new
-   files accumulated. Watch mode now processes at most one worker-sized batch
-   per pass and runs GC before starting the next extraction batch.
+1. **Metrics-only deletion disabled.** Metrics-only runs (`GRTECLYN_FRAMES=0`)
+   silently disabled deletion. Deletion is now independent of frame rendering.
+   Set `GRTECLYN_KEEP_PLOTFILES=1` only when retaining HDF5 dumps is intentional.
+2. **Watch mode backlog stall.** Watch mode queued the entire backlog before
+   running GC. Extraction can take minutes per multi-GB AMR dump, so old
+   processed files remained while new files accumulated. Watch mode now
+   processes at most one worker-sized batch per pass and runs GC before starting
+   the next extraction batch.
+3. **External cleanup loop race condition (2026-07).** An ad-hoc background
+   shell loop (`while true; do ... xargs rm -rf ...; sleep 120; done`) created
+   during debugging to enforce plotfile counts raced with the consumer. The loop
+   deleted complete, unprocessed plotfiles every 2 minutes — including files the
+   consumer had just confirmed as ready and was actively extracting. Symptoms:
+   - Every plotfile after the first fails with `ENOENT` on
+     `Level_0/Cell_D_00000` or `Header`, even though `_is_plotfile_ready`
+     passed moments earlier.
+   - Plotfile directories survive as empty skeletons (dir exists, `Level_0/`
+     exists, but `Cell_D_00000` and `Header` are gone).
+   - Exactly `keep_last` plotfiles survive at any time (the loop's retention
+     count), while the consumer `state` shows far fewer processed entries.
+   - No error messages from the consumer itself — it simply reports "failed to
+     process" on every plotfile it tries.
+
+   **Root cause:** the loop was a plain `bash` process with no identifiable
+   name (`watchdog`, `monitor`, etc.), so `pkill -f` commands targeting named
+   scripts missed it. It survived multiple process cleanups across session
+   restarts.
+
+   **Fix:** killed the orphaned loop process (found via `head -n 10` on
+   terminal state files), then relaunched all runs from scratch. The consumer's
+   own `--delete --keep-last N` is sufficient — it only deletes plotfiles
+   *after* successful extraction and marks them in `consume_state.json`.
+
+   **Prevention:** never run external plotfile deletion loops alongside the
+   consumer. If disk pressure is a concern, increase `plot_interval` or reduce
+   extraction cost (`-j 1`, disable frames). The consumer's built-in GC is the
+   only safe deletion path.
+
+**NFS close-to-open latency (secondary issue).** On NFS, a plotfile's metadata
+(`Header`, directory entries) can appear before the data blocks
+(`Level_0/Cell_D_00000`) are readable. The consumer mitigates this with:
+- `--stable-seconds 30` (default, increased from 5) — waits 30s after
+  `Header` mtime before attempting extraction.
+- `_is_plotfile_ready` checks both `Header` existence and
+  `Level_0/Cell_D_00000` existence before declaring a plotfile ready.
+- `_load_plotfile_with_retry` in `worker.py` retries `yt.load()` up to 3
+  times with 10s backoff on `FileNotFoundError`/`OSError`.
+- Failed plotfiles are not marked in `state` — the consumer retries them on
+  the next watch pass automatically.
 
 Production cadence must also let extraction keep up with evolution. The eval
 118 validation campaign uses `plot_interval=144` instead of `24`; this retains
@@ -414,6 +456,25 @@ If the count keeps growing beyond `keep_last + jobs`, check whether consumer
 workers are blocked in NFS I/O (`D` state), then increase `plot_interval` or
 reduce extraction cost. Never delete an unprocessed plotfile merely to force
 the count down; that loses the corresponding Psi4/FTL sample.
+
+**Diagnosing plotfile deletion by an unknown process:** if plotfiles vanish
+despite only one consumer running and `consume_state.json` showing fewer
+processed entries than expected, an external process is deleting them. To
+identify it:
+
+```bash
+# 1. Check for orphaned loops in terminal state files
+head -n 10 ~/.cursor/projects/*/terminals/*.txt | grep -A5 "rm -rf\|xargs\|while true"
+
+# 2. Watch a specific plotfile's Cell_D for 2 minutes
+for i in $(seq 1 40); do
+  [ -f <run>/RadialRecipePlt00XXX/Level_0/Cell_D_00000 ] && echo "$(date +%T) Y" || echo "$(date +%T) GONE"
+  sleep 3
+done
+
+# 3. Strace the consumer for unlink syscalls (if consumer is suspect)
+timeout 30 strace -f -e trace=unlinkat,rmdir -p <consumer_pid> 2>&1 | grep Plt
+```
 
 ### Smoke test (all stages)
 
