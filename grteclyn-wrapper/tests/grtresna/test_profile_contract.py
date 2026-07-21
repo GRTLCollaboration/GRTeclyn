@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from grteclyn_wrapper.core.site_paths import grteclyn_root
 from grteclyn_wrapper.grtresna.io.gridinit import read_gridinit, write_gridinit
 from grteclyn_wrapper.grtresna.matter.profile_contract import (
     PROFILE_KIND_TO_INT,
@@ -149,9 +150,11 @@ def test_contract_catches_wrong_frequency(tmp_path) -> None:
 # Optional: the real torus gridinit (skipped if the artifact is absent)
 # --------------------------------------------------------------------------
 
-_TORUS_ID = Path(
-    "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/rotating_torus_id/"
-    "torus_m1_om0p250_kappa1p00_dx0p5_L64_lam170_mu614450_exotic"
+_TORUS_ID = (
+    grteclyn_root()
+    / "runs"
+    / "rotating_torus_id"
+    / "torus_m1_om0p250_kappa1p00_dx0p5_L64_lam170_mu614450_exotic"
 )
 
 

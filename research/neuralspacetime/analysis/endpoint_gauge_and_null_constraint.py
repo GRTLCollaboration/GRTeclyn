@@ -31,6 +31,7 @@ from grteclyn_wrapper.metrics.probes.ftl.metric_stack_cache import (
     metric_stack_dir,
 )
 from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic import _ray_fan_geometry
+from grteclyn_wrapper.core.site_paths import grteclyn_root
 from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
     future_null_cov,
     null_hamiltonian,
@@ -38,7 +39,7 @@ from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
     _hamiltonian_rhs,
 )
 
-REPO = Path("/home/jovyan/nachevsky/test/simulation/GRTeclyn")
+REPO = grteclyn_root()
 RUN = REPO / "runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146"
 OUT = REPO / "research/neuralspacetime/article/data"
 

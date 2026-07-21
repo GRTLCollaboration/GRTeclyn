@@ -262,7 +262,7 @@ Ran a full pipeline episode through the wrapper: GRTresna constrained solve → 
 ### How to run the campaign
 
 ```bash
-cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/grteclyn-wrapper
+cd grteclyn-wrapper
 export PATH="/usr/local/cuda/bin:$PATH"
 
 QD_NAME=gw_beam_v5 \
@@ -284,10 +284,10 @@ bash scripts/campaigns/gw_beam/run_v5.sh
 **Monitoring:**
 ```bash
 # Pipeline monitor
-tail -f /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/_logs/gw_beam_v5.pipeline_monitor.csv
+tail -f runs/_logs/gw_beam_v5.pipeline_monitor.csv
 
 # Campaign log
-tail -f /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/_logs/gw_beam_v5.log
+tail -f runs/_logs/gw_beam_v5.log
 
 # Scored evals
 for d in runs/grtresna_qd/gw_beam_v5/eval_*/; do
@@ -308,8 +308,8 @@ nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader
 **Cleanup:**
 ```bash
 pkill -f "gw_beam_v5"; pkill -f "main3d.*CUDA"; pkill -f "Main_BosonStarBH"
-rm -rf /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/gw_beam_v5/
-rm -f /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/_logs/gw_beam_v5.*
+rm -rf runs/grtresna_qd/gw_beam_v5/
+rm -f runs/_logs/gw_beam_v5.*
 ```
 
 ---

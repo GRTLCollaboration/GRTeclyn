@@ -481,8 +481,8 @@ cxxoptflags        = -march=native -O3 -fpermissive
 #end  -- dont change this line
 ```
 
-> Replace `$CONDA_PREFIX` with the actual path
-> (e.g. `/home/you/.mlspace/envs/grtresna`).
+> Replace `$CONDA_PREFIX` with the path to your GRTresna build env
+> (the same value as ``GRTRESNA_ENV`` in ``.env``).
 
 **6. Patch Chombo for csh/tcsh paths:**
 

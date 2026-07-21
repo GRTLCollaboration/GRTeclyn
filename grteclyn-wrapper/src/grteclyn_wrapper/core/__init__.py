@@ -1,1 +1,1 @@
-"""Pipeline core: config, episodes, params, runner, evaluation."""
+"""Pipeline core: config, episodes, params, runner, evaluation, site paths."""

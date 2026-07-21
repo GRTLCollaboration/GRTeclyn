@@ -6,13 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/env.sh
 source "${SCRIPT_DIR}/../lib/env.sh"
 
-GRTRESNA_ENV="${GRTRESNA_ENV:-${HOME}/.mlspace/envs/grtresna}"
 CHOMBO_HOME="${CHOMBO_HOME:-${GRTECLYN_ROOT}/../Chombo/lib}"
 GRTRESNA_ROOT="${GRTRESNA_ROOT:-${GRTECLYN_ROOT}/../GRTresna}"
 JOBS="${JOBS:-8}"
 
-if [[ ! -d "${GRTRESNA_ENV}/bin" ]]; then
-  echo "GRTresna conda env not found: ${GRTRESNA_ENV}" >&2
+if [[ -z "${GRTRESNA_ENV:-}" ]] || [[ ! -d "${GRTRESNA_ENV}/bin" ]]; then
+  echo "Set GRTRESNA_ENV to a conda/venv with mpirun (see .env.example)." >&2
   exit 1
 fi
 

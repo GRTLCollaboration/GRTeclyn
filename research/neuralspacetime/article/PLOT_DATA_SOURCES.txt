@@ -1,6 +1,6 @@
 Plot / table data provenance — candidate-146 bicomplex CMA-ES HQ
 =================================================================
-Repo root: /home/jovyan/nachevsky/test/simulation/GRTeclyn
+Repo root: $GRTECLYN_ROOT
 Article:   research/neuralspacetime/article/
 Figures:   research/neuralspacetime/figures/
 Analysis:  research/neuralspacetime/analysis/

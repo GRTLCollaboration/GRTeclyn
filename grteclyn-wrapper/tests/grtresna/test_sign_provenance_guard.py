@@ -62,9 +62,14 @@ def _assert_artifact_sign_consistency(episode_dir: Path) -> None:
 
 def test_eval118_artifacts_are_flagged_as_mismatch() -> None:
     """Real corrupted eval-118 directory must fail the provenance guard."""
-    episode = Path(
-        "/home/jovyan/nachevsky/test/simulation/GRTeclyn/"
-        "runs/grtresna_qd/qball_traj_spiral_v2/eval_000118"
+    from grteclyn_wrapper.core.site_paths import grteclyn_root
+
+    episode = (
+        grteclyn_root()
+        / "runs"
+        / "grtresna_qd"
+        / "qball_traj_spiral_v2"
+        / "eval_000118"
     )
     if not episode.is_dir():
         pytest.skip("eval_000118 not present")

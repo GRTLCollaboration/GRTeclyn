@@ -9,7 +9,7 @@ if command -v uv >/dev/null 2>&1 && [[ "${USE_UV:-1}" == "1" ]]; then
   PYTHON_BIN="uv run python"
 fi
 
-OPENMPI_ROOT="${OPENMPI_ROOT:-${GRTECLYN_ROOT}/../local/openmpi-5.0.8}"
+OPENMPI_ROOT="${OPENMPI_ROOT:-${GRTECLYN_ROOT}/../local/openmpi}"
 if [[ -d "${OPENMPI_ROOT}/bin" ]]; then
   export PATH="${OPENMPI_ROOT}/bin:${PATH}"
   export LD_LIBRARY_PATH="${OPENMPI_ROOT}/lib:${LD_LIBRARY_PATH:-}"

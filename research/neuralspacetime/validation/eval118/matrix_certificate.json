@@ -63,7 +63,7 @@
     "Phase-5 E118-GW is unblocked"
   ],
   "artifacts": {
-    "resolution_ladder": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/research/neuralspacetime/validation/eval118/resolution_ladder.json",
-    "domain_ladder": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/research/neuralspacetime/validation/eval118/domain_ladder.json"
+    "resolution_ladder": "research/neuralspacetime/validation/eval118/resolution_ladder.json",
+    "domain_ladder": "research/neuralspacetime/validation/eval118/domain_ladder.json"
   }
 }

@@ -545,7 +545,7 @@ Use two terminals from repo root.
 
 ```bash
 ./grteclyn-wrapper/scripts/plot/plot_run.sh \
-  /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/rotating_wormhole/grtresna_spin_exotic/output
+  runs/rotating_wormhole/grtresna_spin_exotic/output
 ```
 
 `plot_run.sh` watches `RotatingWormholePlt*`, writes frames under `output/frames/`,

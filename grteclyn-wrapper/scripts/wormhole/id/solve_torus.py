@@ -48,12 +48,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-GRTECLYN_ROOT = Path(
-    os.environ.get("GRTECLYN_ROOT", "/home/jovyan/nachevsky/test/simulation/GRTeclyn")
-).resolve()
-GRTRESNA_ROOT = Path(
-    os.environ.get("GRTRESNA_ROOT", str(GRTECLYN_ROOT.parent / "GRTresna"))
-).resolve()
+_WRAPPER_SRC = Path(__file__).resolve().parents[3] / "src"
+if str(_WRAPPER_SRC) not in sys.path:
+    sys.path.insert(0, str(_WRAPPER_SRC))
+from grteclyn_wrapper.core.site_paths import grteclyn_root, grtresna_root
+
+GRTECLYN_ROOT = grteclyn_root()
+GRTRESNA_ROOT = grtresna_root()
 
 BOSONSTAR_DIR = GRTRESNA_ROOT / "Examples" / "BosonStarBH"
 SOLVER_EXE = BOSONSTAR_DIR / "Main_BosonStarBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex"

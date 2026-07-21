@@ -2,7 +2,7 @@
   "run_id": "E118-DL",
   "phase": 4,
   "role": "domain_large",
-  "source_run": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_spiral_v2",
+  "source_run": "runs/grtresna_qd/qball_traj_spiral_v2",
   "eval_id": 118,
   "n_full": 320,
   "l_full": 160.0,
@@ -19,7 +19,7 @@
   "geo_emit_interval": 2.0,
   "geo_max_emissions": 7,
   "gpu_id": "4",
-  "out_dir": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/e118_dl_L160_N320_t30_hq_eval000118",
+  "out_dir": "runs/grtresna_promote/e118_dl_L160_N320_t30_hq_eval000118",
   "git_commit": "8cb26b616dfaca4b1d5317b4cb84692864346111",
   "env": {
     "GRTECLYN_PSI4": "1",

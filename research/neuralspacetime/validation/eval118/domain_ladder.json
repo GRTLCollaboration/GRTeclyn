@@ -1,7 +1,7 @@
 {
   "summaries": {
     "medium": {
-      "path": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/e118_rm_L128_N256_t30_hq_eval000118",
+      "path": "runs/grtresna_promote/e118_rm_L128_N256_t30_hq_eval000118",
       "exists": true,
       "git_commit": "8cb26b616dfaca4b1d5317b4cb84692864346111",
       "simulation_exit_code": 0,
@@ -82,7 +82,7 @@
       "trusted_time_r24": 28.2842712474619
     },
     "large": {
-      "path": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/e118_dl_L160_N320_t30_hq_eval000118",
+      "path": "runs/grtresna_promote/e118_dl_L160_N320_t30_hq_eval000118",
       "exists": true,
       "git_commit": "2886595591839c8ca3bd984c11a6613a4621210c",
       "simulation_exit_code": 0,
@@ -163,7 +163,7 @@
       "trusted_time_r24": 39.59797974644666
     },
     "small": {
-      "path": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/e118_ds_L96_N192_t30_hq_eval000118",
+      "path": "runs/grtresna_promote/e118_ds_L96_N192_t30_hq_eval000118",
       "exists": true,
       "git_commit": "8cb26b616dfaca4b1d5317b4cb84692864346111",
       "simulation_exit_code": 0,

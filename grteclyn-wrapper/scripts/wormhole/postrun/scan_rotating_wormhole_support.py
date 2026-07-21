@@ -11,10 +11,13 @@ import sys
 from pathlib import Path
 
 WRAPPER_ROOT = Path(__file__).resolve().parents[3]
-SIM_ROOT = WRAPPER_ROOT.parent.parent
-LOCAL_OPENMPI = SIM_ROOT / "local" / "openmpi-5.0.8"
-GRTRESNA_ENV = Path("/home/jovyan/.mlspace/envs/grtresna")
 sys.path.insert(0, str(WRAPPER_ROOT / "src"))
+from grteclyn_wrapper.core.site_paths import grtresna_env, openmpi_root, sim_root
+
+SIM_ROOT = sim_root()
+LOCAL_OPENMPI = openmpi_root()
+_GRTRESNA_ENV = grtresna_env()
+GRTRESNA_ENV = _GRTRESNA_ENV if _GRTRESNA_ENV is not None else Path()
 
 
 def _parse_float_list(raw: str) -> list[float]:

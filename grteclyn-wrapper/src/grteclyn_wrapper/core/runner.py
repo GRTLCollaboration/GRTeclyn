@@ -65,16 +65,18 @@ def build_command(
 
 
 def _merged_env(cuda_devices: str | None = None, extra_env: Mapping[str, str] | None = None) -> dict[str, str]:
+    from .site_paths import grtresna_env_bin, grtresna_env_lib, openmpi_root
+
     env = dict(os.environ)
-    sim_root = REPO_ROOT.parent
-    mpi_bin_dirs = [
-        sim_root / "local" / "openmpi-5.0.8" / "bin",
-        Path("/home/jovyan/.mlspace/envs/grtresna/bin"),
-    ]
-    mpi_lib_dirs = [
-        sim_root / "local" / "openmpi-5.0.8" / "lib",
-        Path("/home/jovyan/.mlspace/envs/grtresna/lib"),
-    ]
+    mpi_root = openmpi_root()
+    mpi_bin_dirs = [mpi_root / "bin"]
+    mpi_lib_dirs = [mpi_root / "lib"]
+    env_bin = grtresna_env_bin()
+    env_lib = grtresna_env_lib()
+    if env_bin is not None:
+        mpi_bin_dirs.append(env_bin)
+    if env_lib is not None:
+        mpi_lib_dirs.append(env_lib)
     existing_path = env.get("PATH", "")
     existing_ld = env.get("LD_LIBRARY_PATH", "")
     env["PATH"] = os.pathsep.join(

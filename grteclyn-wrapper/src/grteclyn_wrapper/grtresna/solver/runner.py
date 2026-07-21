@@ -22,24 +22,18 @@ logger = logging.getLogger(__name__)
 
 
 def _candidate_env_prefixes() -> list[Path]:
-    name = os.environ.get("GRTRESNA_ENV_NAME", "grtresna")
+    """Prefixes that may contain ``bin/mpirun`` for GRTresna.
+
+    Host-specific env roots are not guessed — set ``GRTRESNA_ENV`` in ``.env``.
+    """
+
     prefixes: list[Path] = []
     explicit = os.environ.get("GRTRESNA_ENV")
     if explicit:
-        prefixes.append(Path(explicit))
+        prefixes.append(Path(explicit).expanduser())
     conda_prefix = os.environ.get("CONDA_PREFIX")
     if conda_prefix:
         prefixes.append(Path(conda_prefix))
-    home = Path.home()
-    for root in (
-        home / ".mlspace" / "envs",
-        home / "micromamba" / "envs",
-        home / "miniconda3" / "envs",
-        home / "miniforge3" / "envs",
-        home / "anaconda3" / "envs",
-        Path("/opt/conda/envs"),
-    ):
-        prefixes.append(root / name)
     return prefixes
 
 

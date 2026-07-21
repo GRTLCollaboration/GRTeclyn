@@ -11,7 +11,10 @@ WH_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/env.sh
 source "${WH_DIR}/../../lib/env.sh"
 
-GRTRESNA_ENV="${GRTRESNA_ENV:-$HOME/.mlspace/envs/grtresna}"
+if [[ -z "${GRTRESNA_ENV:-}" ]] || [[ ! -d "${GRTRESNA_ENV}/bin" ]]; then
+  echo "Set GRTRESNA_ENV (see .env.example) before running solve_torus.sh." >&2
+  exit 2
+fi
 export MPIRUN="${MPIRUN:-${GRTRESNA_ENV}/bin/mpirun}"
 export PATH="${GRTRESNA_ENV}/bin:${PATH}"
 export LD_LIBRARY_PATH="${GRTRESNA_ENV}/lib:${LD_LIBRARY_PATH:-}"

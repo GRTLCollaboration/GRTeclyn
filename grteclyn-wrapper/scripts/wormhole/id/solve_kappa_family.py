@@ -27,19 +27,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+_WRAPPER_SRC = Path(__file__).resolve().parents[3] / "src"
+if str(_WRAPPER_SRC) not in sys.path:
+    sys.path.insert(0, str(_WRAPPER_SRC))
+from grteclyn_wrapper.core.site_paths import grteclyn_root, grtresna_root
+
 # --- Paths -------------------------------------------------------------------
-GRTECLYN_ROOT = Path(
-    os.environ.get(
-        "GRTECLYN_ROOT",
-        "/home/jovyan/nachevsky/test/simulation/GRTeclyn",
-    )
-).resolve()
-GRTRESNA_ROOT = Path(
-    os.environ.get(
-        "GRTRESNA_ROOT",
-        str(GRTECLYN_ROOT.parent / "GRTresna"),
-    )
-).resolve()
+GRTECLYN_ROOT = grteclyn_root()
+GRTRESNA_ROOT = grtresna_root()
 
 BOSONSTAR_DIR = GRTRESNA_ROOT / "Examples" / "BosonStarBH"
 BASE_PARAMS = BOSONSTAR_DIR / "params_rotating_wormhole_test.txt"

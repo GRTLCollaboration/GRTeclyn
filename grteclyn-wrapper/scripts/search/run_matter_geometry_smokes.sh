@@ -5,9 +5,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../lib/env.sh"
 
-GRTRESNA_ENV="${GRTRESNA_ENV:-/home/jovyan/.mlspace/envs/grtresna}"
-CHOMBO_HOME="${CHOMBO_HOME:-${GRTECLYN_ROOT}/../Chombo/lib}"
-GRTRESNA_ROOT="${GRTRESNA_ROOT:-${GRTECLYN_ROOT}/../GRTresna}"
+# GRTRESNA_ENV / CHOMBO_HOME / GRTRESNA_ROOT come from scripts/lib/env.sh
+CHOMBO_HOME="${CHOMBO_HOME:?CHOMBO_HOME unset}"
+GRTRESNA_ROOT="${GRTRESNA_ROOT:?GRTRESNA_ROOT unset}"
 SCALAR_BH="${GRTRESNA_ROOT}/Examples/ScalarFieldBH"
 EXE="${SCALAR_BH}/Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex"
 SMOKE_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/matter_geometry_smokes}/smoke_$(date +%Y%m%dT%H%M%SZ)"

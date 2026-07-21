@@ -6,3 +6,5 @@ dist/
 build/
 *.egg-info/
 runs/
+.env
+site.local.env

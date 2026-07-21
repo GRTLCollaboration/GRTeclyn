@@ -911,8 +911,8 @@ Modes: `weighted` (plain sum) and `ftl_first` (validated FTL dominates).
 ### One env to set first (every shell)
 
 ```bash
-export GRTRESNA_ENV=/home/jovyan/.mlspace/envs/grtresna
-export SIM_ROOT=/home/jovyan/nachevsky/test/simulation
+export GRTRESNA_ENV=$GRTRESNA_ENV
+export SIM_ROOT=$SIM_ROOT
 export CHOMBO_HOME="${SIM_ROOT}/Chombo/lib"
 export CONDA_PREFIX="${GRTRESNA_ENV}"
 export PATH="${GRTRESNA_ENV}/bin:${PATH}"

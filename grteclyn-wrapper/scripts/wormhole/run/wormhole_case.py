@@ -44,20 +44,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-GRTECLYN_ROOT = Path(
-    os.environ.get("GRTECLYN_ROOT", "/home/jovyan/nachevsky/test/simulation/GRTeclyn")
-).resolve()
+WRAPPER_SRC = Path(__file__).resolve().parents[3] / "src"
+if str(WRAPPER_SRC) not in sys.path:
+    sys.path.insert(0, str(WRAPPER_SRC))
+from grteclyn_wrapper.core.site_paths import grteclyn_root, openmpi_root
+
+GRTECLYN_ROOT = grteclyn_root()
 EXAMPLE_DIR = GRTECLYN_ROOT / "Examples" / "RotatingWormholeCollapse"
 ID_ROOT = GRTECLYN_ROOT / "runs" / "rotating_wormhole_id"
 RUN_ROOT = GRTECLYN_ROOT / "runs" / "rotating_wormhole"
 BIN = EXAMPLE_DIR / "main3d.gnu.MPI.CUDA.ex"
-WRAPPER_SRC = Path(__file__).resolve().parents[3] / "src"
-OPENMPI_ROOT = Path(
-    os.environ.get(
-        "OPENMPI_ROOT",
-        str(GRTECLYN_ROOT.parent / "local" / "openmpi-5.0.8"),
-    )
-).resolve()
+OPENMPI_ROOT = openmpi_root()
 
 
 def resolve_mpirun() -> Path:

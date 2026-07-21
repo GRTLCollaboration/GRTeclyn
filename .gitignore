@@ -71,3 +71,12 @@ __pycache__/
 # /research/rotatingwormhole/article/figures
 
 
+
+# LaTeX build junk
+*.fdb_latexmk
+*.fls
+
+# Optional local ZeroMQ (RL) — rebuild with Tools/install_zmq.sh; do not commit
+/local/zeromq/
+/local/build/zeromq-*/
+/local/build/zeromq-*.tar.gz

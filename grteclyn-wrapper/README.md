@@ -11,7 +11,8 @@ matter/geometry configurations for FTL shortcuts, gravitational-wave beaming,
 spacetime shear, and critical collapse.
 
 All commands run from **`grteclyn-wrapper/`**. Binaries must be built first —
-see [Operations](#operations).
+see [Operations](#operations). Site layout (sibling repos, OpenMPI, GRTresna
+env) is configured with a gitignored [`.env`](#site-paths-env) — see below.
 
 > **Roadmap:** critical review of the results' validity and the prioritized
 > implementation plan (probe calibration, gauge-honest baseline, ANEC/QI,
@@ -102,6 +103,9 @@ cd /path/to/GRTeclyn
 uv sync   # Python deps including yt, h5py>=3.10 for the Chombo→gridinit bridge
 ```
 
+Then configure site paths (required for GRTresna builds / solves) — see
+[Site paths (`.env`)](#site-paths-env).
+
 First build (single GPU, no MPI):
 
 ```bash
@@ -109,6 +113,54 @@ BUILD=1 bash grteclyn-wrapper/scripts/radial/run_radialrecipe_gpu_smoke.sh
 ```
 
 Binaries (GRTresna MPI solver + GRTeclyn GPU binary) — see [Operations](#operations).
+
+### Site paths (`.env`)
+
+Machine-specific paths stay out of git. Copy the template, edit values, and
+either source `scripts/lib/env.sh` (shell campaigns) or rely on automatic load
+from Python (`grteclyn_wrapper.core.site_paths`).
+
+```bash
+cd grteclyn-wrapper
+cp .env.example .env
+# edit .env — set at least SIM_ROOT and GRTRESNA_ENV
+source scripts/lib/env.sh   # exports vars for this shell + campaign scripts
+```
+
+| Variable | Meaning | Example shape |
+|----------|---------|---------------|
+| `SIM_ROOT` | Parent of GRTeclyn / GRTresna / Chombo | `/path/to/simulation` |
+| `GRTECLYN_ROOT` | This checkout | `${SIM_ROOT}/GRTeclyn` |
+| `GRTRESNA_ROOT` | Sibling elliptic solver | `${SIM_ROOT}/GRTresna` |
+| `CHOMBO_HOME` | Chombo `lib` dir | `${SIM_ROOT}/Chombo/lib` |
+| `OPENMPI_ROOT` | Local OpenMPI prefix (multi-GPU) | `${SIM_ROOT}/local/openmpi` |
+| `GRTRESNA_ENV` | Conda/venv with `mpirun` for GRTresna | `/path/to/envs/grtresna` |
+
+Rules:
+
+- **`.env` is gitignored** — never commit it. Commit only [`.env.example`](.env.example).
+- Already-exported shell variables win over `.env` (safe to override per run).
+- `${VAR}` expansion is supported inside `.env` (e.g. `GRTECLYN_ROOT=${SIM_ROOT}/GRTeclyn`).
+- Shell scripts that `source scripts/lib/env.sh` pick up the same keys.
+- Python resolves the same layout via `site_paths` (loads `.env` on first use).
+- If `.env` is missing, `GRTECLYN_ROOT` is auto-detected from the wrapper layout;
+  `GRTRESNA_ENV` is **not** guessed — set it in `.env` for GRTresna MPI work.
+
+Quick check:
+
+```bash
+cd grteclyn-wrapper
+source scripts/lib/env.sh
+echo "GRTECLYN_ROOT=$GRTECLYN_ROOT"
+echo "GRTRESNA_ROOT=$GRTRESNA_ROOT"
+echo "GRTRESNA_ENV=${GRTRESNA_ENV:-unset}"
+
+uv run python -c "
+from grteclyn_wrapper.core.site_paths import grteclyn_root, grtresna_env
+print(grteclyn_root())
+print(grtresna_env())
+"
+```
 
 ### Stage 0 — MAP-Elites (QD)
 
@@ -1066,12 +1118,12 @@ high-res instability remains open. Source:
 ### Build GRTresna
 
 Production searches use MPI `mpicxx.gfortran` (`RANKS=8` default). Needs
-`CHOMBO_HOME` and the `grtresna` env on `PATH`.
+`CHOMBO_HOME` and `GRTRESNA_ENV` on `PATH` — configure them in
+[`.env`](#site-paths-env) first, then:
 
 ```bash
-GRTRESNA_ENV=/home/jovyan/.mlspace/envs/grtresna
-CHOMBO_HOME=/home/jovyan/nachevsky/test/simulation/Chombo/lib
-cd /home/jovyan/nachevsky/test/simulation/GRTresna/Examples/ScalarFieldBH
+cd grteclyn-wrapper && source scripts/lib/env.sh
+cd "${GRTRESNA_ROOT}/Examples/ScalarFieldBH"
 PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
   make all -j4 CHOMBO_HOME="${CHOMBO_HOME}" MPI=TRUE
 ```
@@ -1087,7 +1139,7 @@ RadialRecipe supports **both** single-GPU and multi-GPU (MPI+CUDA). Build
 #### Single-GPU RadialRecipe (default search / HQ)
 
 ```bash
-cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe
+cd Examples/RadialRecipe
 PATH="/usr/local/cuda/bin:$PATH" NO_MPI_CHECKING=TRUE \
   make USE_MPI=FALSE USE_CUDA=TRUE -j$(nproc)
 ```
@@ -1106,10 +1158,10 @@ For Arena-OOM cases (large base grids, e.g. N=320/L=160 or N=384/L=128 with
 `max_level=3`), build the MPI binary the same way as RotatingWormholeCollapse:
 
 ```bash
-cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe
+cd Examples/RadialRecipe
 
-export PATH="/usr/local/cuda/bin:/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/bin:$PATH"
-export LD_LIBRARY_PATH="/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/lib:${LD_LIBRARY_PATH:-}"
+export PATH="/usr/local/cuda/bin:$OPENMPI_ROOT/bin:$PATH"
+export LD_LIBRARY_PATH="$OPENMPI_ROOT/lib:${LD_LIBRARY_PATH:-}"
 
 # USE_PARTICLES=TRUE is required so Weyl/ParticleInterpolator headers resolve.
 make -j8 USE_CUDA=TRUE USE_MPI=TRUE COMP=gnu CUDA_ARCH=90
@@ -1160,13 +1212,13 @@ below). The recurring pain here is that `make` fails immediately unless
 exact, copy-pasteable recipe:
 
 ```bash
-cd /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RotatingWormholeCollapse
+cd Examples/RotatingWormholeCollapse
 
 # nvcc (CUDA 12.x) + local OpenMPI must both be on PATH; OpenMPI libs on
 # LD_LIBRARY_PATH. Use the SYSTEM g++ (11.4, nvcc-compatible) -- do NOT source
 # the grtresna conda env (its g++ 15 fails nvcc's gcc<=12 check).
-export PATH="/usr/local/cuda/bin:/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/bin:$PATH"
-export LD_LIBRARY_PATH="/home/jovyan/nachevsky/test/simulation/local/openmpi-5.0.8/lib:${LD_LIBRARY_PATH:-}"
+export PATH="/usr/local/cuda/bin:$OPENMPI_ROOT/bin:$PATH"
+export LD_LIBRARY_PATH="$OPENMPI_ROOT/lib:${LD_LIBRARY_PATH:-}"
 
 make -j8 USE_CUDA=TRUE USE_MPI=TRUE COMP=gnu CUDA_ARCH=90
 ```
@@ -1180,9 +1232,9 @@ The same recipe rebuilds any Example — just `cd` into its dir. After editing
 | Build error | Cause | Fix |
 |-------------|-------|-----|
 | `/bin/sh: 1: nvcc: not found` | CUDA not on `PATH` | prepend `/usr/local/cuda/bin` (see `export` above) |
-| `*** Unknown mpi wrapper. ... Stop.` | `mpicxx` not on `PATH` | prepend the local `openmpi-5.0.8/bin` |
-| `nvcc fatal: unsupported gnu version` / g++ ≥ 13 errors | grtresna conda env's `g++ 15` shadowing system gcc | run in a shell where the grtresna env is **not** on `PATH` |
-| runtime `libmpi.so not found` | OpenMPI libs missing at run | binary is linked with an rpath to `openmpi-5.0.8/lib`, so normal runs work; if relocated, set `LD_LIBRARY_PATH` as above |
+| `*** Unknown mpi wrapper. ... Stop.` | `mpicxx` not on `PATH` | prepend `$OPENMPI_ROOT/bin` (from `.env`) |
+| `nvcc fatal: unsupported gnu version` / g++ ≥ 13 errors | GRTresna conda env's `g++` too new for nvcc | run in a shell where that env is **not** on `PATH` |
+| runtime `libmpi.so not found` | OpenMPI libs missing at run | set `LD_LIBRARY_PATH=$OPENMPI_ROOT/lib` (from `.env`) |
 
 Verify: a fresh `main3d.gnu.MPI.CUDA.ex` (~130 MB) appears in the Example dir.
 
@@ -1223,7 +1275,7 @@ campaign so plotfile delete sidecars stay attached.
 ### Solver-only AMR smoke tests
 
 ```bash
-cd /home/jovyan/nachevsky/test/simulation/GRTresna/Examples/ScalarFieldBH
+cd $GRTRESNA_ROOT/Examples/ScalarFieldBH
 EXE=Main_ScalarFieldBH3d.Linux.64.mpicxx.gfortran.OPTHIGH.MPI.ex
 for case in canonical exotic mixed_exotic; do
   PATH="${GRTRESNA_ENV}/bin:${PATH}" CONDA_PREFIX="${GRTRESNA_ENV}" \
@@ -1368,11 +1420,11 @@ on this machine with **tectonic**:
 
 ```bash
 cd ../research/neuralspacetime/article
-/home/jovyan/.local/bin/tectonic --keep-logs research.tex
+tectonic --keep-logs research.tex
 # → research.pdf
 ```
 
-If `/home/jovyan/.local/bin/tectonic` is missing, install the **prebuilt static
+If `tectonic` is missing, install the **prebuilt static
 binary** (no system libraries, no root needed). Do *not* use `cargo install
 tectonic` here — it needs `pkg-config` + libpng/freetype/harfbuzz/icu, which are
 not installed on this box:
@@ -1395,6 +1447,7 @@ campaign journal: [`../research/neuralspacetime/MapElitesDynamics.md`](../resear
 
 | Doc | Content |
 |-----|---------|
+| [`.env.example`](.env.example) | Site-path template (`SIM_ROOT`, `GRTRESNA_ENV`, …) — copy to gitignored `.env` |
 | [`scripts/campaigns/README.md`](scripts/campaigns/README.md) | Three-stage pipeline detail, env-var reference |
 | [`src/grteclyn_wrapper/grtresna/README.md`](src/grteclyn_wrapper/grtresna/README.md) | GRTresna bridge deep docs |
 | [`src/grteclyn_wrapper/gw_search/README.md`](src/grteclyn_wrapper/gw_search/README.md) | LIGO matched-filter methodology |
@@ -1403,5 +1456,5 @@ campaign journal: [`../research/neuralspacetime/MapElitesDynamics.md`](../resear
 | [`../research/neuralspacetime/article/research.tex`](../research/neuralspacetime/article/research.tex) | Manuscript source (compile with tectonic above) |
 | [`../research/neuralspacetime/MapElitesDynamics.md`](../research/neuralspacetime/MapElitesDynamics.md) | FTL trajectory campaign lab journal |
 | [`../research/rotatingwormhole/OrbitalPumpPlan.md`](../research/rotatingwormhole/OrbitalPumpPlan.md) | Rotating wormhole: Q-torus eigenstate support, collapse trigger |
-| [`../research/grlab/LabJournal.md`](../research/grlab/LabJournal.md) | GW beam + splash lab journal |
-| [`../research/RL/LabJournal.md`](../research/RL/LabJournal.md) | RL chassis handoff |
+| [`../research/grlab/LabJournal.md`](../research/grlab/LabJournal.md) | GW beam + splash lab journal || [`../research/RL/LabJournal.md`](../research/RL/LabJournal.md) | RL chassis handoff |
+
