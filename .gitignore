@@ -80,3 +80,8 @@ __pycache__/
 /local/zeromq/
 /local/build/zeromq-*/
 /local/build/zeromq-*.tar.gz
+
+# Publishable light extracts under results/ (global *.dat would otherwise drop them)
+!/results/
+!/results/**
+!results/**/*.dat

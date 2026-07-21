@@ -1,0 +1,44 @@
+{
+  "f_geo_evol": {
+    "eval": 99,
+    "value": 0.34557163904580224,
+    "episode": "runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000099",
+    "score": 313.97801012710374,
+    "t_at_peak": null
+  },
+  "ftl_geo_evolving": {
+    "eval": 87,
+    "value": 0.3961373629594348,
+    "episode": "runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000087",
+    "score": 825.1942031430688,
+    "t_at_peak": null
+  },
+  "f_op_peak": {
+    "eval": 70,
+    "value": 0.3503028509306011,
+    "episode": "runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000070",
+    "score": 729.1267915038605,
+    "t_at_peak": 12.7999999999998
+  },
+  "max_local_speed": {
+    "eval": 58,
+    "value": 2.123771002218792,
+    "episode": "runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000058",
+    "score": 575.8363437694996,
+    "t_at_peak": 12.7999999999998
+  },
+  "superluminal_fraction": {
+    "eval": 2,
+    "value": 1.0,
+    "episode": "runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000002",
+    "score": 298.9264088663266,
+    "t_at_peak": 12.7999999999998
+  },
+  "ftl_lifetime_fraction": {
+    "eval": 2,
+    "value": 1.0,
+    "episode": "runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000002",
+    "score": 298.9264088663266,
+    "t_at_peak": null
+  }
+}

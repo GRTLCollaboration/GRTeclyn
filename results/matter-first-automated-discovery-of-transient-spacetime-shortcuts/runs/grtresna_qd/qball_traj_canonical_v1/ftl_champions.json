@@ -1,0 +1,16 @@
+{
+  "max_local_speed": {
+    "eval": 7,
+    "value": 1.435129960968991,
+    "episode": "runs/grtresna_qd/qball_traj_canonical_v1/eval_000007",
+    "score": -31.18298176882837,
+    "t_at_peak": 16.0099999999997
+  },
+  "superluminal_fraction": {
+    "eval": 7,
+    "value": 0.0745031352959932,
+    "episode": "runs/grtresna_qd/qball_traj_canonical_v1/eval_000007",
+    "score": -31.18298176882837,
+    "t_at_peak": 16.0099999999997
+  }
+}

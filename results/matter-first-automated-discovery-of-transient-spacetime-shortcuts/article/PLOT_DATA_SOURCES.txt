@@ -1,0 +1,269 @@
+Plot / table data provenance — candidate-146 bicomplex CMA-ES HQ
+=================================================================
+Repo root: $GRTECLYN_ROOT
+Article:   research/neuralspacetime/article/
+Figures:   research/neuralspacetime/figures/
+Analysis:  research/neuralspacetime/analysis/
+
+All article PGFPlots tables under article/data/ are reduced extracts.
+Paths below are the authoritative run artifacts they were built from.
+
+
+1) Search progress plots
+------------------------
+
+fig:qd_progress  (research.tex)
+  Article table:
+    data/campaign_progress.txt
+      columns: batch, best, coverage
+  Source run:
+    runs/grtresna_qd/qball_traj_bicomplex_v1/trajectory.jsonl
+  Derived metric:
+    per-batch running best score + archive coverage
+  Key numbers:
+    ME champion score 825.19 → eval_000087 in that campaign
+
+
+fig:cmaes_progress  (research.tex)
+  Article table:
+    data/cmaes_progress.txt
+      columns: eval, best
+  Source run:
+    runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/trajectory.jsonl
+  Derived metric:
+    running-best score vs evaluation index (0..149)
+  Key numbers:
+    CMA champion score 852.15 → eval_000146
+  ME baseline dashed line in figure uses 825.194 from ME handoff
+
+
+2) HQ geodesic / Richardson / constraint plots
+----------------------------------------------
+
+fig:fgeo_validation  (research.tex)
+  Article table:
+    data/fgeo_sweeps.txt
+      columns: t, RC, RM, RF
+      values: 100 * f_geo from emit_sweep (percent)
+  Source runs / fields:
+    RC: runs/grtresna_promote/bcma_rc_L128_N192_t30_hq_eval000146/small_data/evolving_geodesic.json
+        → emit_sweep  (and peak f_geo / f_geo_frozen_peak)
+    RM: runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/small_data/evolving_geodesic.json
+        → emit_sweep  (headline HQ numbers)
+    RF: runs/grtresna_promote/bcma_rf_L128_N384_t30_hq_eval000146/small_data/evolving_geodesic.json
+        → emit_sweep
+  Companion score summaries (same runs):
+    .../score.json
+
+
+fig:constraints  (research.tex)
+  Article table:
+    data/constraints_rm.txt
+      columns: t, ham, mom  (decimated)
+  Source:
+    runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/data/constraint_norms.dat
+
+
+fig:constraint_convergence  (research.tex)
+  Article table:
+    data/constraints_resolution.txt
+      columns: t, ham_RC, ham_RM, ham_RF, mom_RC, mom_RM, mom_RF
+  Companion order table (median p_H≈3.3, p_M≈2.8 in ignition window):
+    data/constraint_order.txt
+      columns: t, p_ham, p_mom
+  Generator:
+    research/neuralspacetime/analysis/constraint_convergence.py
+  Source runs:
+    RC: runs/grtresna_promote/bcma_rc_L128_N192_t30_hq_eval000146/data/constraint_norms.dat
+    RM: runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/data/constraint_norms.dat
+    RF: runs/grtresna_promote/bcma_rf_L128_N384_t30_hq_eval000146/data/constraint_norms.dat
+
+
+3) Matter / lump trajectory figure
+----------------------------------
+
+fig:lump_dynamics  (research.tex)
+  Image file:
+    research/neuralspacetime/figures/fig_eval146_lump_trajectories.png
+  Genome / matter source (frozen champion):
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146/initial_data.matter.json
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146/metadata.json
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146/score.json
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/CHAMPION.json
+  Original CMA eval (pre-freeze):
+    runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/eval_000146/
+
+fig:rf_field_maps  (research.tex; evolving field maps, finest run RF N=384)
+  Image files (copied verbatim from RF frame series):
+    figures/fig_rf_rho_{t0,t4,t16,t30}.png    <- frames/rho_req_z/frames/frame_z_{0000,0612,2412,4500}.png
+    figures/fig_rf_shift_{t0,t4,t16,t30}.png   <- frames/shift1_z/frames/frame_z_{0000,0612,2412,4500}.png
+  Source run frames:
+    runs/grtresna_promote/bcma_rf_L128_N384_t30_hq_eval000146/frames/{rho_req_z,shift1_z}/frames/
+  Frame->time map: t = step/4500 * 30  (step 0000->t0, 0612->t~4.08, 2412->t~16.08, 4500->t30)
+
+fig:lump_topdown  (research.tex; unscaled x-y projection at grid scale)
+  Inline TikZ coordinates taken directly from "lump_centers" in:
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146/initial_data.matter.json
+  Signs from "scalar_field_signs" = [1,-1,-1,1,-1]
+  (canonical: lumps 0,3 ; phantom: lumps 1,2,4)
+
+
+4) Tables / in-text HQ numbers (not plotted, but same runs)
+-----------------------------------------------------------
+
+tab:search_handoff / tab:matrix / 4D certificate text
+  ME-87:
+    runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000087/
+    (score from trajectory / archive; S=825.19)
+  CMA-146 freeze pointer:
+    runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/CHAMPION.json
+  HQ-RM headline (f_geo=0.20211 → 20.21%, frozen peak ≈29.45%,
+                  h_rel_max≈2.19e-3, t_emit=4, 5/5 rays):
+    runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/small_data/evolving_geodesic.json
+  Confinement timeseries (72% → ~11% narrative):
+    runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/small_data/confinement.dat
+  RC / RF matrix companions:
+    runs/grtresna_promote/bcma_rc_L128_N192_t30_hq_eval000146/small_data/evolving_geodesic.json
+    runs/grtresna_promote/bcma_rf_L128_N384_t30_hq_eval000146/small_data/evolving_geodesic.json
+    (+ each run's small_data/confinement.dat and data/constraint_norms.dat)
+
+  Domain ladder (tab:matrix DS/DL rows; matched h=0.500):
+    DS: runs/grtresna_promote/bcma_ds_L96_N192_t30_hq_eval000146/
+        evolving f_geo=20.19%, frozen peak=29.21%, S=125.9
+    DL: runs/grtresna_promote/bcma_dl_L160_N320_t30_hq_eval000146/
+        evolving f_geo=20.22%, frozen peak=29.44%, S=126.6
+    (each: small_data/evolving_geodesic.json, score.json,
+           small_data/confinement.dat, data/constraint_norms.dat)
+
+  tab:pump_compare / sec:pump_free (pump-on vs pump-free twin):
+    Manifest (pump-free):
+      grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest_pumpfree.json
+    RM:  runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/
+         small_data/evolving_geodesic.json, small_data/confinement.dat,
+         score.json, data/collapse_diagnostics.dat
+         evolving f_geo=20.21%, t_emit=4, S=126.3, confined 72%→11%
+    PF:  runs/grtresna_promote/bcma_pfrm_L128_N256_t30_hq_eval000146/
+         (same artifacts; rl_pump_stop_time=0 in params.txt)
+         evolving f_geo=20.46%, t_emit=12, S=47.0, confined 72%→2%
+    Pump-work table:
+      data/pump_work_budget.txt
+        ← research/neuralspacetime/analysis/pump_work_budget.py
+           (RM E_pump≈1.6e-17; PF E_pump=0)
+
+
+5) Canonical-only (positive-energy) MAP-Elites bound
+----------------------------------------------------
+
+sec:canonical_bound  (research.tex; no article/data/*.txt table)
+  Campaign dir:
+    runs/grtresna_qd/qball_traj_canonical_v1/
+  Key artifacts:
+    trajectory.jsonl          (200 evals: 105 gpu_ok, 95 postload_rejected)
+    archive.json
+    ftl_champions.json
+    metadata.json
+    eval_000130/              (archive champion; S≈47.44, f_geo_evol=0)
+  Setup notes:
+    same bicomplex trajectory genome as qball_traj_bicomplex_v1, but
+    trajectory_lump{k}_exotic=0 for k=0..4 (all-canonical / +ρ sources);
+    trajectory_retrograde_only=1; search grid L=64 N=128 t_stop=16
+  Bound reported in paper:
+    max evolving f_geo = 0 over N_ok=105 GPU-accepted evaluations
+
+
+5b) Referee-response diagnostics (endpoint gauge + null-constraint accuracy)
+---------------------------------------------------------------------------
+
+fig:null_constraint  (research.tex)
+  Article table:
+    data/null_constraint_ray.txt        (x, kk_over_kt2; 60-pt decimated)
+  Full trace:
+    data/null_constraint_ray_rm.txt     (s, x_pos, t, kk_over_kt2, abs_H)
+  Key numbers:
+    max k_mu k^mu/(k^t)^2 = 4.08e-3, median = 2.97e-4 (gate = 1e-2)
+
+tab:endpoint_gauge  (research.tex; sec:endpoint_gauge)
+  Article table:
+    data/endpoint_gauge_rm.txt
+      columns: t alpha_A beta_x_A beta_mag_A alpha_B beta_x_B beta_mag_B
+  Key numbers:
+    A=(56.8,64,64), B=(71.2,64,64); at t_emit=4 alpha_A=0.96, alpha_B=0.99
+    proper-time advantage f_geo^tau = 19.5% vs coord 20.2%
+    (tau_curved=12.61, tau_flat=15.66)
+
+  Corridor proper-length numbers (sec:endpoint_gauge text; no table):
+    integral of sqrt(gamma_xx) over x in [56.8, 71.2] at y=z=64,
+    from the RM metric stack npz files ('g' field, g[...,1,1]):
+      t=0.00  -> 13.853
+      t=4.32  -> 13.603   (stored slice nearest headline launch)
+      flight window t in [3.6, 15.6] -> min 13.079, max 13.667
+    conservative proper-length-referenced advantage:
+      (13.079 - 11.49)/13.079 = 12.2%
+
+  Post-load gate values quoted in sec:selfconsistent (candidate 146):
+    runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/eval_000146/metadata.json
+      postload_gate: max_hamiltonian_l2 = 5.87e-3, max_momentum_l2 = 1.08e-4
+    gate thresholds (absolute L2, both): 1e-2
+      grteclyn-wrapper/src/grteclyn_wrapper/projection/postload_gate.py
+      scripts/campaigns/lib/search_common.sh (POSTLOAD_MAX_{HAM,MOM}_L2)
+
+  Generator (both tables + proper-time correction):
+    research/neuralspacetime/analysis/endpoint_gauge_and_null_constraint.py
+      run: cd grteclyn-wrapper; PYTHONPATH=src python \
+           ../research/neuralspacetime/analysis/endpoint_gauge_and_null_constraint.py
+  Source:
+    runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/small_data/metric_stack/*.npz
+
+
+6) Casimir bound table
+----------------------
+
+sec:casimir_bounds  (research.tex)
+  Article table:
+    data/casimir_bounds.txt
+  Generator:
+    research/neuralspacetime/casimir_null_timing_bounds.py
+
+
+7) TikZ-only figures (no external numeric tables)
+-------------------------------------------------
+
+fig:matter_first, fig:genome, fig:campaign-stages, fig:pipeline,
+fig:shortcut_cartoon
+  Drawn in research.tex (no article/data/*.txt inputs).
+
+
+8) Stale article/data files (NOT used by current research.tex)
+--------------------------------------------------------------
+
+  data/peak_metric_profiles.txt   — removed GW / peak-fit section
+  data/peak_metric_fit.json       — removed GW / peak-fit section
+  data/psi4_rm.txt                — removed Psi4 section
+
+Stale figures still on disk (not included in research.tex):
+  research/neuralspacetime/figures/fig_eval118_lump_trajectories.png
+  research/neuralspacetime/figures/fig_eval118_peak_metric_fit.png
+
+
+Promote-run directory map (candidate 146)
+-----------------------------------------
+  RC   bcma_rc_L128_N192_t30_hq_eval000146     L=128 N=192 h=0.667
+  RM   bcma_rm_L128_N256_t30_hq_eval000146     L=128 N=256 h=0.500  (headline)
+  RF   bcma_rf_L128_N384_t30_hq_eval000146     L=128 N=384 h=0.333
+  DS   bcma_ds_L96_N192_t30_hq_eval000146      L=96  N=192 h=0.500
+  DL   bcma_dl_L160_N320_t30_hq_eval000146     L=160 N=320 h=0.500
+  PF   bcma_pfrm_L128_N256_t30_hq_eval000146   L=128 N=256 h=0.500  (t_pump=0)
+  All under: runs/grtresna_promote/
+
+
+Quick regeneration map
+----------------------
+  campaign_progress.txt       ← ME trajectory.jsonl (bicomplex)
+  cmaes_progress.txt          ← CMA trajectory.jsonl
+  fgeo_sweeps.txt             ← RC/RM/RF evolving_geodesic.json emit_sweep (*100)
+  constraints_rm.txt          ← RM data/constraint_norms.dat (decimated)
+  constraints_resolution.txt  ← constraint_convergence.py ← RC/RM/RF constraint_norms.dat
+  constraint_order.txt        ← same script (observed Richardson order)
+  pump_work_budget.txt        ← pump_work_budget.py ← RM/PF collapse_diagnostics.dat
+  casimir_bounds.txt          ← casimir_null_timing_bounds.py
+  fig_eval146_*.png           ← frozen eval_000146 initial_data.matter.json genome

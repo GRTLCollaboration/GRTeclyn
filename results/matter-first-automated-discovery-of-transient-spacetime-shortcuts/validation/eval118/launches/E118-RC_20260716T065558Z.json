@@ -1,0 +1,31 @@
+{
+  "run_id": "E118-RC",
+  "phase": 3,
+  "role": "resolution_coarse",
+  "source_run": "runs/grtresna_qd/qball_traj_spiral_v2",
+  "eval_id": 118,
+  "n_full": 192,
+  "l_full": 128.0,
+  "h": 0.6666666666666666,
+  "stop_time": 30.0,
+  "plot_interval": 144,
+  "max_level": 3,
+  "regrid_threshold": 0.02,
+  "consumer_radii": [
+    "12.0",
+    "18.0",
+    "24.0"
+  ],
+  "geo_emit_interval": 2.0,
+  "geo_max_emissions": 7,
+  "gpu_id": "1",
+  "evolution_mpi_ranks": 1,
+  "out_dir": "runs/grtresna_promote/e118_rc_L128_N192_t30_hq_eval000118",
+  "git_commit": "8cb26b616dfaca4b1d5317b4cb84692864346111",
+  "env": {
+    "GRTECLYN_PSI4": "1",
+    "GRTECLYN_GEO_EMIT_INTERVAL": "2.0",
+    "GRTECLYN_GEO_MAX_EMISSIONS": "7",
+    "GRTECLYN_FRAMES": "0"
+  }
+}

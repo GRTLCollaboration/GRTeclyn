@@ -1,0 +1,19 @@
+{
+  "run_id": "BCMA-DL",
+  "campaign": "bicomplex_cmaes_validation",
+  "phase": 4,
+  "role": "domain_large_optional",
+  "manifest": "grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest.json",
+  "source_run": "runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1",
+  "eval_id": 146,
+  "n_full": 320,
+  "l_full": 160.0,
+  "h": 0.5,
+  "stop_time": 30.0,
+  "plot_interval": 72,
+  "max_level": 3,
+  "gpu_id": "2",
+  "evolution_mpi_ranks": 1,
+  "out_dir": "runs/grtresna_promote/bcma_dl_L160_N320_t30_hq_eval000146",
+  "git_commit": "d318f33d8df40afbd5a6b0de2c74d7c38bf5c7dc"
+}

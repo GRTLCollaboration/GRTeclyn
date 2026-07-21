@@ -1,0 +1,8 @@
+{
+  "source_run": "runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1",
+  "eval_id": 146,
+  "score": 852.1454730745428,
+  "frozen_eval": "runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1/eval_000146",
+  "matter_model": "grtresna_bicomplex_scalar",
+  "rl_pump_stop_time": 4.0
+}

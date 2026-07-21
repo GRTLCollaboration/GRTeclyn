@@ -1,0 +1,60 @@
+{
+  "campaign": "bicomplex_cmaes_pumpfree",
+  "source_run": "runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1",
+  "source_eval": "auto",
+  "objective_mode": "general_ftl",
+  "physics_frozen": {
+    "matter_model": "grtresna_bicomplex_scalar",
+    "matter_sector": "boson_star",
+    "rl_pump_stop_time": 0.0,
+    "max_level": 3,
+    "regrid_threshold": 0.02,
+    "qball": "compact ODE + equilibrium amplitude",
+    "do_not_mutate": true
+  },
+  "extra_overrides": [
+    "grtresna_matter_model=grtresna_bicomplex_scalar",
+    "grtresna_matter_coupling=canonical",
+    "rl_pump_stop_time=0"
+  ],
+  "defaults": {
+    "stop_time": 30.0,
+    "plot_interval": 72,
+    "grteclyn_frames": 0,
+    "grteclyn_psi4": 1,
+    "grteclyn_psi4_n_points": 128,
+    "consumer_radii": [12.0, 18.0, 24.0],
+    "geo_directions": "x y z",
+    "geo_emit_interval": 2.0,
+    "geo_max_emissions": 7,
+    "evolving_geodesic_mode": "hq",
+    "gauge_speed_factor": 1.41421356237
+  },
+  "runs": [
+    {
+      "id": "PF-RM",
+      "phase": 2,
+      "role": "pump_free_hq_baseline",
+      "n_full": 256,
+      "l_full": 128.0,
+      "stop_time": 30.0,
+      "plot_interval": 72,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 1,
+      "consumer_radii": [12.0, 18.0, 24.0],
+      "name_prefix": "bcma_pfrm_L128_N256_t30",
+      "notes": "Pump-free HQ twin of BCMA-RM (rl_pump_stop_time=0). Proves f_geo persists without PD ignition. 1 GPU. Metrics-only."
+    }
+  ],
+  "acceptance": {
+    "f_geo_positive": true,
+    "n_rays": 5,
+    "h_quality_ok": true
+  },
+  "stop_condition": {
+    "run_id": "PF-RM",
+    "require_positive_f_geo": true,
+    "require_h_quality_ok": true,
+    "on_fail": "halt_diagnose_pump_artifact"
+  }
+}
