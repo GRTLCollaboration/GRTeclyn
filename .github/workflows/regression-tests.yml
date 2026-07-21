@@ -61,12 +61,26 @@ jobs:
     name: Run examples
     needs: build
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-run-examples-${{ matrix.example_name }}
+      group: ${{ github.workflow }}-${{ github.ref }}-run-examples-${{ matrix.name }}
       cancel-in-progress: true
     strategy:
       matrix:
-        example_name: [BinaryBH, KleinGordon]
+        include:
+          - name: BinaryBH
+            example_name: BinaryBH
+            use_twopunctures: false
+            compare_subdir: BinaryBH
+          - name: BinaryBH_TP
+            example_name: BinaryBH
+            use_twopunctures: true
+            compare_subdir: BinaryBH_TP
+          - name: KleinGordon
+            example_name: KleinGordon
+            use_twopunctures: false
+            compare_subdir: KleinGordon
     uses: ./.github/workflows/regression-tests-examples-template.yml
     with:
       gcc_version: 14
       example_name: ${{ matrix.example_name }}
+      use_twopunctures: ${{ matrix.use_twopunctures }}
+      compare_subdir: ${{ matrix.compare_subdir }}
