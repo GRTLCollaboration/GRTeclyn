@@ -203,9 +203,9 @@ tab:endpoint_gauge  (research.tex; sec:endpoint_gauge)
   Post-load gate values quoted in sec:selfconsistent (candidate 146):
     runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/eval_000146/metadata.json
       postload_gate: max_hamiltonian_l2 = 5.87e-3, max_momentum_l2 = 1.08e-4
-    gate thresholds (absolute L2, both): 1e-2
-      grteclyn-wrapper/src/grteclyn_wrapper/projection/postload_gate.py
-      scripts/campaigns/lib/search_common.sh (POSTLOAD_MAX_{HAM,MOM}_L2)
+    gate thresholds: ham L2 = 3e-2, mom L2 = 1e-2 (campaign override)
+      library default (postload_gate.py): 1e-2 for both
+      campaign override: scripts/campaigns/qball_trajectory/run.sh (POSTLOAD_MAX_HAM_L2=3e-2)
 
   Generator (both tables + proper-time correction):
     research/neuralspacetime/analysis/endpoint_gauge_and_null_constraint.py

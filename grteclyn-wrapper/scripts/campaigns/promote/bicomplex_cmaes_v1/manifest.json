@@ -92,6 +92,7 @@
       "n_full": 320,
       "l_full": 160.0,
       "stop_time": 30.0,
+      "evolution_mpi_ranks": 2,
       "consumer_radii": [12.0, 18.0, 24.0],
       "name_prefix": "bcma_dl_L160_N320_t30",
       "depends_on": ["BCMA-RM"],

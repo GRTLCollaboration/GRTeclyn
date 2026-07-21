@@ -499,9 +499,11 @@ evolved ($\nabla_\mu T^{\mu\nu}=0$).
 A post-load constraint gate rejects inconsistent initial data before any GPU
 time is spent: the solved data are loaded into \texttt{GRTeclyn} for a short
 verification integration, and the volume-weighted $L^2$ norms of the
-Hamiltonian and momentum constraints must both remain below $10^{-2}$,
-otherwise the candidate is discarded and logged. Candidate~146 passes this
-gate with $\|\mathcal H\|_2=5.9\times10^{-3}$ and
+Hamiltonian and momentum constraints must remain below a campaign threshold,
+otherwise the candidate is discarded and logged. The bicomplex Q-ball campaigns
+use a Hamiltonian threshold of $3\times10^{-2}$ and a momentum threshold of
+$10^{-2}$; candidate~146 comfortably clears both, with
+$\|\mathcal H\|_2=5.9\times10^{-3}$ and
 $\|\mathcal M\|_2=1.1\times10^{-4}$. The campaign uses the
 \texttt{grtresna\_bicomplex\_scalar} matter model
 (Sec.~\ref{sec:phantom_action}). The post-load gate, together with bounded
@@ -533,23 +535,29 @@ with the health block
 +30\,\mathrm{cmv}+10\,\mathcal H_{\rm ok}+15\,I,
 \end{equation}
 gated by the nontriviality factor $g_{\rm h}\in[0,1]$ so that a trivial (flat)
-configuration earns no health reward. Here $f_{\rm geo}^{\rm evol}$ is the
-timing advantage of Eq.~\eqref{eq:f_geo} measured on the time-evolving metric
-stack, and $f_{\rm geo}^{\rm op}$ is the same geodesic quantity evaluated on
-frozen slices (a diagnostic, not the transport certificate;
-Sec.~\ref{sec:probes}). Table~\ref{tab:weights} lists what each
+configuration earns no health reward. Inside the score, the raw timing
+advantage $f_{\rm geo}$ of Eq.~\eqref{eq:f_geo} is mapped to a saturating
+magnitude $\hat f=\min\!\bigl[(f_{\rm geo}-10^{-3})/(0.2-10^{-3}),\;1\bigr]$,
+so that small, marginal shortcuts earn proportionally less credit and full marks
+require $f_{\rm geo}\ge20\%$; the two geodesic slots in Eq.~\eqref{eq:score}
+then pay $1000\,\hat f\,p_{\rm s}$, where $p_{\rm s}$ is the structural
+persistence (density retention $\times$ coherence $\times$ confinement). When
+a 4D evolving trace is available, it is authoritative: the frozen-slice slot is
+zeroed and $f_{\rm geo}^{\rm op}\equiv0$, so the two 1000-weight terms are
+mutually exclusive rather than additive. Table~\ref{tab:weights} lists what each
 term measures. Two design choices matter. First, transport dominates: the
-two geodesic terms carry
-the largest weights, so the score chiefly tracks genuine null-transport gain.
+evolving geodesic term carries the largest weight and is itself
+dispersion-gated, so the score chiefly tracks genuine null-transport gain in
+configurations that retain their matter.
 Second, the persistence and operational terms $P_{\rm ftl},F_{\rm op}$ are
-\emph{dispersion-gated}---multiplied by the fraction of matter still
+\emph{also dispersion-gated}---multiplied by the fraction of matter still
 confined---so a candidate cannot bank a coordinate superluminal channel after
 its lumps have flown apart. The exotic penalty $X_{\rm exotic}<0$ charges for
 energy-condition violation~\cite{le2026warpax} at campaign weight $w_x$. This penalty is
 deliberately sub-dominant to transport: at the campaign value $w_x=0.2$ and the
 graded floor $X_{\rm exotic}\ge-1.6$, the exotic term reaches at most
-$40\,w_x|X_{\rm exotic}|\approx13$ points, under $7\%$ of the $\approx200$
-points a $20\%$ evolving shortcut earns ($1000\,f_{\rm geo}^{\rm evol}$). The
+$40\,w_x|X_{\rm exotic}|\approx13$ points, a small fraction of the
+${\sim}1000$-point geodesic slot. The
 optimizer is thus permitted to spend exotic matter freely in exchange for
 genuine null-transport gain, which is why the archive populates the
 phantom-supported sector rather than being pinned to $X_{\rm exotic}=0$.
@@ -796,7 +804,8 @@ budget and the saturation criterion coincide.
 \end{tikzpicture}
 \caption{CMA-ES refinement progress over 150 evaluations, warm-started from
 MAP-Elites champion~87. Dashed line: MAP-Elites best ($825.19$). The running
-best exceeds the baseline early and reaches $852.15$ at candidate~146.}
+best exceeds the baseline by evaluation~47 and reaches $852.15$ at
+candidate~146.}
 \label{fig:cmaes_progress}
 \end{figure}
 
@@ -1537,7 +1546,20 @@ gauge-invariant shortcut but lost ${\sim}\!98\%$ of their structure by $t=16$
 improved early confinement but still sheared apart once placed on an orbit. The dispersion gate in the score (Sec.~\ref{sec:scoring}) prevents the
 optimizer from exploiting channels whose matter has already dispersed. CMA-ES improved confinement-gated persistence
 (Sec.~\ref{sec:methodology}), but candidate~146 retains only
-${\sim}11\%$ by $t=30$. In summary, a
+${\sim}11\%$ by $t=30$.
+
+Beyond dispersal, the HQ runs develop a corroborated trapped surface at late
+times ($t\approx27$ in the resolution ladder, $t\approx24$ in the pump-free
+twin), with a minimum expansion scalar $\theta_+\approx-0.9$ and
+$r_{\rm AH}\approx10.8$ code units. The headline geodesic launches at
+$t_{\rm emit}=4$ and arrives at $t\approx15.5$, well before any apparent
+horizon forms, so the transport certificate is unaffected. The collapse is
+itself a consequence of the transient nature of the configuration: once
+the exotic matter disperses, the residual positive-energy content exceeds the
+threshold for gravitational collapse. This reinforces the conclusion that
+the shortcut is a \emph{transient precursor}---not a sustained channel.
+
+In summary, a
 \emph{transient} shortcut is reproducible and robust, while a
 \emph{long-lived}, well-confined channel remains an open problem.
 
