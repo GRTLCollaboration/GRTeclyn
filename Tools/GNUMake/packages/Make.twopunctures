@@ -36,3 +36,7 @@ include $(TWOPUNCTURES_SOURCE)/Make.package
 
 VPATH_LOCATIONS += $(TWOPUNCTURES_SOURCE)
 INCLUDE_LOCATIONS += $(TWOPUNCTURES_SOURCE)
+
+# This will be appended to the stem of the executable name to indicate
+# that it was built with TwoPunctures support.
+USERSuffix += .TwoPunctures
