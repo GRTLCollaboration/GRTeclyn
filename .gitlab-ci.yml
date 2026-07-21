@@ -27,11 +27,11 @@ csd3-a100-build:
     - mv ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${BINARY_DIR}
     - mv ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${BINARY_DIR}
     - >
-      mv ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/main3d.gnu.DEBUG.MPI.CUDA.ex
-      ${BINARY_DIR}/BinaryBH_main3d.gnu.DEBUG.MPI.CUDA.ex
+      mv ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/BinaryBH3d.gnu.DEBUG.MPI.CUDA.ex
+      ${BINARY_DIR}/
     - >
-      mv ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon/main3d.gnu.DEBUG.MPI.CUDA.ex
-      ${BINARY_DIR}/KleinGordon_main3d.gnu.DEBUG.MPI.CUDA.ex
+      mv ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon/KleinGordon3d.gnu.DEBUG.MPI.CUDA.ex
+      ${BINARY_DIR}/
     - mv ${HOME}/${CI_PROJECT_DIR}/Tests/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
 
 csd3-a100-test:
@@ -44,10 +44,10 @@ csd3-a100-test:
     # Move binaries back into their original directories
     - mv ${BINARY_DIR}/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${HOME}/${CI_PROJECT_DIR}/Tests
     - >
-      mv ${BINARY_DIR}/BinaryBH_main3d.gnu.DEBUG.MPI.CUDA.ex
+      mv ${BINARY_DIR}/BinaryBH3d.gnu.DEBUG.MPI.CUDA.ex
       ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - >
-      mv ${BINARY_DIR}/KleinGordon_main3d.gnu.DEBUG.MPI.CUDA.ex
+      mv ${BINARY_DIR}/KleinGordon3d.gnu.DEBUG.MPI.CUDA.ex
       ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon
     - > # Prepare the output directory - there is a single directory for BOTH examples
       if [[ ! -d ${OUTPUT_DIR} ]]; then
