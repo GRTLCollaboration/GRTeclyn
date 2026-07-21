@@ -1714,26 +1714,24 @@ of other geometric observables (Sec.~\ref{sec:future_apps}).
 
 \section*{Code and data availability}
 
-The complete campaign archive---run configurations, frozen genomes, raw
-diagnostics, and the analysis scripts that generate every figure and table
-in this paper---is available from the author upon reasonable request, and a
-public release of the repository is in preparation. Within the archive, the
-project repository contains the campaign configuration and archive,
-candidate-146 frozen provenance (under \texttt{runs/\allowbreak
-grtresna\_promote/\allowbreak sources/}), and the completed validation
-summaries (RC/RM/RF resolution ladder, DS/DL domain ladder, and the
-pump-free PF-RM twin: evolving-geodesic reports, constraint histories, and
-confinement timeseries). The canonical-only MAP-Elites archive
-\texttt{qball\_traj\_canonical\_v1} (Sec.~\ref{sec:canonical_bound})
-lives under \texttt{runs/\allowbreak grtresna\_qd/}. Figure files live in
-\texttt{research/\allowbreak neuralspacetime/\allowbreak figures/}; the
-article directory holds the reduced numerical tables used by TikZ/PGFPlots.
-The Casimir bound script
-(Sec.~\ref{sec:casimir_bounds}) lives under
-\texttt{research/\allowbreak neuralspacetime/}
-(\texttt{casimir\_null\_timing\_bounds.py}).
-MAP-Elites and CMA-ES trajectory files are under
-\texttt{runs/grtresna\_qd/} and \texttt{runs/grtresna\_cmaes/}.
+The code that generates every result in this paper---the matter-first
+pipeline, constraint solver and evolution drivers, and the analysis scripts
+behind every figure and table---is publicly available on the \texttt{develop}
+branch of the \texttt{GRTeclyn} and \texttt{GRTresna} repositories
+(\url{https://github.com/Nikchik-coder/GRTeclyn/tree/develop} and
+\url{https://github.com/Nikchik-coder/GRTresna/tree/develop}). A lightweight
+audit pack that mirrors every plotted number and HQ claim---evolving-geodesic
+reports, constraint histories, and confinement timeseries for the RC/RM/RF
+resolution ladder, the DS/DL domain ladder, and the pump-free PF-RM twin,
+together with candidate-146 provenance and the canonical-only MAP-Elites
+archive (Sec.~\ref{sec:canonical_bound})---lives on that branch under
+\texttt{results/\allowbreak
+matter-first-automated-discovery-of-transient-spacetime-shortcuts/}.
+Figure files and the reduced numerical tables used by TikZ/PGFPlots are under
+\texttt{research/\allowbreak neuralspacetime/}, and the Casimir bound script
+(Sec.~\ref{sec:casimir_bounds}) is
+\texttt{research/\allowbreak neuralspacetime/\allowbreak
+casimir\_null\_timing\_bounds.py}.
 
 \begin{acknowledgments}
 This work was supported by Gravity Frontiers
