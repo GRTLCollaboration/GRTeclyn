@@ -8,6 +8,25 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from grteclyn_wrapper.core.site_paths import grtresna_env
+
+
+def _is_solver_env_lib_entry(part: str) -> bool:
+    """True for GRTresna/conda solver libs that must stay off the CUDA process."""
+    path = Path(part)
+    # Host-agnostic: …/<env-name>/lib when the env is named after the solver.
+    if path.name == "lib" and path.parent.name == "grtresna":
+        return True
+    env_root = grtresna_env()
+    if env_root is None:
+        return False
+    try:
+        resolved = path.resolve()
+        root = env_root.resolve()
+    except OSError:
+        return False
+    return resolved == root or resolved == (root / "lib") or root in resolved.parents
+
 
 @dataclass
 class SubprocessEpisodeLauncher:
@@ -40,8 +59,8 @@ class SubprocessEpisodeLauncher:
         for part in env.get("LD_LIBRARY_PATH", "").split(":"):
             if not part:
                 continue
-            # Conda/grtresna libstdc++ can ABI-crash the CUDA binary during AMReX regrid.
-            if ".mlspace/envs/" in part or part.endswith("/grtresna/lib"):
+            # Solver-env libstdc++ can ABI-crash the CUDA binary during AMReX regrid.
+            if _is_solver_env_lib_entry(part):
                 continue
             ld_parts.append(part)
         if ld_parts:
