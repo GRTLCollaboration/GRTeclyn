@@ -1424,18 +1424,6 @@ tectonic --keep-logs research.tex
 # → research.pdf
 ```
 
-If `tectonic` is missing, install the **prebuilt static
-binary** (no system libraries, no root needed). Do *not* use `cargo install
-tectonic` here — it needs `pkg-config` + libpng/freetype/harfbuzz/icu, which are
-not installed on this box:
-
-```bash
-wget -qO /tmp/tectonic.tar.gz \
-  "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.15.0/tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz"
-mkdir -p ~/.local/bin && tar xzf /tmp/tectonic.tar.gz -C ~/.local/bin
-chmod +x ~/.local/bin/tectonic && ~/.local/bin/tectonic --version
-```
-
 On first run tectonic downloads the TeX support files (fonts, `.tfm`/`.pfb`) it
 needs and caches them, so the initial compile requires network access.
 
