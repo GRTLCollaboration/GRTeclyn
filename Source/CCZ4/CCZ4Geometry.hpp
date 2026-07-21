@@ -566,7 +566,7 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
 {
 
     amrex::Real ricci_hat = 0;
-    int idx1              = VAR_IDX0(i, j);
+    int idx1              = sym_var_idx(i, j);
 
     FOR (k)
     {
@@ -596,7 +596,7 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
                 chris_LLU_kjl += h_UU(l, m) * chris.LLL(k, j, m);
             }
 
-            int idx2 = VAR_IDX0(k, l);
+            int idx2 = sym_var_idx(k, l);
 
             ricci_hat += -0.5 * h_UU(k, l) * d2_h(idx1, idx2) +
                          chris.ULL(k, l, i) * chris_LLU_jkl +

@@ -20,6 +20,18 @@
 // A version for where the base reference for the tensor is 0
 #define VAR_IDX0(i, j) VAR_IDX(0, (i), (j))
 
+[[nodiscard]] constexpr inline int sym_var_idx(const int ivar, const int i,
+                                               const int j) noexcept
+{
+    return ivar + i + j + ((i * j != 0) ? 1 : 0);
+}
+
+[[nodiscard]] constexpr inline int sym_var_idx(const int i,
+                                               const int j) noexcept
+{
+    return i + j + ((i * j != 0) ? 1 : 0);
+}
+
 #define SPACETIME_DIM GR_SPACEDIM + 1
 
 // Number of unique indices after accounting for symmetry
@@ -68,7 +80,8 @@ template <int DIM> AMREX_GPU_HOST_DEVICE struct GeneralRank<1, DIM>
   public:
     AMREX_GPU_HOST_DEVICE GeneralRank() = default;
 
-    AMREX_GPU_HOST_DEVICE GeneralRank(std::initializer_list<amrex::Real> some_initial_values)
+    AMREX_GPU_HOST_DEVICE
+    GeneralRank(std::initializer_list<amrex::Real> some_initial_values)
     {
         for (int i = 0; i < some_initial_values.size(); ++i)
         {
@@ -88,14 +101,14 @@ template <int DIM> AMREX_GPU_HOST_DEVICE struct GeneralRank<1, DIM>
     AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2)
         requires(DIM == NUM_SYM_IDXS)
     {
-        return m_tensor(VAR_IDX0(idx1, idx2));
+        return m_tensor(sym_var_idx(idx1, idx2));
     }
 
     AMREX_GPU_HOST_DEVICE const amrex::Real &operator()(int idx1,
                                                         int idx2) const
         requires(DIM == NUM_SYM_IDXS)
     {
-        return m_tensor(VAR_IDX0(idx1, idx2));
+        return m_tensor(sym_var_idx(idx1, idx2));
     }
 
     AMREX_GPU_HOST_DEVICE GeneralRank<1, DIM> &
@@ -154,14 +167,14 @@ AMREX_GPU_HOST_DEVICE struct GeneralRank<2, DIM1, DIM2>
                                                   int idx4)
         requires(DIM1 == NUM_SYM_IDXS && DIM2 == NUM_SYM_IDXS)
     {
-        return m_tensor(VAR_IDX0(idx1, idx2), VAR_IDX0(idx3, idx4));
+        return m_tensor(sym_var_idx(idx1, idx2), sym_var_idx(idx3, idx4));
     }
 
     AMREX_GPU_HOST_DEVICE const amrex::Real &
     operator()(int idx1, int idx2, int idx3, int idx4) const
         requires(DIM1 == NUM_SYM_IDXS && DIM2 == NUM_SYM_IDXS)
     {
-        return m_tensor(VAR_IDX0(idx1, idx2), VAR_IDX0(idx3, idx4));
+        return m_tensor(sym_var_idx(idx1, idx2), sym_var_idx(idx3, idx4));
     }
 
     AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2, int idx3)
@@ -170,11 +183,11 @@ AMREX_GPU_HOST_DEVICE struct GeneralRank<2, DIM1, DIM2>
 
         if constexpr (DIM1 == NUM_SYM_IDXS)
         {
-            return m_tensor(VAR_IDX0(idx1, idx2), idx3);
+            return m_tensor(sym_var_idx(idx1, idx2), idx3);
         }
         else
         {
-            return m_tensor(idx1, VAR_IDX0(idx2, idx3));
+            return m_tensor(idx1, sym_var_idx(idx2, idx3));
         }
     }
 
@@ -184,11 +197,11 @@ AMREX_GPU_HOST_DEVICE struct GeneralRank<2, DIM1, DIM2>
     {
         if constexpr (DIM1 == NUM_SYM_IDXS)
         {
-            return m_tensor(VAR_IDX0(idx1, idx2), idx3);
+            return m_tensor(sym_var_idx(idx1, idx2), idx3);
         }
         else
         {
-            return m_tensor(idx1, VAR_IDX0(idx2, idx3));
+            return m_tensor(idx1, sym_var_idx(idx2, idx3));
         }
     }
 
