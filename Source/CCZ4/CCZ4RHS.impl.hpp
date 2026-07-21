@@ -66,15 +66,15 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
 
     FOR2_SYM(i, j)
     {
-        rhs_cell_data[VAR_IDX(c_h11, i, j)] =
+        rhs_cell_data[sym_var_idx(c_h11, i, j)] =
             m_deriv.advection(ix, iy, iz, state, shift_vector,
-                              VAR_IDX(c_h11, i, j)) -
+                              sym_var_idx(c_h11, i, j)) -
             2.0 * vars.lapse() * vars.A(i, j) -
             (2.0 / (double)GR_SPACEDIM) * vars.h(i, j) * divshift;
 
         FOR (k)
         {
-            rhs_cell_data[VAR_IDX(c_h11, i, j)] +=
+            rhs_cell_data[sym_var_idx(c_h11, i, j)] +=
                 vars.h(k, i) * d1_shift(k, j) + vars.h(k, j) * d1_shift(k, i);
         }
     }
@@ -170,19 +170,19 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     FOR2_SYM(i, j)
     {
-        rhs_cell_data[VAR_IDX(c_A11, i, j)] =
+        rhs_cell_data[sym_var_idx(c_A11, i, j)] =
             m_deriv.advection(ix, iy, iz, state, shift_vector,
-                              VAR_IDX(c_A11, i, j)) +
+                              sym_var_idx(c_A11, i, j)) +
             Adot_TF(i, j) +
             vars.A(i, j) * (vars.lapse() * (vars.K() - 2.0 * vars.Theta()) -
                             (2.0 / (double)GR_SPACEDIM) * divshift);
         FOR (k)
         {
-            rhs_cell_data[VAR_IDX(c_A11, i, j)] +=
+            rhs_cell_data[sym_var_idx(c_A11, i, j)] +=
                 vars.A(k, i) * d1_shift(k, j) + vars.A(k, j) * d1_shift(k, i);
             FOR (l)
             {
-                rhs_cell_data[VAR_IDX(c_A11, i, j)] -=
+                rhs_cell_data[sym_var_idx(c_A11, i, j)] -=
                     2.0 * vars.lapse() * h_UU(k, l) * vars.A(i, k) *
                     vars.A(l, j);
             }

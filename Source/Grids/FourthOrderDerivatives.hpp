@@ -238,7 +238,7 @@ class FourthOrderDerivatives
 
         FOR (icomp, jcomp)
         {
-            const int ivar      = VAR_IDX(ivar_0, icomp, jcomp);
+            const int ivar      = sym_var_idx(ivar_0, icomp, jcomp);
             const auto *var_ptr = get_var_ptr(ivar, state_ptr_xyz, strides);
             FOR (idir)
             {
@@ -627,7 +627,7 @@ class FourthOrderDerivatives
         Tensor::Rank2 advec_tensor{};
         FOR (icomp, jcomp)
         {
-            int ivar = VAR_IDX(ivar0, icomp, jcomp);
+            int ivar = sym_var_idx(ivar0, icomp, jcomp);
             advec_tensor(icomp, jcomp) =
                 advection(ix, iy, iz, state, shift_vector, ivar);
         }
