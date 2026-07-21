@@ -139,54 +139,7 @@ class TwoPuncturesInitialData
         // Z4 variables
     }
 
-  private:
-    void interpolate_tp_vars(const Coordinates &coords,
-                             Tensor<2, amrex::Real> &out_h_phys,
-                             Tensor<2, amrex::Real> &out_K_tensor,
-                             amrex::Real &out_lapse,
-                             Tensor<1, amrex::Real> &out_shift,
-                             amrex::Real &out_Theta,
-                             Tensor<1, amrex::Real> &out_Z3) const
-    {
-        amrex::Real coords_array[AMREX_SPACEDIM];
-        coords_array[0] = coords.x;
-        coords_array[1] = coords.y;
-        coords_array[2] = coords.z;
-
-        using namespace TP::Z4VectorShortcuts;
-        amrex::Real TP_state[Qlen];
-        s_two_punctures.Interpolate(coords_array, TP_state);
-
-        // metric
-        out_h_phys[0][0] = TP_state[g11];
-        out_h_phys[0][1] = out_h_phys[1][0] = TP_state[g12];
-        out_h_phys[0][2] = out_h_phys[2][0] = TP_state[g13];
-        out_h_phys[1][1]                    = TP_state[g22];
-        out_h_phys[1][2] = out_h_phys[2][1] = TP_state[g23];
-        out_h_phys[2][2]                    = TP_state[g33];
-
-        // extrinsic curvature
-        out_K_tensor[0][0] = TP_state[K11];
-        out_K_tensor[0][1] = out_K_tensor[1][0] = TP_state[K12];
-        out_K_tensor[0][2] = out_K_tensor[2][0] = TP_state[K13];
-        out_K_tensor[1][1]                      = TP_state[K22];
-        out_K_tensor[1][2] = out_K_tensor[2][1] = TP_state[K23];
-        out_K_tensor[2][2]                      = TP_state[K33];
-
-        // Z4 vector
-        out_Z3[0] = TP_state[Z1];
-        out_Z3[1] = TP_state[Z2];
-        out_Z3[2] = TP_state[Z3];
-        out_Theta = TP_state[Theta];
-
-        // gauge
-        out_lapse    = TP_state[lapse];
-        out_shift[0] = TP_state[shift1];
-        out_shift[1] = TP_state[shift2];
-        out_shift[2] = TP_state[shift3];
-    }
-
-    void read_parameters()
+    static void read_parameters()
     {
         if (s_parameters_read)
         {
@@ -361,6 +314,58 @@ class TwoPuncturesInitialData
         s_two_punctures.mm_adm            = 0;
 
         s_parameters_read = true;
+    }
+
+    static const TP::TwoPunctures &get_two_punctures()
+    {
+        return s_two_punctures;
+    }
+
+  private:
+    void interpolate_tp_vars(const Coordinates &coords,
+                             Tensor<2, amrex::Real> &out_h_phys,
+                             Tensor<2, amrex::Real> &out_K_tensor,
+                             amrex::Real &out_lapse,
+                             Tensor<1, amrex::Real> &out_shift,
+                             amrex::Real &out_Theta,
+                             Tensor<1, amrex::Real> &out_Z3) const
+    {
+        amrex::Real coords_array[AMREX_SPACEDIM];
+        coords_array[0] = coords.x;
+        coords_array[1] = coords.y;
+        coords_array[2] = coords.z;
+
+        using namespace TP::Z4VectorShortcuts;
+        amrex::Real TP_state[Qlen];
+        s_two_punctures.Interpolate(coords_array, TP_state);
+
+        // metric
+        out_h_phys[0][0] = TP_state[g11];
+        out_h_phys[0][1] = out_h_phys[1][0] = TP_state[g12];
+        out_h_phys[0][2] = out_h_phys[2][0] = TP_state[g13];
+        out_h_phys[1][1]                    = TP_state[g22];
+        out_h_phys[1][2] = out_h_phys[2][1] = TP_state[g23];
+        out_h_phys[2][2]                    = TP_state[g33];
+
+        // extrinsic curvature
+        out_K_tensor[0][0] = TP_state[K11];
+        out_K_tensor[0][1] = out_K_tensor[1][0] = TP_state[K12];
+        out_K_tensor[0][2] = out_K_tensor[2][0] = TP_state[K13];
+        out_K_tensor[1][1]                      = TP_state[K22];
+        out_K_tensor[1][2] = out_K_tensor[2][1] = TP_state[K23];
+        out_K_tensor[2][2]                      = TP_state[K33];
+
+        // Z4 vector
+        out_Z3[0] = TP_state[Z1];
+        out_Z3[1] = TP_state[Z2];
+        out_Z3[2] = TP_state[Z3];
+        out_Theta = TP_state[Theta];
+
+        // gauge
+        out_lapse    = TP_state[lapse];
+        out_shift[0] = TP_state[shift1];
+        out_shift[1] = TP_state[shift2];
+        out_shift[2] = TP_state[shift3];
     }
 };
 

@@ -13,8 +13,8 @@
 // Problem specific includes:
 #include "ArrayTools.hpp"
 #include "BoostedBHInitialData.hpp"
-#if 0
-#include "TP_Parameters.hpp"
+#ifdef USE_TWOPUNCTURES
+#include "TwoPuncturesInitialData.hpp"
 #endif
 
 class SimulationParameters : public SimulationParametersBase
@@ -24,9 +24,6 @@ class SimulationParameters : public SimulationParametersBase
     SimulationParameters(GRParmParse &pp) : SimulationParametersBase(pp)
     {
         read_shared_params(pp);
-#if 0
-        read_tp_params(pp);
-#endif
 
         read_bh_params(pp);
 
@@ -46,164 +43,11 @@ class SimulationParameters : public SimulationParametersBase
                 false);
     }
 
-#if 0
-    void read_tp_params(GRParmParse &pp)
-    {
-        tp_params.verbose = (verbosity > 0);
-        // check whether to calculate the target ADM masses or use provided bare
-        // masses
-        bool calculate_target_masses;
-        pp.load("TP_calculate_target_masses", calculate_target_masses, false);
-        tp_params.give_bare_mass = !calculate_target_masses;
-
-        // masses
-        if (calculate_target_masses)
-        {
-            pp.load("TP_target_mass_plus", tp_params.target_M_plus);
-            pp.load("TP_target_mass_minus", tp_params.target_M_minus);
-            pp.load("TP_adm_tol", tp_params.adm_tol, 1e-10);
-            amrex::Print() << "The black holes have target ADM masses of "
-                           << tp_params.target_M_plus << " and "
-                           << tp_params.target_M_minus << "\n";
-            bh1_params.mass = tp_params.target_M_minus;
-            bh2_params.mass = tp_params.target_M_plus;
-        }
-        else
-        {
-            pp.load("TP_mass_plus", tp_params.par_m_plus);
-            pp.load("TP_mass_minus", tp_params.par_m_minus);
-            bh1_params.mass = tp_params.par_m_plus;
-            bh2_params.mass = tp_params.par_m_minus;
-            amrex::Print() << "The black holes have bare masses of "
-                           << std::setprecision(16) << tp_params.par_m_plus
-                           << " and " << tp_params.par_m_minus << "\n";
-            // reset precision
-            amrex::Print() << std::setprecision(6);
-        }
-
-        // BH spin and momenta
-        std::array<double, AMREX_SPACEDIM> spin_minus, spin_plus;
-        pp.load("TP_momentum_minus", bh1_params.momentum);
-        pp.load("TP_momentum_plus", bh2_params.momentum);
-        pp.load("TP_spin_plus", spin_plus);
-        pp.load("TP_spin_minus", spin_minus);
-        FOR (i)
-        {
-            tp_params.par_P_minus[i] = bh1_params.momentum[i];
-            tp_params.par_P_plus[i]  = bh2_params.momentum[i];
-            tp_params.par_S_minus[i] = spin_minus[i];
-            tp_params.par_S_plus[i]  = spin_plus[i];
-        }
-
-        amrex::Print() << "The corresponding momenta are:";
-        amrex::Print() << "\nP_plus = ";
-        FOR (i)
-        {
-            amrex::Print() << tp_params.par_P_plus[i] << " ";
-        }
-        amrex::Print() << "\nP_minus = ";
-        FOR (i)
-        {
-            amrex::Print() << tp_params.par_P_minus[i] << " ";
-        }
-
-        amrex::Print() << "\nThe corresponding spins are:";
-        amrex::Print() << "\nS_plus = ";
-        FOR (i)
-        {
-            amrex::Print() << tp_params.par_S_plus[i] << " ";
-        }
-        amrex::Print() << "\nS_minus = ";
-        FOR (i)
-        {
-            amrex::Print() << tp_params.par_S_minus[i] << " ";
-        }
-        amrex::Print() << "\n";
-
-        // interpolation type
-        bool use_spectral_interpolation;
-        pp.load("TP_use_spectral_interpolation", use_spectral_interpolation,
-                false);
-        tp_params.grid_setup_method =
-            (use_spectral_interpolation) ? "evaluation" : "Taylor expansion";
-
-        // initial_lapse (default to psi^n)
-        pp.load("TP_initial_lapse", tp_params.initial_lapse,
-                std::string("psi^n"));
-        if (tp_params.initial_lapse != "twopunctures-antisymmetric" &&
-            tp_params.initial_lapse != "twopunctures-averaged" &&
-            tp_params.initial_lapse != "psi^n" &&
-            tp_params.initial_lapse != "brownsville")
-        {
-            std::string message  = "Parameter: TP_initial_lapse: ";
-            message             += tp_params.initial_lapse;
-            message             += " invalid";
-            amrex::Abort(message.c_str());
-        }
-        if (tp_params.initial_lapse == "psi^n")
-        {
-            pp.load("TP_initial_lapse_psi_exponent",
-                    tp_params.initial_lapse_psi_exponent, -2.0);
-        }
-
-        // Spectral grid parameters
-        pp.load("TP_npoints_A", tp_params.npoints_A, 30);
-        pp.load("TP_npoints_B", tp_params.npoints_B, 30);
-        pp.load("TP_npoints_phi", tp_params.npoints_phi, 16);
-        if (tp_params.npoints_phi % 4 != 0)
-        {
-            amrex::Abort("TP_npoints_phi must be a multiple of 4");
-        }
-
-        // Solver parameters and tolerances
-        pp.load("TP_Newton_tol", tp_params.Newton_tol, 1e-10);
-        pp.load("TP_Newton_maxit", tp_params.Newton_maxit, 5);
-        pp.load("TP_epsilon", tp_params.TP_epsilon, 1e-6);
-        pp.load("TP_Tiny", tp_params.TP_Tiny, 0.0);
-        pp.load("TP_Extend_Radius", tp_params.TP_Extend_Radius, 0.0);
-
-        // BH positions
-        pp.load("TP_offset_minus", tp_offset_minus);
-        pp.load("TP_offset_plus", tp_offset_plus);
-        bh1_params.center           = center;
-        bh2_params.center           = center;
-        bh1_params.center[0]       += tp_offset_minus;
-        bh2_params.center[0]       += tp_offset_plus;
-        double center_offset_x      = 0.5 * (tp_offset_plus + tp_offset_minus);
-        tp_params.center_offset[0]  = center_offset_x;
-        // par_b is half the distance between BH_minus and BH_plus
-        tp_params.par_b = 0.5 * (tp_offset_plus - tp_offset_minus);
-        pp.load("TP_swap_xz", tp_params.swap_xz, false);
-
-        // Debug output
-        pp.load("TP_do_residuum_debug_output",
-                tp_params.do_residuum_debug_output, false);
-        pp.load("TP_do_initial_debug_output", tp_params.do_initial_debug_output,
-                false);
-
-        // Irrelevant parameters set to default value
-        tp_params.keep_u_around                   = false;
-        tp_params.use_sources                     = false;
-        tp_params.rescale_sources                 = true;
-        tp_params.use_external_initial_guess      = false;
-        tp_params.multiply_old_lapse              = false;
-        tp_params.schedule_in_ADMBase_InitialData = true;
-        tp_params.solve_momentum_constraint       = false;
-        tp_params.metric_type                     = "something else";
-        tp_params.conformal_storage               = "not conformal at all";
-        tp_params.conformal_state                 = 0;
-        tp_params.mp                              = 0;
-        tp_params.mm                              = 0;
-        tp_params.mp_adm                          = 0;
-        tp_params.mm_adm                          = 0;
-    }
-#endif
-
-    // #ifndef USE_TWOPUNCTURES
-    /// Read BH parameters if not using two punctures
+    /// Read BH parameters
     // NOLINTNEXTLINE(readability-identifier-length)
     void read_bh_params(GRParmParse &pp)
     {
+#ifndef USE_TWOPUNCTURES
         // Initial data
         pp.load("massA", bh1_params.mass);
         pp.load("momentumA", bh1_params.momentum);
@@ -226,6 +70,39 @@ class SimulationParameters : public SimulationParametersBase
             bh1_params.center[idir] = centerA[idir] + offsetA[idir];
             bh2_params.center[idir] = centerB[idir] + offsetB[idir];
         }
+#else
+        // Workaround for setting normal BH parameters when using TwoPunctures
+        // as these are used for e.g. puncture tracking and tagging.
+        // TODO: Make this less hacky when refactoring parameters
+        TwoPuncturesInitialData::read_parameters();
+        const auto &two_punctures =
+            TwoPuncturesInitialData::get_two_punctures();
+
+        if (two_punctures.give_bare_mass)
+        {
+            bh1_params.mass = two_punctures.par_m_minus;
+            bh2_params.mass = two_punctures.par_m_plus;
+        }
+        else
+        {
+            bh1_params.mass = two_punctures.target_M_minus;
+            bh2_params.mass = two_punctures.target_M_plus;
+        }
+
+        FOR (idir)
+        {
+            bh1_params.momentum[idir] = two_punctures.par_P_minus[idir];
+            bh2_params.momentum[idir] = two_punctures.par_P_plus[idir];
+        }
+
+        bh1_params.center = center;
+        bh2_params.center = center;
+        int offset_dir    = (two_punctures.swap_xz) ? 2 : 0;
+        bh1_params.center[offset_dir] +=
+            two_punctures.center_offset[offset_dir] - two_punctures.par_b;
+        bh2_params.center[offset_dir] +=
+            two_punctures.center_offset[offset_dir] + two_punctures.par_b;
+#endif
     }
 
     void check_params()
@@ -326,11 +203,6 @@ class SimulationParameters : public SimulationParametersBase
     // e.g. for puncture tracking/tagging
     BoostedBHInitialData::params_t bh2_params{};
     BoostedBHInitialData::params_t bh1_params{};
-
-#if 0
-    double tp_offset_plus, tp_offset_minus;
-    TP::Parameters tp_params;
-#endif
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */
