@@ -1,4 +1,4 @@
-# Neural spacetime — PRD article audit pack
+# Matter-first automated discovery of transient spacetime shortcuts — PRD article audit pack
 
 Paper: *Matter-first automated discovery of transient spacetime shortcuts*
 ([`research/neuralspacetime/article/research.tex`](../../research/neuralspacetime/article/research.tex)).
