@@ -1685,6 +1685,40 @@ fine Richardson run RF ($N=384$) required three GPUs due to memory
 constraints. Total wall-clock time from the start of MAP-Elites to the
 completion of the three-run resolution matrix was approximately ten hours.
 
+\subsection{Future applications of the pipeline}
+\label{sec:future_apps}
+
+The matter-first search architecture---MAP-Elites exploration, CMA-ES
+refinement, and automated scoring on the evolved spacetime---is not
+specific to null-timing shortcuts. Any question of the form ``which
+initial matter configuration optimizes geometric observable $\mathcal{O}$?''
+can be attacked by replacing the scoring function while reusing the
+genome representation, constraint solver, and evolution infrastructure.
+
+\textbf{Directional gravitational-wave generation.}
+A parallel campaign (in preparation) replaces $f_{\rm geo}$ with a
+beaming-weighted Weyl-scalar power score, searching for Q-ball
+configurations that emit preferentially along one axis. Early runs
+produce ${\sim}30\%$ directional beaming gain with mean Weyl power
+$P\sim10^{-6}$--$10^{-4}$, demonstrating that the optimizer can steer
+toward anisotropic radiation from matter that is individually
+spherically symmetric.
+
+\textbf{Other candidate targets.}
+(i)~Gravitational-lensing amplification---optimizing a matter shell to
+maximize the magnification of a background source at a specified image
+plane;
+(ii)~critical-collapse threshold mapping---locating the boundary
+between dispersal and black-hole formation in multi-lump parameter
+space;
+(iii)~boson-star merger waveform exploration---seeding binary or
+multi-body initial data and scoring the resulting gravitational-wave
+energy or kick velocity.
+In each case the pipeline inherits the hard gates (Hamiltonian
+constraint, collapse diagnostics) that reject numerical artefacts,
+addressing the reward-hacking failure modes common to
+optimization in nonlinear PDE solvers.
+
 \section{Conclusion}
 \label{sec:conclusion}
 
