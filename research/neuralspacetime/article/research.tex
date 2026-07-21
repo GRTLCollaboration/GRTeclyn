@@ -48,12 +48,12 @@ sources. In the headline validation run ($L=128$, $N=256$, three refinement
 levels, $t=30$), null rays arrive $20.2\%$ earlier than the matched flat
 path, with all quality gates passed. The result is stable across a
 three-run resolution ladder ($N=192/256/384$; fine--medium relative
-difference ${\sim}0.1\%$) and a matched-spacing domain ladder ($L=96$ and
+difference $0.13\%$) and a matched-spacing domain ladder ($L=96$ and
 $L=160$; within $0.12\%$ of the baseline). An external ignition controller
 switches off at $t=4$; because the geodesic that defines the quoted
 advantage launches at $t_{\rm emit}=4$, the timing difference is measured
 in freely evolving Einstein--Klein--Gordon dynamics, and a controller-free
-twin run reproduces it at $20.5\%$. A matched canonical-only
+twin run reproduces it at $20.46\%$. A matched canonical-only
 (positive-energy) search finds no evolving timing advantage. In all cases
 the channel is transient: confinement decays as the supporting matter
 disperses.
@@ -90,12 +90,11 @@ $g_{\mu\nu}$ either violate the constraints, have no local matter realization,
 or fail as soon as time advances---so the archive fills with numerical
 failures rather than competing mechanisms.
 
-We therefore invert the loop (Fig.~\ref{fig:matter_first}). The optimizer
-proposes matter; \texttt{GRTresna} (a constraint solver that returns
-initial data satisfying the Hamiltonian and momentum constraints) builds the
-initial slice; \texttt{GRTeclyn}~\cite{grteclyn,grchombo} (a GPU-accelerated,
-AMReX-based CCZ4 evolution code) advances the spacetime; and probes ask
-whether a null shortcut appears. In this paper ``FTL'' and ``null shortcut'' mean the same
+We therefore invert the loop (Fig.~\ref{fig:matter_first}): the optimizer
+proposes matter, \texttt{GRTresna} builds the constraint-satisfying initial
+slice, \texttt{GRTeclyn}~\cite{grteclyn,grchombo} advances the spacetime, and
+probes ask whether a null shortcut appears (the two codes are detailed in
+Sec.~\ref{sec:tools}). In this paper ``FTL'' and ``null shortcut'' mean the same
 operational claim: an \emph{effective} reduction of null travel time relative
 to flat space between the same fixed weak-field endpoints---never local
 superluminal motion outside the light cone. The fractional advantage is $f_{\rm geo}$
@@ -182,21 +181,16 @@ a deliberately coarse grid chosen for evaluation throughput; production
 claims are deferred to the later high-quality (HQ) production replay and
 resolution matrix (Sec.~\ref{sec:stages}).
 
-We acknowledge that the headline champion (candidate~146) relies on a phantom
-scalar sector and therefore does \emph{not} bypass the standard
-energy-condition violations associated with FTL
-spacetimes~\cite{olum98,gaowald00,santiago2022}. The value of this
-work is that an automated, matter-first Cauchy pipeline can discover,
-construct, and dynamically track constraint-satisfying FTL geometries---a
-necessary first step toward computationally searching the positive-energy
-sector with the same falsification stack. Claimed positive-energy warp
-solitons~\cite{lentz21,fell21} make that sector a live question, although
-generic-warp-drive analyses argue such constructions still violate the null
-energy condition~\cite{santiago2022}. As a first probe, a matched
-canonical-only (positive-energy) MAP-Elites search within the present ansatz
-yields no evolving timing advantage---every accepted evaluation returns
-$f_{\rm geo}^{\rm evol}=0$ (Sec.~\ref{sec:canonical_bound}), so within this
-ansatz the shortcut requires the phantom sector.
+The headline champion (candidate~146) relies on a phantom scalar sector, so it
+does \emph{not} bypass the energy-condition violations required of FTL
+spacetimes~\cite{olum98,gaowald00,santiago2022}. Its value is a demonstration
+that an automated, matter-first Cauchy pipeline can discover, construct, and
+dynamically track constraint-satisfying FTL geometries---a necessary first step
+toward searching the positive-energy sector~\cite{lentz21,fell21} with the same
+falsification stack. As a first probe, a matched canonical-only
+(positive-energy) search within the present ansatz returns
+$f_{\rm geo}^{\rm evol}=0$ for every accepted evaluation
+(Sec.~\ref{sec:canonical_bound}).
 
 \subsection{Methodological Rigor}
 \label{subsec:rigor}
@@ -222,12 +216,10 @@ Three pillars distinguish this pipeline from geometry-first studies:
     solve, GPU evolution, and matched evolving-geodesic scoring---with an
     explicit reward rule applied to every evaluation
     (Secs.~\ref{sec:pipeline}--\ref{sec:methodology}).
-    \item[(ii)] A hierarchical campaign protocol: quality-diversity search,
-    CMA-ES hill-climb on the top genome, then longer higher-resolution
-    replay and a three-run Richardson resolution ladder
-    (RC/RM/RF~= coarse/medium/fine at fixed domain, varying grid spacing
-    $h=L/N$) only on the refined
-    champion (Sec.~\ref{sec:results}).
+    \item[(ii)] A hierarchical campaign protocol---quality-diversity search,
+    CMA-ES hill-climb, then higher-resolution replay and a Richardson
+    resolution ladder on the refined champion
+    (Sec.~\ref{sec:stages}).
     \item[(iii)] Explicit numerical limits of the surviving candidates:
     dispersing exotic matter and a transient ignition-phase controller---not
     passenger transport (Sec.~\ref{sec:discussion}).
@@ -261,12 +253,15 @@ $\rightarrow$ diagnostics $\rightarrow S(\theta)$
 the spacetime on GPU, and post-processing probes reduce the evolution to the
 fitness $S(\theta)$ that steers the next proposal.
 
+\subsection{Matter model: canonical and phantom scalar sectors}
+\label{sec:phantom_action}
+
 The matter is built from complex scalar fields with canonical Klein--Gordon
-dynamics (two independent fields in the production model,
-Sec.~\ref{sec:phantom_action}); each field $\phi$ carries a conjugate
-momentum $\Pi$ and potential $V(\phi)$. In the $3{+}1$ split, a complex
-scalar field contributes an energy density $\rho$ and a momentum density
-$S_i$ that act as the sources in the Hamiltonian and momentum constraints,
+dynamics; the production model carries two independent fields, each with a
+conjugate momentum $\Pi$ and the sextic potential $V$ of
+Eq.~\eqref{eq:sextic}. In the $3{+}1$ split, a complex scalar contributes an
+energy density $\rho$ and a momentum density $S_i$ that act as the sources in
+the Hamiltonian and momentum constraints,
 \begin{equation}
 \rho=\tfrac12\psi^{-4}|\tilde\nabla\phi|^2+\tfrac12|\Pi|^2+V(\phi),
 \qquad
@@ -278,16 +273,56 @@ gradient. The three terms in $\rho$ are, in order, the gradient (spatial
 shape), kinetic (time variation), and potential (rest) energy of the field;
 $S_i$ is nonzero only when the field oscillates in time ($\Pi\neq0$) with a
 spatial gradient, which is what lets a moving scalar lump carry momentum and
-drive a shift. Equation~\eqref{eq:scalar_sources} is therefore the precise
-statement of ``the matter tells the geometry what to be'': $\theta$ sets $\phi$
-and $\Pi$, and \texttt{GRTresna} returns the $(\gamma_{ij},K_{ij})$ consistent
-with these sources.
+drive a shift. Equation~\eqref{eq:scalar_sources} is the precise statement of
+``the matter tells the geometry what to be'': $\theta$ sets $\phi$ and $\Pi$,
+and \texttt{GRTresna} returns the $(\gamma_{ij},K_{ij})$ consistent with these
+sources.
 
-The word ``canonical'' describes the Klein--Gordon equation of motion, not the
-sign with which every initial lump gravitates. For each lump the optimizer
-stores $x_{{\rm ex},k}\in[0,1]$, but configuration construction rounds it to
-$e_k=\operatorname{round}(x_{{\rm ex},k})$ and sets
-$s_k=(-1)^{e_k}$. Thus there is no physical fractional interpolation. In the
+Because the exotic sign is central to the claim, we state exactly what the
+\texttt{grtresna\_bicomplex\_scalar} model integrates. Each complex scalar is
+canonical, with action
+\begin{equation}
+S[\Phi]=\int d^4x\,\sqrt{-g}\left(
+-g^{\mu\nu}\partial_\mu\Phi^{*}\partial_\nu\Phi-V(|\Phi|)\right),
+\label{eq:canonical_action}
+\end{equation}
+Writing $\Pi=n^\mu\partial_\mu\Phi$ for the conjugate momentum along the
+normal $n^\mu$, both the canonical field $\Phi_{+}$ and the exotic field
+$\Phi_{-}$ obey the \emph{same} $3{+}1$ Klein--Gordon system,
+\begin{align}
+\partial_t\Phi_{\pm} &= \alpha\,\Pi_{\pm}+\beta^i\partial_i\Phi_{\pm},
+\nonumber\\
+\partial_t\Pi_{\pm} &= \beta^i\partial_i\Pi_{\pm}
+   +\alpha\!\left(K\,\Pi_{\pm}+\gamma^{ij}D_iD_j\Phi_{\pm}
+   -\frac{\partial V}{\partial\Phi_{\pm}^{*}}\right)\nonumber\\
+&\quad +\gamma^{ij}\partial_i\alpha\,\partial_j\Phi_{\pm},
+\label{eq:kg_evolution}
+\end{align}
+with $D_i$ the spatial covariant derivative and $\alpha,\beta^i,\gamma_{ij}$
+the usual lapse, shift, and spatial metric. The two sectors are therefore
+governed by identical, right-sign (non-ghost) kinetic operators; there is no
+wrong-sign kinetic term and hence none of the gradient or ghost instabilities
+that afflict a genuine phantom Lagrangian
+$\mathcal L=+\partial_\mu\phi\,\partial^\mu\phi^{*}-V$.
+
+The exotic character enters at exactly one place: the \emph{gravitational
+coupling}. The two sectors add to the Einstein source with opposite sign,
+\begin{equation}
+G_{\mu\nu}=8\pi\left(T_{\mu\nu}[\Phi_{+}]-T_{\mu\nu}[\Phi_{-}]\right),
+\label{eq:bicomplex_source}
+\end{equation}
+so $\Phi_{-}$ is a negative-energy (ghost-\emph{gravitational}) source while
+retaining canonical, well-posed field dynamics. Equivalently, this reverses
+the effective gravitational constant for the exotic sector ($G\to-G$ for
+$\Phi_{-}$); it is a controlled model of the negative-energy source required to
+violate the null energy condition, not a claim that a fundamental phantom
+field theory has been made well posed.
+
+The word ``canonical'' therefore describes the Klein--Gordon equation of
+motion, not the sign with which each initial lump gravitates. For each lump
+the optimizer stores $x_{{\rm ex},k}\in[0,1]$, which configuration
+construction rounds to $e_k=\operatorname{round}(x_{{\rm ex},k})$ and maps to
+$s_k=(-1)^{e_k}$, so there is no physical fractional interpolation. In the
 \texttt{GRTresna} constraint solve the signed independent-lump approximation is
 \begin{equation}
 \rho_{\rm ID}=\sum_k s_k\rho_k,\qquad
@@ -295,11 +330,17 @@ $s_k=(-1)^{e_k}$. Thus there is no physical fractional interpolation. In the
 \Pi_{A,k}\partial_i\phi_{A,k},
 \label{eq:signed_sources}
 \end{equation}
-with inter-lump stress-tensor cross terms omitted. The profiles themselves are
-then superposed into two painted complex fields---one canonical, one
-phantom---by the bicomplex model. Candidate~146 rounds to
-$s_k=(+1,-1,-1,+1,-1)$: two canonical and three phantom sources
-(Sec.~\ref{sec:phantom_action}).
+with inter-lump stress-tensor cross terms omitted; the profiles are then
+superposed into the two painted complex fields, one canonical and one phantom.
+This sign flip is applied consistently to $\rho$, $S_i$, and $S_{ij}$ in both
+the constraint solve and the \texttt{GRTeclyn} stress tensor, which removes the
+initial-data / evolution mismatch of earlier single-field campaigns.
+Candidate~146 rounds to $s_k=(+1,-1,-1,+1,-1)$: two canonical and three phantom
+sources. A practical payoff is that the late-time dispersion reported below
+(Sec.~\ref{sec:dispersion}) is \emph{structural}---the finite lifetime of
+thick-wall Q-balls together with an unbound orbital arrangement---rather than a
+phantom kinetic instability, since the fields never leave the stable
+Klein--Gordon sector.
 
 \subsection{Q-ball building blocks}
 \label{sec:qball}
@@ -447,13 +488,10 @@ campaign default switches the pump off at $t_{\rm pump}=4$; scoring credits
 4D geodesic transport only for $t_{\rm emit}\ge t_{\rm pump}$. A dedicated
 pump-free HQ twin with $t_{\rm pump}=0$ (Sec.~\ref{sec:pump_free}) tests
 whether the shortcut survives with the PD term identically off from $t=0$.
-
-The controller should be read as a \emph{numerical guide}, not as a
-physical part of the reported spacetime: the headline geodesic launches at
-$t_{\rm emit}=4=t_{\rm pump}$, so the metric it samples is freely evolved
-($\nabla_\mu T^{\mu\nu}=0$), and the pump-free twin
-(Sec.~\ref{sec:pump_free}) reproduces the advantage with the PD term
-identically off from $t=0$.
+The controller should therefore be read as a \emph{numerical guide}, not a
+physical part of the reported spacetime: because the headline geodesic
+launches at $t_{\rm emit}=4=t_{\rm pump}$, the metric it samples is freely
+evolved ($\nabla_\mu T^{\mu\nu}=0$).
 
 \subsection{Constraint gate and source-model consistency}
 \label{sec:selfconsistent}
@@ -464,65 +502,11 @@ verification integration, and the volume-weighted $L^2$ norms of the
 Hamiltonian and momentum constraints must both remain below $10^{-2}$,
 otherwise the candidate is discarded and logged. Candidate~146 passes this
 gate with $\|\mathcal H\|_2=5.9\times10^{-3}$ and
-$\|\mathcal M\|_2=1.1\times10^{-4}$. The
-campaign uses the \texttt{grtresna\_bicomplex\_scalar} matter model
-(Sec.~\ref{sec:phantom_action}), which preserves per-lump gravitational
-signs through both the constraint solve and evolution. The post-load gate,
-together with bounded CCZ4 constraint growth, establishes numerical control
-and source-model consistency.
-
-\subsection{Phantom sector: action and evolution equations}
-\label{sec:phantom_action}
-
-Because the exotic sign is central to the claim, we state exactly what the
-\texttt{grtresna\_bicomplex\_scalar} model integrates. Each complex scalar is
-canonical, with action
-\begin{equation}
-S[\Phi]=\int d^4x\,\sqrt{-g}\left(
--g^{\mu\nu}\partial_\mu\Phi^{*}\partial_\nu\Phi-V(|\Phi|)\right),
-\label{eq:canonical_action}
-\end{equation}
-and $V$ the sextic potential of Eq.~\eqref{eq:sextic}. Writing
-$\Pi=n^\mu\partial_\mu\Phi$ for the conjugate momentum along the normal
-$n^\mu$, both the canonical field $\Phi_{+}$ and the exotic field $\Phi_{-}$
-obey the \emph{same} $3{+}1$ Klein--Gordon system,
-\begin{align}
-\partial_t\Phi_{\pm} &= \alpha\,\Pi_{\pm}+\beta^i\partial_i\Phi_{\pm},
-\nonumber\\
-\partial_t\Pi_{\pm} &= \beta^i\partial_i\Pi_{\pm}
-   +\alpha\!\left(K\,\Pi_{\pm}+\gamma^{ij}D_iD_j\Phi_{\pm}
-   -\frac{\partial V}{\partial\Phi_{\pm}^{*}}\right)\nonumber\\
-&\quad +\gamma^{ij}\partial_i\alpha\,\partial_j\Phi_{\pm},
-\label{eq:kg_evolution}
-\end{align}
-with $D_i$ the spatial covariant derivative and $\alpha,\beta^i,\gamma_{ij}$
-the usual lapse, shift, and spatial metric. The two sectors are therefore
-governed by identical, right-sign (non-ghost) kinetic operators; there is no
-wrong-sign kinetic term and hence none of the gradient or ghost instabilities
-that afflict a genuine phantom Lagrangian
-$\mathcal L=+\partial_\mu\phi\,\partial^\mu\phi^{*}-V$.
-
-The exotic character enters at exactly one place: the \emph{gravitational
-coupling}. The two sectors add to the Einstein source with opposite sign,
-\begin{equation}
-G_{\mu\nu}=8\pi\left(T_{\mu\nu}[\Phi_{+}]-T_{\mu\nu}[\Phi_{-}]\right),
-\label{eq:bicomplex_source}
-\end{equation}
-so $\Phi_{-}$ is a negative-energy (ghost-\emph{gravitational}) source while
-retaining canonical, well-posed field dynamics. This sign flip is applied
-consistently to $\rho$, $S_i$, and $S_{ij}$ in both the \texttt{GRTresna}
-constraint solve [Eq.~\eqref{eq:signed_sources}] and the \texttt{GRTeclyn}
-stress tensor, which is what removes the initial-data / evolution mismatch of
-earlier single-field campaigns. We are explicit that
-Eq.~\eqref{eq:bicomplex_source} is equivalent to reversing the effective
-gravitational constant for the exotic sector ($G\to-G$ for $\Phi_{-}$); it is a
-controlled model of the negative-energy source required to violate the null
-energy condition, not a claim that a fundamental phantom field theory has been
-made well posed. The practical payoff of this choice is that the late-time
-dispersion reported below (Sec.~\ref{sec:dispersion}) is \emph{structural}---the
-finite lifetime of thick-wall Q-balls together with an unbound orbital
-arrangement---rather than a manifestation of a phantom kinetic instability,
-since the fields themselves never leave the stable Klein--Gordon sector.
+$\|\mathcal M\|_2=1.1\times10^{-4}$. The campaign uses the
+\texttt{grtresna\_bicomplex\_scalar} matter model
+(Sec.~\ref{sec:phantom_action}). The post-load gate, together with bounded
+CCZ4 constraint growth, establishes numerical control and source-model
+consistency.
 
 \subsection{Scoring: how every evaluation is rewarded}
 \label{sec:scoring}
@@ -571,7 +555,9 @@ genuine null-transport gain, which is why the archive populates the
 phantom-supported sector rather than being pinned to $X_{\rm exotic}=0$.
 Search-tier scores are values of $S$ on a $t=16$ evolution
 (Sec.~\ref{sec:stages}); the only production $S$ values appear in the
-pump-free comparison (Table~\ref{tab:pump_compare}).
+pump-free comparison (Table~\ref{tab:pump_compare}). For the CMA-ES champion
+(candidate~146) the search-tier score is $S=852.15$
+(Sec.~\ref{sec:methodology}).
 
 \begin{table}[tbp]
 \caption{Reward terms in the campaign objective [Eq.~\eqref{eq:score}], applied
@@ -598,9 +584,6 @@ $H_{\rm hor}$ & horizon-formation penalty & $200$ \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
-
-For the CMA-ES champion (candidate~146) the search-tier score is
-$S=852.15$ (Sec.~\ref{sec:methodology}).
 
 \subsection{Search and validation stages}
 \label{sec:stages}
@@ -893,8 +876,7 @@ F_{\rm op}=\frac{t_B^{\rm flat}-t_B^{\rm curved}}{t_B^{\rm flat}},
 f_{\rm geo}=\max\!\left(0,\;\frac{t_{\rm flat}-t_{\rm min}}{t_{\rm flat}}\right),
 \label{eq:f_geo}
 \end{equation}
-so $f_{\rm geo}=0$ means no shortcut and $f_{\rm geo}=0.20$ means the curved
-transit is $20\%$ shorter than the flat comparison. A launch is accepted only if
+so $f_{\rm geo}=0$ means no shortcut. A launch is accepted only if
 its rays stay physical: the relative drift in the null Hamiltonian
 $g^{\mu\nu}k_\mu k_\nu=0$ must remain below $10^{-2}$, which rejects rays that
 have accumulated interpolation error. The simulation itself runs to $t=30$, but
@@ -987,32 +969,31 @@ and passes the null-Hamiltonian gate.
 Candidate~146 is the CMA-ES-refined champion from the bicomplex campaign
 (Sec.~\ref{sec:methodology}). Its provenance freezes the exact
 39-dimensional genome, source checksums, solver parameters, and source
-commit, using the \texttt{grtresna\_bicomplex\_scalar} matter model. The
-finest run (RF) additionally stored field maps, from which the snapshots of
-Fig.~\ref{fig:rf_field_maps} are drawn.
+commit. The finest run (RF) additionally stored field maps, from which the
+snapshots of Fig.~\ref{fig:rf_field_maps} are drawn.
 
 \subsection{Matter dynamics}
 
 Candidate~146 uses five lumps with source signs
-$s_k=(+1,-1,-1,+1,-1)$: two canonical and three phantom (exotic).
+$s_k=(+1,-1,-1,+1,-1)$ (two canonical, three phantom;
+Sec.~\ref{sec:phantom_action}).
 The collective breathing is small ($A_{\rm b}=0.083$,
 $\omega_{\rm b}=0.429$), the vertical oscillation is moderate ($A_z=2.32$,
 $\omega_z=0.016$), and the initial radii are
 $R_0=(3.69,5.50,2.83,5.59,2.61)$. All angular velocities are negative,
 $\omega_{\rm rot}=(-0.0017,-0.0007,-0.0031,-0.0009,-0.0049)$, so all five
 trajectories are retrograde but extremely slow. Radial drifts are small
-[$v_r=(-0.060,-0.010,\,0.001,-0.005,-0.006)$]; the slow rotation and
-drift---roughly an order of magnitude quieter than MAP-Elites champion~87---is
-what CMA-ES converged to in order to maximize confinement-gated persistence.
+[$v_r=(-0.060,-0.010,\,0.001,-0.005,-0.006)$] and roughly an order of
+magnitude quieter than MAP-Elites champion~87, the quasi-static scaffold
+CMA-ES converged to (Sec.~\ref{sec:methodology}).
 
 Figure~\ref{fig:lump_dynamics} shows these prescribed support-center
 trajectories [Eq.~\eqref{eq:lump_trajectory}] at four times. The Q-ball
 fields are initially boosted along the corresponding motion. The PD
 trajectory controller (Sec.~\ref{sec:pd_pump}) drives the lumps during
-the ignition phase ($t<4$) and then switches off. The bounded constraints
-($\|\mathcal H\|_2\le4.73\times10^{-3}$,
-$\|\mathcal M\|_2\le9.16\times10^{-4}$ in RM) show that the evolution remains
-numerically controlled. Figure~\ref{fig:lump_topdown} complements the magnified
+the ignition phase ($t<4$) and then switches off; the evolution remains
+numerically controlled throughout (Fig.~\ref{fig:constraints}).
+Figure~\ref{fig:lump_topdown} complements the magnified
 three-dimensional view with an unscaled top-down ($x$--$y$) projection at grid
 scale, showing that the shell spans only a few code units across the null-probe
 corridor. The support centers are the intended
@@ -1096,32 +1077,25 @@ Sec.~\ref{sec:phantom_action}. \emph{Bottom row:} the shift component
 $\beta^{x}$ along the null-probe axis, whose sign tilts the local light cones
 and opens the transport channel. The channel is strongest just after
 pump-off ($t=4$, the peak-$f_{\rm geo}$ launch); by $t=30$ both the matter and
-the shift structure have spread and weakened, consistent with the confinement
-drop from $72\%$ to $11\%$ and the transient nature of the shortcut.}
+the shift structure have spread and weakened, consistent with the transient
+nature of the shortcut.}
 \label{fig:rf_field_maps}
 \end{figure*}
 
 \subsection{Transport mechanism}
 
-The shortcut arises from the interplay of matter momentum and geometry.
-Each Q-ball lump oscillates with $\Pi\neq0$
-[Eq.~\eqref{eq:scalar_sources}], sourcing a momentum density $S_i$ that
-enters the momentum constraint and generates a nontrivial shift $\beta^i$.
-The shift tilts the local light cones in the direction of the matter current;
-null rays propagating through this region accumulate a coordinate-time advance
-relative to the flat reference path (Fig.~\ref{fig:shortcut_cartoon}). The
-finest-run field maps in Fig.~\ref{fig:rf_field_maps} make this concrete:
-the phantom and canonical lumps ($\rho_{\rm req}$, top row) source a bipolar
-shift $\beta^{x}$ (bottom row) that is strongest at $t=4$ and decays as the
-matter disperses. The nearly static, retrograde scaffold selected by CMA-ES
-(Sec.~\ref{sec:methodology}) holds this shift structure in place while the
-matter remains confined.
-
-The peak $f_{\rm geo}$ occurs at $t_{\rm emit}=4$
-(Fig.~\ref{fig:fgeo_validation}); at later emission times the channel
-weakens as matter disperses.
-Lower-scoring archive configurations failed for the same reason: their
-supporting matter dispersed (Sec.~\ref{sec:dispersion}).
+The shortcut arises from matter momentum sourcing geometry. Each Q-ball lump
+oscillates with $\Pi\neq0$, so by Eq.~\eqref{eq:scalar_sources} it carries a
+momentum density $S_i$ that enters the momentum constraint and generates a
+nontrivial shift $\beta^i$; the shift tilts the local light cones along the
+matter current, and null rays crossing the region gain coordinate time
+relative to the flat path (Fig.~\ref{fig:shortcut_cartoon}). The finest-run
+field maps (Fig.~\ref{fig:rf_field_maps}) make this concrete: the mixed-sign
+lumps ($\rho_{\rm req}$, top row) source a bipolar shift $\beta^{x}$ (bottom
+row) that is strongest at the peak-$f_{\rm geo}$ launch $t_{\rm emit}=4$
+(Fig.~\ref{fig:fgeo_validation}) and decays as the matter disperses.
+Lower-scoring archive configurations failed for the same reason
+(Sec.~\ref{sec:dispersion}).
 
 \subsection{4D falsification certificate}
 
@@ -1688,9 +1662,8 @@ completion of the three-run resolution matrix was approximately ten hours.
 \subsection{Future applications of the pipeline}
 \label{sec:future_apps}
 
-The matter-first search architecture---MAP-Elites exploration, CMA-ES
-refinement, and automated scoring on the evolved spacetime---is not
-specific to null-timing shortcuts. Any question of the form ``which
+The matter-first search architecture is not specific to null-timing
+shortcuts. Any question of the form ``which
 initial matter configuration optimizes geometric observable $\mathcal{O}$?''
 can be attacked by replacing the scoring function while reusing the
 genome representation, constraint solver, and evolution infrastructure.
@@ -1725,19 +1698,19 @@ optimization in nonlinear PDE solvers.
 We presented an automated matter-first discovery pipeline in which
 MAP-Elites proposes scalar configurations, CMA-ES refines the archive
 champion, and 4D null geodesics through the evolved spacetime test whether
-light arrives earlier than in flat space. The refined champion
-(candidate~146, a bicomplex five-lump Q-ball shell) yields
-$f_{\rm geo}=20.2\%$ in the headline validation run, stable across a
-three-run resolution ladder (${\sim}0.1\%$ fine--medium difference) and a
-matched domain ladder ($\le0.12\%$; Table~\ref{tab:matrix}). The
-pump-free twin reproduces the advantage at $20.5\%$
-(Sec.~\ref{sec:pump_free}). The shortcut is transient; a matched
+light arrives earlier than in flat space. Applied to a bicomplex five-lump
+Q-ball genome, it discovered candidate~146, a reproducible,
+continuum-stable numerical warp precursor with $f_{\rm geo}=20.2\%$
+(Table~\ref{tab:matrix}) that survives with the ignition controller disabled
+(Sec.~\ref{sec:pump_free}). The shortcut is transient---not a functional warp
+drive---and, within this ansatz, requires the phantom sector: a matched
 canonical-only search found no $f_{\rm geo}>0$
-(Sec.~\ref{sec:canonical_bound}). Candidate~146 is therefore a
-reproducible, continuum-stable numerical warp precursor---not a functional
-warp drive---and semiclassical Casimir bounds
-(Sec.~\ref{sec:casimir_bounds}) confirm that laboratory vacuum stresses
-fall ${\sim}50$ orders of magnitude short of the required exotic budget.
+(Sec.~\ref{sec:canonical_bound}), while semiclassical Casimir bounds
+(Sec.~\ref{sec:casimir_bounds}) place laboratory vacuum stresses
+${\sim}50$ orders of magnitude short of the required exotic budget. The
+broader contribution is the falsification stack itself: a template for
+automated, constraint-satisfying searches of the positive-energy sector and
+of other geometric observables (Sec.~\ref{sec:future_apps}).
 
 \section*{Code and data availability}
 
