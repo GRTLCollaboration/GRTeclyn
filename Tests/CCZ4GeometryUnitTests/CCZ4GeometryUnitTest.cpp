@@ -39,7 +39,10 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
     Tensor::Sym12Sym34Rank4 d2_h{};
     Tensor::Sym12Rank2 d2_chi{};
 // Including the auto generated file with values
-#include "CCZ4GeometryMathematicaValues.hpp"
+// Run it with "python CCZ4GeometryGenerateExpectedValues.py"
+#define CCZ4_GEOMETRY_INPUT_VALUES
+#include "CCZ4GeometryExpectedValues.hpp"
+#undef CCZ4_GEOMETRY_INPUT_VALUES
 
     a_array(a_iv, c_chi) = chi;
     FOR (i)
@@ -48,7 +51,7 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
         a_array(a_iv, c_Gamma1 + i) = Gamma(i);
         FOR (j)
         {
-            a_array(a_iv, VAR_IDX(c_h11, i, j)) = h(i, j);
+            a_array(a_iv, sym_var_idx(c_h11, i, j)) = h(i, j);
         }
     }
 
@@ -56,10 +59,15 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
         a_array.cellData(a_iv[0], a_iv[1], a_iv[2]);
     CCZ4Vars vars(cell_data);
 
-    auto h_UU   = CCZ4Geometry::compute_inverse_metric_test(vars);
-    auto chris  = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+    auto h_UU  = CCZ4Geometry::compute_inverse_metric_test(vars);
+    auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+    auto phys_chris =
+        CCZ4Geometry::compute_phys_chris(vars, d1_chi, h_UU, chris.ULL);
     auto ricciZ = CCZ4Geometry::compute_ricci_Z(
         vars, d1_chi, d1_Gamma, d1_h, d2_h, d2_chi, h_UU, chris, Z_over_chi);
+    const amrex::Real dZ_coeff = 1.0;
+    auto ricciZ_general        = CCZ4Geometry::compute_ricci_Z_general(
+        vars, d1_chi, d1_Gamma, d1_h, d2_chi, d2_h, h_UU, chris, dZ_coeff);
 
     int vars_counter = 0;
     FOR (i, j)
@@ -81,17 +89,35 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
         ++vars_counter;
     }
 
+    FOR (i, j, k)
+    {
+
+        a_geometry_array(a_iv, vars_counter) = phys_chris(i, j, k);
+        ++vars_counter;
+    }
+
     FOR (i, j)
     {
         a_geometry_array(a_iv, vars_counter) = ricciZ.LL(i, j);
         ++vars_counter;
     }
 
-    a_geometry_array(a_iv, vars_counter) = ricciZ.scalar;
+    a_geometry_array(a_iv, vars_counter++) = ricciZ.scalar;
+
+    FOR (i, j)
+    {
+        a_geometry_array(a_iv, vars_counter) = ricciZ_general.LL(i, j);
+        ++vars_counter;
+    }
+
+    a_geometry_array(a_iv, vars_counter) = ricciZ_general.scalar;
 }
 
 void run_ccz4_geometry_unit_tests()
 {
+#define CCZ4_GEOMETRY_EXPECTED_VALUES
+#include "CCZ4GeometryExpectedValues.hpp"
+#undef CCZ4_GEOMETRY_EXPECTED_VALUES
 
     int amrex_argc    = doctest::cli_args.argc();
     char **amrex_argv = doctest::cli_args.argv();
@@ -122,9 +148,6 @@ void run_ccz4_geometry_unit_tests()
         const amrex::CellData<const amrex::Real> &geometry_test_cell_data =
             geometry_array.cellData(0, 0, 0);
 
-// Including the auto generated file with expected values
-#include "CCZ4GeometryMathematicaExpectedValues.hpp"
-
         int vars_counter = 0;
         // Compare
         FOR (i, j)
@@ -153,6 +176,15 @@ void run_ccz4_geometry_unit_tests()
             ++vars_counter;
         }
 
+        FOR (i, j, k)
+        {
+            INFO("phys_chris.ULL[" << i << "][" << j << "][" << k << "]");
+            CHECK(geometry_array(iv_zeros, vars_counter) ==
+                  doctest::Approx(chris_phys_known[i][j][k])
+                      .epsilon(test_threshold));
+            ++vars_counter;
+        }
+
         FOR (i, j)
         {
             INFO("ricciZ.LL[" << i << "][" << j << "]");
@@ -163,6 +195,20 @@ void run_ccz4_geometry_unit_tests()
 
         CHECK(geometry_array(iv_zeros, vars_counter) ==
               doctest::Approx(ricciZ_scalar_known).epsilon(test_threshold));
+        ++vars_counter;
+
+        FOR (i, j)
+        {
+            INFO("ricciZ_general.LL[" << i << "][" << j << "]");
+            CHECK(geometry_array(iv_zeros, vars_counter) ==
+                  doctest::Approx(ricciZ_general_known[i][j])
+                      .epsilon(test_threshold));
+            ++vars_counter;
+        }
+
+        CHECK(geometry_array(iv_zeros, vars_counter) ==
+              doctest::Approx(ricciZ_general_scalar_known)
+                  .epsilon(test_threshold));
         ++vars_counter;
     }
     amrex::Finalize();
