@@ -13,6 +13,7 @@
 #include <AMReX.H>
 
 // Test cases
+#include "AHFinderUnitTest.hpp"
 #include "BSSNMatterTest.hpp"
 #include "CCZ4GeometryUnitTest.hpp"
 #include "CCZ4RHSTest.hpp"
@@ -28,6 +29,8 @@
 #include "SphericalHarmonicTest.hpp"
 #include "Weyl4Test.hpp"
 #include "Weyl4WithMatterTest.hpp"
+
+TEST_CASE("AHFinder") { run_ah_finder_unit_test(); }
 
 TEST_CASE("BSSNMatter"
 #ifndef AMREX_USE_HDF5
