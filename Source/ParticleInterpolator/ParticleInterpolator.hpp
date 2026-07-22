@@ -44,6 +44,10 @@ class ParticleInterpolator
     void check_domain(amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
+    // A function to check whether the query point is inside the physical domain
+    void check_domain(amrex::GpuArray<double, AMREX_SPACEDIM> &x,
+                      int guard_cells = 0) const;
+
   private:
     bool m_initialized{
         false}; // a guard to make sure we do not uninitialised GRAmr

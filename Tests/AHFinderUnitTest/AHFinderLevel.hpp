@@ -26,7 +26,7 @@ class AHFinderLevel : public GRAMRLevel
     // initialize data
     void initData()
     {
-        amrex::MultiFab &state = get_new_data(State_Type);
+        amrex::MultiFab &state = get_new_data(state_index);
         const auto &arrs       = state.arrays();
         auto const &geom       = Geom();
         auto const prob_lo     = geom.ProbLoArray();
@@ -69,7 +69,7 @@ class AHFinderLevel : public GRAMRLevel
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final
     {
-        amrex::MultiFab &state_new = get_new_data(State_Type);
+        amrex::MultiFab &state_new = get_new_data(state_index);
 
         const auto &tag_arrs   = a_tag_box_array.arrays();
         const auto &state_arrs = state_new.arrays();
