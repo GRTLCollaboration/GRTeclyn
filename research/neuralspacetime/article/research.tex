@@ -556,8 +556,9 @@ its lumps have flown apart. The exotic penalty $X_{\rm exotic}<0$ charges for
 energy-condition violation~\cite{le2026warpax} at campaign weight $w_x$. This penalty is
 deliberately sub-dominant to transport: at the campaign value $w_x=0.2$ and the
 graded floor $X_{\rm exotic}\ge-1.6$, the exotic term reaches at most
-$40\,w_x|X_{\rm exotic}|\approx13$ points, a small fraction of the
-${\sim}1000$-point geodesic slot. The
+$40\,w_x|X_{\rm exotic}|\approx13$ points, sub-dominant to the
+persistence-gated geodesic term (which contributes up to $1000\,\hat f\,p_{\rm s}$;
+for the champion the search-tier value is ${\approx}417$ points). The
 optimizer is thus permitted to spend exotic matter freely in exchange for
 genuine null-transport gain, which is why the archive populates the
 phantom-supported sector rather than being pinned to $X_{\rm exotic}=0$.
@@ -1218,7 +1219,7 @@ $t$ & $\alpha_A$ & $|\beta^i|_A$ & $\alpha_B$ & $|\beta^i|_B$ \\
 \end{ruledtabular}
 \end{table}
 
-To remove the residual gauge dependence entirely, we re-express the timing
+As a gauge-robustness check, we re-express the timing
 advantage in the proper time of a static receiver at $B$, whose clock ticks at
 $d\tau=\sqrt{-g_{00}(B)}\,dt$. Integrating the measured $g_{00}(B,t)$ from
 $t_{\rm emit}$ to each arrival, the curved signal reaches $B$ at proper time
@@ -1231,8 +1232,11 @@ f_{\rm geo}^{\tau}=\frac{\tau_{\rm flat}-\tau_{\rm curved}}{\tau_{\rm flat}}
 \label{eq:proper_time_fgeo}
 \end{equation}
 within $0.7$ percentage points of the coordinate value $20.2\%$. The advantage
-is therefore not a lapse/shift artifact: it survives conversion to the physical
-clock of a stationary receiver.
+is therefore robust against lapse/shift coordinate effects in the selected
+gauge: it survives conversion to the physical clock of a stationary receiver
+at~$B$. This does not constitute a gauge-invariant proof---the receiver is
+defined by fixed coordinates, not a geometrically selected worldline---but
+it confirms the signal is not a coordinate artifact of the $1+\log$ slicing.
 
 A complementary check concerns proper \emph{distance}. The negative-energy
 sources contract the spatial metric along the corridor, so the coordinate

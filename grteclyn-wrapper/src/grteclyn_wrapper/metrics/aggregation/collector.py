@@ -49,6 +49,10 @@ from ..probes.ftl.evolving_geodesic import (
     write_evolving_geodesic_json,
 )
 from ..probes.ftl.metric_stack_cache import metric_stack_dir, slice_count
+from ..probes.ftl.observer_timing import (
+    compute_freefall_observer_timing_from_cache,
+    write_freefall_observer_timing_json,
+)
 from ..probes.ftl.evolving_geodesic_options import (
     evolving_geodesic_options_from_env,
     geo_directions_from_env,
@@ -73,6 +77,12 @@ def _evolving_geodesic_enabled(evolving_geodesic: bool | None) -> bool:
         "yes",
         "true",
     }
+
+
+def _freefall_observer_timing_enabled() -> bool:
+    return os.environ.get(
+        "GRTECLYN_FREEFALL_OBSERVER_TIMING", ""
+    ).strip().lower() in {"1", "on", "yes", "true"}
 
 
 def _resolve_objective_mode(
@@ -233,6 +243,36 @@ def _compute_evolving_geodesic_metrics(
         json_path = ctx.episode_dir / "small_data" / "evolving_geodesic.json"
         write_evolving_geodesic_json(json_path, evo_report)
         logger.info("wrote evolving geodesic report to %s", json_path)
+        if _freefall_observer_timing_enabled():
+            try:
+                emission_tau = float(
+                    os.environ.get("GRTECLYN_FREEFALL_EMISSION_TAU", "4.0")
+                )
+                observer_report = compute_freefall_observer_timing_from_cache(
+                    cache_dir,
+                    emission_tau=emission_tau,
+                )
+                if observer_report is None:
+                    logger.warning(
+                        "freefall observer timing skipped: metric cache unavailable"
+                    )
+                else:
+                    observer_path = (
+                        ctx.episode_dir
+                        / "small_data"
+                        / "freefall_observer_timing.json"
+                    )
+                    write_freefall_observer_timing_json(
+                        observer_path, observer_report
+                    )
+                    logger.info(
+                        "wrote freefall observer timing report to %s",
+                        observer_path,
+                    )
+            except Exception:
+                logger.exception(
+                    "freefall observer timing failed for %s", ctx.episode_dir
+                )
         patch_ftl_timeseries_evolving(
             ctx.ftl_timeseries_path,
             f_geo_evol=float(evo_report.f_geo),
