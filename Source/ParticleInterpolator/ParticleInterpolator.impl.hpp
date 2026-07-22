@@ -23,8 +23,8 @@
 #include <AMReX_ParmParse.H>
 
 // initialise everything and perform some sanity checks
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::setup(GRAmr *gramr_ptr)
+template <int num_components>
+void ParticleInterpolator<num_components>::setup(GRAmr *gramr_ptr)
 {
     // is GRAmr properly set?
     AMREX_ASSERT(gramr_ptr != nullptr);
@@ -56,8 +56,8 @@ void ParticleInterpolator<num_reals, num_components>::setup(GRAmr *gramr_ptr)
 }
 
 // a parity helper (the same way as it was defined in the AMRInterpolator)
-template <int num_reals, int num_components>
-int ParticleInterpolator<num_reals, num_components>::get_var_parity(
+template <int num_components>
+int ParticleInterpolator<num_components>::get_var_parity(
     int comp, int point_idx, const InterpolationQueryParticle &query,
     const Derivative &deriv, VariableType variable_type,
     BCParity derived_parity) const
@@ -100,9 +100,9 @@ int ParticleInterpolator<num_reals, num_components>::get_var_parity(
 
 // a function to reflect a particle back into the valid domain, when symmetry
 // BCs are used
-template <int num_reals, int num_components>
+template <int num_components>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-ParticleInterpolator<num_reals, num_components>::reflect_particle(amrex::Real x,
+ParticleInterpolator<num_components>::reflect_particle(amrex::Real x,
                                                        amrex::Real low,
                                                        amrex::Real high,
                                                        bool low_reflect,
@@ -123,8 +123,8 @@ ParticleInterpolator<num_reals, num_components>::reflect_particle(amrex::Real x,
 }
 
 // allocate particles at the query points
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::populate_from_query(
+template <int num_components>
+void ParticleInterpolator<num_components>::populate_from_query(
     const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
@@ -228,8 +228,8 @@ void ParticleInterpolator<num_reals, num_components>::populate_from_query(
 }
 
 // a helper function that helps with interpolation from grid onto particles
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::interpolate_to_particle(
+template <int num_components>
+void ParticleInterpolator<num_components>::interpolate_to_particle(
     int lev, amrex::MultiFab &mfab, const amrex::Geometry &geom,
     const InterpolationQueryParticle &query)
 {
@@ -348,8 +348,8 @@ void ParticleInterpolator<num_reals, num_components>::interpolate_to_particle(
 
 // A wrapper function that the user needs to call to perform interpolation
 // It uses/collates together all the methods defined in this class
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::interp(
+template <int num_components>
+void ParticleInterpolator<num_components>::interp(
     const InterpolationQueryParticle &query, bool a_refresh_particles,
     const std::string &name_derived, amrex::Real time_derived /*=0.0*/)
 {
@@ -477,8 +477,8 @@ void ParticleInterpolator<num_reals, num_components>::interp(
 
 // A function that puts the logic of mpi send and receive buffers together and
 // prepares the final out arrays from interpolation
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::aggregate_points(
+template <int num_components>
+void ParticleInterpolator<num_components>::aggregate_points(
     const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
@@ -494,8 +494,8 @@ void ParticleInterpolator<num_reals, num_components>::aggregate_points(
 }
 
 // Prepare send buffers and package them up: who do I send answers to?
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::prepare_send_buffers()
+template <int num_components>
+void ParticleInterpolator<num_components>::prepare_send_buffers()
 {
     const int nprocs = amrex::ParallelDescriptor::NProcs();
 
@@ -639,8 +639,8 @@ void ParticleInterpolator<num_reals, num_components>::prepare_send_buffers()
 }
 
 // Prepare receive buffers
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::prepare_receive_buffers()
+template <int num_components>
+void ParticleInterpolator<num_components>::prepare_receive_buffers()
 {
     const int total_recv = m_mpi.totalQueryCount();
 
@@ -655,8 +655,8 @@ void ParticleInterpolator<num_reals, num_components>::prepare_receive_buffers()
 }
 
 // Exchange answers between ranks
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::exchange_answers()
+template <int num_components>
+void ParticleInterpolator<num_components>::exchange_answers()
 {
 #ifdef AMREX_USE_MPI
     m_mpi.asyncBegin();
@@ -683,8 +683,8 @@ void ParticleInterpolator<num_reals, num_components>::exchange_answers()
 }
 
 // Build values at particle positions and apply parities
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::apply_parity_and_store_values(
+template <int num_components>
+void ParticleInterpolator<num_components>::apply_parity_and_store_values(
     const InterpolationQueryParticle &query)
 {
 
@@ -758,8 +758,8 @@ void ParticleInterpolator<num_reals, num_components>::apply_parity_and_store_val
 }
 
 // A function to check whether the query point is inside the physical domain
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::check_domain(
+template <int num_components>
+void ParticleInterpolator<num_components>::check_domain(
     amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
     int guard_cells) const
 {
@@ -813,8 +813,8 @@ void ParticleInterpolator<num_reals, num_components>::check_domain(
 }
 
 // Ensure that particles are redistributed if needed
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::ensure_redistributed()
+template <int num_components>
+void ParticleInterpolator<num_components>::ensure_redistributed()
 {
     const int nlev = m_gr_amr_ptr->finestLevel() + 1;
 
@@ -865,9 +865,8 @@ void ParticleInterpolator<num_reals, num_components>::ensure_redistributed()
 }
 
 // Option to force Redistribute() flag if needed globally
-template <int num_reals, int num_components>
-void ParticleInterpolator<num_reals, num_components>::force_redistribute(
-    bool flag)
+template <int num_components>
+void ParticleInterpolator<num_components>::force_redistribute(bool flag)
 {
     m_need_redistribute = flag;
 }

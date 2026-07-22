@@ -8,7 +8,7 @@
 #include "ParticleInterpolator.hpp"
 
 template <int num_components>
-class AHFinder : public ParticleInterpolator<2, num_components>
+class AHFinder : public ParticleInterpolator<num_components>
 {
   private:
     int m_num_particles;
@@ -37,7 +37,7 @@ class AHFinder : public ParticleInterpolator<2, num_components>
 
   public:
 
-    using Base         = ParticleInterpolator<2, num_components>;
+    using Base         = ParticleInterpolator<num_components>;
     using ParIterType  = typename Base::ParIterType;
     using ParticleType = typename Base::ParticleType;
     using Base::Base;
