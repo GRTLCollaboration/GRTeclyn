@@ -41,6 +41,10 @@ void AHFinder<num_components>::init(
     // Set up interpolator
     this->setup(gramr_ptr, a_bc_params, a_verbosity);
 
+    // Add comps for h and v
+    this->AddRealComp(true);
+    this->AddRealComp(true);
+
     // Populate so we can access the particle data
     this->populate_from_query();
 
@@ -108,22 +112,24 @@ template <int num_components> void AHFinder<num_components>::init_h_v()
         for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
         {
             // Get AoS data for particles at this level
-            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
-            auto &aos             = particle_tile.GetArrayOfStructs();
-            ParticleType *pstruct = aos().dataPtr();
+            auto &particle_tile     = this->ParticlesAt(lev, par_iter);
+            auto particle_tile_data = particle_tile.getParticleTileData();
+            auto &aos               = particle_tile.GetArrayOfStructs();
+            ParticleType *pstruct   = aos().dataPtr();
 
             amrex::ParallelFor(m_num_particles,
                                [=] AMREX_GPU_DEVICE(int ip)
                                {
                                    auto &p = pstruct[ip];
 
-                                   p.rdata(0) =
+                                   particle_tile_data.rdata(m_h_idx)[ip] =
                                        sqrt(pow(p.pos(0) - m_center[0], 2) +
                                             pow(p.pos(1) - m_center[1], 2) +
                                             pow(p.pos(2) - m_center[2],
                                                 2)); // Height from centre
 
-                                   p.rdata(1) = 0.0; // Velocity
+                                   particle_tile_data.rdata(m_v_idx)[ip] =
+                                       0.0; // Velocity
                                });
         }
 

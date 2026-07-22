@@ -19,6 +19,11 @@ class AHFinder : public ParticleInterpolator<num_components>
     amrex::Real m_tol;
     amrex::Real m_dt;
 
+    // Indices into particle data for AHFinder
+    // specific particle components
+    int m_h_idx = num_components;
+    int m_v_idx = num_components + 1;
+
     InterpolationQueryParticle query;
 
     std::vector<double> interp_coords_x{};
