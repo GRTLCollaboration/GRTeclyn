@@ -98,6 +98,7 @@ class PolynomialDerivedQuantity
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // set up the coords
+        // NOLINTBEGIN(cppcoreguidelines-init-variables)
         const amrex::Real x = plo[0] + (i + 0.5) * dx[0] - center[0];
         const amrex::Real y = plo[1] + (j + 0.5) * dx[1] - center[1];
 #if AMREX_SPACEDIM == 3
@@ -105,6 +106,7 @@ class PolynomialDerivedQuantity
 #else
         const amrex::Real z = 0.0;
 #endif
+        // NOLINTEND(cppcoreguidelines-init-variables)
 
         // write via cell data
         auto cell      = a_array.cellData(i, j, k);
