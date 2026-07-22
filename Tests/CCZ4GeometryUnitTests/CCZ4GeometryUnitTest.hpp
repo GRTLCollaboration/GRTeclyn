@@ -8,11 +8,14 @@
 
 #include "DimensionDefinitions.hpp"
 
-// We test chris.ULL (rank 3) + h_UU and RicciZ_.LL (2 x rank 2)
+// We test chris.ULL (rank 3) + chris_phys.ULL (rank3) + h_UU and RicciZ_.LL (2
+// x rank 2)
 // + chris.contracted (rank 1) + RicciZ.scalar (scalar)
-constexpr int NUM_GEOMETRY_TEST_VARS = GR_SPACEDIM * GR_SPACEDIM * GR_SPACEDIM +
-                                       2 * GR_SPACEDIM * GR_SPACEDIM +
-                                       GR_SPACEDIM + 1;
+// + RicciZ_general.LL (2 x rank 2) + RicciZ_general.scalar (scalar)
+constexpr int NUM_GEOMETRY_TEST_VARS =
+    2 * AMREX_SPACEDIM * AMREX_SPACEDIM * AMREX_SPACEDIM +
+    2 * AMREX_SPACEDIM * AMREX_SPACEDIM + AMREX_SPACEDIM + 1 +
+    AMREX_SPACEDIM * AMREX_SPACEDIM + 1;
 
 void run_ccz4_geometry_unit_tests();
 
