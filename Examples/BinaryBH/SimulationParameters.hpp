@@ -44,7 +44,7 @@ class SimulationParameters : public SimulationParametersBase
     }
 
     /// Read BH parameters
-    // NOLINTNEXTLINE(readability-identifier-length)
+    // NOLINTNEXTLINE(readability-*)
     void read_bh_params(GRParmParse &pp)
     {
 #ifndef USE_TWOPUNCTURES
@@ -174,10 +174,12 @@ class SimulationParameters : public SimulationParametersBase
             "approximation used for boosted BH only valid for small boosts");
         FOR (idir)
         {
-            std::string nameA   = "centerA[" + std::to_string(idir) + "]";
-            std::string nameB   = "centerB[" + std::to_string(idir) + "]";
+            std::string nameA = "centerA[" + std::to_string(idir) + "]";
+            std::string nameB = "centerB[" + std::to_string(idir) + "]";
+            // NOLINTBEGIN(cppcoreguidelines-init-variables)
             double center_A_dir = bh1_params.center[idir];
             double center_B_dir = bh2_params.center[idir];
+            // NOLINTEND(cppcoreguidelines-init-variables)
             warn_parameter(nameA, center_A_dir,
                            (center_A_dir >= 0.0) &&
                                (center_A_dir <= (ivN[idir] + 1) * coarsest_dx),
