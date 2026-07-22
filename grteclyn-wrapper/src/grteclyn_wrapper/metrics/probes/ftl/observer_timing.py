@@ -117,6 +117,7 @@ def integrate_timelike_geodesic(
     initial_position: Vector,
     *,
     d_tau: float = 0.025,
+    t_stop: float | None = None,
 ) -> TimelikeWorldline:
     """Integrate an initially Eulerian freely falling observer."""
     x = np.asarray(initial_position, dtype=float).copy()
@@ -126,7 +127,10 @@ def integrate_timelike_geodesic(
     positions = [x.copy()]
     momenta = [p_cov.copy()]
     max_drift = 0.0
-    t_end = float(field.times[-1])
+    t_end = min(
+        float(field.times[-1]),
+        float(t_stop) if t_stop is not None else float(field.times[-1]),
+    )
 
     while x[0] < t_end:
         x_new, p_new = _rk4_step(field, x, p_cov, d_tau)
@@ -266,12 +270,28 @@ def compute_freefall_observer_timing(
     t0 = float(field.times[0])
     emitter_initial = np.array([t0, *start])
     receiver_initial = np.array([t0, *end])
+    initial_separation = _initial_proper_separation(
+        field, emitter_initial, receiver_initial
+    )
+    # Reception occurs well before the end of long HQ runs.  Do not propagate
+    # endpoint observers into an unrelated late trapped region after the timing
+    # experiment has already completed.
+    observer_t_stop = min(
+        float(field.times[-1]),
+        t0 + emission_tau + 1.5 * initial_separation,
+    )
 
     emitter = integrate_timelike_geodesic(
-        field, emitter_initial, d_tau=observer_step
+        field,
+        emitter_initial,
+        d_tau=observer_step,
+        t_stop=observer_t_stop,
     )
     receiver = integrate_timelike_geodesic(
-        field, receiver_initial, d_tau=observer_step
+        field,
+        receiver_initial,
+        d_tau=observer_step,
+        t_stop=observer_t_stop,
     )
     emission_x, emission_p, _ = _worldline_at(
         emitter, emission_tau, parameter="tau"
@@ -292,10 +312,6 @@ def compute_freefall_observer_timing(
     coordinate_distance = float(
         np.linalg.norm(receiver_at_emission[1:] - emission_x[1:])
     )
-    initial_separation = _initial_proper_separation(
-        field, emitter_initial, receiver_initial
-    )
-
     best_null_drift = 0.0
 
     def trace(parameters: Vector) -> tuple[Vector, float]:
@@ -367,8 +383,8 @@ def compute_freefall_observer_timing(
     flat_reception_tau = emission_tau + initial_separation
     advance = flat_reception_tau - reception_tau if reached else None
     fraction = (
-        max(0.0, advance / flat_reception_tau)
-        if advance is not None and flat_reception_tau > 0.0
+        max(0.0, advance / initial_separation)
+        if advance is not None and initial_separation > 0.0
         else 0.0
     )
 
@@ -399,6 +415,7 @@ def compute_freefall_observer_timing(
             "initially Eulerian freely falling observers",
             "emission scheduled by emitter proper time",
             "flat reference uses matched initial proper separation",
+            "fraction normalized by matched flat transit duration",
         ),
     )
 

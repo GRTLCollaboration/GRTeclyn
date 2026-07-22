@@ -1,0 +1,19 @@
+{
+  "run_id": "BCMA-RF-FF",
+  "campaign": "bicomplex_cmaes_freefall_observer",
+  "phase": 3,
+  "role": "corrected_champion_freefall_fine",
+  "manifest": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest_freefall.json",
+  "source_run": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1",
+  "eval_id": 146,
+  "n_full": 384,
+  "l_full": 128.0,
+  "h": 0.3333333333333333,
+  "stop_time": 30.0,
+  "plot_interval": 36,
+  "max_level": 3,
+  "gpu_id": "1,2,3",
+  "evolution_mpi_ranks": 3,
+  "out_dir": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/bcma_rf_freefall_corrected_L128_N384_t30_hq_eval000146",
+  "git_commit": "377a1433eeee4d7fe9ae5521760cbee8fa651e97"
+}

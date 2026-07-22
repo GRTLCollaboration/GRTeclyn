@@ -34,6 +34,36 @@
       "consumer_radii": [12.0, 18.0, 24.0],
       "name_prefix": "bcma_rm_freefall_corrected_L128_N256_t30",
       "notes": "Frozen physical trajectory parameters; no second speed conversion."
+    },
+    {
+      "id": "BCMA-RC-FF",
+      "phase": 3,
+      "role": "corrected_champion_freefall_coarse",
+      "n_full": 192,
+      "l_full": 128.0,
+      "stop_time": 30.0,
+      "plot_interval": 72,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 1,
+      "consumer_radii": [12.0, 18.0, 24.0],
+      "name_prefix": "bcma_rc_freefall_corrected_L128_N192_t30",
+      "depends_on": ["BCMA-RM-FF"],
+      "notes": "Freefall observer Richardson coarse run."
+    },
+    {
+      "id": "BCMA-RF-FF",
+      "phase": 3,
+      "role": "corrected_champion_freefall_fine",
+      "n_full": 384,
+      "l_full": 128.0,
+      "stop_time": 30.0,
+      "plot_interval": 36,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 3,
+      "consumer_radii": [12.0, 18.0, 24.0],
+      "name_prefix": "bcma_rf_freefall_corrected_L128_N384_t30",
+      "depends_on": ["BCMA-RM-FF"],
+      "notes": "Freefall observer Richardson fine run on three GPUs."
     }
   ]
 }

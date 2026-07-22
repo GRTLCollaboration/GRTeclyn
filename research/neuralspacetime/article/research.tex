@@ -46,7 +46,10 @@ followed by CMA-ES refinement, yields a five-lump champion (candidate~146)
 supported by two canonical and three phantom (negative-energy) scalar
 sources. In the headline validation run ($L=128$, $N=256$, three refinement
 levels, $t=30$), null rays arrive $20.2\%$ earlier than the matched flat
-path, with all quality gates passed. The result is stable across a
+path, with all quality gates passed. A complementary freely falling observer
+protocol---proper-time reception on timelike geodesics---confirms a $7.6\%$
+advance, isolating the physical timing gain from coordinate artifacts.
+The result is stable across a
 three-run resolution ladder ($N=192/256/384$; fine--medium relative
 difference $0.13\%$) and a matched-spacing domain ladder ($L=96$ and
 $L=160$; within $0.12\%$ of the baseline). An external ignition controller
@@ -739,7 +742,7 @@ gate, and one failed the constraint solve. Nine cells were occupied
 ($14.06\%$ coverage). All nontrivial elites lie in the highest lifetime row,
 while peak strength spans the archive. The best score rose from $690.1$ to
 $825.19$ and last improved at batch~10, when candidate~87 entered cell
-$(7,7)$ (Fig.~\ref{fig:qd_progress}). The campaign runs to a fixed budget
+$(7,7)$ (Fig.~\ref{fig:search_progress}a). The campaign runs to a fixed budget
 ($200$ evaluations here), which is set so that it comfortably outlasts
 saturation: it is terminated once the archive-best score has plateaued and
 cell coverage has stopped growing. In this run both stall well before the
@@ -751,7 +754,7 @@ budget and the saturation criterion coincide.
 \begin{tikzpicture}
 \begin{axis}[
   width=0.94\columnwidth,
-  height=0.50\columnwidth,
+  height=0.45\columnwidth,
   xlabel={MAP-Elites batch (8 evaluations)},
   ylabel={best score},
   xmin=0,xmax=25,
@@ -760,7 +763,8 @@ budget and the saturation criterion coincide.
   ytick={650,700,750,800,850},
   grid=major,grid style={gray!18},
   tick label style={font=\small},
-  label style={font=\small}
+  label style={font=\small},
+  title={\small (a) MAP-Elites}
 ]
 \addplot[black,very thick,mark=*,mark size=1.8pt]
   table[x=batch,y=best]{data/campaign_progress.txt};
@@ -770,17 +774,13 @@ budget and the saturation criterion coincide.
   {champion: $825.19$};
 \end{axis}
 \end{tikzpicture}
-\caption{MAP-Elites running best score over 200 evaluations. The champion
-(candidate~87) enters cell $(7,7)$ at batch~10 with $S=825.19$.}
-\label{fig:qd_progress}
-\end{figure}
 
-\begin{figure}[tbp]
-\centering
+\vspace{0.3cm}
+
 \begin{tikzpicture}
 \begin{axis}[
   width=0.94\columnwidth,
-  height=0.50\columnwidth,
+  height=0.45\columnwidth,
   xlabel={CMA-ES evaluation},
   ylabel={running best score},
   xmin=0,xmax=150,
@@ -788,7 +788,8 @@ budget and the saturation criterion coincide.
   ytick={820,830,840,850,860},
   grid=major,grid style={gray!18},
   tick label style={font=\small},
-  label style={font=\small}
+  label style={font=\small},
+  title={\small (b) CMA-ES refinement}
 ]
 \addplot[black,very thick]
   table[x=eval,y=best]{data/cmaes_progress.txt};
@@ -803,11 +804,13 @@ budget and the saturation criterion coincide.
   {CMA champion: $852.15$};
 \end{axis}
 \end{tikzpicture}
-\caption{CMA-ES refinement progress over 150 evaluations, warm-started from
-MAP-Elites champion~87. Dashed line: MAP-Elites best ($825.19$). The running
-best exceeds the baseline by evaluation~47 and reaches $852.15$ at
-candidate~146.}
-\label{fig:cmaes_progress}
+\caption{Search progress.
+(a)~MAP-Elites running best score over 200 evaluations; the champion
+(candidate~87) enters cell $(7,7)$ at batch~10 with $S=825.19$.
+(b)~CMA-ES refinement over 150 evaluations, warm-started from
+MAP-Elites champion~87; dashed line marks the MAP-Elites best ($825.19$);
+the running best reaches $852.15$ at candidate~146.}
+\label{fig:search_progress}
 \end{figure}
 
 \subsection{Archive outcome and CMA-ES refinement}
@@ -818,13 +821,13 @@ dispersion-gated fitness $0.396$, constraint-growth score $0.983$, and
 confinement retention $0.396$. CMA-ES warm-started from this genome and ran
 150 evaluations (144 GPU-ok) at the same search grid, raising the score to
 $852.15$ (candidate~146, $\Delta S\approx+27$;
-Fig.~\ref{fig:cmaes_progress}). The improvement is not a
+Fig.~\ref{fig:search_progress}b). The improvement is not a
 bigger raw shortcut---the search-tier $f_{\rm geo}$ actually \emph{decreased}
 from $25.3\%$ to $20.1\%$---but a better confinement-gated persistence
 ($0.396\to0.417$). CMA-ES converged to a genome with nearly static lump
 placement: very slow angular velocities and small breathing, producing a
-quasi-static scaffold that keeps matter confined longer
-(Fig.~\ref{fig:lump_dynamics}). Table~\ref{tab:search_handoff} summarizes
+quasi-static scaffold that keeps matter confined longer.
+Table~\ref{tab:search_handoff} summarizes
 the two-stage hand-off and its promotion to HQ validation.
 
 \begin{table}[tbp]
@@ -903,6 +906,170 @@ those runs the window brackets the full life of the channel. (In the
 pump-free twin the optimum instead sits at the edge of the same window;
 Sec.~\ref{sec:pump_free}.)
 
+\subsection{Freely falling observer timing metric}
+\label{sec:freefall_metric}
+
+As a stronger complement to the fixed-plane coordinate diagnostic
+$f_{\rm geo}$, we define an observer-to-observer timing metric. At the initial
+slice, an emitter $A$ and receiver $B$ are placed at the central source and
+detector locations used by the null-ray probe and are released with four-velocity
+equal to the future-directed Eulerian normal $n^\mu$. Their worldlines
+$\gamma_A$ and $\gamma_B$ are then evolved as timelike geodesics,
+\begin{equation}
+\frac{dx^\mu}{d\tau}=g^{\mu\nu}p_\nu,\qquad
+\frac{dp_\mu}{d\tau}
+=-\frac{1}{2}\partial_\mu g^{\alpha\beta}p_\alpha p_\beta,\qquad
+g^{\mu\nu}p_\mu p_\nu=-1,
+\label{eq:timelike_observers}
+\end{equation}
+where $\tau$ is the observer's proper time. Emission is scheduled by the
+emitter's clock, $\tau_A=\tau_{\rm emit}$, rather than by simulation coordinate
+time.
+
+At the emission event, an orthonormal spatial triad
+$e_{(a)}{}^\mu$ is constructed in the emitter's rest frame. The initial photon
+wave vector is written
+\begin{equation}
+k^\mu=u_A^\mu+\hat n^a e_{(a)}{}^\mu,\qquad
+\delta_{ab}\hat n^a\hat n^b=1,
+\label{eq:freefall_null_launch}
+\end{equation}
+up to an irrelevant positive affine rescaling. The two launch angles and the
+arrival affine parameter are solved simultaneously so that the null ray
+intersects the moving receiver worldline $\gamma_B$. Thus reception is a
+worldline event, not merely the crossing of a coordinate detector plane. The
+physical miss distance at the candidate event,
+\begin{equation}
+\delta_B=\sqrt{\gamma_{ij}\Delta x^i\Delta x^j},
+\label{eq:receiver_miss}
+\end{equation}
+is retained as a numerical quality diagnostic together with the null and
+timelike mass-shell residuals.
+
+For the matched Minkowski experiment, the two inertial observers are initially
+comoving, their clocks are synchronized on the reference initial slice, and
+their separation is the initial proper length
+\begin{equation}
+D_0=\int_A^B\sqrt{\gamma_{ij}\,dx^i dx^j}.
+\label{eq:freefall_initial_separation}
+\end{equation}
+The flat receiver therefore records
+$\tau_{B,\rm flat}=\tau_{\rm emit}+D_0$. If the curved-spacetime reception event
+occurs at receiver proper time $\tau_{B,\rm curved}$, the additional evaluation
+metric is
+\begin{equation}
+f_{\rm ff}
+=\frac{\tau_{B,\rm flat}-\tau_{B,\rm curved}}
+       {D_0}.
+\label{eq:freefall_metric}
+\end{equation}
+A positive $f_{\rm ff}$ means that the freely falling receiver records the
+photon earlier than in the matched flat experiment. This protocol absorbs
+endpoint lapse, shift, gravitational clock rate, and receiver motion into the
+measured worldlines. It is less coordinate-conditioned than
+Eq.~\eqref{eq:f_geo}, but it is not asserted to be fully gauge invariant:
+the initial slice and endpoint-selection prescription remain part of the
+operational definition.
+
+\begin{figure}[tbp]
+\centering
+\resizebox{0.98\columnwidth}{!}{%
+\begin{tikzpicture}[>=Latex, font=\scriptsize]
+% --- Symbolic x axes for each panel ---
+\draw[-{Latex[length=1.6mm]}, thick] (0.00,0.45) -- (3.80,0.45)
+  node[right] {$x$};
+\draw[-{Latex[length=1.6mm]}, thick] (5.40,0.45) -- (9.20,0.45)
+  node[right] {$x$};
+% --- Panel (a): fixed coordinate endpoints ---
+\node[font=\scriptsize\bfseries] at (1.85,3.85)
+  {(a) Fixed coordinate endpoints};
+% Matter region band (behind everything)
+\fill[blue!6] (1.20,0.55) rectangle (2.60,3.50);
+\draw[blue!25] (1.20,0.55) -- (1.20,3.50);
+\draw[blue!25] (2.60,0.55) -- (2.60,3.50);
+\node[blue!40, font=\tiny] at (1.90,3.42) {matter};
+\draw[-{Latex[length=1.6mm]}, thick] (0.10,0.55) -- (0.10,3.50);
+\node[anchor=east] at (0.05,3.40) {$t$};
+\draw[thick] (0.60,0.55) -- (0.60,3.30);
+\draw[thick] (3.20,0.55) -- (3.20,3.30);
+\node[below] at (0.60,0.35) {$A$};
+\node[below] at (3.20,0.35) {$B$};
+\fill (0.60,0.90) circle (1.5pt);
+\draw[black!45, dashed, line width=0.9pt]
+  (0.60,0.90) -- (3.20,3.00);
+\draw[black, line width=1.3pt, -{Latex[length=2mm]}]
+  (0.60,0.90) .. controls (1.35,1.15) and (2.40,1.90) .. (3.20,2.50);
+\draw[{Latex[length=1mm]}-{Latex[length=1mm]}, red!70!black]
+  (3.50,2.50) -- (3.50,3.00);
+\node[red!70!black, anchor=west] at (3.62,2.75)
+  {$20\%$};
+
+% --- Panel (b): freely falling observers ---
+\node[font=\scriptsize\bfseries] at (7.80,3.85)
+  {(b) Freely falling observers};
+% Matter region band
+\fill[blue!6] (6.80,0.55) rectangle (8.20,3.50);
+\draw[blue!25] (6.80,0.55) -- (6.80,3.50);
+\draw[blue!25] (8.20,0.55) -- (8.20,3.50);
+\node[blue!40, font=\tiny] at (7.50,3.42) {matter};
+\draw[-{Latex[length=1.6mm]}, thick] (5.50,0.55) -- (5.50,3.50);
+\node[anchor=east] at (5.45,3.40) {$\tau$};
+% Emitter worldline (slightly curved, thick)
+\draw[thick]
+  (6.20,0.55) .. controls (6.12,1.40) and (6.30,2.30) .. (6.45,3.30);
+\node[below] at (6.20,0.35) {$A$};
+% Receiver: inertial reference (dashed vertical, same start)
+\draw[thick, black!45, dashed] (8.80,0.55) -- (8.80,3.30);
+% Receiver: actual curved worldline (solid, drifts left)
+\draw[thick]
+  (8.80,0.55) .. controls (8.88,1.30) and (8.60,2.20) .. (8.45,3.30);
+\node[below] at (8.80,0.35) {$B$};
+% Emission event
+\fill (6.23,0.90) circle (1.5pt);
+% Dashed flat ray hits inertial receiver (arrives later)
+\draw[black!45, dashed, line width=0.9pt]
+  (6.23,0.90) -- (8.80,2.85);
+% Solid curved ray hits curved receiver (arrives earlier)
+\draw[black, line width=1.3pt, -{Latex[length=2mm]}]
+  (6.23,0.90) .. controls (6.90,1.10) and (7.80,1.70) .. (8.63,2.20);
+% Arrival markers on right margin
+\draw[black, thin] (8.63,2.20) -- (9.55,2.20);
+\draw[black!45, thin] (8.80,2.85) -- (9.55,2.85);
+\node[anchor=west] at (9.60,2.20) {\strut curved};
+\node[anchor=west, black!55] at (9.60,2.85) {\strut flat};
+% Bracket for advantage (far right)
+\draw[{Latex[length=1mm]}-{Latex[length=1mm]}, red!70!black]
+  (10.60,2.20) -- (10.60,2.85);
+\node[red!70!black, anchor=west] at (10.70,2.52)
+  {$7.6\%$};
+\end{tikzpicture}}
+\caption{Two operational measurements of the same candidate~146 (RM).
+(a)~Fixed endpoints: dashed = flat ray, solid = curved ray arriving $20\%$
+earlier at fixed~$B$.
+(b)~Free-fall observers: both receivers start at~$B$; the solid worldline
+drifts in curved spacetime while the dashed one stays inertial. The solid
+photon hits the curved receiver earlier (``curved'') than the dashed photon
+hits the inertial one (``flat''). The $7.6\%$ bracket is the proper-time
+advance. The two protocols differ in what they measure, not in candidate
+quality.}
+\label{fig:timing_protocols}
+\end{figure}
+
+For candidate~146 in the corrected RM replay, the fixed-endpoint probe gives
+$f_{\rm geo}\simeq20\%$, whereas the freely falling protocol gives
+$f_{\rm ff}=7.62\%$. This is not a degradation of the candidate or a loss under
+resolution refinement: the two quantities ask different operational
+questions (Fig.~\ref{fig:timing_protocols}). In the observer protocol,
+$D_0=13.851$, $\tau_{B,\rm flat}=17.851$, and
+$\tau_{B,\rm curved}=16.796$, so the receiver-clock advance is $1.055$ and
+$f_{\rm ff}=1.055/13.851=7.62\%$. Releasing the endpoints changes the reception
+event, while proper-time readout incorporates their motion and accumulated
+clock rates. The smaller magnitude therefore isolates a more demanding
+observer-to-observer shortcut; its positive sign is the relevant additional
+certificate. The normalization by $D_0$, rather than by the absolute clock
+reading $\tau_{B,\rm flat}$, makes the fraction independent of an arbitrary
+common shift of the clocks' zero.
+
 \subsection{Null-constraint accuracy along the flight path}
 \label{sec:null_accuracy}
 
@@ -911,43 +1078,14 @@ accuracy. Two mechanisms keep the ray far tighter. First, whenever the absolute
 null Hamiltonian exceeds $10^{-6}$ the momentum is re-projected onto the local
 null cone before the next Runge--Kutta step, so interpolation error cannot
 accumulate secularly. Second, the normalized null constraint stays small between
-projections. Figure~\ref{fig:null_constraint} plots the gauge-independent ratio
-$k_\mu k^\mu/(k^t)^2$ along the headline candidate-146 ray ($t_{\rm emit}=4$,
-RM) as it crosses the matter region. The median value,
-$3.0\times10^{-4}$, sits a factor ${\sim}30$ below the $10^{-2}$ gate; the
-peak, $4.1\times10^{-3}$, is reached briefly in the strong-field core and
-remains a factor ${\sim}2.4$ below the gate. The ray therefore stays null to
-the stated tolerance throughout the flight and does not drift toward a
-timelike or spacelike trajectory. The complementary relative-drift diagnostic
-recorded by the probe, $h_{\rm rel}^{\rm max}=2.19\times10^{-3}$ in RM, tells
-the same story.
-
-\begin{figure}[tbp]
-\centering
-\begin{tikzpicture}
-\begin{semilogyaxis}[
-  width=0.97\columnwidth,height=0.58\columnwidth,
-  xlabel={$x$ (propagation coordinate)},
-  ylabel={$k_\mu k^\mu/(k^t)^2$},
-  xmin=56.8,xmax=71.2,ymin=1e-6,ymax=2e-2,
-  grid=major,grid style={gray!20},
-  tick label style={font=\small},label style={font=\small}
-]
-\addplot[black,thick] table[x=x,y=kk_over_kt2]{data/null_constraint_ray.txt};
-\addplot[red,dashed,thick,domain=56.8:71.2]{1e-2};
-\node[anchor=north,font=\scriptsize,text=red,fill=white,inner sep=1pt]
-  at (axis cs:64,9.0e-3)
-  {acceptance gate $10^{-2}$};
-\end{semilogyaxis}
-\end{tikzpicture}
-\caption{Normalized null constraint $k_\mu k^\mu/(k^t)^2$ along the headline
-candidate-146 ray ($t_{\rm emit}=4$, RM) from emitter~A ($x=56.8$) to
-receiver~B ($x=71.2$). The ray stays below the $10^{-2}$ acceptance gate
-(dashed) throughout: the median is $3.0\times10^{-4}$, and the brief peak of
-$4.1\times10^{-3}$ in the strong-field core remains a factor ${\sim}2.4$
-under the gate.}
-\label{fig:null_constraint}
-\end{figure}
+projections. Along the headline candidate-146 ray ($t_{\rm emit}=4$,
+RM), the gauge-independent ratio $k_\mu k^\mu/(k^t)^2$ has median
+$3.0\times10^{-4}$ (a factor ${\sim}30$ below the gate) and a brief peak of
+$4.1\times10^{-3}$ in the strong-field core (still a factor ${\sim}2.4$ under
+the gate). The ray therefore stays null to the stated tolerance throughout and
+does not drift toward a timelike or spacelike trajectory. The complementary
+relative-drift diagnostic recorded by the probe,
+$h_{\rm rel}^{\rm max}=2.19\times10^{-3}$ in RM, tells the same story.
 
 \subsection{Probe controls and calibration}
 
@@ -997,39 +1135,17 @@ trajectories are retrograde but extremely slow. Radial drifts are small
 magnitude quieter than MAP-Elites champion~87, the quasi-static scaffold
 CMA-ES converged to (Sec.~\ref{sec:methodology}).
 
-Figure~\ref{fig:lump_dynamics} shows these prescribed support-center
-trajectories [Eq.~\eqref{eq:lump_trajectory}] at four times. The Q-ball
-fields are initially boosted along the corresponding motion. The PD
-trajectory controller (Sec.~\ref{sec:pd_pump}) drives the lumps during
+The PD trajectory controller (Sec.~\ref{sec:pd_pump}) drives the lumps during
 the ignition phase ($t<4$) and then switches off; the evolution remains
 numerically controlled throughout (Fig.~\ref{fig:constraints}).
-Figure~\ref{fig:lump_topdown} complements the magnified
-three-dimensional view with an unscaled top-down ($x$--$y$) projection at grid
-scale, showing that the shell spans only a few code units across the null-probe
-corridor. The support centers are the intended
+Figure~\ref{fig:lump_topdown} shows an unscaled top-down ($x$--$y$) projection
+at grid scale, confirming that the shell spans only a few code units across the
+null-probe corridor. The support centers are the intended
 dynamical scaffold, not tracked density isosurfaces. The field follows them
 imperfectly: confinement falls from $72\%$ to $11\%$ and rms spread grows by a
 factor $3.27$ by $t=30$. Candidate~146 is therefore a transient, initially
 driven configuration, not a bound five-body soliton.
 
-\begin{figure*}[tbp]
-\centering
-\includegraphics[width=0.98\textwidth]{fig_eval146_lump_trajectories.png}
-\caption{Three-dimensional dynamics encoded by the frozen candidate-146 genome.
-Panels show the five prescribed PD-controller centers at
-$t=0,4,16,$ and $30$. Filled circles are the centers at the stated times.
-To make the small motion legible, each local trajectory glyph covers four
-code-time units before and after the snapshot (where available), with its
-displacement about the filled center magnified by $4\times$; the hollow circle
-and arrow mark the start and end of that window. Colors and labels identify
-the lumps ($+$ canonical, $-$ phantom), and the dashed line marks the
-$x$-directed null-probe axis. The magnification is representational: the
-centers are plotted at their unscaled positions. CMA-ES converged to very slow angular velocities
-($|\omega_{\rm rot}|\lesssim5\times10^{-3}$) and small breathing
-($A_{\rm b}=0.083$), producing a quasi-static scaffold that maximizes
-confinement-gated persistence.}
-\label{fig:lump_dynamics}
-\end{figure*}
 
 \begin{figure}[tbp]
 \centering
@@ -1063,8 +1179,7 @@ lump centers at true grid scale (box center $(x_0,y_0)=(64,64)$; no
 magnification). Black circles are the two canonical ($+\rho$) lumps, red
 squares the three phantom ($-\rho$) lumps [signs $(+,-,-,+,-)$]. The dashed
 line is the $x$-directed null-probe corridor from emitter~A to receiver~B
-($|x-x_0|\le7.2$). Compared with Fig.~\ref{fig:lump_dynamics}, this panel shows
-the actual spatial extent of the shell: the five solitons occupy a region a few
+($|x-x_0|\le7.2$). The five solitons occupy a region a few
 code units across, comparable to the corridor half-length.}
 \label{fig:lump_topdown}
 \end{figure}
@@ -1099,7 +1214,7 @@ oscillates with $\Pi\neq0$, so by Eq.~\eqref{eq:scalar_sources} it carries a
 momentum density $S_i$ that enters the momentum constraint and generates a
 nontrivial shift $\beta^i$; the shift tilts the local light cones along the
 matter current, and null rays crossing the region gain coordinate time
-relative to the flat path (Fig.~\ref{fig:shortcut_cartoon}). The finest-run
+relative to the flat path (Fig.~\ref{fig:timing_protocols}a). The finest-run
 field maps (Fig.~\ref{fig:rf_field_maps}) make this concrete: the mixed-sign
 lumps ($\rho_{\rm req}$, top row) source a bipolar shift $\beta^{x}$ (bottom
 row) that is strongest at the peak-$f_{\rm geo}$ launch $t_{\rm emit}=4$
@@ -1142,7 +1257,7 @@ Eq.~\eqref{eq:f_geo}. The production HQ value agrees with the search-tier value 
 $0.5\%$ relative. The endpoint timing corresponds to an effective
 $c/(1-f_{\rm geo})\simeq1.25c$ relative to the matched flat path; nothing
 physical moves outside its local light cone
-(Fig.~\ref{fig:shortcut_cartoon}).
+(Fig.~\ref{fig:timing_protocols}a).
 
 \begin{figure}[tbp]
 \centering
@@ -1274,18 +1389,20 @@ boundaries in or out.
 three refinement levels above the base grid (\texttt{max\_level}$=3$,
 \texttt{regrid\_threshold}$=0.02$) and terminates at $t=30$. Peak
 $f_{\rm geo}$ is the maximum evolving 4D null-geodesic timing advantage;
-frozen peak is the maximum of the frozen-slice $f_{\rm geo}$ time series.
+frozen peak is the maximum of the frozen-slice $f_{\rm geo}$ time series;
+$f_{\rm ff}$ is the freely falling observer metric
+(Sec.~\ref{sec:freefall_metric}).
 RC/RM/RF change $h$ at fixed $L$; DS/DL change $L$ at fixed $h$.}
 \label{tab:matrix}
 \begin{ruledtabular}
-\begin{tabular}{lrrrrrr}
-run & $L$ & $N$ & $h$ & peak $f_{\rm geo}$ & frozen peak & $t_{\rm emit}$ \\
+\begin{tabular}{lrrrrrrr}
+run & $L$ & $N$ & $h$ & peak $f_{\rm geo}$ & frozen peak & $f_{\rm ff}$ & $t_{\rm emit}$ \\
 \hline
-RC & 128 & 192 & 0.667 & 20.44\% & 29.15\% & 4 \\
-RM & 128 & 256 & 0.500 & 20.21\% & 29.45\% & 4 \\
-RF & 128 & 384 & 0.333 & 20.19\% & 29.54\% & 4 \\
-DS & 96 & 192 & 0.500 & 20.19\% & 29.21\% & 4 \\
-DL & 160 & 320 & 0.500 & 20.22\% & 29.44\% & 4 \\
+RC & 128 & 192 & 0.667 & 20.44\% & 29.15\% & 7.69\% & 4 \\
+RM & 128 & 256 & 0.500 & 20.21\% & 29.45\% & 7.62\% & 4 \\
+RF & 128 & 384 & 0.333 & 20.19\% & 29.54\% & --- & 4 \\
+DS & 96 & 192 & 0.500 & 20.19\% & 29.21\% & --- & 4 \\
+DL & 160 & 320 & 0.500 & 20.22\% & 29.44\% & --- & 4 \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
@@ -1322,7 +1439,7 @@ unstable exponent ($p\approx8.7$) whose value is set by the fine--medium
 difference of a single significant figure; the sequence is thus consistent with
 rapid convergence but does not pin down $p$ on its own. We therefore measure the
 observed order on the constraint norms themselves
-(Fig.~\ref{fig:constraint_convergence}). Over the ignition window
+(Fig.~\ref{fig:constraints}a). Over the ignition window
 $1.5\le t\le5$, the Hamiltonian residual converges at median observed order
 $p_{\mathcal H}\approx3.3$ and the momentum residual at
 $p_{\mathcal M}\approx2.8$, consistent with the high-order finite-difference
@@ -1336,11 +1453,12 @@ extrapolated value.
 \centering
 \begin{tikzpicture}
 \begin{semilogyaxis}[
-  width=0.97\columnwidth,height=0.62\columnwidth,
+  width=0.97\columnwidth,height=0.55\columnwidth,
   xlabel={$t$},ylabel={$\|\mathcal H\|_{L^2}$},
   xmin=0,xmax=30,ymin=5e-4,ymax=8e-3,
   grid=major,grid style={gray!20},
-  legend style={font=\scriptsize,draw=none,at={(0.98,0.05)},anchor=south east}
+  legend style={font=\scriptsize,draw=none,at={(0.98,0.05)},anchor=south east},
+  title={\small (a) Resolution convergence}
 ]
 \addplot[blue,thin] table[x=t,y=ham_RC]{data/constraints_resolution.txt};
 \addlegendentry{RC ($N{=}192$)}
@@ -1350,33 +1468,17 @@ extrapolated value.
 \addlegendentry{RF ($N{=}384$)}
 \end{semilogyaxis}
 \end{tikzpicture}
-\caption{Hamiltonian constraint norm across the Richardson ladder.
-The three resolutions overlie closely; the observed order extracted from
-Eq.~\eqref{eq:richardson_order} in the ignition window is
-$p_{\mathcal H}\approx3.3$ (median).}
-\label{fig:constraint_convergence}
-\end{figure}
 
-\subsection{Evolution constraints}
+\vspace{0.4cm}
 
-For RM, the volume-weighted norms remain below
-$\|\mathcal H\|_2=4.73\times10^{-3}$ and
-$\|\mathcal M\|_2=9.16\times10^{-4}$ through $t=30$
-(Fig.~\ref{fig:constraints}). These are comparable to the search-tier values
-and remain bounded throughout the evolution. The constraint norms peak during
-the early driven phase ($t\lesssim4$) and then plateau or slowly grow during
-the free evolution, consistent with the dispersing matter producing less
-active refinement at late times.
-
-\begin{figure}[tbp]
-\centering
 \begin{tikzpicture}
 \begin{semilogyaxis}[
-  width=0.97\columnwidth,height=0.70\columnwidth,
+  width=0.97\columnwidth,height=0.55\columnwidth,
   xlabel={$t$},ylabel={$\|\mathcal C\|_{L^2}$},
   xmin=0,xmax=30,ymin=2e-5,ymax=8e-3,
   grid=major,grid style={gray!20},
-  legend style={font=\small,draw=none,at={(0.98,0.05)},anchor=south east}
+  legend style={font=\small,draw=none,at={(0.98,0.05)},anchor=south east},
+  title={\small (b) RM constraint norms}
 ]
 \addplot[black,thick] table[x=t,y=ham]{data/constraints_rm.txt};
 \addlegendentry{$\|\mathcal H\|_2$}
@@ -1384,11 +1486,26 @@ active refinement at late times.
 \addlegendentry{$\|\mathcal M\|_2$}
 \end{semilogyaxis}
 \end{tikzpicture}
-\caption{Constraint norms in the headline RM run.
-The complete $3000$-step diagnostic is plotted from a decimated table for
-typesetting only; maxima are evaluated from the full data.}
+\caption{Constraint diagnostics.
+(a)~Hamiltonian constraint norm across the Richardson ladder;
+the three resolutions overlie closely with observed order
+$p_{\mathcal H}\approx3.3$ (median) in the ignition window.
+(b)~Constraint norms in the headline RM run; the complete $3000$-step
+diagnostic is plotted from a decimated table; maxima are evaluated from
+the full data.}
 \label{fig:constraints}
 \end{figure}
+
+\subsection{Evolution constraints}
+
+For RM, the volume-weighted norms remain below
+$\|\mathcal H\|_2=4.73\times10^{-3}$ and
+$\|\mathcal M\|_2=9.16\times10^{-4}$ through $t=30$
+(Fig.~\ref{fig:constraints}b). These are comparable to the search-tier values
+and remain bounded throughout the evolution. The constraint norms peak during
+the early driven phase ($t\lesssim4$) and then plateau or slowly grow during
+the free evolution, consistent with the dispersing matter producing less
+active refinement at late times.
 
 \subsection{Frozen versus evolving shortcut, and confinement}
 
@@ -1464,73 +1581,6 @@ lumps. In both integrations the observed shortcut remains a transient
 precursor---a null-timing advantage coexisting with dispersing exotic
 matter.
 
-\begin{figure}[tbp]
-\centering
-\begin{tikzpicture}[>=Latex, font=\footnotesize]
-% --- layout constants ---
-\def\xA{0.5}   \def\xB{6.6}
-\def\tflat{3.5} \def\tmin{2.80}
-\def\lumpL{2.2} \def\lumpR{5.0}
-
-% --- lump-region band (drawn first, behind everything) ---
-\fill[blue!6] (\lumpL,0) rectangle (\lumpR,3.9);
-\draw[blue!25] (\lumpL,0) -- (\lumpL,3.9);
-\draw[blue!25] (\lumpR,0) -- (\lumpR,3.9);
-\node[blue!40] at (3.6,3.65) {matter region};
-
-% --- axes ---
-\draw[-{Latex[length=2mm]}, thick] (0,-0.1) -- (0,4.2)
-  node[above] {$t$};
-\draw[-{Latex[length=2mm]}, thick] (-0.1,0) -- (7.3,0)
-  node[right] {$x$};
-
-% --- flat null ray (dashed) ---
-\draw[black!40, dashed, line width=1pt] (\xA,0) -- (\xB,\tflat);
-
-% --- curved null ray (arrives earlier, thick solid) ---
-\draw[black, line width=1.5pt, -{Latex[length=2.5mm]}]
-  (\xA,0) .. controls (1.5,0.45) and (\lumpL,0.6) ..
-  (3.6,1.15) .. controls (\lumpR,1.7) and (6.0,2.2) .. (\xB,\tmin);
-
-% --- arrival-time markers on right margin ---
-\draw[black!40, thin] (\xB,\tflat) -- (7.15,\tflat);
-\draw[black, thin]    (\xB,\tmin)  -- (7.15,\tmin);
-\node[anchor=west, black!50, font=\scriptsize] at (7.2,\tflat)
-  {$t_{\rm flat}$};
-\node[anchor=west, font=\scriptsize] at (7.2,\tmin)
-  {$t_{\rm min}$};
-
-% --- 20% saving bracket (centered between the two ticks) ---
-\draw[{Latex[length=1.2mm]}-{Latex[length=1.2mm]},
-      red!70!black, line width=0.8pt]
-  (7.0,\tmin) -- (7.0,\tflat);
-\node[red!70!black, font=\scriptsize, anchor=west] at (7.05,3.15)
-  {$20\%$};
-
-% --- endpoint dots ---
-\fill (\xA,0) circle (1.8pt);
-\fill (\xB,0) circle (1.8pt);
-\node[below=3pt] at (\xA,0) {A};
-\node[below=3pt] at (\xB,0) {B};
-
-% --- legend below the x-axis, no overlap possible ---
-\node[anchor=north west, inner sep=0pt] at (0.3,-0.55) {%
-  \begin{tikzpicture}[font=\scriptsize]
-    \draw[black!40, dashed, line width=1pt] (0,0.3) -- ++(0.6,0)
-      node[right, black] {flat-space null ray};
-    \draw[black, line width=1.5pt] (0,0) -- ++(0.6,0)
-      node[right, black] {curved null ray (through matter)};
-  \end{tikzpicture}};
-\end{tikzpicture}
-\caption{Spacetime diagram of the null-geodesic shortcut. A photon emitted at
-A propagates toward receiver~B. In flat space (dashed) the transit takes
-$t_{\rm flat}$. Inside the Q-ball matter region (shaded band) the geometry
-bends null paths so that the ray through the curved spacetime (solid) arrives
-at~B in $t_{\rm min}<t_{\rm flat}$. The bracket on the right marks the
-${\sim}20\%$ coordinate-time saving. The ray never leaves its local light
-cone.}
-\label{fig:shortcut_cartoon}
-\end{figure}
 
 \section{Discussion}
 \label{sec:discussion}
@@ -1727,7 +1777,8 @@ champion, and 4D null geodesics through the evolved spacetime test whether
 light arrives earlier than in flat space. Applied to a bicomplex five-lump
 Q-ball genome, it discovered candidate~146, a reproducible,
 continuum-stable numerical warp precursor with $f_{\rm geo}=20.2\%$
-(Table~\ref{tab:matrix}) that survives with the ignition controller disabled
+($f_{\rm ff}=7.6\%$ on freely falling observers;
+Table~\ref{tab:matrix}) that survives with the ignition controller disabled
 (Sec.~\ref{sec:pump_free}). The shortcut is transient---not a functional warp
 drive---and, within this ansatz, requires the phantom sector: a matched
 canonical-only search found no $f_{\rm geo}>0$
