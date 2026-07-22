@@ -112,24 +112,26 @@ template <int num_components> void AHFinder<num_components>::init_h_v()
         for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
         {
             // Get AoS data for particles at this level
-            auto &particle_tile     = this->ParticlesAt(lev, par_iter);
-            auto particle_tile_data = particle_tile.getParticleTileData();
-            auto &aos               = particle_tile.GetArrayOfStructs();
-            ParticleType *pstruct   = aos().dataPtr();
+            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
+            auto &soa             = particle_tile.GetStructOfArrays();
+            auto &aos             = particle_tile.GetArrayOfStructs();
+            ParticleType *pstruct = aos().dataPtr();
+
+            double *h_ptr = soa.GetRealData(m_h_idx).dataPtr();
+            double *v_ptr = soa.GetRealData(m_v_idx).dataPtr();
 
             amrex::ParallelFor(m_num_particles,
                                [=] AMREX_GPU_DEVICE(int ip)
                                {
                                    auto &p = pstruct[ip];
 
-                                   particle_tile_data.rdata(m_h_idx)[ip] =
+                                   h_ptr[ip] =
                                        sqrt(pow(p.pos(0) - m_center[0], 2) +
                                             pow(p.pos(1) - m_center[1], 2) +
                                             pow(p.pos(2) - m_center[2],
                                                 2)); // Height from centre
 
-                                   particle_tile_data.rdata(m_v_idx)[ip] =
-                                       0.0; // Velocity
+                                   v_ptr[ip] = 0.0; // Velocity
                                });
         }
 
@@ -149,8 +151,12 @@ template <int num_components> void AHFinder<num_components>::move_radial()
         {
             // Get AoS data for particles at this level
             auto &particle_tile   = this->ParticlesAt(lev, par_iter);
+            auto &soa             = particle_tile.GetStructOfArrays();
             auto &aos             = particle_tile.GetArrayOfStructs();
             ParticleType *pstruct = aos().dataPtr();
+
+            double *h_ptr = soa.GetRealData(m_h_idx).dataPtr();
+            double *v_ptr = soa.GetRealData(m_v_idx).dataPtr();
 
             amrex::ParallelFor(
                 m_num_particles,
@@ -165,12 +171,11 @@ template <int num_components> void AHFinder<num_components>::move_radial()
                     for (size_t i = 0; i < AMREX_SPACEDIM; i++)
                     {
                         // Get normalised direction to m_center
-                        center_direction =
-                            (p.pos(i) - m_center[i]) / p.rdata(0);
+                        center_direction = (p.pos(i) - m_center[i]) / h_ptr[ip];
 
                         // Update position
                         p.pos(i) += m_dt * (center_direction *
-                                            (p.rdata(1) - m_eta * p.rdata(0)));
+                                            (v_ptr[ip] - m_eta * h_ptr[ip]));
 
                         coords[i] = p.pos(i);
                     }
@@ -178,9 +183,9 @@ template <int num_components> void AHFinder<num_components>::move_radial()
                     this->check_domain(coords);
 
                     // Update h
-                    p.rdata(0) = sqrt(pow(p.pos(0) - m_center[0], 2) +
-                                      pow(p.pos(1) - m_center[1], 2) +
-                                      pow(p.pos(2) - m_center[2], 2));
+                    h_ptr[ip] = sqrt(pow(p.pos(0) - m_center[0], 2) +
+                                     pow(p.pos(1) - m_center[1], 2) +
+                                     pow(p.pos(2) - m_center[2], 2));
 
                     // Update query position
                     interp_coords_x[ip] = p.pos(0);
@@ -208,18 +213,15 @@ template <int num_components> void AHFinder<num_components>::update_v()
 
         for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
         {
-            // Get AoS data for particles at this level
-            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
-            auto &aos             = particle_tile.GetArrayOfStructs();
-            ParticleType *pstruct = aos().dataPtr();
+            auto &particle_tile = this->ParticlesAt(lev, par_iter);
+            auto &soa           = particle_tile.GetStructOfArrays();
+            double *v_ptr       = soa.GetRealData(m_v_idx).dataPtr();
 
             amrex::ParallelFor(m_num_particles,
                                [=] AMREX_GPU_DEVICE(int ip)
                                {
-                                   auto &p = pstruct[ip];
-
                                    // Update v
-                                   p.rdata(1) -=
+                                   v_ptr[ip] -=
                                        m_dt * pow(m_c, 2) * interp_vals[ip];
                                });
         }
