@@ -12,7 +12,7 @@
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
-// This class enforces A to be trace-free
+// This class enforces det(h) = 1 and A to be trace-free
 class TraceARemoval
 {
   public:
@@ -33,8 +33,22 @@ class TraceARemoval
         const CCZ4Vars vars(const_state_cell_data);
 
         using namespace CCZ4Geometry;
-        const auto trace_A                = compute_trace_A(vars);
-        const double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
+
+        // Enforce the unit determinant constraint on the conformal metric.
+        const amrex::Real det_h = compute_metric_determinant(vars);
+        AMREX_ASSERT(det_h > 0.0);
+        const amrex::Real metric_factor =
+            std::pow(det_h, -1.0 / static_cast<double>(GR_SPACEDIM));
+        FOR2_SYM(i, j)
+        {
+            state_cell_data[VAR_IDX(c_h11, i, j)] *= metric_factor;
+        }
+
+        // vars references state_cell_data, so compute the trace using the
+        // normalized conformal metric.
+        const auto trace_A = compute_trace_A(vars);
+        const amrex::Real one_over_gr_spacedim =
+            1.0 / static_cast<double>(GR_SPACEDIM);
         FOR2_SYM(i, j)
         {
             state_cell_data[VAR_IDX(c_A11, i, j)] -=
