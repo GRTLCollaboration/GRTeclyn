@@ -59,7 +59,7 @@ compute_ccz4_test_geometry(const amrex::Array4<amrex::Real> &a_array,
         a_array.cellData(a_iv[0], a_iv[1], a_iv[2]);
     CCZ4Vars vars(cell_data);
 
-    auto h_UU  = CCZ4Geometry::compute_inverse_metric_test(vars);
+    auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
     auto phys_chris =
         CCZ4Geometry::compute_phys_chris(vars, d1_chi, h_UU, chris.ULL);

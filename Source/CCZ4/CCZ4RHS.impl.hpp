@@ -94,7 +94,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     CCZ4Vars vars(state_cell_data);
 
-    const auto h_UU = CCZ4Geometry::compute_inverse_metric_test(vars);
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
 
     // hij derivatives
     auto d1_h        = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);

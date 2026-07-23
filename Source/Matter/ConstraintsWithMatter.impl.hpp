@@ -40,7 +40,7 @@ ConstraintsWithMatter<matter_t>::operator()(
 
     // Inverse metric and Christoffel symbol
     auto d1_h        = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
-    const auto h_UU  = CCZ4Geometry::compute_inverse_metric_test(vars);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // Get the non matter terms for the constraints

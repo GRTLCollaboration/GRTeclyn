@@ -116,22 +116,6 @@ class Weyl4
     compute_null_tetrad(const CCZ4Vars &vars, const Tensor::Rank2 &h_UU,
                         const Coordinates &coords) const;
 
-    //! Calulation of the decomposition of the Weyl tensor in Electric and
-    //! Magnetic fields
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t
-    compute_EB_fields(const CCZ4Vars &vars, const TensorArray::Rank1 &d1_chi,
-                      const TensorArray::Rank2 &d1_Gamma,
-                      const amrex::Array2D<amrex::Real, 0, NUM_SYM_IDXS - 1, 0,
-                                           AMREX_SPACEDIM - 1> &d1_h,
-                      const TensorArray::Rank1 &d1_K,
-                      const amrex::Array2D<amrex::Real, 0, NUM_SYM_IDXS - 1, 0,
-                                           AMREX_SPACEDIM - 1> &d1_A,
-                      const TensorArray::Rank1Sym &d2_chi,
-                      const TensorArray::Rank2Sym &d2_h,
-                      const TensorArray::Rank3 &epsilon3_LUU,
-                      const TensorArray::Rank2 &h_UU,
-                      const chris_t &chris) const;
-
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t
     compute_EB_fields(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
                       const Tensor::Rank2 &d1_Gamma,

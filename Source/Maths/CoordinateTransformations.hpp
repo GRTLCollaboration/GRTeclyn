@@ -17,8 +17,8 @@ namespace CoordinateTransformations
 {
 
 // Jacobian transformation matrix
-static TensorArray::Rank2 spherical_jacobian(const amrex::Real x,
-                                             const double y, const double z)
+static Tensor::Rank2 spherical_jacobian(const amrex::Real x, const double y,
+                                        const double z)
 {
     // calculate useful position quantities
     amrex::Real rho2 = x * x + y * y;
@@ -33,7 +33,7 @@ static TensorArray::Rank2 spherical_jacobian(const amrex::Real x,
     amrex::Real sin_phi = y / rho;
 
     // derivatives for jacobian matrix - drdx etc
-    TensorArray::Rank2 jac{};
+    Tensor::Rank2 jac{};
     jac(0, 0) = x / r;
     jac(1, 0) = cos_phi * z / r2;
     jac(2, 0) = -y / rho2;
@@ -47,8 +47,8 @@ static TensorArray::Rank2 spherical_jacobian(const amrex::Real x,
 }
 
 // Inverse Jacobian
-static TensorArray::Rank2
-inverse_spherical_jacobian(const amrex::Real x, const double y, const double z)
+static Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
+                                                const double y, const double z)
 {
     // calculate useful position quantities
     amrex::Real rho2 = x * x + y * y;
@@ -64,7 +64,7 @@ inverse_spherical_jacobian(const amrex::Real x, const double y, const double z)
     amrex::Real sin_phi = y / rho;
 
     // derivatives for inverse jacobian matrix - drdx etc
-    TensorArray::Rank2 inv_jac{};
+    Tensor::Rank2 inv_jac{};
     inv_jac(0, 0) = x / r;
     inv_jac(1, 0) = y / r;
     inv_jac(2, 0) = z / r;
@@ -79,14 +79,14 @@ inverse_spherical_jacobian(const amrex::Real x, const double y, const double z)
 
 // Convert a Tensor (with two lower indices) in spherical coords to cartesian
 // coords
-static TensorArray::Rank2
-spherical_to_cartesian_LL(const TensorArray::Rank2 &spherical_g,
-                          const amrex::Real x, const double y, const double z)
+static Tensor::Rank2 spherical_to_cartesian_LL(const Tensor::Rank2 &spherical_g,
+                                               const amrex::Real x,
+                                               const double y, const double z)
 {
-    TensorArray::Rank2 cartesian_g{};
+    Tensor::Rank2 cartesian_g{};
 
     // derivatives for jacobian matrix - drdx etc
-    TensorArray::Rank2 jac = spherical_jacobian(x, y, z);
+    Tensor::Rank2 jac = spherical_jacobian(x, y, z);
 
     // Convert the Tensor to cartesian coords
     FOR (i, j)
@@ -102,14 +102,14 @@ spherical_to_cartesian_LL(const TensorArray::Rank2 &spherical_g,
 
 // Convert a Tensor (with two upper indices) in spherical coords to cartesian
 // coords
-static TensorArray::Rank2
-spherical_to_cartesian_UU(const TensorArray::Rank2 &spherical_g_UU,
+static Tensor::Rank2
+spherical_to_cartesian_UU(const Tensor::Rank2 &spherical_g_UU,
                           const amrex::Real x, const double y, const double z)
 {
-    TensorArray::Rank2 cartesian_g_UU{};
+    Tensor::Rank2 cartesian_g_UU{};
 
     // derivatives for jacobian matrix - drdx etc
-    TensorArray::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
+    Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
 
     // Convert the Tensor to cartesian coords
     FOR (i, j)
@@ -126,14 +126,14 @@ spherical_to_cartesian_UU(const TensorArray::Rank2 &spherical_g_UU,
 
 // Convert a Tensor (with two lower indices) in cartesian coords to spherical
 // coords
-static TensorArray::Rank2
-cartesian_to_spherical_LL(const TensorArray::Rank2 &cartesian_g,
-                          const amrex::Real x, const double y, const double z)
+static Tensor::Rank2 cartesian_to_spherical_LL(const Tensor::Rank2 &cartesian_g,
+                                               const amrex::Real x,
+                                               const double y, const double z)
 {
-    TensorArray::Rank2 spherical_g{};
+    Tensor::Rank2 spherical_g{};
 
     // derivatives for inverse jacobian matrix - drdx etc
-    TensorArray::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
+    Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
 
     // Convert the Tensor to spherical coords
     FOR (i, j)
@@ -150,14 +150,14 @@ cartesian_to_spherical_LL(const TensorArray::Rank2 &cartesian_g,
 
 // Convert a Tensor (with two upper indices) in cartesian coords to spherical
 // coords
-static TensorArray::Rank2
-cartesian_to_spherical_UU(const TensorArray::Rank2 &cartesian_g_UU,
-                          amrex::Real x, double y, double z)
+static Tensor::Rank2
+cartesian_to_spherical_UU(const Tensor::Rank2 &cartesian_g_UU, amrex::Real x,
+                          double y, double z)
 {
-    TensorArray::Rank2 spherical_g_UU{};
+    Tensor::Rank2 spherical_g_UU{};
 
     // derivatives for jacobian matrix - drdx etc
-    TensorArray::Rank2 jac = spherical_jacobian(x, y, z);
+    Tensor::Rank2 jac = spherical_jacobian(x, y, z);
 
     // Convert the Tensor to spherical coords
     FOR (i, j)
@@ -174,14 +174,13 @@ cartesian_to_spherical_UU(const TensorArray::Rank2 &cartesian_g_UU,
 
 // Convert a vector (with one upper index) in spherical coords to cartesian
 // coords
-TensorArray::Rank1
-spherical_to_cartesian_U(const TensorArray::Rank1 &spherical_v_U, amrex::Real x,
-                         double y, double z)
+Tensor::Rank1 spherical_to_cartesian_U(const Tensor::Rank1 &spherical_v_U,
+                                       amrex::Real x, double y, double z)
 {
-    TensorArray::Rank1 cartesian_v_U{};
+    Tensor::Rank1 cartesian_v_U{};
 
     // derivatives for inverse jacobian matrix - drdx etc
-    TensorArray::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
+    Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
 
     // transform the vector to cartesian coords
     FOR (i)
@@ -197,14 +196,13 @@ spherical_to_cartesian_U(const TensorArray::Rank1 &spherical_v_U, amrex::Real x,
 
 // Convert a vector (with one lower index) in spherical coords to cartesian
 // coords
-TensorArray::Rank1
-spherical_to_cartesian_L(const TensorArray::Rank1 &spherical_v_L, amrex::Real x,
-                         double y, double z)
+Tensor::Rank1 spherical_to_cartesian_L(const Tensor::Rank1 &spherical_v_L,
+                                       amrex::Real x, double y, double z)
 {
-    TensorArray::Rank1 cartesian_v_L{};
+    Tensor::Rank1 cartesian_v_L{};
 
     // derivatives for jacobian matrix - drdx etc
-    TensorArray::Rank2 jac = spherical_jacobian(x, y, z);
+    Tensor::Rank2 jac = spherical_jacobian(x, y, z);
 
     // transform the vector to cartesian coords
     FOR (i)
@@ -220,14 +218,13 @@ spherical_to_cartesian_L(const TensorArray::Rank1 &spherical_v_L, amrex::Real x,
 
 // Convert a vector (with one upper index) in cartesian coords to spherical
 // coords
-TensorArray::Rank1
-cartesian_to_spherical_U(const TensorArray::Rank1 &cartesian_v_U, amrex::Real x,
-                         double y, double z)
+Tensor::Rank1 cartesian_to_spherical_U(const Tensor::Rank1 &cartesian_v_U,
+                                       amrex::Real x, double y, double z)
 {
-    TensorArray::Rank1 spherical_v_U{};
+    Tensor::Rank1 spherical_v_U{};
 
     // derivatives for jacobian matrix - drdx etc
-    TensorArray::Rank2 jac = spherical_jacobian(x, y, z);
+    Tensor::Rank2 jac = spherical_jacobian(x, y, z);
 
     // transform the vector to cartesian coords
     FOR (i)
@@ -243,14 +240,13 @@ cartesian_to_spherical_U(const TensorArray::Rank1 &cartesian_v_U, amrex::Real x,
 
 // Convert a vector (with one lower index) in cartesian coords to spherical
 // coords
-TensorArray::Rank1
-cartesian_to_spherical_L(const TensorArray::Rank1 &cartesian_v_L, amrex::Real x,
-                         double y, double z)
+Tensor::Rank1 cartesian_to_spherical_L(const Tensor::Rank1 &cartesian_v_L,
+                                       amrex::Real x, double y, double z)
 {
-    TensorArray::Rank1 spherical_v_L{};
+    Tensor::Rank1 spherical_v_L{};
 
     // derivatives for inverse jacobian matrix - drdx etc
-    TensorArray::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
+    Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
 
     // transform the vector to cartesian coords
     FOR (i)
@@ -265,7 +261,7 @@ cartesian_to_spherical_L(const TensorArray::Rank1 &cartesian_v_L, amrex::Real x,
 }
 
 // The area element of a sphere
-amrex::Real area_element_sphere(const TensorArray::Rank2 &spherical_g)
+amrex::Real area_element_sphere(const Tensor::Rank2 &spherical_g)
 {
     return std::sqrt(spherical_g(1, 1) * spherical_g(2, 2) -
                      spherical_g(1, 2) * spherical_g(2, 1));

@@ -37,7 +37,7 @@ class TraceARemoval
         const double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
         FOR2_SYM(i, j)
         {
-            state_cell_data[VAR_IDX(c_A11, i, j)] -=
+            state_cell_data[sym_var_idx(c_A11, i, j)] -=
                 one_over_gr_spacedim * vars.h(i, j) * trace_A;
         }
     }

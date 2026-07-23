@@ -31,8 +31,8 @@ class IntegratedMovingPunctureGauge
     /// Vars needed internally in 'compute'
     template <class data_t> struct Vars
     {
-        TensorArray::Rank1 shift;
-        TensorArray::Rank1 Gamma; //!< Conformal connection functions
+        Tensor::Rank1 shift;
+        Tensor::Rank1 Gamma; //!< Conformal connection functions
 
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
@@ -64,7 +64,7 @@ class IntegratedMovingPunctureGauge
         // We've just removed templating over data_t
         const auto vars = current_cell.template load_vars<Vars>();
 
-        TensorArray::Rank1 B; // NOLINT(readability-identifier-length)
+        Tensor::Rank1 B; // NOLINT(readability-identifier-length)
         FOR (i)
         {
             B(i) = m_params.shift_Gamma_coeff * vars.Gamma(i) -
@@ -77,7 +77,7 @@ class IntegratedMovingPunctureGauge
     template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     rhs_gauge(vars_t<amrex::Real> &rhs, const vars_t &vars<amrex::Real>,
-              const vars_t<TensorArray::Rank1> &d1, const d2_vars_t &d2,
+              const vars_t<Tensor::Rank1> &d1, const d2_vars_t &d2,
               const vars_t<amrex::Real> &advec) const
     {
         rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -

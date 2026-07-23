@@ -10,9 +10,6 @@
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "ScalarFieldAdvecVars.hpp"
-#include "ScalarFieldD1Vars.hpp"
-#include "ScalarFieldD2Vars.hpp"
 #include "ScalarFieldVars.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "TensorAlgebra.hpp"
@@ -48,14 +45,6 @@ class ScalarField
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
-    [[nodiscard]]
-    AMREX_GPU_DEVICE emtensor_t compute_emtensor(
-        const int ix, const int iy, const int iz, //!< grid indicies
-        const amrex::Array4<const amrex::Real>
-            &state,             //!< the current value of state variables
-        const deriv_t &a_deriv, //!< the object that calculates the derivative
-        const TensorArray::Rank2 &h_UU) //!< the inverse metric (raised indices)
-        const;
 
     [[nodiscard]]
     AMREX_GPU_DEVICE emtensor_t compute_emtensor(

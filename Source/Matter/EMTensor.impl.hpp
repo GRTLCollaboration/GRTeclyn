@@ -56,7 +56,7 @@ EMTensor<matter_t, em_tensor_options>::operator()(
         state.cellData(ix, iy, iz);
     Vars vars(state_cell_data);
 
-    const auto h_UU = CCZ4Geometry::compute_inverse_metric_test(vars);
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
 
     const auto emtensor =
         m_matter.compute_emtensor(ix, iy, iz, state, m_deriv, h_UU);

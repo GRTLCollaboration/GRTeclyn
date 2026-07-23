@@ -22,7 +22,7 @@ Weyl4::operator()(int ix, int iy, int iz,
 
     // we need d1 chi, K, h, A...
     auto d1_h        = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
-    const auto h_UU  = CCZ4Geometry::compute_inverse_metric_test(vars);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // we only need d2 of chi and h
@@ -71,7 +71,7 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
     }
 
     // 4D levi civita symbol and 3D levi civita tensor in LLL and LUU form
-    const auto epsilon4 = TensorAlgebra::epsilon4D_test();
+    const auto epsilon4 = TensorAlgebra::epsilon4D();
     Tensor::Rank3 epsilon3_LLL{};
     Tensor::Rank3 epsilon3_LUU{};
 
@@ -257,7 +257,7 @@ Weyl4::compute_null_tetrad(const CCZ4Vars &vars, const Tensor::Rank2 &h_UU,
     const amrex::Real z = coords.z;
 
     // the alternating levi civita symbol
-    const Tensor::Rank3 epsilon = TensorAlgebra::epsilon_test();
+    const Tensor::Rank3 epsilon = TensorAlgebra::epsilon();
 
     // calculate the tetrad
     out.u(0) = x;

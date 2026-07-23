@@ -31,18 +31,18 @@ BoostedBHInitialData::psi_minus_one(Coordinates coords) const
            P_squared * psi2(r, cos_theta) / (m_params.mass * m_params.mass);
 }
 
-[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE TensorArray::Rank2
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor::Rank2
 BoostedBHInitialData::Aij(Coordinates a_coords) const
 {
     const amrex::Real r = center_dist(a_coords);
-    const TensorArray::Rank1 l{(a_coords.x - m_params.center[0]) / r,
-                               (a_coords.y - m_params.center[1]) / r,
-                               (a_coords.z - m_params.center[2]) / r};
+    const Tensor::Rank1 l{(a_coords.x - m_params.center[0]) / r,
+                          (a_coords.y - m_params.center[1]) / r,
+                          (a_coords.z - m_params.center[2]) / r};
     const amrex::Real l_dot_p = l(0) * m_params.momentum[0] +
                                 l(1) * m_params.momentum[1] +
                                 l(2) * m_params.momentum[2];
 
-    TensorArray::Rank2 out;
+    Tensor::Rank2 out;
 
     FOR (i, j)
     {

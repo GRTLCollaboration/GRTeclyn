@@ -65,7 +65,7 @@ Constraints::operator()(int ix, int iy, int iz,
     const Tensor::Sym12Sym34Rank4 d2_h =
         m_deriv.d2_tensor(ix, iy, iz, state, c_h11);
 
-    const auto h_UU  = CCZ4Geometry::compute_inverse_metric_test(vars);
+    const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
     const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     constraints_t out = constraint_equations(vars, d1_chi, d1_Gamma, d1_h, d1_K,
@@ -74,75 +74,6 @@ Constraints::operator()(int ix, int iy, int iz,
     // TODO: Simplify this storing so less choice but more readable
     const auto constraint_cell_data = constraints.cellData(ix, iy, iz);
     store_vars(out, constraint_cell_data);
-}
-
-AMREX_GPU_DEVICE
-Constraints::constraints_t Constraints::constraint_equations(
-    const CCZ4Vars &vars, const TensorArray::Rank1 &d1_chi,
-    const TensorArray::Rank2 &d1_Gamma,
-    const amrex::Array2D<amrex::Real, 0, NUM_SYM_IDXS - 1, 0,
-                         AMREX_SPACEDIM - 1> &d1_h,
-    const TensorArray::Rank1 &d1_K,
-    const amrex::Array2D<amrex::Real, 0, NUM_SYM_IDXS - 1, 0,
-                         AMREX_SPACEDIM - 1> &d1_A,
-    const TensorArray::Rank1Sym &d2_chi, const TensorArray::Rank2Sym &d2_h,
-    const TensorArray::Rank2 &h_UU, const chris_t &chris) const
-{
-    constraints_t out;
-
-    if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
-    {
-        auto ricci = CCZ4Geometry::compute_ricci(vars, d1_chi, d1_Gamma, d1_h,
-                                                 d2_chi, d2_h, h_UU, chris);
-
-        // This is A_ij A^ij
-        amrex::Real Aij_squared = CCZ4Geometry::compute_Aij_squared(vars, h_UU);
-
-        out.Ham = ricci.scalar +
-                  (GR_SPACEDIM - 1.) * vars.K() * vars.K() / GR_SPACEDIM -
-                  Aij_squared - 2.0 * m_cosmological_constant;
-
-        out.Ham_abs_terms =
-            std::abs(ricci.scalar) +
-            std::abs((GR_SPACEDIM - 1.) * vars.K() * vars.K() / GR_SPACEDIM) +
-            std::abs(Aij_squared) + 2.0 * std::abs(m_cosmological_constant);
-    }
-
-    if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)
-    {
-        // Covariant derivative of \bar A_ij
-        TensorArray::Rank3 covd_A{};
-        FOR (i, j, k)
-        {
-            covd_A(i, j, k) = d1_A(VAR_IDX0(j, k), i);
-            FOR (l)
-            {
-                covd_A(i, j, k) += -chris.ULL(l, i, j) * vars.A(l, k) -
-                                   chris.ULL(l, i, k) * vars.A(l, j);
-            }
-        }
-        FOR (i)
-        {
-            out.Mom(i)           = -(GR_SPACEDIM - 1.) * d1_K(i) / GR_SPACEDIM;
-            out.Mom_abs_terms(i) = std::abs(out.Mom(i));
-        }
-        TensorArray::Rank1 covd_A_term{};
-        TensorArray::Rank1 d1_chi_term{};
-        FOR (i, j, k)
-        {
-            covd_A_term(i) += h_UU(j, k) * covd_A(k, j, i);
-            d1_chi_term(i) += -GR_SPACEDIM * h_UU(j, k) * vars.A(i, j) *
-                              d1_chi(k) / (2.0 * vars.chi());
-        }
-        FOR (i)
-        {
-            out.Mom(i) += covd_A_term(i) + d1_chi_term(i);
-            out.Mom_abs_terms(i) +=
-                std::abs(covd_A_term(i)) + std::abs(d1_chi_term(i));
-        }
-    }
-
-    return out;
 }
 
 AMREX_GPU_DEVICE
