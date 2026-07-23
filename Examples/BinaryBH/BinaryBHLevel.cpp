@@ -309,6 +309,23 @@ void BinaryBHLevel::specific_post_init()
     }
 }
 
+void BinaryBHLevel::specific_post_regrid(int /*a_lbase*/,
+                                         int /*a_new_finest*/)
+{
+    BL_PROFILE("BinaryBHLevel::specific_post_regrid()");
+
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto &state_arrays   = state_new.arrays();
+    TraceARemoval trace_removal;
+
+    amrex::ParallelFor(
+        state_new, amrex::IntVect(0),
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        { trace_removal(ix, iy, iz, state_arrays[box_no]); });
+
+    amrex::Gpu::streamSynchronize();
+}
+
 void BinaryBHLevel::specific_post_restart()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_restart()");
@@ -342,6 +359,20 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
+    // Fine-to-coarse interpolation has already run in
+    // GRAMRLevel::post_timestep(), so restore the algebraic CCZ4 constraints
+    // before puncture tracking or Weyl extraction uses the synchronized state.
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto &state_arrays   = state_new.arrays();
+    TraceARemoval trace_removal;
+
+    amrex::ParallelFor(
+        state_new, amrex::IntVect(0),
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        { trace_removal(ix, iy, iz, state_arrays[box_no]); });
+
+    amrex::Gpu::streamSynchronize();
+
     // do puncture tracking on requested level
     if (simParams().puncture_tracking_enabled &&
         Level() == simParams().puncture_tracking_level)

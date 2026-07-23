@@ -55,6 +55,9 @@ class BinaryBHLevel : public GRAMRLevel
     //! Things to do after init
     void specific_post_init() override;
 
+    //! Enforce the algebraic CCZ4 constraints after regridding
+    void specific_post_regrid(int a_lbase, int a_new_finest) override;
+
     //! Things to do after writing a plotfile
     void specific_post_plotfile(const std::string &a_dir,
                                 std::ostream & /*a_os*/) override;
