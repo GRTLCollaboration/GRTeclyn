@@ -6,6 +6,7 @@ from ..initial_data.candidates import resolve_initial_data_overrides
 from ..initial_data.validate_guesser import run_validation
 from .args import collect_overrides, parse_score_weights
 from .commands.atlas import run_atlas_command
+from .commands.geometry_atlas import run_geometry_atlas_command
 from .commands.optimize import run_optimize_command
 from .commands.pareto import run_pareto_command
 from .commands.qd import run_qd_command
@@ -49,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "atlas":
         return run_atlas_command(args, overrides)
+    if args.command == "geometry_atlas":
+        return run_geometry_atlas_command(args)
     if args.command == "sweep":
         return run_sweep(args, overrides)
     return run_single(args, overrides)

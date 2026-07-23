@@ -13,6 +13,48 @@ The pipeline lives in `scripts/search/project_geometry_motif.py` and the
 supporting modules under `src/grteclyn_wrapper/projection/` and
 `src/grteclyn_wrapper/grtresna/fit/`.
 
+### Pure-geometry MAP-Elites atlas (Stage-1 scout)
+
+Upstream of motif→matter projection sits a **pure-geometry** MAP-Elites
+scout that does not involve matter, GRTresna, or GRTeclyn evolution:
+
+| Item | Location |
+|------|----------|
+| Package | `src/grteclyn_wrapper/search/geometry_atlas/` |
+| CLI | `python -m grteclyn_wrapper geometry_atlas ...` |
+| Launcher | `scripts/campaigns/geometry_atlas/run.sh` |
+| Outputs | `runs/geometry_atlas/<name>/` (`archive.json`, `elites/*.gridinit`) |
+
+**What it searches.** A compact-support 3D RBF genome for stationary,
+asymptotically flat 4-metrics (`alpha`, `beta^i`, `gamma_ij = expm(S)`).
+No spherical/axial symmetry; Alcubierre is **not** the search basis.
+`K_ij` is derived from the stationary ADM relation. Effective
+`T_ab = G_ab/8pi` (and therefore `rho`, `j_i`) is computed under the
+explicit stationarity assumption.
+
+**What it scores.** Frozen null-geodesic `f_geo` and stationary free-fall
+`f_ff` (the free-fall probe wraps the frozen slice as a time-independent
+metric stack). Archive axes are `[f_geo] × [log exotic-energy budget]`.
+Within-cell ranking prefers valid `f_ff`, with hard rejects for signature
+failures, non-flat boundaries, and inconsistent constraints.
+
+**Validity boundary.** Atlas `f_geo` / `f_ff` are **screening** metrics.
+A dynamical shortcut claim still requires GRTeclyn evolution + the 4D
+evolving geodesic certificate. Do not conflate this scout with the
+motif-to-matter MAP-Elites campaign in `scripts/campaigns/geometry_first/`
+(which searches **matter** genomes to match a fixed motif).
+
+**Handoff to Stage 2.** Elite cells write `elites/cell_i_j.gridinit` +
+genome JSON. Those geometries are intended inputs for
+`project_geometry_motif.py` / `fit_matter_from_motif` (matter synthesis)
+in a later milestone — not wired automatically yet.
+
+Smoke run:
+
+```bash
+TARGET_EVALS=8 N=16 NO_FF=0 bash scripts/campaigns/geometry_atlas/run.sh
+```
+
 ---
 
 ## Pipeline Stages
@@ -1240,7 +1282,10 @@ for the campaign execution environment:
 | File | Purpose |
 |------|---------|
 | `scripts/search/project_geometry_motif.py` | CLI entry point (CMA-ES loop) |
-| `scripts/campaigns/geometry_first/run.sh` | MAP-Elites campaign launcher |
+| `scripts/campaigns/geometry_first/run.sh` | Motif-to-matter MAP-Elites campaign launcher |
+| `scripts/campaigns/geometry_atlas/run.sh` | Pure-geometry MAP-Elites atlas launcher |
+| `src/grteclyn_wrapper/search/geometry_atlas/` | Stationary genome, render, score, MAP-Elites driver |
+| `src/grteclyn_wrapper/initial_data/adm_stationary.py` | Shared stationary ADM / CCZ4 / Einstein-source helpers |
 | `src/grteclyn_wrapper/initial_data/motif.py` | Motif extraction from episodes |
 | `src/grteclyn_wrapper/grtresna/fit/motif.py` | Matter fitting (lumps, ring splitting) |
 | `src/grteclyn_wrapper/projection/iterate.py` | CMA-ES iteration loop |
@@ -1249,5 +1294,7 @@ for the campaign execution environment:
 | `src/grteclyn_wrapper/projection/warp_gridinit.py` | Analytic Alcubierre gridinit writer + post-solve shift/A_ij painter + S_i |
 | `src/grteclyn_wrapper/search/qd_search/driver.py` | MAP-Elites driver (`geometry_first` mode) |
 | `src/grteclyn_wrapper/search/qd_search/descriptors.py` | `geometry_first` behavior descriptors |
-| `tests/projection/test_iterate.py` | Tests (37 passing) |
-| `tests/projection/test_alcubierre.py` | Alcubierre warp-drive tests (48 passing) |
+| `src/grteclyn_wrapper/metrics/probes/ftl/geodesic.py` | Includes `build_metric_3d_from_gridinit` for atlas scoring |
+| `tests/projection/test_iterate.py` | CMA-ES iterate tests |
+| `tests/projection/test_alcubierre.py` | Alcubierre warp-drive tests |
+| `tests/search/test_geometry_atlas.py` | Pure-geometry atlas unit + smoke tests |

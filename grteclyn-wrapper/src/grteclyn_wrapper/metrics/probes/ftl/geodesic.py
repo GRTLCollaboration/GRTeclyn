@@ -193,6 +193,100 @@ def build_metric_3d_from_plotfile(
     return g, left.astype(float), spacing
 
 
+def build_metric_3d_from_gridinit(
+    gridinit_path: str | Path,
+    *,
+    n: int | None = None,
+    half_width: float | None = None,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], tuple[float, float, float]]:
+    """Sample a static 4-metric ``g_{mu nu}(x,y,z)`` from a ``.gridinit`` file.
+
+    Returns ``(g, origin, spacing)`` where ``g`` has shape ``(nx,ny,nz,4,4)``,
+    ``origin`` is the coordinate of the ``(0,0,0)`` sample (first cell centre),
+    and ``spacing`` is ``(dx,dy,dz)``.
+
+    The on-disk gridinit layout is ``(nz, ny, nx, n_comp)``; this helper
+    transposes to the ``(nx, ny, nz)`` convention used by the geodesic probes.
+    Optional ``n`` / ``half_width`` subsample a centred window (nearest-neighbour
+    index selection) for cheaper probes on large grids.
+    """
+    from ....grtresna.io.gridinit import read_gridinit
+
+    grid = read_gridinit(gridinit_path)
+    # grid.data: (nz, ny, nx, n_comp) → component lookup
+    name_to_idx = {name: i for i, name in enumerate(grid.comp_names)}
+
+    def comp(name: str) -> NDArray[np.float64]:
+        # Return (nx, ny, nz)
+        arr = np.asarray(grid.data[..., name_to_idx[name]], dtype=float)
+        return np.transpose(arr, (2, 1, 0))
+
+    chi = np.clip(comp("chi"), 1.0e-10, None)
+    inv_chi = 1.0 / chi
+    alpha = np.clip(comp("lapse"), 1.0e-10, None)
+    beta_up = np.stack([comp("shift1"), comp("shift2"), comp("shift3")], axis=-1)
+
+    gamma = np.zeros(chi.shape + (3, 3), dtype=float)
+    gamma[..., 0, 0] = comp("h11") * inv_chi
+    gamma[..., 0, 1] = gamma[..., 1, 0] = comp("h12") * inv_chi
+    gamma[..., 0, 2] = gamma[..., 2, 0] = comp("h13") * inv_chi
+    gamma[..., 1, 1] = comp("h22") * inv_chi
+    gamma[..., 1, 2] = gamma[..., 2, 1] = comp("h23") * inv_chi
+    gamma[..., 2, 2] = comp("h33") * inv_chi
+
+    beta_low = np.einsum("...ij,...j->...i", gamma, beta_up)
+    beta_sq = np.einsum("...i,...i->...", beta_low, beta_up)
+
+    g = np.zeros(chi.shape + (4, 4), dtype=float)
+    g[..., 0, 0] = beta_sq - alpha * alpha
+    g[..., 0, 1:] = beta_low
+    g[..., 1:, 0] = beta_low
+    g[..., 1:, 1:] = gamma
+
+    # Cell-centre coordinates of the full grid.
+    dx_xyz = np.asarray(grid.dx_xyz, dtype=float)
+    origin_full = np.asarray(grid.origin, dtype=float) + 0.5 * dx_xyz
+    nx, ny, nz = g.shape[:3]
+
+    if n is None and half_width is None:
+        return g, origin_full, (float(dx_xyz[0]), float(dx_xyz[1]), float(dx_xyz[2]))
+
+    # Subsample a centred window.
+    center = origin_full + 0.5 * (np.array([nx, ny, nz]) - 1.0) * dx_xyz
+    if half_width is None:
+        half_width = 0.45 * float(nx * dx_xyz[0])
+    if n is None:
+        n = min(nx, ny, nz)
+
+    # Index range covering [center - half_width, center + half_width].
+    def _slice(axis: int) -> slice:
+        i0 = int(np.floor(((center[axis] - half_width) - origin_full[axis]) / dx_xyz[axis]))
+        i1 = int(np.ceil(((center[axis] + half_width) - origin_full[axis]) / dx_xyz[axis]))
+        i0 = max(0, i0)
+        i1 = min([nx, ny, nz][axis] - 1, i1)
+        return slice(i0, i1 + 1)
+
+    sx, sy, sz = _slice(0), _slice(1), _slice(2)
+    g_win = g[sx, sy, sz]
+    origin_win = np.array(
+        [
+            origin_full[0] + sx.start * dx_xyz[0],
+            origin_full[1] + sy.start * dx_xyz[1],
+            origin_full[2] + sz.start * dx_xyz[2],
+        ],
+        dtype=float,
+    )
+    # Optional downsample to roughly n^3.
+    step = max(1, int(np.floor(max(g_win.shape[:3]) / max(n, 1))))
+    g_ds = g_win[::step, ::step, ::step]
+    spacing = (
+        float(dx_xyz[0] * step),
+        float(dx_xyz[1] * step),
+        float(dx_xyz[2] * step),
+    )
+    return g_ds, origin_win, spacing
+
+
 def _sample_metric(
     g: NDArray[np.float64],
     ginv: NDArray[np.float64],
@@ -355,6 +449,35 @@ def integrate_null_ray(
 _AXIS_LABELS = ("x", "y", "z")
 
 
+def propagation_endpoints(
+    origin: NDArray[np.float64],
+    spacing: Sequence[float],
+    shape: Sequence[int],
+    *,
+    axis: int = 0,
+    half_length: float | None = None,
+    margin_frac: float = 0.05,
+) -> tuple[float, float]:
+    """Return ``(prop_start, prop_end)`` along ``axis``.
+
+    Default behaviour matches the historical 5%–95% box span.  When
+    ``half_length`` is set, endpoints are placed symmetrically about the
+    domain centre at ``± half_length``, clamped inside the margin band so
+    short-support geometries are not diluted by long flat path segments.
+    """
+    lo = float(origin[axis]) + margin_frac * (shape[axis] - 1) * spacing[axis]
+    hi = float(origin[axis]) + (1.0 - margin_frac) * (shape[axis] - 1) * spacing[axis]
+    if half_length is None:
+        return lo, hi
+    center = float(origin[axis]) + 0.5 * (shape[axis] - 1) * spacing[axis]
+    half = max(float(half_length), 2.0 * float(spacing[axis]))
+    start = max(lo, center - half)
+    end = min(hi, center + half)
+    if end <= start:
+        return lo, hi
+    return start, end
+
+
 def geodesic_report_from_metric_g(
     g: NDArray[np.float64],
     origin: NDArray[np.float64],
@@ -363,19 +486,23 @@ def geodesic_report_from_metric_g(
     n_rays: int,
     h_tol: float,
     axis: int = 0,
+    half_length: float | None = None,
 ) -> GeodesicFtlReport:
     """Run a fan of null rays on a pre-sampled static 4-metric grid.
 
     ``axis`` selects the propagation direction (0=x, 1=y, 2=z).  Transverse
     ray offsets are applied along the higher of the two remaining spatial axes.
+    Optional ``half_length`` localises the emitter/detector about the domain
+    centre (see :func:`propagation_endpoints`).
     """
     dg_inv = partial_inverse_metric(g, spacing)
     shape = g.shape[:3]
     transverse = [i for i in range(3) if i != axis]
     fix_spatial, fan_spatial = transverse  # ascending order
 
-    prop_start = origin[axis] + 0.05 * (shape[axis] - 1) * spacing[axis]
-    prop_end = origin[axis] + 0.95 * (shape[axis] - 1) * spacing[axis]
+    prop_start, prop_end = propagation_endpoints(
+        origin, spacing, shape, axis=axis, half_length=half_length
+    )
     t_flat = prop_end - prop_start
 
     y0_center = origin[fix_spatial] + 0.5 * (shape[fix_spatial] - 1) * spacing[fix_spatial]
@@ -448,20 +575,21 @@ def geodesic_report_from_metric_g(
     )
 
 
+def _rays_complete(report: GeodesicFtlReport) -> bool:
+    """True when every non-captured ray reached the detector."""
+    return report.n_reached > 0 and report.n_reached == report.n_rays - report.n_captured
+
+
 def _frozen_report_score(report: GeodesicFtlReport) -> float:
     """Comparable quality metric for choosing best direction.
 
-    A captured ray (fell into a puncture/horizon) is physics, not a failure, so
-    trust requires every *non-captured* ray to reach the detector rather than
-    all rays.  With ``n_captured == 0`` this is identical to the old bar.
+    Rank primarily by raw ``f_geo`` so a high-drift warp axis is not discarded
+    in favour of a flat transverse axis.  A tiny bonus prefers h-quality when
+    shortcuts are otherwise equal.
     """
-    if (
-        report.h_quality_ok
-        and report.n_reached > 0
-        and report.n_reached == report.n_rays - report.n_captured
-    ):
-        return report.f_geo
-    return -1.0
+    if not _rays_complete(report):
+        return -1.0
+    return float(report.f_geo) + (1.0e-6 if report.h_quality_ok else 0.0)
 
 
 def geodesic_report_best_direction(
@@ -472,6 +600,7 @@ def geodesic_report_best_direction(
     n_rays: int,
     h_tol: float,
     directions: Sequence[str] = ("x",),
+    half_length: float | None = None,
 ) -> GeodesicFtlReport:
     """Scan principal axes and return the report with the best ``f_geo``."""
     axis_map = {label: idx for idx, label in enumerate(_AXIS_LABELS)}
@@ -480,7 +609,15 @@ def geodesic_report_best_direction(
         axes = [0]
 
     reports = [
-        geodesic_report_from_metric_g(g, origin, spacing, n_rays=n_rays, h_tol=h_tol, axis=ax)
+        geodesic_report_from_metric_g(
+            g,
+            origin,
+            spacing,
+            n_rays=n_rays,
+            h_tol=h_tol,
+            axis=ax,
+            half_length=half_length,
+        )
         for ax in axes
     ]
 

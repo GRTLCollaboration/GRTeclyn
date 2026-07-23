@@ -36,6 +36,7 @@ env) is configured with a gitignored [`.env`](#site-paths-env) — see below.
 | **4D null-geodesic probe** — gauge-invariant FTL shortcut measurement | `src/.../metrics/probes/ftl/` | `search` (cheap) and `hq` (full verify) profiles; continuous emission sweep |
 | **Falsification tiers** — T0 constructed → T6 analytic | `scripts/search/validate_tiers.py` | Offline ladder; no rerun needed |
 | **Geometry-first projection** — motif scout → GRTresna solve | `src/.../initial_data/motif.py`, `grtresna/fit/motif.py`, `projection/` | Additive second stage; never push fitted matter directly into GRTeclyn |
+| **Pure-geometry MAP-Elites atlas** — Stage-1 stationary metric scout | `src/.../search/geometry_atlas/`, `scripts/campaigns/geometry_atlas/run.sh` | Searches broad asymptotically flat 4-metrics (no matter); scores frozen `f_geo` + stationary `f_ff` vs exotic-energy cost; see [`docs/GeometryFirst.md`](docs/GeometryFirst.md) |
 | **Iterative matter adjustment** — CMA-ES loop over lump params (GRTresna-only) | `projection/iterate.py`, `projection/mismatch.py` | `--iterate N` on `project_geometry_motif.py`; L2 geometry-mismatch fitness; closes the fit→solve→compare loop |
 | **Post-load constraint gate** — short GPU load check of `.gridinit` | `projection/postload_gate.py` | Rejects bad loads before the expensive main evolution |
 | **Solved-FTL gate** — cheap t=0 filter on `.gridinit` | `search/solved_ftl_gate.py` | ~1 s/candidate; rejects flat/degenerate slices |
@@ -58,6 +59,14 @@ specialized single-stage campaigns. Each campaign has its own launcher under
 | **1 — CMA-ES** | Local hill-climb from QD elites | `scripts/campaigns/cmaes/run.sh` | `runs/grtresna_cmaes/<name>/` |
 | **2 — HQ** | Full-res replay + frames | `scripts/campaigns/hq/run_batch.sh` | `runs/grtresna_promote/<prefix>_hq_eval*/` |
 
+**Geometry-first Stage-1 scout** (independent of the matter-first ladder above):
+
+| Stage | What it does | Launcher | Output directory |
+|-------|--------------|----------|------------------|
+| **G0 — geometry atlas** | MAP-Elites over stationary metrics; frozen `f_geo` / `f_ff` | `scripts/campaigns/geometry_atlas/run.sh` | `runs/geometry_atlas/<name>/` |
+
+This is a pure-geometry scout. It does **not** replace matter-first QD/CMA-ES; elites later hand off to `project_geometry_motif.py` for matter synthesis. Stationary atlas scores are screening metrics only — dynamical shortcuts still require GRTeclyn evolution.
+
 Shared search defaults (grid, gates, 4D probe, objective) live in
 `scripts/campaigns/lib/search_common.sh`. HQ defaults in
 `scripts/campaigns/lib/promote_common.sh`. QD and CMA-ES **must** stay aligned
@@ -69,6 +78,7 @@ shortcuts survive refinement.
 
 | Campaign | Launcher | Objective | Descriptor | Matter | What it searches for |
 |----------|----------|-----------|------------|--------|----------------------|
+| **`geometry_atlas`** | `scripts/campaigns/geometry_atlas/run.sh` | stationary `f_geo`/`f_ff` | `f_geo` × log exotic energy | none (pure geometry) | Broad stationary metric atlas; Stage-1 inverse-design scout |
 | **`general_ftl` (wormhole/ring/spin)** | `scripts/campaigns/general_ftl/run_all.sh` | `general_ftl` | `ftl_lifetime` | real scalar (pinned 15-D subspace) | FTL shortcut on a wormhole/ring/spin geometry; current production path |
 | **`ftl_4d` (generic QD)** | `scripts/campaigns/qd/run.sh` | `ftl_first` | `ftl_lifetime` | real scalar shell/ring/free | Generic FTL discovery |
 | **`qball_trajectory` (spiral)** | `scripts/campaigns/qball_trajectory/run.sh` | `general_ftl` | `ftl_lifetime` | complex scalar Q-ball, 5 per-lump orbits (39-D) | FTL from compact solitons on retrograde spiral orbits |

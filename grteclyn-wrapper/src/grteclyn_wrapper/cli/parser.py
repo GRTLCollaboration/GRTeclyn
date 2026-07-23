@@ -105,6 +105,97 @@ def build_parser() -> argparse.ArgumentParser:
     atlas.add_argument("--seed", type=int, default=None, help="Random seed.")
     atlas.add_argument("--stop-on-failure", action="store_true", help="Stop atlas at first solver failure.")
 
+    geo_atlas = subparsers.add_parser(
+        "geometry_atlas",
+        help="Pure-geometry MAP-Elites atlas (stationary f_geo / f_ff scout).",
+    )
+    geo_atlas.add_argument(
+        "--mode",
+        choices=["map_elites", "calibrate", "cmaes"],
+        default="map_elites",
+        help="map_elites archive, calibrate probe anchors, or CMA-ES refine.",
+    )
+    geo_atlas.add_argument("--target-evals", type=int, default=32, help="Total evaluations.")
+    geo_atlas.add_argument("--bins", type=int, default=8, help="MAP-Elites bins per axis.")
+    geo_atlas.add_argument("--seed", type=int, default=7, help="RNG seed.")
+    geo_atlas.add_argument("--batch-size", type=int, default=4, help="Evaluations per batch.")
+    geo_atlas.add_argument("--n-rays", type=int, default=3, help="Null-ray fan size.")
+    geo_atlas.add_argument("--n", type=int, default=24, help="Cartesian grid resolution.")
+    geo_atlas.add_argument("--L", type=float, default=64.0, help="Full box length.")
+    geo_atlas.add_argument("--n-centers", type=int, default=7, help="RBF control centers.")
+    geo_atlas.add_argument("--support-radius", type=float, default=12.0, help="Compact support radius.")
+    geo_atlas.add_argument("--rbf-width", type=float, default=4.0, help="RBF width.")
+    geo_atlas.add_argument("--alpha-amp", type=float, default=0.15, help="Max |lapse-1| amplitude.")
+    geo_atlas.add_argument("--beta-amp", type=float, default=0.25, help="Max |shift| amplitude.")
+    geo_atlas.add_argument(
+        "--log-metric-amp", type=float, default=0.12, help="Max |log gamma| amplitude."
+    )
+    geo_atlas.add_argument(
+        "--kij-amp", type=float, default=0.05, help="Max |K_ij| RBF amplitude (Stage-2 handoff)."
+    )
+    geo_atlas.add_argument(
+        "--alc-velocity-max",
+        type=float,
+        default=2.0,
+        help="Max Alcubierre velocity control (raise to hunt larger f_geo).",
+    )
+    geo_atlas.add_argument(
+        "--no-alcubierre",
+        action="store_true",
+        help="Disable Alcubierre trailing controls (RBF-only genome).",
+    )
+    geo_atlas.add_argument("--mutation-sigma", type=float, default=0.15, help="Mutation scale.")
+    geo_atlas.add_argument(
+        "--random-fraction",
+        type=float,
+        default=0.35,
+        help="Fraction of batch drawn as fresh random genomes.",
+    )
+    geo_atlas.add_argument(
+        "--fullbox-probe",
+        action="store_true",
+        help="Use historical 5–95%% box endpoints instead of support-localised probe.",
+    )
+    geo_atlas.add_argument("--no-ff", action="store_true", help="Skip stationary free-fall probe.")
+    geo_atlas.add_argument("--resume", action="store_true", help="Resume from state.json.")
+    geo_atlas.add_argument(
+        "--calibrate-n", type=int, default=48, help="Alcubierre calibration grid n (mode=calibrate)."
+    )
+    geo_atlas.add_argument(
+        "--calibrate-L",
+        type=float,
+        default=16.0,
+        help="Alcubierre calibration half-box L (box=[0,2L]^3).",
+    )
+    geo_atlas.add_argument(
+        "--cand146",
+        type=str,
+        default="",
+        help="Optional cand.146 gridinit path for calibration (empty=default cache).",
+    )
+    geo_atlas.add_argument(
+        "--seed-genome",
+        type=str,
+        default="",
+        help=(
+            "JSON genome path(s) to warm-start CMA-ES (mode=cmaes) or, "
+            "comma-separated, to inject into the MAP-Elites archive (mode=map_elites)."
+        ),
+    )
+    geo_atlas.add_argument("--cma-sigma0", type=float, default=0.25, help="CMA-ES initial sigma.")
+    geo_atlas.add_argument("--cma-popsize", type=int, default=None, help="CMA-ES population size.")
+    geo_atlas.add_argument(
+        "--cma-objective",
+        choices=["f_geo", "score"],
+        default="f_geo",
+        help="CMA-ES objective (default: maximise frozen f_geo).",
+    )
+    geo_atlas.add_argument(
+        "--alc-only",
+        action="store_true",
+        help="CMA-ES: optimise only Alcubierre controls (freeze RBF).",
+    )
+
     opt = subparsers.add_parser("optimize", help="CMA-ES optimization over RadialRecipe coefficients.")
     opt.add_argument("--max-generations", type=int, default=50, help="Maximum CMA-ES generations.")
     opt.add_argument(
