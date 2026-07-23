@@ -16,8 +16,8 @@ from typing import Any, Literal
 import numpy as np
 
 from .config import GeometryAtlasConfig
+from .ansatz import ANALYTIC_PARAMS
 from .genome import (
-    ALC_PARAMS,
     PARAMS_PER_CENTER,
     GeometryGenome,
     GeometryGenomeConfig,
@@ -112,7 +112,7 @@ def run_geometry_cmaes(
 
     ``objective='f_geo'`` maximises frozen shortcut strength directly.
     ``alc_only=True`` freezes the RBF block and optimises only the trailing
-    Alcubierre controls (fastest path to a strong warp channel).
+    analytic topologies (shift tube, tunnel, lens, throat).
     """
     try:
         import cma
@@ -126,9 +126,9 @@ def run_geometry_cmaes(
             coeffs=seed.coeffs, centers=seed.centers, config=genome_cfg
         )
     if alc_only:
-        # Freeze RBF deformations; keep only Alcubierre trailing block free.
+        # Freeze RBF deformations; keep only the analytic topology tail free.
         frozen = zero_genome(genome_cfg).coeffs.copy()
-        frozen[-ALC_PARAMS:] = seed.alc_coeffs
+        frozen[-ANALYTIC_PARAMS:] = seed.analytic_coeffs
         seed = GeometryGenome(
             coeffs=frozen, centers=seed.centers.copy(), config=genome_cfg
         )
@@ -154,7 +154,7 @@ def run_geometry_cmaes(
 
     if alc_only:
         a0 = genome_cfg.n_centers * PARAMS_PER_CENTER
-        x0 = np.clip(seed.coeffs[a0 : a0 + ALC_PARAMS].copy(), lo_full[a0:], hi_full[a0:])
+        x0 = np.clip(seed.coeffs[a0:].copy(), lo_full[a0:], hi_full[a0:])
         lo = lo_full[a0:]
         hi = hi_full[a0:]
         popsize = int(population_size) if population_size is not None else 8
@@ -184,7 +184,7 @@ def run_geometry_cmaes(
     def _embed(x: np.ndarray) -> GeometryGenome:
         if alc_only:
             coeffs = seed.coeffs.copy()
-            coeffs[-ALC_PARAMS:] = np.asarray(x, dtype=np.float64)
+            coeffs[-ANALYTIC_PARAMS:] = np.asarray(x, dtype=np.float64)
         else:
             coeffs = np.asarray(x, dtype=np.float64)
         return GeometryGenome(

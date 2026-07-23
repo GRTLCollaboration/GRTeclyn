@@ -32,6 +32,9 @@ def _genome_config(args: argparse.Namespace) -> GeometryGenomeConfig:
         box_half_width=0.5 * float(args.L),
         alc_velocity_max=float(args.alc_velocity_max),
         enable_alcubierre=not bool(args.no_alcubierre),
+        enable_tunnel=not bool(args.no_tunnel),
+        enable_lens=not bool(args.no_lens),
+        enable_throat=not bool(args.no_throat),
     )
 
 

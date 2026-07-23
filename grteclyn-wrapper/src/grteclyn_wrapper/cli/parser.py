@@ -142,7 +142,22 @@ def build_parser() -> argparse.ArgumentParser:
     geo_atlas.add_argument(
         "--no-alcubierre",
         action="store_true",
-        help="Disable Alcubierre trailing controls (RBF-only genome).",
+        help="Disable Alcubierre shift-tube controls.",
+    )
+    geo_atlas.add_argument(
+        "--no-tunnel",
+        action="store_true",
+        help="Disable anisotropic compression-tunnel ansatz.",
+    )
+    geo_atlas.add_argument(
+        "--no-lens",
+        action="store_true",
+        help="Disable spherical conformal-lens ansatz.",
+    )
+    geo_atlas.add_argument(
+        "--no-throat",
+        action="store_true",
+        help="Disable Morris-Thorne wormhole-throat ansatz.",
     )
     geo_atlas.add_argument("--mutation-sigma", type=float, default=0.15, help="Mutation scale.")
     geo_atlas.add_argument(
@@ -193,7 +208,7 @@ def build_parser() -> argparse.ArgumentParser:
     geo_atlas.add_argument(
         "--alc-only",
         action="store_true",
-        help="CMA-ES: optimise only Alcubierre controls (freeze RBF).",
+        help="CMA-ES: optimise only the analytic topology tail (freeze RBF).",
     )
 
     opt = subparsers.add_parser("optimize", help="CMA-ES optimization over RadialRecipe coefficients.")

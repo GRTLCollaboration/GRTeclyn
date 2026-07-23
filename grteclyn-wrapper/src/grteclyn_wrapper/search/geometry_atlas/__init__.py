@@ -8,6 +8,7 @@ GRTeclyn evolution are later promotion stages.
 
 from __future__ import annotations
 
+from .ansatz import ANALYTIC_PARAMS, ANSATZE
 from .calibrate import calibrate_atlas_probe
 from .config import GeometryAtlasConfig
 from .driver import run_geometry_atlas
@@ -23,6 +24,8 @@ from .render import RenderConfig, render_and_write, render_genome
 from .score import GeometryAtlasEvaluation, evaluate_genome
 
 __all__ = [
+    "ANALYTIC_PARAMS",
+    "ANSATZE",
     "GeometryAtlasConfig",
     "GeometryAtlasEvaluation",
     "GeometryGenome",

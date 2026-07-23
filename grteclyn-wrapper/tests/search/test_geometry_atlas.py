@@ -26,6 +26,14 @@ from grteclyn_wrapper.search.geometry_atlas import (
     seed_alcubierre_genome,
     zero_genome,
 )
+from grteclyn_wrapper.search.geometry_atlas.ansatz import (
+    ANALYTIC_PARAMS,
+    ansatz_offset,
+)
+from grteclyn_wrapper.search.geometry_atlas.genome import (
+    GeometryGenome,
+    genome_bounds,
+)
 from grteclyn_wrapper.search.geometry_atlas.genome import (
     PARAMS_PER_CENTER,
     compact_envelope,
@@ -184,6 +192,75 @@ def test_alcubierre_seed_produces_shift():
     assert abs(float(beta[0, axis])) > 0.1
 
 
+def _with_ansatz(genome: GeometryGenome, name: str, params) -> GeometryGenome:
+    """Return a copy with one analytic block overwritten."""
+    coeffs = genome.coeffs.copy()
+    base = genome.config.n_centers * PARAMS_PER_CENTER + ansatz_offset(name)
+    coeffs[base : base + len(params)] = np.asarray(params, dtype=np.float64)
+    return GeometryGenome(coeffs=coeffs, centers=genome.centers.copy(), config=genome.config)
+
+
+def test_nonshift_topologies_deform_gamma_without_shift():
+    """Tunnel/lens/throat bend gamma while leaving the shift channel ~zero."""
+    cfg = GeometryGenomeConfig(n_centers=3, support_radius=10.0)
+    render = RenderConfig(n=24, L=32.0)
+    base = zero_genome(cfg)
+
+    # strength, width/radius, [sigma|axis]
+    cases = {
+        "tunnel": [0.5, 4.0, 0.0],
+        "lens": [-0.5, 0.0, 2.0],
+        "throat": [0.5, 5.0, 1.5],
+    }
+    for name, params in cases.items():
+        rendered = render_genome(_with_ansatz(base, name, params), render)
+        eye = np.eye(3)
+        assert np.max(np.abs(rendered.gamma - eye)) > 1e-3, name
+        assert rendered.diagnostics["max_abs_beta"] < 1e-8, name
+        assert rendered.diagnostics["shift_fraction"] < 0.5, name
+
+
+def test_tunnel_contracts_along_axis():
+    """A positive-strength tunnel shortens proper length along its axis."""
+    cfg = GeometryGenomeConfig(n_centers=3, support_radius=10.0)
+    genome = _with_ansatz(zero_genome(cfg), "tunnel", [0.6, 4.0, 2.0])  # axis z
+    pts = np.array([[0.0, 0.0, 0.0]])
+    _a, beta, gamma, _k = decode_fields_at_points(genome, pts)
+    assert np.allclose(beta, 0.0)
+    # gamma_zz < 1 (contraction), transverse components ~1.
+    assert gamma[0, 2, 2] < 0.99
+    assert gamma[0, 0, 0] == pytest.approx(1.0, abs=1e-6)
+
+
+def test_disabled_ansatz_is_pinned():
+    """Disabling a topology collapses its bounds (lo == hi), so it never mutates."""
+    cfg = GeometryGenomeConfig(n_centers=2, enable_throat=False)
+    lo, hi = genome_bounds(cfg)
+    base = cfg.n_centers * PARAMS_PER_CENTER + ansatz_offset("throat")
+    assert np.allclose(lo[base : base + 3], hi[base : base + 3])
+    # An enabled neighbour still has a nonzero search span.
+    tun = cfg.n_centers * PARAMS_PER_CENTER + ansatz_offset("tunnel")
+    assert np.any(hi[tun : tun + 3] > lo[tun : tun + 3])
+
+
+def test_legacy_alcubierre_genome_migrates():
+    """Old Alcubierre-only genome JSON upgrades into the analytic-tail layout."""
+    cfg = GeometryGenomeConfig(n_centers=3)
+    legacy_len = cfg.n_centers * PARAMS_PER_CENTER + 4
+    coeffs = np.zeros(legacy_len)
+    coeffs[-4:] = [1.1, 4.0, 1.5, 0.0]  # velocity, radius, sigma, axis
+    payload = {
+        "coeffs": coeffs.tolist(),
+        "centers": fibonacci_centers(cfg.n_centers, 4.5).tolist(),
+        "config": {"n_centers": cfg.n_centers, "support_radius": cfg.support_radius},
+    }
+    genome = GeometryGenome.from_dict(payload)
+    assert genome.coeffs.shape[0] == cfg.n_centers * PARAMS_PER_CENTER + ANALYTIC_PARAMS
+    v, r, s, axis = unpack_alcubierre(genome)
+    assert v == pytest.approx(1.1)
+    assert r == pytest.approx(4.0)
+
+
 def test_probe_half_length_caps():
     assert probe_half_length(support_radius=12.0, box_length=64.0) == pytest.approx(18.0)
     assert probe_half_length(support_radius=40.0, box_length=64.0) == pytest.approx(25.6)
@@ -238,7 +315,7 @@ def test_cmaes_smoke(tmp_path: Path):
     assert (root / "best.gridinit").exists()
     assert summary["evals"] == 4
     assert summary["best_f_geo"] is not None
-    assert best.coeffs.shape[0] == 3 * PARAMS_PER_CENTER + 4
+    assert best.coeffs.shape[0] == 3 * PARAMS_PER_CENTER + ANALYTIC_PARAMS
 
 
 def test_archive_resume_and_smoke(tmp_path: Path):
