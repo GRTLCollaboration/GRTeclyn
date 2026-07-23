@@ -26,6 +26,12 @@ class GeometryAtlasConfig:
     random_fraction: float = 0.35
     # Localise emitter/detector about the genome support (recommended).
     localise_probe: bool = True
+    # Soft cost: score -= exotic_penalty * integral_negative_rho.
+    exotic_penalty: float = 0.0
+    # Soft reward: score += exotic_bonus * integral_negative_rho (trust exotic).
+    exotic_bonus: float = 0.0
+    # Hard reject if integral_negative_rho > exotic_ban (0 disables).
+    exotic_ban: float = 0.0
     # JSON genome paths injected into the archive at seeding (e.g. a CMA elite).
     warm_start_genomes: tuple[str, ...] = ()
     genome: GeometryGenomeConfig = field(default_factory=GeometryGenomeConfig)
@@ -44,6 +50,9 @@ class GeometryAtlasConfig:
             "resume": self.resume,
             "random_fraction": self.random_fraction,
             "localise_probe": self.localise_probe,
+            "exotic_penalty": self.exotic_penalty,
+            "exotic_bonus": self.exotic_bonus,
+            "exotic_ban": self.exotic_ban,
             "warm_start_genomes": list(self.warm_start_genomes),
             "genome": asdict(self.genome),
             "render": {"n": self.render.n, "L": self.render.L},

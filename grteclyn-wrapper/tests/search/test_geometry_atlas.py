@@ -185,6 +185,72 @@ def test_evaluate_minkowski_genome():
     assert ev.integral_negative_rho == pytest.approx(0.0, abs=1e-8)
 
 
+def test_exotic_ban_and_penalty():
+    """Ban rejects high E-; penalty lowers score; Minkowski still passes a tight ban."""
+    flat = zero_genome(GeometryGenomeConfig(n_centers=3, support_radius=8.0))
+    flat_ev = evaluate_genome(
+        flat,
+        eval_id=0,
+        render_cfg=RenderConfig(n=12, L=32.0),
+        bins=8,
+        n_rays=3,
+        compute_ff=False,
+        exotic_ban=1.0e-3,
+        exotic_penalty=50.0,
+    )
+    assert not flat_ev.rejected
+    assert flat_ev.integral_negative_rho == pytest.approx(0.0, abs=1e-8)
+
+    cfg = GeometryGenomeConfig(n_centers=3, support_radius=10.0, enable_alcubierre=True)
+    alc = seed_alcubierre_genome(cfg)
+    banned = evaluate_genome(
+        alc,
+        eval_id=1,
+        render_cfg=RenderConfig(n=16, L=32.0),
+        bins=8,
+        n_rays=3,
+        compute_ff=False,
+        exotic_ban=0.05,
+    )
+    assert banned.rejected
+    assert banned.reject_reason == "exotic_energy_banned"
+    assert banned.integral_negative_rho > 0.05
+
+    free = evaluate_genome(
+        alc,
+        eval_id=2,
+        render_cfg=RenderConfig(n=16, L=32.0),
+        bins=8,
+        n_rays=3,
+        compute_ff=False,
+        exotic_ban=0.0,
+        exotic_penalty=0.0,
+    )
+    penalised = evaluate_genome(
+        alc,
+        eval_id=3,
+        render_cfg=RenderConfig(n=16, L=32.0),
+        bins=8,
+        n_rays=3,
+        compute_ff=False,
+        exotic_ban=0.0,
+        exotic_penalty=50.0,
+    )
+    rewarded = evaluate_genome(
+        alc,
+        eval_id=4,
+        render_cfg=RenderConfig(n=16, L=32.0),
+        bins=8,
+        n_rays=3,
+        compute_ff=False,
+        exotic_ban=0.0,
+        exotic_bonus=25.0,
+    )
+    assert not free.rejected and not penalised.rejected and not rewarded.rejected
+    assert penalised.score < free.score
+    assert rewarded.score > free.score
+
+
 def test_alcubierre_seed_produces_shift():
     cfg = GeometryGenomeConfig(n_centers=3, support_radius=10.0, enable_alcubierre=True)
     genome = seed_alcubierre_genome(cfg)

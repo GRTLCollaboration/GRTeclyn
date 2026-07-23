@@ -204,6 +204,9 @@ def _rank_score(
     freefall_reached: bool,
     h_quality_ok: bool,
     diagnostics: dict[str, float],
+    exotic_penalty: float = 0.0,
+    exotic_bonus: float = 0.0,
+    exotic_ban: float = 0.0,
 ) -> tuple[float, bool, str | None, list[str]]:
     """Within-cell ranking score with hard rejection gates."""
     notes: list[str] = []
@@ -219,6 +222,12 @@ def _rank_score(
     if diagnostics.get("ham_l2", 0.0) > 5.0:
         return -1.0e9, True, "constraint_inconsistent", notes
 
+    e_neg = float(diagnostics.get("integral_negative_rho", 0.0))
+    ban = float(exotic_ban)
+    if ban > 0.0 and e_neg > ban:
+        notes.append(f"exotic_ban_exceeded:{e_neg:.3g}>{ban:.3g}")
+        return -1.0e9, True, "exotic_energy_banned", notes
+
     if not h_quality_ok:
         notes.append("null_h_drift_high")
     if not freefall_reached:
@@ -230,7 +239,20 @@ def _rank_score(
     # Soft penalty for large constraint residuals / roughness.
     ham_pen = 0.01 * float(diagnostics.get("ham_l2", 0.0))
     mom_pen = 0.01 * float(diagnostics.get("mom_l2", 0.0))
-    score = 1000.0 * ff_term + 100.0 * geo_term - ham_pen - mom_pen
+    exotic_pen = max(float(exotic_penalty), 0.0) * max(e_neg, 0.0)
+    exotic_rew = max(float(exotic_bonus), 0.0) * max(e_neg, 0.0)
+    if exotic_pen > 0.0:
+        notes.append(f"exotic_penalty:{exotic_pen:.3g}")
+    if exotic_rew > 0.0:
+        notes.append(f"exotic_bonus:{exotic_rew:.3g}")
+    score = (
+        1000.0 * ff_term
+        + 100.0 * geo_term
+        - ham_pen
+        - mom_pen
+        - exotic_pen
+        + exotic_rew
+    )
     return score, False, None, notes
 
 
@@ -245,6 +267,9 @@ def evaluate_genome(
     compute_ff: bool = True,
     keep_gridinit: bool = False,
     localise_probe: bool = True,
+    exotic_penalty: float = 0.0,
+    exotic_bonus: float = 0.0,
+    exotic_ban: float = 0.0,
 ) -> GeometryAtlasEvaluation:
     """Render, score, and descriptor-bin one genome."""
     rendered: RenderedGeometry | None = None
@@ -337,6 +362,9 @@ def evaluate_genome(
         freefall_reached=freefall_reached,
         h_quality_ok=h_ok,
         diagnostics={**diag, "min_lapse": float(rendered.grid.metrics["min_lapse"])},
+        exotic_penalty=exotic_penalty,
+        exotic_bonus=exotic_bonus,
+        exotic_ban=exotic_ban,
     )
     notes.extend(rank_notes)
 

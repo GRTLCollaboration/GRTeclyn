@@ -211,6 +211,9 @@ def run_geometry_cmaes(
                 compute_ff=cfg.compute_ff,
                 keep_gridinit=False,
                 localise_probe=cfg.localise_probe,
+                exotic_penalty=cfg.exotic_penalty,
+                exotic_bonus=cfg.exotic_bonus,
+                exotic_ban=cfg.exotic_ban,
             )
             _write_json(root / "evals" / f"eval_{eval_id:06d}.json", ev.to_dict())
             _append_jsonl(traj_path, evaluation_summary(ev))

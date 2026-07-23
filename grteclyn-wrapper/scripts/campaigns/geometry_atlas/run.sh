@@ -42,6 +42,10 @@ NO_ALC="${NO_ALC:-0}"
 FULLBOX_PROBE="${FULLBOX_PROBE:-0}"
 ALC_ONLY="${ALC_ONLY:-0}"
 ALC_VELOCITY_MAX="${ALC_VELOCITY_MAX:-2.0}"
+EXOTIC_PENALTY="${EXOTIC_PENALTY:-0}"
+EXOTIC_BONUS="${EXOTIC_BONUS:-0}"
+EXOTIC_BAN="${EXOTIC_BAN:-0}"
+RANDOM_FRACTION="${RANDOM_FRACTION:-}"
 CMA_OBJECTIVE="${CMA_OBJECTIVE:-f_geo}"
 CMA_SIGMA0="${CMA_SIGMA0:-0.25}"
 CMA_POPSIZE="${CMA_POPSIZE:-}"
@@ -56,6 +60,10 @@ EXTRA_ARGS=()
 [[ "${FULLBOX_PROBE}" == "1" ]] && EXTRA_ARGS+=(--fullbox-probe)
 [[ "${ALC_ONLY}" == "1" ]] && EXTRA_ARGS+=(--alc-only)
 EXTRA_ARGS+=(--alc-velocity-max "${ALC_VELOCITY_MAX}")
+EXTRA_ARGS+=(--exotic-penalty "${EXOTIC_PENALTY}")
+EXTRA_ARGS+=(--exotic-bonus "${EXOTIC_BONUS}")
+EXTRA_ARGS+=(--exotic-ban "${EXOTIC_BAN}")
+[[ -n "${RANDOM_FRACTION}" ]] && EXTRA_ARGS+=(--random-fraction "${RANDOM_FRACTION}")
 EXTRA_ARGS+=(--cma-objective "${CMA_OBJECTIVE}")
 EXTRA_ARGS+=(--cma-sigma0 "${CMA_SIGMA0}")
 [[ -n "${CMA_POPSIZE}" ]] && EXTRA_ARGS+=(--cma-popsize "${CMA_POPSIZE}")

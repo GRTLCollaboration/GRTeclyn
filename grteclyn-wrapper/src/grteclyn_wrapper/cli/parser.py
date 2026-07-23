@@ -172,6 +172,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use historical 5–95%% box endpoints instead of support-localised probe.",
     )
     geo_atlas.add_argument("--no-ff", action="store_true", help="Skip stationary free-fall probe.")
+    geo_atlas.add_argument(
+        "--exotic-penalty",
+        type=float,
+        default=0.0,
+        help="Soft cost: subtract exotic_penalty * integral_negative_rho from score.",
+    )
+    geo_atlas.add_argument(
+        "--exotic-bonus",
+        type=float,
+        default=0.0,
+        help="Soft reward: add exotic_bonus * integral_negative_rho to score (trust exotic).",
+    )
+    geo_atlas.add_argument(
+        "--exotic-ban",
+        type=float,
+        default=0.0,
+        help="Hard-reject genomes with integral_negative_rho above this (0 disables).",
+    )
     geo_atlas.add_argument("--resume", action="store_true", help="Resume from state.json.")
     geo_atlas.add_argument(
         "--calibrate-n", type=int, default=48, help="Alcubierre calibration grid n (mode=calibrate)."

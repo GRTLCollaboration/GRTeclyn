@@ -51,6 +51,9 @@ def _atlas_config(args: argparse.Namespace) -> GeometryAtlasConfig:
         resume=bool(args.resume),
         random_fraction=float(args.random_fraction),
         localise_probe=not bool(args.fullbox_probe),
+        exotic_penalty=float(args.exotic_penalty),
+        exotic_bonus=float(args.exotic_bonus),
+        exotic_ban=float(args.exotic_ban),
         warm_start_genomes=tuple(
             p.strip() for p in str(args.seed_genome or "").split(",") if p.strip()
         ),
