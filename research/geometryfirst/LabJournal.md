@@ -165,3 +165,50 @@ Genome tail grew 4 → 13 params; legacy Alcubierre-only elites migrate transpar
 Curvature-only shortcuts are real (the tunnel already rivals the prior best mid-morphology elite, \(0.12\), at a single untuned setting). **Corrects the earlier "curvature families are genuinely weak" conclusion — they were unreachable, not weak.**
 
 **Run launched.** `geometry_atlas_topologies_n64_L32_e260_20260723/` — all topologies on, \(N=64\), \(L=32\), 260 evals, warm-started from the trusted CMA elite. Results pending.
+
+### How to interpret the topology-atlas elites
+
+These elites are **frozen-slice light shortcuts, not moving objects**. Here
+\[
+f_{\rm geo}=\frac{t_{\rm flat}-t_{\rm curved}}{t_{\rm flat}},
+\]
+so \(f_{\rm geo}=0.475\) means that the fastest null ray crosses the prescribed
+region in \(52.5\%\) of the matched flat-space time. It does **not** mean that a
+spacecraft moved at \(2c\), nor that anything locally travelled outside its
+light cone. The Alcubierre `v` genome parameter controls the strength of the
+instantaneous shift field; because Stage 1 renders a centred stationary
+snapshot, it is not a measured bubble or payload velocity.
+
+The atlas uses the same null travel-time *definition* as the paper, but not the
+same validation tier:
+
+| Geometry atlas | Matter-first paper |
+|--|--|
+| Painted artificial geometry | Constraint-solved, matter-generated geometry |
+| Frozen stationary snapshot | Full time-evolving spacetime |
+| Best localised null-ray direction | Evolving 4D null-ray trace |
+| Free-fall disabled in this run (`NO_FF=1`) | Freely falling observer confirmation |
+| No payload or object transport | Also no payload transport: a transient timing shortcut |
+
+Therefore the atlas values are candidate shortcut geometries, not demonstrated
+physical warp drives and not directly comparable numerically with Candidate
+146's headline \(20.2\%\) evolving result. In particular, `f_ff=0` in this run
+means **not computed**, not “free-fall failed.”
+
+**Interim top-five interpretation (1000-eval resume still running).**
+
+1. \(f_{\rm geo}=0.475\): numerically trustworthy, almost pure Alcubierre-like
+   shift tube (\(f_{\rm shift}\approx1\)).
+2. \(0.326\): shift tube decorated by tunnel/lens/throat modes.
+3. \(0.258\): the clearest broader hybrid (\(f_{\rm shift}\approx0.72\)); the
+   strongest current evidence beyond a nearly pure Alcubierre channel.
+4. \(0.229\): another shift/curvature hybrid.
+5. \(0.215\): do not interpret physically yet; its raw \(f_{\rm geo}=0.431\)
+   was halved because null-Hamiltonian drift (\(\approx0.083\)) exceeds the
+   \(0.01\) reliability threshold.
+
+To promote an elite from “geometric shortcut candidate” to the paper's evidence
+tier: re-rank with \(f_{\rm ff}\), synthesize matter, solve the constraints with
+GRTresna, evolve with GRTeclyn, and repeat the evolving-geodesic and free-fall
+tests. Transporting an actual timelike payload would require an additional
+worldline experiment beyond both current pipelines.

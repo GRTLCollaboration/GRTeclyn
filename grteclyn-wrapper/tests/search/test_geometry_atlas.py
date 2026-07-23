@@ -47,6 +47,7 @@ from grteclyn_wrapper.search.geometry_atlas.score import (
     probe_half_length,
 )
 from grteclyn_wrapper.search.qd_search.archive import QDArchive
+from grteclyn_wrapper.visualisation.geometry_atlas.embedding import intrinsic_embedding
 
 
 def test_zero_genome_is_minkowski():
@@ -106,12 +107,15 @@ def test_rendered_metric_is_spd_and_asymptotically_flat(tmp_path: Path):
 
 def test_minkowski_render_has_near_zero_exotic_cost():
     genome = zero_genome(GeometryGenomeConfig(n_centers=3, support_radius=8.0))
-    rendered = render_genome(genome, RenderConfig(n=10, L=40.0))
+    render_cfg = RenderConfig(n=10, L=40.0)
+    rendered = render_genome(genome, render_cfg)
     assert rendered.diagnostics["integral_negative_rho"] == pytest.approx(0.0, abs=1e-8)
     assert rendered.diagnostics["max_abs_alpha_m1"] == pytest.approx(0.0, abs=1e-12)
     # Stationary Minkowski constraints should be near truncation noise.
     assert rendered.diagnostics["ham_l2"] < 1e-6
     assert rendered.diagnostics["mom_l2"] < 1e-6
+    embedding = intrinsic_embedding(rendered, render_cfg)
+    assert np.allclose(embedding.height, 0.0, atol=1e-12)
 
 
 def test_gridinit_metric_bridge_roundtrip(tmp_path: Path):
