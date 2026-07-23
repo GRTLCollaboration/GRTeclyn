@@ -33,11 +33,11 @@ class Constraints
     static inline const std::string name = "constraints";
 
     /// Variable names
-    static inline const amrex::Vector<std::string> var_names = {"Ham", "Mom1",
-                                                                "Mom2", "Mom3"};
+    static inline const amrex::Vector<std::string> var_names = {
+        "Ham", "Mom1", "Mom2", "Mom3", "DetConstraint"};
 
-    static inline const amrex::Vector<std::string> var_names_norm = {"Ham",
-                                                                     "Mom"};
+    static inline const amrex::Vector<std::string> var_names_norm = {
+        "Ham", "Mom", "DetConstraint"};
 
     /// Struct for Constraints
     struct constraints_t
@@ -46,6 +46,7 @@ class Constraints
         amrex::Real Ham_abs_terms{};
         Tensor<1, amrex::Real> Mom;
         Tensor<1, amrex::Real> Mom_abs_terms;
+        amrex::Real DetConstraint{};
     };
 
     // Constructor which allows specifying Ham and Mom vars
@@ -62,7 +63,8 @@ class Constraints
     Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
                 int a_c_Ham_abs_terms              = -1,
                 const Interval &a_c_Moms_abs_terms = Interval(),
-                double cosmological_constant       = 0.0);
+                double cosmological_constant       = 0.0,
+                int a_c_DetConstraint              = -1);
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
@@ -91,6 +93,7 @@ class Constraints
     int m_c_Ham_abs_terms = -1;
     Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
+    int m_c_DetConstraint = -1;
 
     [[nodiscard]]
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(

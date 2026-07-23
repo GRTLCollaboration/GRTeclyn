@@ -20,11 +20,13 @@ AMREX_FORCE_INLINE
 Constraints::Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
                          int a_c_Ham_abs_terms /*defaulted*/,
                          const Interval &a_c_Moms_abs_terms /*defaulted*/,
-                         double cosmological_constant /*defaulted*/)
+                         double cosmological_constant /*defaulted*/,
+                         int a_c_DetConstraint /*defaulted*/)
     : m_deriv(dx), m_c_Ham(a_c_Ham), m_c_Moms(a_c_Moms),
       m_c_Ham_abs_terms(a_c_Ham_abs_terms),
       m_c_Moms_abs_terms(a_c_Moms_abs_terms),
-      m_cosmological_constant(cosmological_constant)
+      m_cosmological_constant(cosmological_constant),
+      m_c_DetConstraint(a_c_DetConstraint)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         (a_c_Ham >= 0 && a_c_Ham_abs_terms < 0) ||
@@ -78,6 +80,9 @@ Constraints::constraints_t Constraints::constraint_equations(
     const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
 {
     constraints_t out;
+
+    out.DetConstraint =
+        CCZ4Geometry::compute_metric_determinant(vars) - 1.0;
 
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
     {
@@ -182,6 +187,10 @@ Constraints::store_vars(const constraints_t &out,
         amrex::Real Mom_abs_terms                = sqrt(Mom_abs_terms_sq);
         current_cell[m_c_Moms_abs_terms.begin()] = Mom_abs_terms;
     }
+    if (m_c_DetConstraint >= 0)
+    {
+        current_cell[m_c_DetConstraint] = out.DetConstraint;
+    }
 }
 
 void Constraints::set_up(int a_state_index, bool a_calc_mom_norm)
@@ -212,9 +221,17 @@ void Constraints::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
 {
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
-    int iham               = dcomp;
-    Interval imom          = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
-    Constraints constraints(geomdata.CellSize(0), iham, imom);
+    int iham = dcomp;
+    Interval imom =
+        (s_calc_mom_norm)
+            ? Interval(dcomp + 1, dcomp + 1)
+            : Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+    int idet = imom.end() + 1;
+
+    AMREX_ALWAYS_ASSERT(ncomp == (s_calc_mom_norm ? 3 : 5));
+
+    Constraints constraints(geomdata.CellSize(0), iham, imom, -1, Interval(),
+                            0.0, idet);
 
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
