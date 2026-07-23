@@ -42,12 +42,11 @@ class TwoPuncturesInitialData
 
   protected:
     void interpolate_tp_vars(const Coordinates<amrex::Real> &coords,
-                             TensorArray::Rank2 &out_h_phys,
-                             TensorArray::Rank2 &out_extrinsic_K,
-                             amrex::Real &out_lapse,
-                             TensorArray::Rank1 &out_shift,
+                             Tensor::Rank2 &out_h_phys,
+                             Tensor::Rank2 &out_extrinsic_K,
+                             amrex::Real &out_lapse, Tensor::Rank1 &out_shift,
                              amrex::Real &out_Theta,
-                             TensorArray::Rank1 &out_Z3) const;
+                             Tensor::Rank1 &out_Z3) const;
 };
 
 #include "TwoPuncturesInitialData.impl.hpp"

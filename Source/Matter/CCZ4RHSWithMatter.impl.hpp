@@ -71,7 +71,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
 
     const typename matter_t::Vars vars(state_cell_data);
 
-    const auto h_UU = CCZ4Geometry::compute_inverse_metric_test(vars);
+    const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
 
     // Calculate elements of the decomposed stress energy tensor
 
@@ -101,7 +101,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     FOR2_SYM(i, j)
     {
 
-        rhs_cell_data[VAR_IDX(c_A11, i, j)] +=
+        rhs_cell_data[sym_var_idx(c_A11, i, j)] +=
             -8.0 * M_PI * m_G_Newton * vars.chi() * vars.lapse() * S_TF(i, j);
     }
 

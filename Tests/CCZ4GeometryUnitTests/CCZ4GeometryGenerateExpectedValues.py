@@ -28,7 +28,7 @@ Index / storage conventions (matching the C++ Tensor classes):
   * The last index of a derivative tensor is always the derivative direction.
   * Symmetric index pairs are packed as
         (0,0)->0  (0,1)->1  (0,2)->2  (1,1)->3  (1,2)->4  (2,2)->5
-    i.e. VAR_IDX0(i, j) = i + j + (1 if i*j != 0 else 0).
+    i.e. sym_var_idx(i, j) = i + j + (1 if i*j != 0 else 0).
   * d1_h  is Sym12Rank3:      d1_h(pair(i,j), k)          = d_k h_{ij}
   * d1_Gamma is Rank2:        d1_Gamma(a, b)              = d_b Gamma^a
   * d2_chi is Sym12Rank2:     d2_chi(pair(i,j))           = d_i d_j chi

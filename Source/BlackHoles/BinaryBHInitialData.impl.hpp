@@ -35,13 +35,13 @@ BinaryBHInitialData::compute_chi(Coordinates coords) const
     return pow(psi, -4);
 }
 
-[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE TensorArray::Rank2
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor::Rank2
 BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
 {
 
-    TensorArray::Rank2 Aij1 = bh1.Aij(coords);
-    TensorArray::Rank2 Aij2 = bh2.Aij(coords);
-    TensorArray::Rank2 Aij_total;
+    Tensor::Rank2 Aij1 = bh1.Aij(coords);
+    Tensor::Rank2 Aij2 = bh2.Aij(coords);
+    Tensor::Rank2 Aij_total;
 
     // Aij(CCZ4) = psi^(-6) * Aij(Baumgarte&Shapiro book)
     FOR (i, j)
@@ -67,11 +67,14 @@ AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
 
     FOR2_SYM(i, j)
     {
-        state_cell_data[VAR_IDX(c_h11, i, j)] = TensorAlgebra::delta(i, j);
+        state_cell_data[sym_var_idx(c_h11, i, j)] = TensorAlgebra::delta(i, j);
     }
 
     auto total_A_LL = compute_A(chi, coords);
-    FOR2_SYM(i, j) { state_cell_data[VAR_IDX(c_A11, i, j)] = total_A_LL(i, j); }
+    FOR2_SYM(i, j)
+    {
+        state_cell_data[sym_var_idx(c_A11, i, j)] = total_A_LL(i, j);
+    }
 
     switch (m_initial_lapse)
     {

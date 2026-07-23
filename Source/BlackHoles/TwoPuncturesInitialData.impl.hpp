@@ -17,8 +17,8 @@ void TwoPuncturesInitialData::compute(Cell<double> current_cell) const
     VarsTools::assign(vars, 0.);
 
     Coordinates<amrex::Real> coords(current_cell, m_dx, m_center);
-    TensorArray::Rank2 h_phys, K_tensor;
-    TensorArray::Rank1 shift, Z3;
+    Tensor::Rank2 h_phys, K_tensor;
+    Tensor::Rank1 shift, Z3;
     double lapse, Theta;
 
     interpolate_tp_vars(coords, h_phys, K_tensor, lapse, shift, Theta, Z3);
@@ -50,10 +50,10 @@ void TwoPuncturesInitialData::compute(Cell<double> current_cell) const
 }
 
 void TwoPuncturesInitialData::interpolate_tp_vars(
-    const Coordinates<amrex::Real> &coords, TensorArray::Rank2 &out_h_phys,
-    TensorArray::Rank2 &out_K_tensor, amrex::Real &out_lapse,
-    TensorArray::Rank1 &out_shift, amrex::Real &out_Theta,
-    TensorArray::Rank1 &out_Z3) const
+    const Coordinates<amrex::Real> &coords, Tensor::Rank2 &out_h_phys,
+    Tensor::Rank2 &out_K_tensor, amrex::Real &out_lapse,
+    Tensor::Rank1 &out_shift, amrex::Real &out_Theta,
+    Tensor::Rank1 &out_Z3) const
 {
     amrex::Real coords_array[AMREX_SPACEDIM];
     coords_array[0] = coords.x;

@@ -21,7 +21,7 @@ class BoostedBHInitialData
   public:
     struct params_t
     {
-        double mass;
+        double mass{};
         std::array<double, AMREX_SPACEDIM> center;
         std::array<double, AMREX_SPACEDIM> momentum;
     };
@@ -33,7 +33,7 @@ class BoostedBHInitialData
     psi_minus_one(Coordinates a_coords) const;
 
     // extrinsic curvature
-    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE TensorArray::Rank2
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor::Rank2
     Aij(Coordinates a_coords) const;
 
   private:

@@ -21,7 +21,6 @@
 #include "TensorAlgebra.hpp"
 
 // AMReX includes
-#include <AMReX_Array.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_REAL.H>
 
@@ -92,18 +91,6 @@ class Constraints
     int m_c_Ham_abs_terms = -1;
     Interval m_c_Moms_abs_terms;
     double m_cosmological_constant;
-
-    [[nodiscard]]
-    AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(
-        const CCZ4Vars &vars, const TensorArray::Rank1 &d1_chi,
-        const TensorArray::Rank2 &d1_Gamma,
-        const amrex::Array2D<amrex::Real, 0, NUM_SYM_IDXS - 1, 0,
-                             AMREX_SPACEDIM - 1> &d1_h,
-        const TensorArray::Rank1 &d1_K,
-        const amrex::Array2D<amrex::Real, 0, NUM_SYM_IDXS - 1, 0,
-                             AMREX_SPACEDIM - 1> &d1_A,
-        const TensorArray::Rank1Sym &d2_chi, const TensorArray::Rank2Sym &d2_h,
-        const TensorArray::Rank2 &h_UU, const chris_t &chris) const;
 
     [[nodiscard]]
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(

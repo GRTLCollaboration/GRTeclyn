@@ -29,8 +29,8 @@ namespace
 constexpr int ulp             = 15; // units in the last place
 constexpr double real_epsilon = std::numeric_limits<amrex::Real>::epsilon();
 
-void check_tensor(const TensorArray::Rank2 &tensor,
-                  const TensorArray::Rank2 &correct_tensor,
+void check_tensor(const Tensor::Rank2 &tensor,
+                  const Tensor::Rank2 &correct_tensor,
                   const std::string &test_name)
 {
     FOR (i, j)
@@ -42,8 +42,21 @@ void check_tensor(const TensorArray::Rank2 &tensor,
     }
 }
 
-void check_vector(const TensorArray::Rank1 &vector,
-                  const TensorArray::Rank1 &correct_vector,
+void check_tensor(const Tensor::Sym12Rank2 &tensor,
+                  const Tensor::Sym12Rank2 &correct_tensor,
+                  const std::string &test_name)
+{
+    FOR (i, j)
+    {
+        INFO(test_name << ": component [" << i << "][" << j << "]");
+        CHECK(
+            tensor(i, j) ==
+            doctest::Approx(correct_tensor(i, j)).epsilon(ulp * real_epsilon));
+    }
+}
+
+void check_vector(const Tensor::Rank1 &vector,
+                  const Tensor::Rank1 &correct_vector,
                   const std::string &test_name)
 {
     FOR (i)
@@ -84,43 +97,35 @@ void run_coordinate_transformations_test()
         using namespace CoordinateTransformations;
 
         // Test if inv_jac is really the inverse of the jacobian
-        TensorArray::Rank2 jac           = spherical_jacobian(x, y, z);
-        TensorArray::Rank2 inv_jac       = inverse_spherical_jacobian(x, y, z);
-        TensorArray::Rank2 inv_jac_check = compute_inverse(jac);
+        Tensor::Rank2 jac           = spherical_jacobian(x, y, z);
+        Tensor::Rank2 inv_jac       = inverse_spherical_jacobian(x, y, z);
+        Tensor::Rank2 inv_jac_check = compute_inverse(jac);
         check_tensor(inv_jac, inv_jac_check, "inverse_jacobian");
 
         // Test tensor transformations
-        TensorArray::Rank2 Mij_cart{};
-        FOR (i, j)
-        {
-            Mij_cart(i, j) = 0.;
-        }
+        Tensor::Sym12Rank2 Mij_cart{0.};
         Mij_cart(0, 0) = 1.;
         Mij_cart(1, 1) = 1.;
         Mij_cart(2, 2) = 1.;
 
-        TensorArray::Rank2 Mij_spher{};
-        FOR (i, j)
-        {
-            Mij_spher(i, j) = 0.;
-        }
+        Tensor::Sym12Rank2 Mij_spher{0.};
         Mij_spher(0, 0) = 1.;
         Mij_spher(1, 1) = r * r;
         Mij_spher(2, 2) = r2sin2theta;
 
         // Test cartesian_to_spherical_LL
-        TensorArray::Rank2 Mij_spher_check{};
+        Tensor::Sym12Rank2 Mij_spher_check{};
         Mij_spher_check = cartesian_to_spherical_LL(Mij_cart, x, y, z);
         check_tensor(Mij_spher_check, Mij_spher, "cartesian_to_spherical_LL");
 
         // Test spherical_to_cartesian_LL
-        TensorArray::Rank2 Mij_cart_check{};
+        Tensor::Sym12Rank2 Mij_cart_check{};
         Mij_cart_check = spherical_to_cartesian_LL(Mij_spher, x, y, z);
         check_tensor(Mij_cart_check, Mij_cart, "spherical_to_cartesian_LL");
 
         // Test cartesian_to_spherical_UU
-        TensorArray::Rank2 Mij_spher_UU{};
-        TensorArray::Rank2 Mij_spher_UU_check{};
+        Tensor::Sym12Rank2 Mij_spher_UU{};
+        Tensor::Sym12Rank2 Mij_spher_UU_check{};
         Mij_spher_UU_check =
             cartesian_to_spherical_UU(compute_inverse_sym(Mij_cart), x, y, z);
         Mij_spher_UU = compute_inverse_sym(Mij_spher);
@@ -128,8 +133,8 @@ void run_coordinate_transformations_test()
                      "cartesian_to_spherical_UU");
 
         // Test spherical_to_cartesian_UU
-        TensorArray::Rank2 Mij_cart_UU{};
-        TensorArray::Rank2 Mij_cart_UU_check{};
+        Tensor::Sym12Rank2 Mij_cart_UU{};
+        Tensor::Sym12Rank2 Mij_cart_UU_check{};
         Mij_cart_UU_check =
             spherical_to_cartesian_UU(compute_inverse_sym(Mij_spher), x, y, z);
         Mij_cart_UU = compute_inverse_sym(Mij_cart);
@@ -137,33 +142,33 @@ void run_coordinate_transformations_test()
                      "spherical_to_cartesian_UU");
 
         // Test vector transformations
-        TensorArray::Rank1 si_cart{};
+        Tensor::Rank1 si_cart{};
         si_cart(0) = x / r;
         si_cart(1) = y / r;
         si_cart(2) = z / r;
 
-        TensorArray::Rank1 si_spher{};
+        Tensor::Rank1 si_spher{};
         si_spher(0) = 1.0;
         si_spher(1) = 0.0;
         si_spher(2) = 0.0;
 
         // Test cartesian_to_spherical_U
-        TensorArray::Rank1 si_spher_U_check{};
+        Tensor::Rank1 si_spher_U_check{};
         si_spher_U_check = cartesian_to_spherical_U(si_cart, x, y, z);
         check_vector(si_spher_U_check, si_spher, "cartesian_to_spherical_U");
 
         // Test spherical_to_cartesian_U
-        TensorArray::Rank1 si_cart_U_check{};
+        Tensor::Rank1 si_cart_U_check{};
         si_cart_U_check = spherical_to_cartesian_U(si_spher, x, y, z);
         check_vector(si_cart_U_check, si_cart, "spherical_to_cartesian_U");
 
         // Test cartesian_to_spherical_L
-        TensorArray::Rank1 si_spher_L_check{};
+        Tensor::Rank1 si_spher_L_check{};
         si_spher_L_check = cartesian_to_spherical_L(si_cart, x, y, z);
         check_vector(si_spher_L_check, si_spher, "cartesian_to_spherical_L");
 
         // Test spherical_to_cartesian_L
-        TensorArray::Rank1 si_cart_L_check{};
+        Tensor::Rank1 si_cart_L_check{};
         si_cart_L_check = spherical_to_cartesian_L(si_spher, x, y, z);
         check_vector(si_cart_L_check, si_cart, "spherical_to_cartesian_L");
 

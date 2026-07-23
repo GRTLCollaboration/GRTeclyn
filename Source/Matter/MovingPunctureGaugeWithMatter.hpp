@@ -48,23 +48,6 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
             rhs[c_B1 + i] += matter_term_Gamma;
         }
     }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void rhs_gauge_add_matter_terms(
-        const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
-        const TensorArray::Rank2 &h_UU, const emtensor_t &emtensor,
-        const double &G_Newton)
-    {
-        FOR (i)
-        {
-            amrex::Real matter_term_Gamma = 0.0;
-            FOR (j)
-            {
-                matter_term_Gamma += -16.0 * M_PI * G_Newton * vars.lapse() *
-                                     h_UU(i, j) * emtensor.j(j);
-            }
-            rhs[c_B1 + i] += matter_term_Gamma;
-        }
-    }
 };
 
 #endif /* MOVINGPUNCTUREGAUGEWITHMATTER_HPP_ */

@@ -21,9 +21,12 @@ class TraceARemoval
     TraceARemoval() = default;
 
     // Compute function
+
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
@@ -37,7 +40,7 @@ class TraceARemoval
         const double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
         FOR2_SYM(i, j)
         {
-            state_cell_data[VAR_IDX(c_A11, i, j)] -=
+            state_cell_data[sym_var_idx(c_A11, i, j)] -=
                 one_over_gr_spacedim * vars.h(i, j) * trace_A;
         }
     }
