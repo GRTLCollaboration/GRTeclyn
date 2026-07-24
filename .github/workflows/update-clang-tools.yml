@@ -45,9 +45,10 @@ jobs:
                       in_version && /^  [[:alnum:]-]+:/ { exit } \
                       in_version' | grep -oE '[0-9]+' | sort -nr | head -n1)
                   if [ -z "${LATEST_LLVM_MAJOR}" ]; then
-                      echo "Unable to determine the latest cpp-linter clang-tools version."
-                      exit 1
-                  fi
+                          echo "Unable to determine the latest cpp-linter clang-tools version. \
+                          Check whether its action metadata format has changed."
+                          exit 1
+                      fi
                   LATEST_CLANG_FORMAT_VERSION=${CLANG_FORMAT_RELEASE#v}
                   LATEST_CLANG_FORMAT_MAJOR=${LATEST_CLANG_FORMAT_VERSION%%.*}
                   echo "LATEST_LLVM_MAJOR=${LATEST_LLVM_MAJOR}" >> "$GITHUB_ENV"
@@ -81,7 +82,10 @@ jobs:
                       sub(/v[0-9.]+/, "v" version) } \
                       { print }' .pre-commit-config.yaml \
                       > .pre-commit-config.yaml.tmp
-                  test -s .pre-commit-config.yaml.tmp
+                  if ! test -s .pre-commit-config.yaml.tmp; then
+                      echo "Failed to update the pre-commit configuration." >&2
+                      exit 1
+                  fi
                   mv .pre-commit-config.yaml.tmp .pre-commit-config.yaml
 
             - name: Apply updated clang-format
