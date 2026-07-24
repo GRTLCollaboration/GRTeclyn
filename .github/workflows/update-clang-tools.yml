@@ -22,26 +22,27 @@ jobs:
               run: |
                   LLVM_VERSION=$(sed -n "s/.*LLVM_VERSION: '\([0-9]*\)'.*/\1/p" \
                       .github/workflows/lint.yml)
-                  CLANG_FORMAT_VERSION=$(sed -n \
-                      's/.*rev: v\([0-9][0-9.]*\).*/\1/p' .pre-commit-config.yaml)
+                  CLANG_FORMAT_VERSION=$(awk \
+                      '$1 == "-" && $2 == "repo:" { is_clang_format = \
+                      $3 == "https://github.com/pre-commit/mirrors-clang-format" } \
+                      is_clang_format && $1 == "rev:" { \
+                      sub(/^v/, "", $2); print $2; exit }' .pre-commit-config.yaml)
                   echo "CURRENT_LLVM_VERSION=${LLVM_VERSION}" >> "$GITHUB_ENV"
                   echo "CURRENT_CLANG_FORMAT_VERSION=${CLANG_FORMAT_VERSION}" \
                       >> "$GITHUB_ENV"
 
             - name: Get latest clang tools versions
               run: |
-                  LLVM_RELEASE=$(curl -fsSL \
-                      -H "Accept: application/vnd.github+json" \
-                      -H "X-GitHub-Api-Version: 2022-11-28" \
-                      https://api.github.com/repos/llvm/llvm-project/releases/latest \
-                      | jq -r .tag_name)
+                  CPP_LINTER_ACTION=$(curl -fsSL \
+                      https://raw.githubusercontent.com/cpp-linter/cpp-linter-action/v2/action.yml)
                   CLANG_FORMAT_RELEASE=$(curl -fsSL \
                       -H "Accept: application/vnd.github+json" \
                       -H "X-GitHub-Api-Version: 2022-11-28" \
                       https://api.github.com/repos/pre-commit/mirrors-clang-format/releases/latest \
                       | jq -r .tag_name)
-                  LATEST_LLVM_VERSION=${LLVM_RELEASE#llvmorg-}
-                  LATEST_LLVM_MAJOR=${LATEST_LLVM_VERSION%%.*}
+                  LATEST_LLVM_MAJOR=$(printf '%s\n' "${CPP_LINTER_ACTION}" | \
+                      sed -n 's/.*Accepted options are strings which can be \([^\.]*\).*/\1/p' | \
+                      tr ',' '\n' | tr -d ' ' | sort -nr | head -n1)
                   LATEST_CLANG_FORMAT_VERSION=${CLANG_FORMAT_RELEASE#v}
                   LATEST_CLANG_FORMAT_MAJOR=${LATEST_CLANG_FORMAT_VERSION%%.*}
                   echo "LATEST_LLVM_MAJOR=${LATEST_LLVM_MAJOR}" >> "$GITHUB_ENV"
@@ -68,10 +69,14 @@ jobs:
               run: |
                   sed -i -E "s/(LLVM_VERSION: ')[0-9]+(')/\1${LATEST_LLVM_MAJOR}\2/" \
                       .github/workflows/lint.yml
-                  FORMAT_VERSION_PATTERN="s/(rev: v)[0-9.]+/\1${LATEST_CLANG_FORMAT_VERSION}/"
-                  sed -i -E \
-                      "/mirrors-clang-format/{n;${FORMAT_VERSION_PATTERN};}" \
-                      .pre-commit-config.yaml
+                  awk -v version="${LATEST_CLANG_FORMAT_VERSION}" \
+                      '$1 == "-" && $2 == "repo:" { is_clang_format = \
+                      $3 == "https://github.com/pre-commit/mirrors-clang-format" } \
+                      is_clang_format && $1 == "rev:" { \
+                      sub(/v[0-9.]+/, "v" version) } \
+                      { print }' .pre-commit-config.yaml \
+                      > .pre-commit-config.yaml.tmp
+                  mv .pre-commit-config.yaml.tmp .pre-commit-config.yaml
 
             - name: Apply updated clang-format
               if: steps.updates.outputs.available == 'true'
