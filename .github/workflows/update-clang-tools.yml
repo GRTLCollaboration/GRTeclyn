@@ -46,7 +46,7 @@ jobs:
                       in_version' | grep -oE '[0-9]+' | sort -nr | head -n1)
                   if [ -z "${LATEST_LLVM_MAJOR}" ]; then
                           echo "Unable to determine the latest cpp-linter clang-tools version."
-                          echo "Check whether its action metadata format has changed."
+                          echo "Check https://github.com/cpp-linter/cpp-linter-action/blob/v2/action.yml."
                           exit 1
                       fi
                   LATEST_CLANG_FORMAT_VERSION=${CLANG_FORMAT_RELEASE#v}
@@ -82,11 +82,12 @@ jobs:
                       sub(/v[0-9.]+/, "v" version) } \
                       { print }' .pre-commit-config.yaml \
                       > .pre-commit-config.yaml.tmp; then
-                      echo "Failed to update the pre-commit configuration: awk failed." >&2
+                      status=$?
+                      echo "Failed to update the pre-commit configuration: awk exited with ${status}." >&2
                       exit 1
                   fi
                   if ! test -s .pre-commit-config.yaml.tmp; then
-                      echo "Failed to update the pre-commit configuration: output is empty." >&2
+                      echo "Failed to update pre-commit: output is empty; check the clang-format repository." >&2
                       exit 1
                   fi
                   mv .pre-commit-config.yaml.tmp .pre-commit-config.yaml
