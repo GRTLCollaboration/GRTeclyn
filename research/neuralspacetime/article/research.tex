@@ -1699,8 +1699,10 @@ search reaches within one matter model. A complementary question is purely
 kinematic: setting sourceability aside, how large a frozen-slice shortcut is
 available to \emph{any} asymptotically flat stationary metric of this scale?
 To bound this we ran a deliberately geometry-first companion search---the
-regime the Introduction flags as poorly conditioned for dynamics---precisely
-to quantify what the matter-first pipeline leaves on the table.
+regime the Introduction flags as poorly conditioned for dynamics, and the very
+hazard that motivated inverting the loop to a matter-first proposal in the first
+place (Sec.~\ref{sec:intro})---precisely to quantify what the matter-first
+pipeline leaves on the table and to make its cost explicit.
 
 Here a stationary metric is painted directly from a genome: compact-support
 radial-basis deformations of the lapse, shift, and symmetric log-spatial-metric
@@ -1716,6 +1718,27 @@ Table~\ref{tab:certificate}. MAP-Elites~\cite{mouret15} tiles an archive by
 morphology (shift fraction $f_{\rm shift}$, running from $0$ for pure spatial
 curvature to $1$ for a pure shift tube) against exotic cost
 $E_-=-\!\int_{\rho<0}\rho\,dV$.
+
+Three campaigns totaling ${\sim}2000$ evaluations populate the archive: a
+topology-complete run ($1000$ evaluations, all analytic modes enabled), a
+pure-$f_{\rm geo}$ run that strips every exotic-cost term from the objective
+($500$ evaluations), and a low-exotic run that hard-rejects $E_->0.1$
+($500$ evaluations, $442$ rejected at the ban). Each is warm-started from the
+best shift-tube genome found so far, after which MAP-Elites mutates the
+surviving cell elites. Two behaviors of the optimizer shaped the design. First,
+left to the free-form radial-basis ``clay'' the search collapsed into a single
+monoculture: almost every strong elite piled into the maximal-shift archive
+cell, because isotropic Gaussian bumps cannot self-organize into a corridor. We
+therefore added the coherent analytic topologies (tunnel, lens, throat) as
+explicit genome modes purely to make non-shift mechanisms \emph{reachable}; they
+lifted the zero-shift ceiling from essentially nothing to the $9.4\%$ tunnel of
+Table~\ref{tab:geometry_ceiling}. Second, two probe-side choices were required
+for the frozen $f_{\rm geo}$ to mean anything: localizing the emitter/detector
+about the genome support (worth ${\sim}8$ percentage points relative to
+full-box endpoints, which dilute the ray through empty space) and refining the
+grid to $h=L/N\le0.5$ (at $h=2$ the shift wall is unresolved and the same
+geometry under-reads by nearly a factor of five). These are screening-tier
+settings chosen for throughput, not continuum claims.
 
 Two features of the resulting atlas (Table~\ref{tab:geometry_ceiling}) bear on
 the matter-first result. First, shortcut strength is monopolized by the shift
@@ -1772,6 +1795,19 @@ certifies which points inside it survive a Cauchy evolution and a 4D transport
 test. Executing the natural hybrid---promoting an atlas motif through
 \texttt{GRTresna} constraint solving and \texttt{GRTeclyn} evolution to test
 sourceability directly---is left to future work.
+
+The atlas carries the limitations the Introduction ascribes to any
+geometry-first search, which is precisely why it is used only as a bound and not
+as a transport claim. The frozen shortcut is scored on a single stationary slice
+with matter merely inferred ($T_{\mu\nu}=G_{\mu\nu}/8\pi$) rather than solved as
+an initial-value problem, so a positive frozen $f_{\rm geo}$ is a kinematic upper
+bound that need not survive a Cauchy evolution---exactly the false-positive mode
+of the frozen-slice negative control in Sec.~\ref{sec:probes}. Free-fall
+reception is not computed, so the numbers are coordinate-referenced;
+and like the matter-first genome the atlas remains confined to its own ansatz
+family (radial-basis clay plus four named topologies). It is therefore a mapping
+and screening instrument that motivates and bounds the matter-first search,
+never a substitute for its evolving 4D certificate.
 
 \subsection{Applications and next steps}
 
