@@ -1691,6 +1691,88 @@ candidates that can be scored by a 4D transport test. A hybrid strategy---using
 geometry-first motifs as seeds for a matter-first refinement loop---is a
 natural next step.
 
+\subsection{Geometry-first kinematic ceiling}
+\label{sec:geometry_ceiling}
+
+The canonical-only bound of Sec.~\ref{sec:canonical_bound} asks how far the
+search reaches within one matter model. A complementary question is purely
+kinematic: setting sourceability aside, how large a frozen-slice shortcut is
+available to \emph{any} asymptotically flat stationary metric of this scale?
+To bound this we ran a deliberately geometry-first companion search---the
+regime the Introduction flags as poorly conditioned for dynamics---precisely
+to quantify what the matter-first pipeline leaves on the table.
+
+Here a stationary metric is painted directly from a genome: compact-support
+radial-basis deformations of the lapse, shift, and symmetric log-spatial-metric
+$S$ (with $\gamma=\exp S$ guaranteeing positive-definiteness and asymptotic
+flatness), plus an analytic tail of coherent topologies---an Alcubierre shift
+tube, an anisotropic ``compression tunnel,'' a conformal ``lens'' well, and a
+Morris--Thorne--flavored ``throat.'' No initial-value problem is solved: the
+implied stress-energy is read off as $T_{\mu\nu}=G_{\mu\nu}/8\pi$, and only the
+\emph{frozen} single-slice null-geodesic shortcut $f_{\rm geo}$
+[Eq.~\eqref{eq:f_geo}] is scored---not the evolving certificate that defines the
+headline claim, so these numbers are \emph{not} comparable to
+Table~\ref{tab:certificate}. MAP-Elites~\cite{mouret15} tiles an archive by
+morphology (shift fraction $f_{\rm shift}$, running from $0$ for pure spatial
+curvature to $1$ for a pure shift tube) against exotic cost
+$E_-=-\!\int_{\rho<0}\rho\,dV$.
+
+Two features of the resulting atlas (Table~\ref{tab:geometry_ceiling}) bear on
+the matter-first result. First, shortcut strength is monopolized by the shift
+channel: the frozen ceiling reaches $f_{\rm geo}\simeq48\%$ for near-pure shift
+tubes ($f_{\rm shift}\approx0.99$), and of all accepted geometries with
+$f_{\rm geo}>0.1$, $70\%$ sit at $f_{\rm shift}\ge0.5$ while only $4\%$ lie at
+$f_{\rm shift}\le0.05$. Zero-shift curvature topologies do open genuine
+shortcuts---an isolated compression tunnel reaches $9.4\%$ and a conformal lens
+$5.5\%$ at $f_{\rm shift}=0$---but they are systematically weaker than the shift
+tube. Second, and decisively, none of these shortcuts is cheap: every geometry
+with a positive frozen shortcut carries substantial negative energy
+($E_-\sim3$--$6$ for the strong-shift ceiling, and comparable values for the
+curvature-dominated elites). A dedicated low-exotic sweep that hard-rejects
+$E_->0.1$ returned a best admissible shortcut of only $f_{\rm geo}=0.068$ in
+$500$ evaluations---a factor ${\sim}7$ below the unconstrained ceiling.
+Shift-tilted and curvature-contracted shortcuts alike therefore demand NEC
+violation, in line with the classical theorems cited in Sec.~\ref{sec:intro}.
+
+\begin{table}[tbp]
+\caption{Frozen geometry-first kinematic ceiling from the stationary
+MAP-Elites atlas (grid $N=64$, $L=32$; localized null-geodesic probe; no
+evolution). $f_{\rm shift}$ is the morphology descriptor and
+$E_-=-\int_{\rho<0}\rho\,dV$ the exotic cost. Frozen $f_{\rm geo}$ is
+geometry-first and \emph{not} comparable to the evolving certificate of
+Table~\ref{tab:certificate}. The tunnel/lens/throat rows are single-parameter
+zero-shift screens ($N=48$); the last row is the best geometry admitted under a
+hard $E_-\le0.1$ ban.}
+\label{tab:geometry_ceiling}
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+family & $f_{\rm shift}$ & frozen $f_{\rm geo}$ & $E_-$ \\
+\hline
+shift tube (Alcubierre)      & ${\approx}0.99$ & $0.485$ & $4$--$6$ \\
+curvature-dominated elite    & ${\le}0.05$     & $0.218$ & ${\sim}4$ \\
+compression tunnel (screen)  & $0.00$          & $0.094$ & --- \\
+conformal lens (screen)      & $0.00$          & $0.055$ & --- \\
+wormhole throat (screen)     & $0.00$          & $0.035$ & --- \\
+low-exotic ban ($E_-\le0.1$) & ---             & $0.068$ & ${\le}0.1$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+The atlas thus reframes the $20.2\%$ matter-first result. The gap between the
+frozen geometric ceiling (${\sim}48\%$) and the dynamically sourced,
+constraint-satisfying candidate~146 ($20.2\%$ evolving) is not a failure to
+find a stronger geometry; it is the price of sourceability. The strong-shift
+ceiling requires exactly the concentrated momentum density $S_i$ that is
+hardest to realize with a smooth, constraint-clean scalar configuration and
+hardest to keep confined under evolution (Sec.~\ref{sec:dispersion}), whereas
+the geometries a bicomplex Q-ball can actually source and evolve occupy the
+more modest interior of the same landscape. Matter-first and geometry-first are
+complementary limits: the latter maps the kinematic envelope, the former
+certifies which points inside it survive a Cauchy evolution and a 4D transport
+test. Executing the natural hybrid---promoting an atlas motif through
+\texttt{GRTresna} constraint solving and \texttt{GRTeclyn} evolution to test
+sourceability directly---is left to future work.
+
 \subsection{Applications and next steps}
 
 The pipeline supports (i)~inverse design of null transport under
