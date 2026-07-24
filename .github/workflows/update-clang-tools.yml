@@ -40,10 +40,11 @@ jobs:
                       -H "X-GitHub-Api-Version: 2022-11-28" \
                       https://api.github.com/repos/pre-commit/mirrors-clang-format/releases/latest \
                       | jq -r .tag_name)
-                  LATEST_LLVM_MAJOR=$(printf '%s\n' "${CPP_LINTER_ACTION}" | \
+                  LATEST_CLANG_TOOLS_VERSION=$(printf '%s\n' "${CPP_LINTER_ACTION}" | \
                       awk '/^  version:/ { in_version = 1; next } \
                       in_version && /^  [[:alnum:]-]+:/ { exit } \
-                      in_version' | grep -oE '[0-9]+' | sort -nr | head -n1)
+                      in_version' | grep -oE '[0-9]+(\.[0-9]+)*' | sort -V | tail -n1)
+                  LATEST_LLVM_MAJOR=${LATEST_CLANG_TOOLS_VERSION%%.*}
                   if [ -z "${LATEST_LLVM_MAJOR}" ]; then
                           echo "Unable to determine the latest cpp-linter clang-tools version."
                           echo "Check https://github.com/cpp-linter/cpp-linter-action/blob/v2/action.yml."
@@ -82,8 +83,7 @@ jobs:
                       sub(/v[0-9.]+/, "v" version) } \
                       { print }' .pre-commit-config.yaml \
                       > .pre-commit-config.yaml.tmp; then
-                      status=$?
-                      echo "Failed to update the pre-commit configuration: awk exited with ${status}." >&2
+                      echo "Failed to update pre-commit: awk processing failed." >&2
                       exit 1
                   fi
                   if ! test -s .pre-commit-config.yaml.tmp; then
