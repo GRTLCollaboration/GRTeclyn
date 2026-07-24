@@ -1,0 +1,98 @@
+name: Update clang tools
+
+on:
+    schedule:
+        - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
+    workflow_dispatch:
+
+permissions:
+    contents: write
+    pull-requests: write
+
+jobs:
+    update-clang-tools:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout GRTeclyn
+              uses: actions/checkout@v7
+              with:
+                  ref: develop
+
+            - name: Get current clang tools versions
+              run: |
+                  LLVM_VERSION=$(sed -n "s/.*LLVM_VERSION: '\([0-9]*\)'.*/\1/p" \
+                      .github/workflows/lint.yml)
+                  CLANG_FORMAT_VERSION=$(sed -n \
+                      's/.*rev: v\([0-9][0-9.]*\).*/\1/p' .pre-commit-config.yaml)
+                  echo "CURRENT_LLVM_VERSION=${LLVM_VERSION}" >> "$GITHUB_ENV"
+                  echo "CURRENT_CLANG_FORMAT_VERSION=${CLANG_FORMAT_VERSION}" \
+                      >> "$GITHUB_ENV"
+
+            - name: Get latest clang tools versions
+              run: |
+                  LLVM_RELEASE=$(curl -fsSL \
+                      -H "Accept: application/vnd.github+json" \
+                      -H "X-GitHub-Api-Version: 2022-11-28" \
+                      https://api.github.com/repos/llvm/llvm-project/releases/latest \
+                      | jq -r .tag_name)
+                  CLANG_FORMAT_RELEASE=$(curl -fsSL \
+                      -H "Accept: application/vnd.github+json" \
+                      -H "X-GitHub-Api-Version: 2022-11-28" \
+                      https://api.github.com/repos/pre-commit/mirrors-clang-format/releases/latest \
+                      | jq -r .tag_name)
+                  LATEST_LLVM_VERSION=${LLVM_RELEASE#llvmorg-}
+                  LATEST_LLVM_MAJOR=${LATEST_LLVM_VERSION%%.*}
+                  LATEST_CLANG_FORMAT_VERSION=${CLANG_FORMAT_RELEASE#v}
+                  LATEST_CLANG_FORMAT_MAJOR=${LATEST_CLANG_FORMAT_VERSION%%.*}
+                  echo "LATEST_LLVM_MAJOR=${LATEST_LLVM_MAJOR}" >> "$GITHUB_ENV"
+                  echo "LATEST_CLANG_FORMAT_VERSION=${LATEST_CLANG_FORMAT_VERSION}" \
+                      >> "$GITHUB_ENV"
+                  echo "LATEST_CLANG_FORMAT_MAJOR=${LATEST_CLANG_FORMAT_MAJOR}" \
+                      >> "$GITHUB_ENV"
+
+            - name: Check clang tools compatibility
+              id: updates
+              run: |
+                  if [ "${LATEST_LLVM_MAJOR}" != "${LATEST_CLANG_FORMAT_MAJOR}" ]; then
+                      echo "Latest clang tools releases have different major versions."
+                      exit 0
+                  fi
+                  if [ "${CURRENT_LLVM_VERSION}" != "${LATEST_LLVM_MAJOR}" ] || \
+                     [ "${CURRENT_CLANG_FORMAT_VERSION}" != \
+                     "${LATEST_CLANG_FORMAT_VERSION}" ]; then
+                      echo "available=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Update clang tools versions
+              if: steps.updates.outputs.available == 'true'
+              run: |
+                  sed -i -E "s/(LLVM_VERSION: ')[0-9]+(')/\1${LATEST_LLVM_MAJOR}\2/" \
+                      .github/workflows/lint.yml
+                  FORMAT_VERSION_PATTERN="s/(rev: v)[0-9.]+/\1${LATEST_CLANG_FORMAT_VERSION}/"
+                  sed -i -E \
+                      "/mirrors-clang-format/{n;${FORMAT_VERSION_PATTERN};}" \
+                      .pre-commit-config.yaml
+
+            - name: Apply updated clang-format
+              if: steps.updates.outputs.available == 'true'
+              run: |
+                  pipx install pre-commit
+                  pre-commit run clang-format --all-files
+
+            - name: Open pull request
+              if: steps.updates.outputs.available == 'true'
+              uses: peter-evans/create-pull-request@v8
+              with:
+                  commit-message: "bump(clang-tools): update to v${{ env.LATEST_LLVM_MAJOR }}"
+                  author: GRTLBot <grchombo@gmail.com>
+                  title: "Update clang tools to v${{ env.LATEST_LLVM_MAJOR }}"
+                  token: ${{ secrets.GRTECLYN_UPDATE_DOCTEST_TOKEN }}
+                  body: |
+                      Updates the clang-tools version used by the lint workflow
+                      and the clang-format pre-commit hook.
+
+                      ---
+                      *This PR was opened automatically by the `update-clang-tools` workflow.*
+                  branch: update/clang-tools-v${{ env.LATEST_LLVM_MAJOR }}
+                  base: develop
+                  labels: dependencies
