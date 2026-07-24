@@ -77,7 +77,7 @@ jobs:
               if: steps.updates.outputs.available == 'true'
               run: |
                   pipx install pre-commit
-                  pre-commit run clang-format --all-files
+                  pre-commit run clang-format --all-files || true
 
             - name: Open pull request
               if: steps.updates.outputs.available == 'true'
