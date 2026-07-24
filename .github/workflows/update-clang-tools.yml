@@ -41,8 +41,13 @@ jobs:
                       https://api.github.com/repos/pre-commit/mirrors-clang-format/releases/latest \
                       | jq -r .tag_name)
                   LATEST_LLVM_MAJOR=$(printf '%s\n' "${CPP_LINTER_ACTION}" | \
-                      sed -n 's/.*Accepted options are strings which can be \([^\.]*\).*/\1/p' | \
-                      tr ',' '\n' | tr -d ' ' | sort -nr | head -n1)
+                      awk '/^  version:/ { in_version = 1; next } \
+                      in_version && /^  [[:alnum:]-]+:/ { exit } \
+                      in_version' | grep -oE '[0-9]+' | sort -nr | head -n1)
+                  if [ -z "${LATEST_LLVM_MAJOR}" ]; then
+                      echo "Unable to determine the latest cpp-linter clang-tools version."
+                      exit 1
+                  fi
                   LATEST_CLANG_FORMAT_VERSION=${CLANG_FORMAT_RELEASE#v}
                   LATEST_CLANG_FORMAT_MAJOR=${LATEST_CLANG_FORMAT_VERSION%%.*}
                   echo "LATEST_LLVM_MAJOR=${LATEST_LLVM_MAJOR}" >> "$GITHUB_ENV"
@@ -76,6 +81,7 @@ jobs:
                       sub(/v[0-9.]+/, "v" version) } \
                       { print }' .pre-commit-config.yaml \
                       > .pre-commit-config.yaml.tmp
+                  test -s .pre-commit-config.yaml.tmp
                   mv .pre-commit-config.yaml.tmp .pre-commit-config.yaml
 
             - name: Apply updated clang-format
