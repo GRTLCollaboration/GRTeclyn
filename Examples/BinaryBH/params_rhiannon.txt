@@ -13,13 +13,16 @@ amrex.use_gpu_aware_mpi = 1
 #endif
 
 puncture_tracking.enabled = 1
-puncture_tracking.level = 7
+puncture_tracking.level = 8
 
 output_path = .
 amr.check_file = BinaryBHChk_
 amr.plot_file = BinaryBHPlt_
 # amr.restart = BinaryBHChk_00300
 # amr.file_name_digits = 5
+
+amr.derive_plot_vars = constraints
+#amr.plot_vars = NONE
 
 checkpoint_interval = -1
 plot_interval = -1
@@ -53,7 +56,7 @@ two_punctures.adm_tol           = 1.0e-10
 #two_punctures.mass_plus  = 0.48847892320123
 #two_punctures.mass_minus = 0.48847892320123
 
-two_punctures.offset_plus  = +4.461538461538461675
+two_punctures.offset_plus  = 4.461538461538461675
 two_punctures.offset_minus = -5.538461538461538325
 
 two_punctures.momentum_plus  = -0.00084541526517121 0.09530152296974252 0.0
@@ -66,12 +69,12 @@ two_punctures.use_spectral_interpolation = true
 two_punctures.initial_lapse = "psi^n"
 two_punctures.initial_lapse_psi_exponent = -2.0
 
-# two_punctures.num_points_A   = 30
-# two_punctures.num_points_B   = 30
-# two_punctures.num_points_phi = 16
+two_punctures.num_points_A   = 90
+two_punctures.num_points_B   = 90
+two_punctures.num_points_phi = 20
 
 # two_punctures.solver_tol    = 1.0e-10
-# two_punctures.solver_maxit  = 5
+two_punctures.solver_maxit  = 200
 two_punctures.epsilon       = 1.0e-6
 # two_punctures.tiny          = 0.0
 # two_punctures.extend_radius = 0.0
@@ -83,13 +86,13 @@ two_punctures.epsilon       = 1.0e-6
 #################################################
 # Grid parameters
 
-N_full = 192
-L_full = 4224
+N_full = 128
+L_full = 3584
 
 max_level = 11 # There are (max_level+1) grids, so min is zero
 
 # -1 disables regridding
-regrid_interval = -1 -1 -1 -1 -1 1 1 2 4 8 16 32
+regrid_interval = -1 -1 -1 -1 -1 -1 1 2 4 8 16 32
 regrid_threshold = 0.05
 
 # Max and min box sizes
@@ -99,7 +102,7 @@ block_factor = 32
 # Tag buffer size
 amr.n_error_buf = 4 4 4
 # amr.n_proper = 8
-# num_ghosts = 3
+num_ghosts = 4
 # center = 8 8 8 # defaults to center of the grid
 
 #################################################
@@ -131,7 +134,7 @@ stop_time = 1500.0
 #max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
-max_spatial_derivative_order = 4 # only 4 currently implemented
+max_spatial_derivative_order = 6 # only 4 currently implemented
 
 nan_check = 1
 
@@ -166,8 +169,8 @@ sigma = 1.0
 activate_extraction = true
 num_extraction_radii = 1
 extraction_radii = 90.0
-extraction_levels = 5
-num_points_phi = 32
-num_points_theta = 64
+extraction_levels = 6
+num_points_phi = 66
+num_points_theta = 67
 num_modes = 3
 modes = 2 0  2 1  2 2
