@@ -35,34 +35,26 @@
 \date{\today}
 
 \begin{abstract}
-We present an automated matter-first pipeline for discovering warp-precursor
-spacetimes---transient spacetime shortcuts: an optimizer proposes matter, a
-constraint solver (\texttt{GRTresna}) builds initial data, a GPU evolution
-code (\texttt{GRTeclyn}) advances the full $3{+}1$ Einstein equations, and
-null geodesics integrated through the \emph{time-evolving} metric test
-whether light arrives earlier than in flat space. MAP-Elites
-quality-diversity search over a 39-dimensional bicomplex Q-ball genome,
-followed by CMA-ES refinement, yields a five-lump champion (candidate~146)
-supported by two canonical and three phantom (negative-energy) scalar
-sources. In the headline validation run ($L=128$, $N=256$, three refinement
-levels, $t=30$), null rays arrive $20.2\%$ earlier than the matched flat
-path, stable across a three-run resolution ladder ($N=192/256/384$;
-fine--medium relative difference $0.13\%$) and a matched-spacing domain
-ladder. A freely falling observer protocol---proper-time reception on timelike
-geodesics---confirms a $7.0$--$7.7\%$ advance, isolating the physical timing
-gain from coordinate artifacts. Ablating the metric one field at a time shows
-the transport is carried by conformal spatial contraction and lapse elevation,
-not by frame dragging: deleting the shift entirely \emph{increases} the
-shortcut. A companion pure-geometry stationary atlas explains why. Its
-kinematic ceiling is $48.5\%$ for shift-dominated (Alcubierre) topologies but
-only $21.8\%$ for the curvature-dominated branch that candidate~146 sources and
-nearly saturates---a Pareto frontier between kinematic strength and dynamical
-sourceability. An external ignition controller switches off at $t=4$, and
-because the quoted geodesic launches at $t_{\rm emit}=4$ the timing difference
-is measured in freely evolving Einstein--Klein--Gordon dynamics; a
-controller-free twin reproduces it at $20.46\%$. A matched canonical-only
-(positive-energy) search finds no evolving timing advantage. The channel is
-transient throughout: confinement decays as the supporting matter disperses.
+We present an automated matter-first pipeline for discovering warp
+precursors---transient spacetime shortcuts. An optimizer proposes scalar
+matter, \texttt{GRTresna} solves the constraints, \texttt{GRTeclyn} evolves the
+full $3{+}1$ Einstein equations, and null geodesics integrated through the
+\emph{time-evolving} metric test whether light arrives earlier than in flat
+space. Quality-diversity search over a 39-dimensional bicomplex Q-ball genome
+yields a five-lump champion (candidate~146) with two canonical and three
+phantom (negative-energy) sources. Freely falling observers receive the photon
+$7.6\%$ early by their own clocks---the physical magnitude of the shortcut,
+against $20.2\%$ between fixed coordinate endpoints---stable across resolution
+and domain ladders and reproduced with the ignition controller off.
+Field-by-field ablation attributes the transport to conformal spatial
+contraction and lapse elevation, not to frame dragging: deleting the shift
+entirely \emph{increases} the shortcut. A companion pure-geometry atlas
+explains why. Its kinematic ceiling is $48.5\%$ for shift-dominated
+(Alcubierre) topologies but only $21.8\%$ for the curvature-dominated branch
+the champion sources and nearly saturates---a Pareto frontier between kinematic
+strength and dynamical sourceability. A matched canonical-only search finds no
+advantage at all. The channel is transient: the matter disperses and the
+residue collapses to an apparent horizon by $t\approx27$.
 \end{abstract}
 
 \maketitle
@@ -202,8 +194,9 @@ is a contribution of the paper.
     \emph{time-evolving} metric stack. Frozen-slice geodesics are retained as
     diagnostics but never as the transport certificate. The surviving
     candidate's limits are reported as explicitly as its successes: dispersing
-    exotic matter and a transient ignition controller, not passenger transport
-    (Sec.~\ref{sec:discussion}).
+    exotic matter, a transient ignition controller, and a late-time collapse to
+    an apparent horizon once the exotic support is gone---not passenger
+    transport (Sec.~\ref{sec:discussion}).
 \end{enumerate}
 
 \section{Matter-First Pipeline}
@@ -289,6 +282,21 @@ the effective gravitational constant for the exotic sector ($G\to-G$ for
 $\Phi_{-}$); it is a controlled model of the negative-energy source required to
 violate the null energy condition, not a claim that a fundamental phantom
 field theory has been made well posed.
+
+The Cauchy problem is unaffected by the flip. Matter enters the CCZ4 evolution
+equations only through the undifferentiated combinations $\rho$, $S_i$, and
+$S_{ij}$, so reversing their sign changes lower-order source terms and leaves
+the principal part---and hence the characteristic structure and strong
+hyperbolicity of CCZ4 in the moving-puncture gauge~\cite{alic12}---exactly as
+in the minimally coupled canonical case. The scalar sector,
+Eq.~\eqref{eq:kg_evolution}, remains a pair of right-sign wave operators on
+that background. The coupled system is therefore strongly hyperbolic and
+locally well posed with the same proof as for ordinary matter. What the sign
+flip does remove is the positive-energy theorem: no a~priori bound controls the
+long-time behavior of the geometry, which is why every claim below rests on
+explicit constraint monitoring over a finite window rather than on a stability
+argument---and why the run ends in gravitational collapse
+(Sec.~\ref{sec:dispersion}).
 
 The word ``canonical'' therefore describes the equation of motion, not the sign
 with which each initial lump gravitates. For each lump the optimizer stores
@@ -1175,8 +1183,8 @@ the exotic matter digs a shortened, fast-clock corridor, and the shift it
 inevitably also sources is a mild parasitic drag.
 
 This also settles what would otherwise be a loose end. The
-spatial-metric-only entry, $6.8\%$ (RM) and $7.0\%$ (RC), sits inside the
-freely falling observer band $f_{\rm ff}=7.0$--$7.7\%$ measured independently
+spatial-metric-only entry, $6.8\%$ (RM) and $7.0\%$ (RC), lands at the lower
+edge of the freely falling observer band $f_{\rm ff}=7.0$--$7.7\%$ measured independently
 in Sec.~\ref{sec:freefall_metric}. The two protocols are not merely asking
 different questions: the free-fall receiver reports the proper-distance
 contraction and discards the slicing-dependent lapse elevation, which is
@@ -1428,8 +1436,17 @@ Applied to the $f_{\rm geo}$ triplet at the actual spacings
 $(h_c,h_m,h_f)=(0.667,0.500,0.333)$, Eq.~\eqref{eq:richardson_order} returns an
 unstable exponent ($p\approx8.7$) fixed by a fine--medium difference of one
 significant figure: the sequence is consistent with rapid convergence but
-cannot pin down $p$. We therefore measure the observed order on the constraint
-norms instead (Fig.~\ref{fig:constraints}a). Over the ignition window
+cannot pin down $p$. The anomaly is expected for this observable. Unlike a
+pointwise field value, $f_{\rm geo}$ is an arrival-time functional: it is
+obtained by root-finding a detector crossing along five rays integrated through
+a metric stack stored at finite cadence on a moving refinement hierarchy, and
+reported as the best member of the fan over a discrete $t_{\rm emit}$ sweep.
+Regridding times, stack interpolation, and the possibility that a different ray
+or emission time wins at a different resolution all contribute
+non-smooth---rather than $Ch^p$---resolution dependence. Once the smooth
+truncation error has fallen to the $10^{-3}$ relative level seen here, those
+contributions dominate the increments the estimator is built from. We therefore
+measure the observed order on the constraint norms instead (Fig.~\ref{fig:constraints}a). Over the ignition window
 $1.5\le t\le5$ the Hamiltonian residual converges at median observed order
 $p_{\mathcal H}\approx3.3$ and the momentum residual at
 $p_{\mathcal M}\approx2.8$, consistent with the high-order finite-difference
@@ -1549,6 +1566,24 @@ falls from $S=126.3$ to $S=47.0$---confinement-gated terms penalize the faster
 dispersal, while the timing advantage itself is unchanged. In both
 integrations the shortcut remains a transient precursor coexisting with
 dispersing exotic matter.
+
+We nonetheless keep RM, not PF-RM, as the headline configuration. The first
+reason is consistency with the search: the entire MAP-Elites and CMA-ES
+campaign ran with the controller enabled through $t_{\rm pump}=4$, so
+candidate~146 is an elite \emph{of that protocol}. PF-RM re-evaluates the same
+genome under a different one; it is a control, not an independently optimized
+solution, and its emission optimum has already migrated to the last point of
+the sweep window. The second reason is confinement. Structural persistence is
+what distinguishes a precursor from a burst of dispersing scalar field, and it
+is the property the controller buys: ${\sim}11\%$ of the matter still confined
+at $t=30$ against ${\sim}2\%$ without it, a five-fold difference that the
+score registers directly. Read as engineering rather than as a Lagrangian, the
+PD term is a placeholder for the station-keeping actuation any real device
+would require, and the configuration worth reporting is the one under active
+control. Nothing in the transport certificate turns on the choice: the
+headline ray launches at $t_{\rm emit}=4$, after the controller is off, and the
+two protocols agree on $f_{\rm geo}$ to within $1.2\%$ relative. PF-RM's role
+is to establish that the control is not manufacturing the geometry.
 
 
 \section{Discussion}
@@ -1830,11 +1865,14 @@ MAP-Elites proposes scalar configurations, CMA-ES refines the archive
 champion, and 4D null geodesics through the evolved spacetime test whether
 light arrives earlier than in flat space. Applied to a bicomplex five-lump
 Q-ball genome, it discovered candidate~146, a reproducible,
-continuum-stable numerical warp precursor with $f_{\rm geo}=20.2\%$
-($f_{\rm ff}=7.0$--$7.7\%$ on freely falling observers;
-Table~\ref{tab:matrix}) that survives with the ignition controller disabled
-(Sec.~\ref{sec:pump_free}). The shortcut is transient---not a functional warp
-drive---and, within this ansatz, requires the phantom sector: a matched
+continuum-stable numerical warp precursor whose freely falling observers
+receive light $7.6\%$ early by their own clocks ($f_{\rm ff}=7.0$--$7.7\%$
+across the ladder; $f_{\rm geo}=20.2\%$ between fixed coordinate endpoints;
+Table~\ref{tab:matrix}), and which survives with the ignition controller
+disabled (Sec.~\ref{sec:pump_free}). The shortcut is transient---the matter
+disperses and the residual geometry collapses to an apparent horizon, so this
+is not a functional warp drive---and, within this ansatz, requires the phantom
+sector: a matched
 canonical-only search found no $f_{\rm geo}>0$
 (Sec.~\ref{sec:canonical_bound}), while semiclassical Casimir bounds
 (Sec.~\ref{sec:casimir_bounds}) place laboratory vacuum stresses
