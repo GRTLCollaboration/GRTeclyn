@@ -19,12 +19,6 @@
 #include <limits>
 #include <sys/time.h>
 
-enum StateType
-{
-    state_index = 0,
-    NUM_STATE_TYPE
-};
-
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class GRAMRLevel : public amrex::AmrLevel
 {
@@ -199,7 +193,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
     BoundaryConditions m_boundaries; // the class for implementing BCs
 
-    int m_num_ghosts{}; //!< Number of ghost cells
+    bool nan_check{};
 
   private:
 

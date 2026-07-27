@@ -79,9 +79,7 @@ void BinaryBHLevel::initData()
 #else
     // Set up the compute class for the BinaryBH initial data
     double dx = Geom().CellSize(0);
-    BinaryBHInitialData binary_initial_data(simParams().bh1_params,
-                                            simParams().bh2_params, dx);
-
+    BinaryBHInitialData binary_initial_data(dx);
     static_assert(std::is_trivially_copyable_v<BinaryBHInitialData>,
                   "BinaryBHInitialData needs to be device copyable");
 
@@ -104,15 +102,19 @@ void BinaryBHLevel::initData()
 #endif
     amrex::Gpu::streamSynchronize();
 
-    if (simParams().puncture_tracking_enabled && Level() == 0)
+    if (get_bhamr_ptr()->puncture_tracking_enabled && Level() == 0)
     {
         // need to set the puncture coordinates as we use it for the puncture
         // tagging
+        GRParmParse pp;
+        std::array<double, AMREX_SPACEDIM> bh1_center;
+        std::array<double, AMREX_SPACEDIM> bh2_center;
+        pp.get("bh1.center", bh1_center);
+        pp.get("bh2.center", bh2_center);
+
         get_puncture_tracker().set_puncture_coords(
-            {simParams().bh1_params.center[0], simParams().bh1_params.center[1],
-             simParams().bh1_params.center[2], simParams().bh2_params.center[0],
-             simParams().bh2_params.center[1],
-             simParams().bh2_params.center[2]});
+            {bh1_center[0], bh1_center[1], bh1_center[2],
+             bh2_center[0], bh2_center[1], bh2_center[2]});
         // can't call start_from_initial_punctures() because we need the full
         // AMR grid first
     }
@@ -123,6 +125,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const double /*a_time*/)
 {
+    GRParmParse pp;
+
     BL_PROFILE("BinaryBHLevel::specificEvalRHS()");
     const auto &soln_arrays       = a_soln.arrays();
     const auto &const_soln_arrays = a_soln.const_arrays();
@@ -142,11 +146,13 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                        });
 
     // Calculate CCZ4 right hand side
-    if (simParams().max_spatial_derivative_order == 4)
+    int max_spatial_derivative_order;
+    pp.get("amr.max_spatial_derivative_order", max_spatial_derivative_order);
+    
+    if (max_spatial_derivative_order == 4)
     {
         CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> ccz4rhs(
-            simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
-            simParams().formulation);
+            Geom().CellSize(0));
 
         // NB: These are split up to avoid having to pre-compute all the
         //  first and second derivatives in memory on the GPU at once.
@@ -170,8 +176,6 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             YES,
             NO
         };
-
-        amrex::ParmParse pp;
 
         int use_bssn{0};
         int use_covariantZ4{1};
@@ -203,13 +207,12 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                           const_soln_arrays[box_no]);
             });
     }
-    else if (simParams().max_spatial_derivative_order == 6)
+    else if (max_spatial_derivative_order == 6)
     {
         amrex::Abort("xxxxx max_spatial_derivative_order == 6 todo");
 #if 0
         CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives>
-            ccz4rhs(simParams().ccz4_params, Geom().CellSize(0), simParams().sigma,
-                    simParams().formulation);
+            ccz4rhs(Geom().CellSize(0));
         amrex::ParallelFor(a_rhs,
         [=] AMREX_GPU_DEVICE (int box_no, int ix, int iy, int iz)
         {
@@ -262,25 +265,32 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
 
+    GRParmParse pp;
+    bool activate_extraction{};
+    pp.get("activate_extraction", activate_extraction);
+
     ExtractionTagger extraction_tagger(Geom().CellSize(0), Level(),
                                        simParams().extraction_params,
-                                       simParams().activate_extraction);
+                                       activate_extraction);
 
-    const bool puncture_tracking_enabled =
-        simParams().puncture_tracking_enabled;
     constexpr auto num_puncture_coords =
         static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
     std::array<amrex::Real, num_puncture_coords> puncture_coords{};
 
-    if (puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled)
     {
         puncture_coords = get_puncture_tracker().get_puncture_coords();
     }
 
+    double bh1_mass;
+    double bh2_mass;
+    pp.get("bh1.mass", bh1_mass);
+    pp.get("bh2.mass", bh2_mass);
+
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
         puncture_coords,
-        {simParams().bh1_params.mass, simParams().bh2_params.mass});
+        {bh1_mass, bh2_mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -290,7 +300,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
                            extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
 
-                           if (puncture_tracking_enabled)
+                           if (get_bhamr_ptr()->puncture_tracking_enabled)
                            {
                                puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
                            }
@@ -303,7 +313,7 @@ void BinaryBHLevel::specific_post_init()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_init()");
 
-    if (simParams().puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled)
     {
         get_puncture_tracker().start_from_initial_punctures();
     }
@@ -313,7 +323,7 @@ void BinaryBHLevel::specific_post_restart()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_restart()");
 
-    if (simParams().puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled)
     {
         std::string restart_checkpoint{};
         GRParmParse pp("amr");
@@ -325,7 +335,7 @@ void BinaryBHLevel::specific_post_restart()
 void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
                                            std::ostream &a_os)
 {
-    if (simParams().puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled)
     {
         get_puncture_tracker().write_plotfile(a_dir);
     }
@@ -334,7 +344,7 @@ void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
 void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
                                              std::ostream & /*a_os*/)
 {
-    if (simParams().puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled)
     {
         get_puncture_tracker().checkpoint(a_chk_dir);
     }
@@ -342,16 +352,23 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
+    GRParmParse pp;
+    int puncture_tracking_level;
+    pp.get("puncture_tracking.level", puncture_tracking_level);
+    int puncture_tracking_writeout_level;
+    pp.get("puncture_tracking.writeout_level", puncture_tracking_writeout_level);
+
+
     // do puncture tracking on requested level
-    if (simParams().puncture_tracking_enabled &&
-        Level() == simParams().puncture_tracking_level)
+    if (get_bhamr_ptr()->puncture_tracking_enabled &&
+        Level() == puncture_tracking_level)
     {
         BL_PROFILE("PunctureTracking");
 
         // only do the write out when we're at at a multiple of the
         // writeout_level
         bool write_punctures = at_level_timestep_multiple(
-            simParams().puncture_tracking_writeout_level);
+            puncture_tracking_writeout_level);
         amrex::Real current_time = get_state_data(state_index).curTime();
         amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(current_time, dt, write_punctures);
@@ -365,7 +382,10 @@ void BinaryBHLevel::specificPostTimeStep()
                         // called during setup at t=0 from Main
     // bool first_step = (m_time == m_dt); // if not called in Main
 
-    if (m_p.activate_extraction == 1)
+    bool activate_extraction{};
+    pp.get("activate_extraction", activate_extraction);
+
+    if (activate_extraction == 1)
     {
         int min_level = m_p.extraction_params.min_extraction_level();
         bool calculate_weyl = at_level_timestep_multiple(min_level);
@@ -374,7 +394,7 @@ void BinaryBHLevel::specificPostTimeStep()
             // Populate the Weyl Scalar values on the grid
             fillAllGhosts();
             BoxLoops::loop(
-                Weyl4(m_p.extraction_params.center, m_dx, m_p.formulation),
+                Weyl4(m_dx,),
                 m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
 
             // Do the extraction on the min extraction level
@@ -396,7 +416,11 @@ void BinaryBHLevel::specificPostTimeStep()
         }
     }
 
-    if (m_p.calculate_constraint_norms)
+    bool calculate_constraint_norms{};
+    pp.get("calculate_constraint_norms", calculate_constraint_norms);
+
+
+    if (calculate_constraint_norms)
     {
         fillAllGhosts();
         BoxLoops::loop(Constraints(m_dx, c_Ham, Interval(c_Mom1, c_Mom3)),

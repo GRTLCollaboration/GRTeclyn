@@ -56,6 +56,16 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         {
             return *this;
         }
+
+        static void check_params()
+        {
+            //TODO: Fill for new extraction class
+        }
+
+        void fill_params()
+        {
+            //TODO: Fill for new extraction class
+        }
     };
 
   protected:

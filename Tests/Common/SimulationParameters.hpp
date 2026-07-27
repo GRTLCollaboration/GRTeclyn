@@ -8,48 +8,42 @@
 
 // General includes
 #include "GRParmParse.hpp"
-#include "SimulationParametersBase.hpp"
+#include "BaseParameterChecker.hpp"
+#include "PunctureTracker.hpp"
 
-class SimulationParameters : public SimulationParametersBase
+class SimulationParameters : public BaseParameterChecker
 {
   public:
     // NOLINTNEXTLINE(readability-identifier-length)
-    SimulationParameters(GRParmParse &pp) : SimulationParametersBase(pp)
+    SimulationParameters() : BaseParameterChecker()
     {
-        read_params(pp);
+        check_params();
     }
 
     /// Read shared parameters
     // NOLINTNEXTLINE(readability-identifier-length)
-    void read_params(GRParmParse &pp)
+    void check_params()
     {
+        GRParmParse pp;
+        bool puncture_tracking_enabled{false};
+        pp.queryAdd("puncture_tracking.enabled", puncture_tracking_enabled);
+        if (puncture_tracking_enabled)
+        {
+            puncture_tracker_params_t::check_params();
+        }
+        
+        amrex::Real fake_bh1_mass = 0.5;
+        amrex::Real fake_bh2_mass = 0.5;
 
-        // Do we want puncture tracking and constraint norm calculation?
-        pp.load("puncture_tracking.enabled", puncture_tracking_enabled, true);
-        pp.load("puncture_tracking.level", puncture_tracking_level, max_level);
-        pp.load("puncture_tracking.initial_coords",
-                puncture_tracking_initial_coords,
-                {center[0], center[1] - 1.0, center[2], center[0],
-                 center[1] + 1.0, center[2]});
+        pp.queryAdd("fake_bh1_mass", fake_bh1_mass);
+        pp.queryAdd("fake_bh2_mass", fake_bh2_mass);
 
-        pp.load("fake_bh1_mass", fake_bh1_mass, 0.5);
-        pp.load("fake_bh2_mass", fake_bh2_mass, 0.5);
+        int num_points = 2;
+        pp.queryAdd("num_points", num_points);
 
-        pp.load("num_points", num_points, 2);
-        pp.load("verbosity", verbosity, false);
+        bool verbosity = true;
+        pp.queryAdd("verbosity", verbosity);
     }
-
-    bool puncture_tracking_enabled{};
-    int puncture_tracking_level{};
-    std::array<amrex::Real, AMREX_SPACEDIM * 2UL>
-        puncture_tracking_initial_coords{};
-
-    amrex::Real fake_bh1_mass{};
-    amrex::Real fake_bh2_mass{};
-
-    // For ParticleInterpolator Test
-    int num_points{};
-    bool verbosity{};
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

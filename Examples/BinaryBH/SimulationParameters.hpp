@@ -8,26 +8,30 @@
 
 // General includes
 #include "GRParmParse.hpp"
-#include "SimulationParametersBase.hpp"
+#include "BaseParameterChecker.hpp"
 
 // Problem specific includes:
 #include "ArrayTools.hpp"
 #include "BoostedBHInitialData.hpp"
+#include "PunctureTracker.hpp"
 #ifdef USE_TWOPUNCTURES
 #include "TP_Parameters.hpp"
 #endif
 
-class SimulationParameters : public SimulationParametersBase
+class SimulationParameters : public BaseParameterChecker
 {
   public:
     // NOLINTNEXTLINE(readability-identifier-length)
-    SimulationParameters(GRParmParse &pp) : SimulationParametersBase(pp)
+    SimulationParameters() : BaseParameterChecker()
     {
+        GRParmParse pp;
+
         read_shared_params(pp);
 #ifdef USE_TWOPUNCTURES
         read_tp_params(pp);
 #else
-        read_bh_params(pp);
+        BoostedBHInitialData::params_t::check_params(1);
+        BoostedBHInitialData::params_t::check_params(2);
 #endif
         check_params();
     }
@@ -37,12 +41,15 @@ class SimulationParameters : public SimulationParametersBase
     void read_shared_params(GRParmParse &pp)
     {
         // Do we want puncture tracking and constraint norm calculation?
-        pp.load("puncture_tracking.enabled", puncture_tracking_enabled, false);
-        pp.load("puncture_tracking.level", puncture_tracking_level, max_level);
-        pp.load("puncture_tracking.writeout_level",
-                puncture_tracking_writeout_level, 0);
-        pp.load("calculate_constraint_norms", calculate_constraint_norms,
-                false);
+        bool puncture_tracking_enabled{false};
+        pp.queryAdd("puncture_tracking.enabled", puncture_tracking_enabled);
+        if (puncture_tracking_enabled)
+        {
+            puncture_tracker_params_t::check_params();
+        }
+        
+        bool calculate_constraint_norms = false;
+        pp.queryAdd("calculate_constraint_norms", calculate_constraint_norms);
     }
 
 #ifdef USE_TWOPUNCTURES
@@ -161,6 +168,8 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("TP_Tiny", tp_params.TP_Tiny, 0.0);
         pp.load("TP_Extend_Radius", tp_params.TP_Extend_Radius, 0.0);
 
+        std::array<double, AMREX_SPACEDIM> center{};
+        pp.get("amr.center", center);
         // BH positions
         pp.load("TP_offset_minus", tp_offset_minus);
         pp.load("TP_offset_plus", tp_offset_plus);
@@ -196,34 +205,6 @@ class SimulationParameters : public SimulationParametersBase
         tp_params.mp_adm                          = 0;
         tp_params.mm_adm                          = 0;
     }
-#else
-    /// Read BH parameters if not using two punctures
-    // NOLINTNEXTLINE(readability-identifier-length)
-    void read_bh_params(GRParmParse &pp)
-    {
-        // Initial data
-        pp.load("massA", bh1_params.mass);
-        pp.load("momentumA", bh1_params.momentum);
-        pp.load("massB", bh2_params.mass);
-        pp.load("momentumB", bh2_params.momentum);
-
-        // Get the centers of the BHs either explicitly or as
-        // an offset (not both, or they will be offset from center
-        // provided)
-        std::array<double, AMREX_SPACEDIM> centerA{};
-        std::array<double, AMREX_SPACEDIM> centerB{};
-        std::array<double, AMREX_SPACEDIM> offsetA{};
-        std::array<double, AMREX_SPACEDIM> offsetB{};
-        pp.load("centerA", centerA, center);
-        pp.load("centerB", centerB, center);
-        pp.load("offsetA", offsetA, {0.0, 0.0, 0.0});
-        pp.load("offsetB", offsetB, {0.0, 0.0, 0.0});
-        FOR (idir)
-        {
-            bh1_params.center[idir] = centerA[idir] + offsetA[idir];
-            bh2_params.center[idir] = centerB[idir] + offsetB[idir];
-        }
-    }
 #endif /* USE_TWOPUNCTURES */
 
     void check_params()
@@ -251,6 +232,8 @@ class SimulationParameters : public SimulationParametersBase
                         "must be >= 0.0");
 
         int offset_dir = (!tp_params.swap_xz) ? 0 : 2;
+        std::array<double, AMREX_SPACEDIM> center{};
+        pp.get("amr.center", center);
         warn_parameter("TP_offset_minus", tp_offset_minus,
                        tp_offset_minus < (ivN[offset_dir] + 1) * coarsest_dx -
                                              center[offset_dir],
@@ -276,59 +259,15 @@ class SimulationParameters : public SimulationParametersBase
         check_parameter("TP_Tiny", tp_params.TP_Tiny, tp_params.TP_Tiny >= 0.,
                         "must be >= 0.0");
         check_parameter("TP_Extend_Radius", tp_params.TP_Extend_Radius,
-                        tp_params.TP_Extend_Radius >= 0., "must be >= 0.0");
-#else
-        warn_parameter("massA", bh1_params.mass, bh1_params.mass >= 0,
-                       "should be >= 0");
-        warn_parameter("massB", bh2_params.mass, bh2_params.mass >= 0,
-                       "should be >= 0");
-        warn_array_parameter(
-            "momentumA", bh1_params.momentum,
-            std::sqrt(ArrayTools::norm2(bh1_params.momentum)) <
-                0.3 * bh1_params.mass,
-            "approximation used for boosted BH only valid for small boosts");
-        warn_array_parameter(
-            "momentumB", bh2_params.momentum,
-            std::sqrt(ArrayTools::norm2(bh2_params.momentum)) <
-                0.3 * bh1_params.mass,
-            "approximation used for boosted BH only valid for small boosts");
-        FOR (idir)
-        {
-            std::string nameA   = "centerA[" + std::to_string(idir) + "]";
-            std::string nameB   = "centerB[" + std::to_string(idir) + "]";
-            double center_A_dir = bh1_params.center[idir];
-            double center_B_dir = bh2_params.center[idir];
-            warn_parameter(nameA, center_A_dir,
-                           (center_A_dir >= 0.0) &&
-                               (center_A_dir <= (ivN[idir] + 1) * coarsest_dx),
-                           "should be within the computational domain");
-            warn_parameter(nameB, center_B_dir,
-                           (center_B_dir >= 0.0) &&
-                               (center_B_dir <= (ivN[idir] + 1) * coarsest_dx),
-                           "should be within the computational domain");
-        }
+                        tp_params.TP_Extend_Radius >= 0., "must be >= 0.0");        
 #endif /* USE_TWOPUNCTURES */
-        check_parameter("puncture_tracking_level", puncture_tracking_level,
-                        (puncture_tracking_level >= 0) &&
-                            (puncture_tracking_level <= max_level),
-                        "must be between 0 and max_level (inclusive)");
     }
-
-    bool puncture_tracking_enabled{};
-    int puncture_tracking_level{};
-    int puncture_tracking_writeout_level{};
-    bool calculate_constraint_norms{};
-
-    // Collection of parameters necessary for initial conditions
-    // Set these even in the case of TwoPunctures as they are used elsewhere
-    // e.g. for puncture tracking/tagging
-    BoostedBHInitialData::params_t bh2_params{};
-    BoostedBHInitialData::params_t bh1_params{};
 
 #ifdef USE_TWOPUNCTURES
     double tp_offset_plus, tp_offset_minus;
     TP::Parameters tp_params;
 #endif
+    SphericalExtraction::params_t extraction_params; // TODO: Remove once extraction is fixed
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

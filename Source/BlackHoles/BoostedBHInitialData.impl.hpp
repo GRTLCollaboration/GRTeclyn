@@ -13,10 +13,76 @@
 #include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 #include <cmath>
+#include <string>
 
-AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(params_t a_params)
-    : m_params(a_params)
+void BoostedBHInitialData::params_t::check_params(int id)
 {
+    GRParmParse bh_pp("bh"+std::to_string(id));
+
+    double mass;
+    bh_pp.get("mass", mass);
+    if (mass < 0)
+    {
+        bh_pp.warning("mass", "should be >= 0");
+    }
+
+    std::array<double, AMREX_SPACEDIM> momentum;
+    bh_pp.get("momentum", momentum);
+    if (std::sqrt(ArrayTools::norm2(momentum)) >= 0.3 * mass)
+    {
+        bh_pp.warning("momentum", "approximation used for boosted BH only valid for small boosts");
+    }
+
+    GRParmParse pp;
+    std::array<double, AMREX_SPACEDIM> amr_center{};
+    pp.load("amr.center", amr_center);
+    std::array<double, AMREX_SPACEDIM> prob_extent{};
+    pp.get("geometry.prob_extent", prob_extent);
+
+    // Get the centers of the BH either explicitly or as
+    // an offset (not both)
+
+    std::array<double, AMREX_SPACEDIM> bh_center = amr_center;
+
+    if (bh_pp.contains("center") && bh_pp.contains("offset"))
+    {
+        bh_pp.error("offset", "shouldn't be provided with center");
+    }
+    else if (bh_pp.contains("offset"))
+    {
+        std::array<double, AMREX_SPACEDIM> offset;
+        bh_pp.get("offset", offset);
+
+        FOR (idir)
+        {
+            bh_center[idir] += offset[idir];
+        }
+    }
+
+    bh_pp.queryAdd("center", bh_center);
+
+    FOR (idir)
+    {
+        if (bh_center[idir] < 0.0 || bh_center[idir] > prob_extent[idir])
+        {
+            bh_pp.warning("center", "should be within the computational domain");
+        }
+    }
+    
+}
+
+void BoostedBHInitialData::params_t::fill_params()
+{
+    GRParmParse bh_pp("bh"+std::to_string(id));
+    bh_pp.get("mass", mass);
+    bh_pp.get("center", center);
+    bh_pp.get("momentum", momentum);
+}
+
+AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(int id)
+    : m_params(id)
+{
+    m_params.fill_params();
 }
 
 [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real

@@ -9,7 +9,6 @@
 // set up the runs but aren't very interesting for the normal user.
 
 // xxxxx various setups
-#include "AMReXParameters.hpp"
 #include "DerivativeSetup.hpp"
 #include "FilesystemTools.hpp"
 #include "GRAMR.hpp"

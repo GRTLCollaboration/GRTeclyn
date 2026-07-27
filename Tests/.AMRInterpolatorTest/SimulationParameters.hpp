@@ -7,13 +7,13 @@
 #define SIMULATIONPARAMETERS_HPP_
 
 // General includes
-#include "AMReXParameters.hpp"
+#include "BaseParameterChecker.hpp"
 #include "GRParmParse.hpp"
 
-class SimulationParameters : public AMReXParameters
+class SimulationParameters : public BaseParameterChecker
 {
   public:
-    SimulationParameters(GRParmParse &pp) : AMReXParameters(pp)
+    SimulationParameters(GRParmParse &pp) : BaseParameterChecker()
     {
         pp.load("num_points", num_points, 2);
     }

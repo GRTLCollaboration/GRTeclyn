@@ -6,6 +6,7 @@
 #ifndef CCZ4RHS_HPP_
 #define CCZ4RHS_HPP_
 
+#include "GRParmParse.hpp"
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
@@ -21,23 +22,46 @@
 /** This struct collects the gauge independent CCZ4 parameters i.e. the damping
  * ones
  */
-struct CCZ4_base_params_t
+struct CCZ4_params_t
 {
     double kappa1;    //!< Damping parameter kappa1 as in arXiv:1106.2254
     double kappa2;    //!< Damping parameter kappa2 as in arXiv:1106.2254
     double kappa3;    //!< Damping parameter kappa3 as in arXiv:1106.2254
     bool covariantZ4; //!< if true, replace kappa1->kappa1/lapse as in
                       //!<  arXiv:1307.7391 eq. 27
-};
 
-/// Parameter struct for CCZ4
-/** This struct collects all parameters that are necessary for CCZ4 such as
- * gauge and damping parameters. It inherits from CCZ4_base_params_t and
- * gauge_t::params_t
- */
-template <class gauge_params_t = MovingPunctureGauge::params_t>
-struct CCZ4_params_t : public CCZ4_base_params_t, public gauge_params_t
-{
+    static void check_params()
+    {
+        GRParmParse ccz4_pp("ccz4");
+        double kappa1 = 0.1;
+        ccz4_pp.queryAdd("kappa1", kappa1);
+        if (kappa1 <= 0.0)
+        {
+            ccz4_pp.warning("kappa1", "should be greater than 0.0 to damp constraints (see arXiv:1106.2254).");
+        }
+
+        double kappa2 = 0.0;
+        ccz4_pp.queryAdd("kappa2", kappa2);
+        if (kappa2 <= -1.0)
+        {
+            ccz4_pp.warning("kappa2", "should be greater than -1.0 to damp constraints (see arXiv:1106.2254).");
+        }
+
+        double kappa3 = 1.0;
+        ccz4_pp.queryAdd("kappa3", kappa3);
+
+        bool covariantZ4 = true;
+        ccz4_pp.queryAdd("covariantZ4", covariantZ4);
+    }
+
+    void fill_params()
+    {
+        GRParmParse ccz4_pp("ccz4");
+        ccz4_pp.get("kappa1", kappa1);
+        ccz4_pp.get("kappa2", kappa2);
+        ccz4_pp.get("kappa3", kappa3);
+        ccz4_pp.get("covariantZ4", covariantZ4);
+    }
 };
 
 /// Compute class to calculate the CCZ4 right hand side
@@ -55,23 +79,18 @@ class CCZ4RHS
         USE_BSSN
     };
 
-    using params_t = CCZ4_params_t<typename gauge_t::params_t>;
-
+    using params_t = CCZ4_params_t;
   protected:
     params_t m_params; //!< CCZ4 parameters
     gauge_t m_gauge;   //!< Class to compute gauge in rhs_equation
     double m_sigma;    //!< Coefficient for Kreiss-Oliger dissipation
-    int m_formulation;
     double m_cosmological_constant;
     deriv_t m_deriv;
 
   public:
     /// Constructor
     CCZ4RHS(
-        params_t a_params,            //!< The CCZ4 parameters
         double a_dx,                  //!< The grid spacing
-        double a_sigma,               //!< Kreiss-Oliger dissipation coefficient
-        int a_formulation = USE_CCZ4, //!< Switches between CCZ4, BSSN,...
         double a_cosmological_constant = 0 //!< Value of the cosmological const.
     );
 

@@ -31,10 +31,7 @@ class BinaryBHInitialData
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_FORCE_INLINE
-    BinaryBHInitialData(BoostedBHInitialData::params_t a_bh1_params,
-                        BoostedBHInitialData::params_t a_bh2_params,
-                        double a_dx,
-                        int a_initial_lapse = Lapse::PRE_COLLAPSED);
+    BinaryBHInitialData(double a_dx, int a_initial_lapse = Lapse::PRE_COLLAPSED);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     AMREX_GPU_DEVICE void

@@ -26,8 +26,8 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
 {
 
   public:
-    MovingPunctureGaugeWithMatter(const params_t &a_params)
-        : MovingPunctureGauge(a_params)
+    MovingPunctureGaugeWithMatter()
+        : MovingPunctureGauge()
     {
     }
 

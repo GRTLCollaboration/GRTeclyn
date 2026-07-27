@@ -90,32 +90,33 @@ void run_bssn_matter_test()
         // This needs to be a const for the template below when calculating the
         // RHS
         const int covariantZ4 = 1;
+        const int formulation = 1;
 
-        CCZ4_params_t<MovingPunctureGaugeWithMatter::params_t> ccz4_params;
-        ccz4_params.kappa1            = 0.0;
-        ccz4_params.kappa2            = 0.0;
-        ccz4_params.kappa3            = 0.0;
-        ccz4_params.shift_Gamma_coeff = 0.75;
-        ccz4_params.lapse_advec_coeff = 1.0;
-        ccz4_params.lapse_power       = 1.0;
-        ccz4_params.lapse_coeff       = 2.0;
-        ccz4_params.shift_advec_coeff = 0.0;
-        ccz4_params.eta               = 1.0;
-        ccz4_params.covariantZ4       = covariantZ4;
+        GRParmParse pp;
+        pp.add("ccz4.kappa1", 0.0);
+        pp.add("ccz4.kappa2", 0.0);
+        pp.add("ccz4.kappa3", 0.0);
+        pp.add("ccz4.covariantZ4", covariantZ4);
 
-        amrex::Real sigma = 0.1;
+        pp.add("gauge.shift_Gamma_coeff", 0.75);
+        pp.add("gauge.lapse_advec_coeff", 1.0);
+        pp.add("gauge.lapse_power", 1.0);
+        pp.add("gauge.lapse_coeff", 2.0);
+        pp.add("gauge.shift_advec_coeff", 0.0);
+        pp.add("gauge.eta", 1.0);
+
+        pp.add("sigma", 0.1);
+        pp.add("formulation", formulation);
 
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
         double G_Newton = 1.0;
-        GRParmParse pp;
         pp.queryAdd("G_Newton", G_Newton);
 
         CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGaugeWithMatter,
                           FourthOrderDerivatives>
-            current_ccz4_rhs{ccz4_params, dx, sigma, CCZ4RHS<>::USE_BSSN,
-                             G_Newton};
+            current_ccz4_rhs{dx, G_Newton};
 
         FourthOrderDerivatives deriv{dx};
 

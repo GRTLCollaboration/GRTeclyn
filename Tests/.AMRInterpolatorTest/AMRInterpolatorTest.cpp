@@ -53,7 +53,7 @@ int runInterpolatorTest(int argc, char *argv[])
     amrex::Print() << in_string << std::endl;
     const char *in_file = argv[argc - 1];
     GRParmParse pp(0, argv + argc, NULL, in_file);
-    SimulationParameters sim_params(pp);
+    SimulationParameters sim_params();
 
     GRAMR gr_amr;
     DefaultLevelFactory<InterpolatorTestLevel> interpolator_test_level_fact(
@@ -70,7 +70,11 @@ int runInterpolatorTest(int argc, char *argv[])
     std::vector<double> interp_y(num_points);
     std::vector<double> interp_z(num_points);
 
-    double extract_radius = sim_params.L / 4;
+    std::array<double, AMREX_SPACEDIM> prob_extent{};
+    pp.get("geometry.prob_extent", prob_extent);
+
+    // Using lenght of x direction to define extraction radius
+    double extract_radius = prob_extent[0] / 4;
 
     for (int ipoint = 0; ipoint < num_points; ++ipoint)
     {

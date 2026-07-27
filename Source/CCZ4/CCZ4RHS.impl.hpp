@@ -15,28 +15,16 @@
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class gauge_t, class deriv_t>
-inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
-    CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
-    double a_sigma, int a_formulation, double a_cosmological_constant)
-    : m_params(a_params), m_gauge(a_params), m_sigma(a_sigma),
-      m_formulation(a_formulation),
+inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(double a_dx,
+    double a_cosmological_constant)
+    : m_gauge(),
       m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    // A user who wants to use BSSN should also have damping paramters = 0
-    if (m_formulation == USE_BSSN)
-    {
-        if ((m_params.kappa1 != 0.) || (m_params.kappa2 != 0.) ||
-            (m_params.kappa3 != 0.))
-        {
-            amrex::Abort("BSSN formulation is selected - CCZ4 kappa values "
-                         "should be set to zero in params");
-        }
-    }
-    if (m_formulation > USE_BSSN)
-    {
-        amrex::Abort("The requested formulation is not supported");
-    }
+    m_params.fill_params();
+
+    GRParmParse pp;
+    pp.get("sigma", m_sigma);
 }
 
 template <class gauge_t, class deriv_t>

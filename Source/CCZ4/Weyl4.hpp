@@ -70,12 +70,13 @@ class Weyl4
         Takes in the centre for the calculation of the tetrads, grid spacing and
         the formulation.
     */
-    // TODO: Remove dependence on formulation?
-    Weyl4(const std::array<double, AMREX_SPACEDIM> &a_center, double a_dx,
-          int a_out_comp, int a_formulation = CCZ4RHS<>::USE_CCZ4)
-        : m_center(a_center), m_dx(a_dx), m_deriv(a_dx), m_out_comp(a_out_comp),
-          m_formulation(a_formulation)
+
+    Weyl4(double a_dx, int a_out_comp)
+        : m_dx(a_dx), m_deriv(a_dx), m_out_comp(a_out_comp)
     {
+      GRParmParse pp;
+      pp.get("extraction_center", m_center);
+      pp.get("formulation", m_formulation);
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
 

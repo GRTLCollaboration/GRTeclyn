@@ -18,48 +18,90 @@ puncture_tracking.level = 5
 
 amr.check_file = BinaryBHChk_
 amr.plot_file = BinaryBHPlt_
-# amr.restart = BinaryBHChk_00100
+# amr.restart = BinaryBHChk_00030
 # amr.file_name_digits = 5
+amr.derive_plot_vars = constraints
+amr.plot_vars = NONE
 
-amr.check_int = -1
-amr.plot_int = -1
+amr.check_int = 20
+amr.plot_int = 5
 
 #################################################
 # Initial Data parameters
 
 # provide 'offset' or 'center'
 
-bh1.mass = 0.48847892320123
-bh2.mass = 0.48847892320123
+bh1.mass = 0.5
+bh2.mass = 0.5
 
-bh1.offset = 0.0 6.10679 0.0
-bh2.offset =  0.0 -6.10679 0.0
+bh1.offset = 5.5 0.0 0.0
+bh2.offset = -5.5 0.0 0.0
 # bh1.center = 512  518.10679 512
 # bh2.center = 512 -505.89321 512
 
-bh1.momentum = -0.0841746 -0.000510846 0.0
-bh2.momentum = 0.0841746  0.000510846 0.0
+bh1.momentum = 0.0 0.09 0.0
+bh2.momentum = 0.0 -0.09 0.0
+
+#################################################
+# TwoPunctures initial data parameters
+
+two_punctures.verbose = true
+
+two_punctures.calculate_target_masses = true
+two_punctures.target_mass_plus  = 0.5
+two_punctures.target_mass_minus = 0.5
+two_punctures.adm_tol           = 1.0e-10
+
+#two_punctures.mass_plus  = 0.48847892320123
+#two_punctures.mass_minus = 0.48847892320123
+
+two_punctures.offset_plus  = 5.5
+two_punctures.offset_minus = -5.5
+
+two_punctures.momentum_plus  = 0.0 0.09 0.0
+two_punctures.momentum_minus = 0.0 -0.09 0.0
+
+two_punctures.spin_plus      = 0.0 0.0 0.0
+two_punctures.spin_minus     = 0.0 0.0 0.0
+
+# two_punctures.use_spectral_interpolation = true
+# two_punctures.initial_lapse = "twopunctures-averaged"
+# two_punctures.initial_lapse_psi_exponent = -2.0
+
+two_punctures.num_points_A   = 64
+two_punctures.num_points_B   = 64
+two_punctures.num_points_phi = 48
+
+two_punctures.solver_tol    = 1.0e-10
+two_punctures.solver_maxit  = 250
+two_punctures.epsilon       = 1.0e-6
+# two_punctures.tiny          = 0.0
+# two_punctures.extend_radius = 0.0
+
+# two_punctures.swap_xz = false
+# two_punctures.do_residuum_debug_output = false
+# two_punctures.do_initial_debug_output = false
 
 #################################################
 # Grid parameters
 
-amr.n_cell = 128 128 64
+amr.n_cell = 160 160 80
 geometry.prob_extent = 1024 1024 512
 
 amr.max_level = 9 # There are (max_level+1) grids, so min is zero
 
 # -1 disables regridding
-amr.regrid_int = -1 -1 1 -1 -1 -1 -1 -1 -1
-amr.regrid_threshold = 0.02
+amr.regrid_int = -1   -1   -1   2   4   8   16   32   64
+amr.regrid_threshold = 0.014
 
 # Max and min box sizes
-amr.max_grid_size = 32
+amr.max_grid_size = 64
 amr.blocking_factor = 16
 
 # Tag buffer size
-amr.n_error_buf = 4 4 4
+amr.n_error_buf = 3 3 3
 #amr.n_proper = 1
-# amr.num_ghosts = 3
+amr.num_ghosts = 4
 # amr.center = 8 8 8 # defaults to center of the grid
 
 #################################################
@@ -87,11 +129,11 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # dt will be dx*dt_multiplier on each grid level
 amr.dt_multiplier = 0.25
-# amr.stop_time = 2.0
-amr.max_steps = 1
+amr.stop_time = 2500.0
+#amr.max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
-amr.max_spatial_derivative_order = 4 # only 4 currently implemented
+amr.max_spatial_derivative_order = 6 # only 4 currently implemented
 
 nan_check = 1
 
@@ -101,15 +143,15 @@ gauge.lapse_coeff = 2.0
 gauge.lapse_power = 1.0
 
 # Shift evolution
-gauge.shift_advec_coeff = 1.0
+gauge.shift_advec_coeff = 0.0
 gauge.shift_Gamma_coeff = 0.75
 gauge.eta = 1.0 # eta of gamma driver
 
 # CCZ4 parameters
 formulation = 0 # 1 for BSSN, 0 for CCZ4
 ccz4.kappa1 = 0.1
-ccz4.kappa2 = 0.
-ccz4.kappa3 = 1.
+ccz4.kappa2 = 0.0
+ccz4.kappa3 = 1.0
 ccz4.covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
 
 # coefficient for KO numerical dissipation
@@ -123,12 +165,11 @@ sigma = 0.5
 
 # We don't have any extraction yet but the extraction spheres are used for
 # tagging cells
-activate_extraction = 1
+activate_extraction = true
 num_extraction_radii = 2
-extraction_radii = 110.0 150.0
+extraction_radii = 50.0 100.0
 extraction_levels = 3 2
-num_points_phi = 32
-num_points_theta = 48
-write_extraction = 0
+num_points_phi = 160
+num_points_theta = 80
 num_modes = 3
 modes = 2 0  2 1  2 2

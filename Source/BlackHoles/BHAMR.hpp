@@ -32,9 +32,7 @@ template <int num_punctures> class BHAMR : public GRAMR
     BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
     {
         amrex::ParmParse puncture_tracking_pp("puncture_tracking");
-        bool puncture_tracking_enabled = false; // default
-
-        puncture_tracking_pp.query("enabled", puncture_tracking_enabled);
+        puncture_tracking_pp.get("enabled", puncture_tracking_enabled);
         if (puncture_tracking_enabled)
         {
             m_puncture_tracker.initialize(this);
@@ -45,6 +43,8 @@ template <int num_punctures> class BHAMR : public GRAMR
     {
         return m_puncture_tracker;
     }
+
+    bool puncture_tracking_enabled;
 };
 
 #endif /* BHAMR_HPP_ */

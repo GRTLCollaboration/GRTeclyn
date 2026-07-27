@@ -7,23 +7,24 @@
 #define SIMULATIONPARAMETERS_HPP_
 
 // General includes
-#include "AMReXParameters.hpp"
+#include "BaseParameterChecker.hpp"
 #include "GRParmParse.hpp"
 
 // Problem specific includes
 #include "SphericalExtraction.hpp"
 
-class SimulationParameters : public AMReXParameters
+class SimulationParameters : public BaseParameterChecker
 {
   public:
-    SimulationParameters(GRParmParse &pp) : AMReXParameters(pp)
+    SimulationParameters() : BaseParameterChecker()
     {
-        read_params(pp);
+        check_params(pp);
     }
 
   private:
-    void read_params(GRParmParse &pp)
+    void check_params()
     {
+        GRParmParse pp;
         // Extraction params
         pp.load("num_extraction_radii",
                 extraction_params_lo.num_extraction_radii(), 1);

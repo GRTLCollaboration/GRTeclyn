@@ -1,23 +1,18 @@
 amrex.verbose = 1
 amr.verbose = 0
-N1 = 32
-N2 = 32
-N3 = 32
-L = 16
+amr.n_cell = 32 32 32
+geometry.prob_extent = 16 16 16
 
-chk_prefix = TestChk_
-plot_prefix = TestPlt_
-
-max_level = 1
-regrid_interval = 1 1 1 1 0 0 0 0 0
-ref_ratio = 2 2 2 2 2 2 2 2 2
-isPeriodic = 1 1 1
+amr.max_level = 1
+amr.regrid_interval = 1
+amr.ref_ratio = 2
+geometry.is_periodic = 1 1 1
 
 # Max and min box sizes
-max_grid_size = 32
-block_factor = 4
-tag_buffer_size = 3
-checkpoint_interval = 1
+amr.max_grid_size = 32
+amr.blocking_factor = 4
+amr.n_error_buf = 3
+amr.check_int = 1
 
 # extraction params
 num_extraction_radii = 2

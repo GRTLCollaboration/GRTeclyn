@@ -18,10 +18,9 @@
 // Constructor
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_FORCE_INLINE BinaryBHInitialData::BinaryBHInitialData(
-    BoostedBHInitialData::params_t a_bh1_params,
-    BoostedBHInitialData::params_t a_bh2_params, double a_dx,
+    double a_dx,
     int a_initial_lapse)
-    : m_dx(a_dx), bh1(a_bh1_params), bh2(a_bh2_params),
+    : m_dx(a_dx), bh1(1), bh2(2),
       m_initial_lapse(a_initial_lapse)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {

@@ -43,6 +43,7 @@ class BoundaryConditions
         std::array<int, AMREX_SPACEDIM> hi_boundary{};
         std::array<int, AMREX_SPACEDIM> lo_boundary{};
         std::array<bool, AMREX_SPACEDIM> is_periodic{};
+        /*
         bool nonperiodic_boundaries_exist{false};
         bool boundary_solution_enforced{false};
         bool boundary_rhs_enforced{false};
@@ -50,6 +51,7 @@ class BoundaryConditions
         bool sommerfeld_boundaries_exist{false};
         bool extrapolating_boundaries_exist{};
         bool mixed_boundaries_exist{};
+        */
 
         std::array<double, NUM_VARS> vars_asymptotic_values{};
         std::map<int, int> mixed_bc_vars_map;
@@ -57,11 +59,9 @@ class BoundaryConditions
         params_t(); // sets the defaults
         void set_is_periodic(
             const std::array<int, AMREX_SPACEDIM> &a_is_periodic_int);
-        void
-        set_hi_boundary(const std::array<int, AMREX_SPACEDIM> &a_hi_boundary);
-        void
-        set_lo_boundary(const std::array<int, AMREX_SPACEDIM> &a_lo_boundary);
-        void read_params(GRParmParse &pp);
+        void fill_params();
+        static void check_params();
+        bool boundary_exists(const int BC) const;
     };
 
   protected:
@@ -85,9 +85,7 @@ class BoundaryConditions
     BoundaryConditions &operator=(BoundaryConditions &&)      = delete;
 
     /// define function sets members and is_defined set to true
-    void define(std::array<double, AMREX_SPACEDIM> a_center,
-                const params_t &a_params, const amrex::Geometry &a_geom,
-                int a_num_ghosts);
+    void define(const amrex::Geometry &a_geom);
 
     /// change the asymptotic values of the variables for the Sommerfeld BCs
     /// this will allow them to evolve during a simulation if necessary

@@ -62,23 +62,36 @@ void run_particle_interpolator_test()
     {
         // Simulation parameters
         GRParmParse pp;
-        SimulationParameters sim_params(pp);
+        SimulationParameters sim_params;
         GRAMR::set_simulation_parameters(sim_params);
         ParticleInterpolatorLevel::variableSetUp();
 
         // Set the center
-        PolynomialDerivedQuantity::set_center(sim_params.center);
+        std::array<double, AMREX_SPACEDIM> center{}; 
+        pp.get("amr.center", center);
+        PolynomialDerivedQuantity::set_center(center);
 
         // Set up the AMR object
         DefaultLevelFactory<ParticleInterpolatorLevel>
             interpolator_test_level_fact;
         GRAMR gr_amr(&interpolator_test_level_fact);
-        gr_amr.init(0., sim_params.stop_time);
+
+        double stop_time{};
+        pp.get("amr.stop_time", stop_time);
+        gr_amr.init(0., stop_time);
 
         // Read from params
-        const int num_points  = sim_params.num_points;
-        bool verbosity        = sim_params.verbosity;
-        double extract_radius = sim_params.L / 4;
+        int num_points;
+        pp.get("num_points", num_points);
+        
+        bool verbosity;
+        pp.get("verbosity", verbosity);
+
+        std::array<double, AMREX_SPACEDIM> prob_extent{};
+        pp.get("geometry.prob_extent", prob_extent);
+
+        // Using lenght of x direction to define extraction radius
+        double extract_radius = prob_extent[0] / 4;
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();
@@ -114,11 +127,11 @@ void run_particle_interpolator_test()
             double theta = ipoint * M_PI / num_points;
 
             interp_x_local[j] =
-                sim_params.center[0] + extract_radius * cos(phi) * sin(theta);
+                center[0] + extract_radius * cos(phi) * sin(theta);
             interp_y_local[j] =
-                sim_params.center[1] + extract_radius * sin(phi) * sin(theta);
+                center[1] + extract_radius * sin(phi) * sin(theta);
             interp_z_local[j] =
-                sim_params.center[2] + extract_radius * cos(theta);
+                center[2] + extract_radius * cos(theta);
         }
 
         // set-up query for derived variable A
@@ -152,9 +165,9 @@ void run_particle_interpolator_test()
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {
-            double x = interp_x_local[ipoint] - sim_params.center[0];
-            double y = interp_y_local[ipoint] - sim_params.center[1];
-            double z = interp_z_local[ipoint] - sim_params.center[2];
+            double x = interp_x_local[ipoint] - center[0];
+            double y = interp_y_local[ipoint] - center[1];
+            double z = interp_z_local[ipoint] - center[2];
 
             double A_known = 42. + x * x + y * y * z * z;
             double B_known = pow(x, 3);

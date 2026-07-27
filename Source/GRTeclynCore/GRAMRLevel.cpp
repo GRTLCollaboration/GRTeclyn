@@ -5,18 +5,20 @@
 
 #include "GRAMRLevel.hpp"
 #include "NullBCFill.hpp"
+#include "StateTypes.hpp"
 
 void GRAMRLevel::stateVariableSetUp()
 {
-    const int nghost = simParams().num_ghosts;
+    GRParmParse pp;
+    int nghost;
+    pp.get("amr.num_ghosts", nghost);
     desc_lst.addDescriptor(state_index, amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
                            &amrex::cell_quartic_interp);
 
     BoundaryConditions::params_t boundary_params = simParams().boundary_params;
     BoundaryConditions boundary_conditions;
-    boundary_conditions.define(simParams().center, boundary_params,
-                               amrex::DefaultGeometry(), nghost);
+    boundary_conditions.define(amrex::DefaultGeometry());
 
     amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
     for (int icomp = 0; icomp < NUM_VARS; ++icomp)
@@ -74,18 +76,18 @@ void GRAMRLevel::variableCleanUp()
     derive_lst.clear();
 }
 
+//TODO: See if this is used, as boundaries and nan_check not set
 GRAMRLevel::GRAMRLevel() = default;
 
 GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
                        const amrex::BoxArray &box_array,
                        const amrex::DistributionMapping &distribution_mapping,
                        amrex::Real time)
-    : amrex::AmrLevel(papa, lev, geom, box_array, distribution_mapping, time),
-      m_num_ghosts(simParams().num_ghosts)
+    : amrex::AmrLevel(papa, lev, geom, box_array, distribution_mapping, time)
 {
-
-    m_boundaries.define(simParams().center, simParams().boundary_params, geom,
-                        m_num_ghosts);
+    GRParmParse pp;
+    pp.get("nan_check", nan_check);
+    m_boundaries.define(geom);
 }
 
 GRAMRLevel::~GRAMRLevel() = default;
@@ -116,7 +118,9 @@ void GRAMRLevel::computeInitialDt(
     // Level 0 will do it for all levels
     if (Level() == 0)
     {
-        double dt_multiplier = simParams().dt_multiplier;
+        GRParmParse pp;
+        double dt_multiplier;
+        pp.get("amr.dt_multiplier", dt_multiplier);
         for (int i = 0; i <= finest_level; ++i)
         {
             dt_level[i] = dt_multiplier * parent->Geom(i).CellSize(0);
@@ -134,7 +138,10 @@ void GRAMRLevel::computeNewDt(
     // Level 0 will do it for all levels
     if (Level() == 0)
     {
-        double dt_multiplier = simParams().dt_multiplier;
+        GRParmParse pp;
+        double dt_multiplier;
+        pp.get("amr.dt_multiplier", dt_multiplier);
+        
         for (int i = 0; i <= finest_level; ++i)
         {
             dt_min[i] = dt_level[i] =
@@ -202,7 +209,8 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         FourthOrderInterpFromFineToCoarse(state_coarse, 0, NUM_VARS, state_fine,
                                           ratio);
     }
-    if (simParams().nan_check)
+    
+    if (nan_check)
     {
         amrex::MultiFab &state_new = get_new_data(state_index);
         if (state_new.contains_nan(0, state_new.nComp(), amrex::IntVect(0),
@@ -278,7 +286,10 @@ void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
     pre_tag_cells();
 
     // It is up to the derived class to use regrid_threshold in tag_cells()
-    amrex::Real regrid_threshold = simParams().regrid_thresholds[Level()];
+    amrex::Vector<double> regrid_thresholds;
+    GRParmParse pp;
+    pp.getarr("amr.regrid_thresholds", regrid_thresholds);
+    amrex::Real regrid_threshold = regrid_thresholds[Level()];
     tag_cells(a_tag_box_array, regrid_threshold);
 }
 

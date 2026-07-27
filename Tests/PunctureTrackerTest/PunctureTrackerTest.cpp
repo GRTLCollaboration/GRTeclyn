@@ -45,22 +45,27 @@ void run_puncture_tracker_test()
     amrex::Initialize(new_argc, new_argv);
     {
         GRParmParse pp; // NOLINT(readability-identifier-length)
-        SimulationParameters sim_params(pp);
+        SimulationParameters sim_params;
 
         GRAMR::set_simulation_parameters(sim_params);
 
         DefaultLevelFactory<PunctureTrackerLevel> level_factory;
 
         BHAMR<2> bh_amr(&level_factory);
-        bh_amr.init(0., sim_params.stop_time);
+        double stop_time{};
+        pp.get("amr.stop_time", stop_time);
+        bh_amr.init(0., stop_time);
+
+        int max_steps{};
+        pp.get("amr.max_steps", max_steps);
 
         while ((bh_amr.okToContinue() != 0) &&
-               (bh_amr.levelSteps(0) < sim_params.max_steps ||
-                sim_params.max_steps < 0) &&
-               (bh_amr.cumTime() < sim_params.stop_time ||
-                sim_params.stop_time < 0.0))
+               (bh_amr.levelSteps(0) < max_steps ||
+                max_steps < 0) &&
+               (bh_amr.cumTime() < stop_time ||
+                stop_time < 0.0))
         {
-            bh_amr.coarseTimeStep(sim_params.stop_time);
+            bh_amr.coarseTimeStep(stop_time);
         }
     }
     amrex::Finalize();
