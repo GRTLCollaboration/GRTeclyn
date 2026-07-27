@@ -515,7 +515,13 @@ void RadialRecipeLevel::specificPostTimeStep()
         RLRuntime::publish_cached_L2_Ham(L2_Ham);
 
         // Pump force L2 and governor (appended columns; see header below).
+        // NOTE on the lapse: the pump adds S_A to ∂_t Π_A, a coordinate-time
+        // rate, so the force density that actually enters ∂_t ρ and ∂_t j_i is
+        // f = Σ_A s_A S_A (...) with NO lapse factor (the α in the "α f_⊥" of
+        // the Duhamel bound is already absorbed converting the KG source J_A
+        // to S_A = α J_A).  Matches ControllerReservoirMatter exactly.
         amrex::Real pump_force_L2 = 0.0;
+        amrex::Real pump_fi_L2    = 0.0;
         const int n_fields =
             RadialRecipeMatter::uses_bicomplex_scalar(simParams()) ? 2 : 1;
         const bool bicomplex =
@@ -525,9 +531,11 @@ void RadialRecipeLevel::specificPostTimeStep()
         const double governor_val = pump_diag.governor;
         if (pump_diag.num_sites >= 1)
         {
-            amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum>
+            amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum,
+                             amrex::ReduceOpSum>
                 pf_ops;
-            amrex::ReduceData<amrex::Real, amrex::Real> pf_data(pf_ops);
+            amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real> pf_data(
+                pf_ops);
             const auto prob_lo = Geom().ProbLoArray();
             const auto dx_arr  = Geom().CellSizeArray();
             // Same centre-relative frame as Coordinates / RLLumpTracker / RHS.
@@ -545,7 +553,8 @@ void RadialRecipeLevel::specificPostTimeStep()
                 pf_ops.eval(
                     bx, pf_data,
                     [=] AMREX_GPU_DEVICE(int i, int j, int k)
-                        -> amrex::GpuTuple<amrex::Real, amrex::Real>
+                        -> amrex::GpuTuple<amrex::Real, amrex::Real,
+                                           amrex::Real>
                     {
                         const amrex::Real x = prob_lo[0] +
                                              (amrex::Real(i) + 0.5) * dx_arr[0] -
@@ -582,20 +591,56 @@ void RadialRecipeLevel::specificPostTimeStep()
                                 pump_diag, x, y, z, time, lapse, phi1p, phi2p,
                                 Pi1p, Pi2p);
                         }
-                        // f_perp only for the L2 (spatial derivatives omitted
-                        // here; full f_i needs a ghost-filled D1 pass).
+                        // Gravitational signs: +1 canonical, -1 phantom.
                         const amrex::Real f_perp =
                             (Pi1p * src.s1p + Pi2p * src.s2p) -
                             (Pi1m * src.s1m + Pi2m * src.s2m);
-                        const amrex::Real af = lapse * f_perp;
-                        return {af * af * cell_vol, cell_vol};
+
+                        // f_i = Sum_A s_A S_A d_i phi_A.  state_new is
+                        // FillPatch'd with 2 ghost cells above, so the same
+                        // 4th-order centred stencil the RHS uses is available
+                        // on the valid box.
+                        auto d1c = [&](int comp, int dir) -> amrex::Real
+                        {
+                            const int di = (dir == 0) ? 1 : 0;
+                            const int dj = (dir == 1) ? 1 : 0;
+                            const int dk = (dir == 2) ? 1 : 0;
+                            const amrex::Real fm2 =
+                                arr(i - 2 * di, j - 2 * dj, k - 2 * dk, comp);
+                            const amrex::Real fm1 =
+                                arr(i - di, j - dj, k - dk, comp);
+                            const amrex::Real fp1 =
+                                arr(i + di, j + dj, k + dk, comp);
+                            const amrex::Real fp2 =
+                                arr(i + 2 * di, j + 2 * dj, k + 2 * dk, comp);
+                            return (fm2 - 8.0 * fm1 + 8.0 * fp1 - fp2) /
+                                   (12.0 * dx_arr[dir]);
+                        };
+                        amrex::Real fi2 = 0.0;
+                        for (int dir = 0; dir < 3; ++dir)
+                        {
+                            amrex::Real f_dir =
+                                src.s1p * d1c(c_phi, dir) +
+                                src.s2p * d1c(c_phi2, dir);
+                            if (bicomplex)
+                            {
+                                f_dir -= src.s1m * d1c(c_phi_m, dir) +
+                                         src.s2m * d1c(c_phi2_m, dir);
+                            }
+                            fi2 += f_dir * f_dir;
+                        }
+                        return {f_perp * f_perp * cell_vol, fi2 * cell_vol,
+                                cell_vol};
                     });
             }
-            auto [sum_af2, sum_pf_vol] = pf_data.value();
+            auto [sum_af2, sum_afi2, sum_pf_vol] = pf_data.value();
             amrex::ParallelDescriptor::ReduceRealSum(sum_af2);
+            amrex::ParallelDescriptor::ReduceRealSum(sum_afi2);
             amrex::ParallelDescriptor::ReduceRealSum(sum_pf_vol);
             pump_force_L2 =
                 (sum_pf_vol > 0.0) ? std::sqrt(sum_af2 / sum_pf_vol) : 0.0;
+            pump_fi_L2 =
+                (sum_pf_vol > 0.0) ? std::sqrt(sum_afi2 / sum_pf_vol) : 0.0;
         }
 
         amrex::MultiFab cst_vac(state_new.boxArray(),
@@ -678,13 +723,14 @@ void RadialRecipeLevel::specificPostTimeStep()
             constraints_file.write_header_line(
                 {"L2_Ham", "L2_Mom", "min_rho_req", "max_rho_req",
                  "integral_neg_rho", "L2_Ham_rel", "L2_Mom_rel",
-                 "pump_force_L2", "governor"});
+                 "pump_force_L2", "governor", "pump_fi_L2"});
         }
         constraints_file.write_time_data_line(
             {L2_Ham, L2_Mom, static_cast<double>(min_rho_req),
              static_cast<double>(max_rho_req),
              static_cast<double>(sum_neg_rho), L2_Ham_rel, L2_Mom_rel,
-             static_cast<double>(pump_force_L2), governor_val});
+             static_cast<double>(pump_force_L2), governor_val,
+             static_cast<double>(pump_fi_L2)});
     }
 
     if (Level() == 0)
@@ -1034,11 +1080,15 @@ void RadialRecipeLevel::specificPostTimeStep()
                                     Pi1p, Pi2p);
                             }
                             // f_perp with gravitational signs: +1 canonical,
-                            // -1 phantom. Power = alpha * f_perp * sqrt(gamma).
+                            // -1 phantom.  Power = f_perp * sqrt(gamma): the
+                            // pump adds S_A to d_t Pi_A (a coordinate-time
+                            // rate), so d_t rho|_pump = f_perp exactly, with
+                            // NO lapse factor.  Same convention as
+                            // ControllerReservoirMatter.
                             const amrex::Real f_perp =
                                 (Pi1p * src.s1p + Pi2p * src.s2p) -
                                 (Pi1m * src.s1m + Pi2m * src.s2m);
-                            return {lapse * f_perp * sqrt_gamma * cell_vol};
+                            return {f_perp * sqrt_gamma * cell_vol};
                         });
                 }
                 pump_work = amrex::get<0>(reduce_data_pw.value());

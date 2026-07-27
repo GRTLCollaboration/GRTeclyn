@@ -5,12 +5,18 @@ Reads ``constraint_norms.dat`` columns appended by the always-on-pump
 diagnostics:
 
     time, L2_Ham, L2_Mom, min_rho_req, max_rho_req, integral_neg_rho,
-    [L2_Ham_rel, L2_Mom_rel, pump_force_L2, governor]
+    [L2_Ham_rel, L2_Mom_rel, pump_force_L2, governor, pump_fi_L2]
 
 and forms the integral bounds
 
-    ||H_pump||_2 ≲ 16 π ∫_0^t ||α f_⊥||_2 dt'
-    ||M_pump||_2 ≲  8 π ∫_0^t ||α f_i||_2 dt'   (proxy: same pump_force_L2)
+    ||H_pump||_2 ≲ 16 π ∫_0^t ||f_⊥||_2 dt'   from pump_force_L2
+    ||M_pump||_2 ≲  8 π ∫_0^t ||f_i||_2 dt'   from pump_fi_L2
+
+Both force norms are measured with the same law and the same centre-relative
+coordinates as the evolution RHS, and carry no lapse factor: the pump adds
+S_A to ∂_t Π_A, a coordinate-time rate, so ∂_t ρ|_pump = f_⊥ exactly.  (Runs
+predating the pump_fi_L2 column fall back to pump_force_L2 for the momentum
+bound and say so.)
 
 These are upper bounds, not identities: L² norms do not add linearly through
 the constraint-propagation system. Exact cancellation requires the mode-1/2
@@ -30,7 +36,7 @@ from pathlib import Path
 import numpy as np
 
 
-def load_constraint_norms(path: Path) -> dict[str, np.ndarray]:
+def load_constraint_norms(path: Path) -> dict[str, object]:
     data = np.loadtxt(path)
     if data.ndim == 1:
         data = data.reshape(1, -1)
@@ -40,22 +46,22 @@ def load_constraint_norms(path: Path) -> dict[str, np.ndarray]:
         "L2_Ham": data[:, 1],
         "L2_Mom": data[:, 2],
     }
-    if ncols >= 10:
-        out["L2_Ham_rel"] = data[:, 6]
-        out["L2_Mom_rel"] = data[:, 7]
-        out["pump_force_L2"] = data[:, 8]
-        out["governor"] = data[:, 9]
-    elif ncols >= 9:
-        # tolerate missing governor
-        out["L2_Ham_rel"] = data[:, 6]
-        out["L2_Mom_rel"] = data[:, 7]
-        out["pump_force_L2"] = data[:, 8]
-        out["governor"] = np.ones_like(data[:, 0])
-    else:
+    if ncols < 9:
         raise SystemExit(
             f"{path}: need >= 9 columns (got {ncols}); re-run with the "
             "extended constraint diagnostics."
         )
+    out["L2_Ham_rel"] = data[:, 6]
+    out["L2_Mom_rel"] = data[:, 7]
+    out["pump_force_L2"] = data[:, 8]
+    # tolerate runs written before the governor / pump_fi_L2 columns existed
+    out["governor"] = data[:, 9] if ncols >= 10 else np.ones_like(data[:, 0])
+    if ncols >= 11:
+        out["pump_fi_L2"] = data[:, 10]
+        out["fi_measured"] = True
+    else:
+        out["pump_fi_L2"] = out["pump_force_L2"]
+        out["fi_measured"] = False
     return out
 
 
@@ -82,14 +88,19 @@ def main() -> int:
     cols = load_constraint_norms(args.constraint_norms)
     t = cols["time"]
     force = cols["pump_force_L2"]
-    integ = cumulative_trapz(force, t)
-    ham_bound = 16.0 * math.pi * integ
-    mom_bound = 8.0 * math.pi * integ
+    force_i = cols["pump_fi_L2"]
+    ham_bound = 16.0 * math.pi * cumulative_trapz(force, t)
+    mom_bound = 8.0 * math.pi * cumulative_trapz(force_i, t)
 
     gov = cols["governor"]
     print(f"file: {args.constraint_norms}")
     print(f"rows: {len(t)}  t in [{t[0]:.3f}, {t[-1]:.3f}]")
     print(f"pump_force_L2: max={force.max():.3e}  mean={force.mean():.3e}")
+    if cols["fi_measured"]:
+        print(f"pump_fi_L2:    max={force_i.max():.3e}  mean={force_i.mean():.3e}")
+    else:
+        print("pump_fi_L2:    NOT MEASURED in this run -- momentum bound uses "
+              "pump_force_L2 as a stand-in and is NOT a bound on ||M_pump||.")
     print(f"governor: min={gov.min():.3f}  max={gov.max():.3f}")
     print(
         f"at t={t[-1]:.2f}: L2_Ham={cols['L2_Ham'][-1]:.3e}  "
@@ -116,9 +127,13 @@ def main() -> int:
                 mom_bound,
                 gov,
                 force,
+                force_i,
             ]
         )
-        header = "time L2_Ham ham_bound L2_Mom mom_bound governor pump_force_L2"
+        header = (
+            "time L2_Ham ham_bound L2_Mom mom_bound governor "
+            "pump_force_L2 pump_fi_L2"
+        )
         np.savetxt(args.output, table, header=header)
         print(f"wrote {args.output}")
     return 0

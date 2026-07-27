@@ -189,21 +189,12 @@ compute_bicomplex_sources(const RLMatterPumpParams &pump, amrex::Real x,
                           amrex::Real phi1m, amrex::Real phi2m, amrex::Real Pi1m,
                           amrex::Real Pi2m)
 {
+    // accumulate_site_sources filters by site.field_sign internally in BOTH
+    // the PD and the open-loop branch, so one pass per sign is exact and
+    // double-counts nothing.
     RLPumpSources out;
     accumulate_site_sources(out.s1p, out.s2p, pump, x, y, z, time, lapse, phi1p,
                             phi2p, Pi1p, Pi2p, /*want_sign=*/+1);
-    // PD branch returns after the + pass; re-enter for phantom only in
-    // open-loop. For PD, call accumulate again — but accumulate_site_sources
-    // returns early after the PD loop for BOTH signs in one call when k_p>0.
-    // So for PD we need a single pass that fills both. Handle below.
-    if (pump.k_p > 0.0)
-    {
-        // accumulate_site_sources with want_sign=+1 already did the full PD
-        // loop filtered to +; now phantom:
-        accumulate_site_sources(out.s1m, out.s2m, pump, x, y, z, time, lapse,
-                                phi1m, phi2m, Pi1m, Pi2m, /*want_sign=*/-1);
-        return out;
-    }
     accumulate_site_sources(out.s1m, out.s2m, pump, x, y, z, time, lapse, phi1m,
                             phi2m, Pi1m, Pi2m, /*want_sign=*/-1);
     return out;
