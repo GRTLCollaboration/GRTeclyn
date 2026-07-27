@@ -111,7 +111,38 @@ fig:lump_topdown  (research.tex; unscaled x-y projection at grid scale)
 4) Tables / in-text HQ numbers (not plotted, but same runs)
 -----------------------------------------------------------
 
-tab:search_handoff / tab:matrix / 4D certificate text
+Archive coverage narrative (research.tex; sec:methodology, MAP-Elites subsection)
+  Coverage, elite ladder, and the persistence spread quoted in prose:
+    runs/grtresna_qd/qball_traj_bicomplex_v1/archive.json
+      -> coverage=0.140625 (9/64 cells), num_elites=9, best_score=825.194
+      -> cells[].cell, cells[].descriptor_details.f_geo_evol, cells[].score,
+         cells[].episode (eval id)
+      -> occupied cells span peak f_geo = 1.82% (cell 0,7) to 25.35% (cell 7,7);
+         cell (0,0) is the sole zero-lifetime occupant
+  Persistence per elite joined by eval id from:
+    runs/grtresna_qd/qball_traj_bicomplex_v1/trajectory.jsonl
+      -> components.structural_persistence (range 27.8%-39.6% across the elites)
+
+tab:strength_persistence  (research.tex; sec:strength_vs_persistence)
+  Strongest raw f_geo per stage vs. promoted champion. All from the two
+  campaign trajectory logs, fields:
+    eval, score, descriptor_details.f_geo_evol,
+    components.structural_persistence
+  MAP-Elites (148 gpu_ok of 200; 119 with f_geo>0):
+    runs/grtresna_qd/qball_traj_bicomplex_v1/trajectory.jsonl
+      eval 99  -> f_geo=34.56%, persistence=9.7%,  S=313.98  (stage maximum)
+      eval 87  -> f_geo=25.35%, persistence=39.6%, S=825.19  (champion)
+      corr(f_geo, persistence) = -0.153 over the 119 f_geo>0 evaluations;
+      strongest/weakest f_geo quartile mean persistence = 27.3% / 31.0%
+  CMA-ES (144 gpu_ok of 150; 141 with f_geo>0):
+    runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1/trajectory.jsonl
+      eval 136 -> f_geo=39.46%, persistence=22.5%, S=534.33  (study maximum)
+      eval 146 -> f_geo=20.12%, persistence=41.7%, S=852.15  (champion)
+      corr(f_geo, persistence) = -0.315 over the 141 f_geo>0 evaluations;
+      top-8 scores span f_geo=19.90-20.38%, persistence=41.5-41.7%, S=848.2-852.1
+  HQ RM replay row: same source as the 4D certificate below (20.21%).
+
+tab:matrix / 4D certificate text
   ME-87:
     runs/grtresna_qd/qball_traj_bicomplex_v1/eval_000087/
     (score from trajectory / archive; S=825.19)
