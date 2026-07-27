@@ -125,8 +125,7 @@ ComplexExoticScalarField<potential_t>::add_matter_rhs(
     // Phantom-sign caveat: the exotic class flips the *stress tensor* sign
     // (compute_emtensor), NOT the field EOM sign.  The pump drives the field
     // EOM (Pi/Pi2), so the source term is identical to ComplexScalarField --
-    // do NOT add an extra sign flip here.  Verified by the no-op regression
-    // (trajectory_mode=0 must be bit-identical) and the pumped smoke.
+    // do NOT add an extra sign flip here.
     add_matter_rhs(rhs, vars, d1, d2, advec);
 
     if (m_pump.num_sites < 1)
@@ -134,70 +133,11 @@ ComplexExoticScalarField<potential_t>::add_matter_rhs(
         return;
     }
 
-    const amrex::Real governor = m_pump.governor;
-
-    // ---- Closed-loop PD "trap" controller (k_p > 0) ----------------------
-    // Drive the field toward the TARGET soliton at the moving trajectory centre:
-    // Phi*(x,t) = amp * gauss(x - centre(t)) * e^{i*arg}, arg = -omega*t + phase,
-    // with target momentum Pi* = (1/alpha) d_t Phi*.  Error-proportional, hence
-    // self-limiting: confines/transports a coherent soliton along the trajectory
-    // rather than dumping energy in (which disperses the lump).
-    if (m_pump.k_p > 0.0)
-    {
-        const amrex::Real kp        = m_pump.k_p;
-        const amrex::Real kd        = m_pump.k_d;
-        const amrex::Real inv_alpha = 1.0 / vars.lapse();
-        const amrex::Real tw =
-            (m_pump.target_width > 0.0) ? m_pump.target_width : m_pump.width;
-        for (int s = 0; s < m_pump.num_sites; ++s)
-        {
-            const auto &site = m_pump.sites[s];
-            if (site.amplitude <= 0.0)
-            {
-                continue;
-            }
-            const amrex::Real env = RLRuntime::compute_site_envelope(
-                coords.x, coords.y, coords.z, site, tw, m_pump.target_profile);
-            if (env < 1.0e-8)
-            {
-                continue;
-            }
-            const amrex::Real amp_t =
-                (m_pump.target_amp > 0.0) ? m_pump.target_amp : site.amplitude;
-            const amrex::Real g   = amp_t * env;
-            const amrex::Real arg = -site.frequency * time + site.phase;
-            const amrex::Real tphi1 = g * std::cos(arg);
-            const amrex::Real tphi2 = g * std::sin(arg);
-            const amrex::Real tPi1  = site.frequency * tphi2 * inv_alpha;
-            const amrex::Real tPi2  = -site.frequency * tphi1 * inv_alpha;
-            const amrex::Real w     = governor * env;
-            rhs[c_Pi] +=
-                w * (-kp * (vars.phi1() - tphi1) - kd * (vars.Pi1() - tPi1));
-            rhs[c_Pi2] +=
-                w * (-kp * (vars.phi2() - tphi2) - kd * (vars.Pi2() - tPi2));
-        }
-        return;
-    }
-
-    // ---- Legacy open-loop source pump (k_p <= 0) -------------------------
-    // One spotlight per lump.  All sites drive the same complex field
-    // components (c_Pi / c_Pi2); they reach different lumps because each
-    // envelope is localized at that lump's tracked 3-D centre.  Pi1/Pi2 are
-    // driven 90 deg out of phase => local U(1) (Noether-charge) injection.
-    for (int s = 0; s < m_pump.num_sites; ++s)
-    {
-        const amrex::Real base = RLRuntime::compute_site_base(
-            coords.x, coords.y, coords.z, m_pump.sites[s], m_pump.width,
-            governor);
-        if (base <= 0.0)
-        {
-            continue;
-        }
-        const amrex::Real arg =
-            m_pump.sites[s].frequency * time + m_pump.sites[s].phase;
-        rhs[c_Pi] += base * std::cos(arg);
-        rhs[c_Pi2] += base * std::sin(arg);
-    }
+    const RLPumpSources src = RLPumpForce::compute_single_field_sources(
+        m_pump, coords.x, coords.y, coords.z, time, vars.lapse(), vars.phi1(),
+        vars.phi2(), vars.Pi1(), vars.Pi2());
+    rhs[c_Pi] += src.s1p;
+    rhs[c_Pi2] += src.s2p;
 }
 
 #endif /* COMPLEXEXOTICSCALARFIELD_IMPL_HPP_ */

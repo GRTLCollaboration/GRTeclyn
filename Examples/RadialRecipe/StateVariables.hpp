@@ -23,22 +23,35 @@ enum
     c_phi2_m = NUM_CCZ4_VARS + 6, // phi_im-  (= phi_lump2 slot)
     c_Pi2_m  = NUM_CCZ4_VARS + 7, // Pi_im-   (= Pi_lump2  slot)
 
-    NUM_VARS = NUM_CCZ4_VARS + 2 +
-               2 * GRTRESNA_MAX_INDEPENDENT_SCALARS
+    // Controller energy-momentum reservoir (ρ_c, j_{c i}). Always present in
+    // the state vector; remain identically zero unless controller_reservoir_mode
+    // >= 1. Appended after the lump slots so existing gridinit files (which
+    // write fewer components) leave them at the pre-zero from initData.
+    c_rho_ctrl = NUM_CCZ4_VARS + 2 + 2 * GRTRESNA_MAX_INDEPENDENT_SCALARS,
+    c_jctrl1,
+    c_jctrl2,
+    c_jctrl3,
+
+    NUM_VARS
 };
 
 namespace StateVariables
 {
 static const amrex::Vector<std::string> additional_names = {
     "phi", "Pi",       "phi_lump0", "Pi_lump0", "phi_lump1", "Pi_lump1",
-    "phi_lump2", "Pi_lump2", "phi_lump3", "Pi_lump3", "phi_lump4", "Pi_lump4"};
+    "phi_lump2", "Pi_lump2", "phi_lump3", "Pi_lump3", "phi_lump4", "Pi_lump4",
+    "rho_ctrl", "jctrl1", "jctrl2", "jctrl3"};
 static const amrex::Vector<std::string> names =
     ArrayTools::concatenate(CCZ4StateVariables::names, additional_names);
 
-static const std::array<BCParity, 12> additional_parities = {
+static const std::array<BCParity, 16> additional_parities = {
     BCParity::even, BCParity::even, BCParity::even, BCParity::even,
     BCParity::even, BCParity::even, BCParity::even, BCParity::even,
-    BCParity::even, BCParity::even, BCParity::even, BCParity::even};
+    BCParity::even, BCParity::even, BCParity::even, BCParity::even,
+    BCParity::even,   // rho_ctrl
+    BCParity::odd_x,  // jctrl1
+    BCParity::odd_y,  // jctrl2
+    BCParity::odd_z}; // jctrl3
 static const std::array<BCParity, NUM_VARS> parities =
     ArrayTools::concatenate(CCZ4StateVariables::parities, additional_parities);
 } // namespace StateVariables

@@ -1,14 +1,8 @@
 #ifndef RADIALRECIPE_CONSTRAINT_NORMS_HPP_
 #define RADIALRECIPE_CONSTRAINT_NORMS_HPP_
 
-#include "ComplexScalarField.hpp"
-#include "ConstraintsWithMatter.hpp"
-#include "ExoticScalarField.hpp"
-#include "GRTresnaIndependentScalars.hpp"
 #include "RadialRecipeLevel.hpp"
-#include "RadialRecipeMatterConstraints.hpp"
 #include "RadialRecipeMatterDispatch.hpp"
-#include "ScalarField.hpp"
 #include "SetupFunctions.hpp"
 #include "StateTypes.hpp"
 
@@ -36,43 +30,9 @@ compute_radial_recipe_constraint_norms(RadialRecipeLevel &level)
     cst.setVal(0.0);
     const auto dx = level.Geom().CellSizeArray();
 
-    if (RadialRecipeMatter::uses_independent_scalars(sim_params))
-    {
-        GRTresnaIndependentScalars matter(
-            sim_params.recipe_num_scalar_fields,
-            sim_params.recipe_scalar_field_signs, sim_params.recipe_scalar_mass,
-            sim_params.recipe_scalar_lambda);
-        fill_matter_constraints(cst, state_new, matter, dx[0],
-                                sim_params.recipe_params.grid_center, time);
-    }
-    else if (RadialRecipeMatter::uses_complex_scalar(sim_params))
-    {
-        ComplexScalarField matter(sim_params.recipe_scalar_mass,
-                                  sim_params.recipe_scalar_lambda,
-                                  sim_params.recipe_scalar_sign);
-        fill_matter_constraints(cst, state_new, matter, dx[0],
-                                sim_params.recipe_params.grid_center, time);
-    }
-    else if (RadialRecipeMatter::uses_bicomplex_scalar(sim_params))
-    {
-        BiComplexScalarField matter(sim_params.recipe_scalar_mass,
-                                    sim_params.recipe_scalar_lambda);
-        fill_matter_constraints(cst, state_new, matter, dx[0],
-                                sim_params.recipe_params.grid_center, time);
-    }
-    else if (sim_params.recipe_exotic_matter)
-    {
-        ExoticScalarField<DefaultPotential> exotic_scalar(
-            DefaultPotential(), sim_params.recipe_support_strength);
-        fill_matter_constraints(cst, state_new, exotic_scalar, dx[0],
-                                sim_params.recipe_params.grid_center, time);
-    }
-    else
-    {
-        ScalarField<DefaultPotential> scalar_field;
-        fill_matter_constraints(cst, state_new, scalar_field, dx[0],
-                                sim_params.recipe_params.grid_center, time);
-    }
+    RadialRecipeMatter::fill_active_constraints(
+        cst, state_new, sim_params, dx[0], sim_params.recipe_params.grid_center,
+        time, /*with_abs_terms=*/false);
 
     const amrex::Real cell_vol = dx[0] * dx[1] * dx[2];
 

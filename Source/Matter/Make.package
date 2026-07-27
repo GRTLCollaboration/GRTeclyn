@@ -1,4 +1,5 @@
-GRTECLYN_CEXE_headers += ConstraintsWithMatter.hpp \
+GRTECLYN_CEXE_headers += ControllerReservoirMatter.hpp \
+                         ConstraintsWithMatter.hpp \
                          ConstraintsWithMatter.impl.hpp \
                          DefaultPotential.hpp \
                          EMTensor.hpp \

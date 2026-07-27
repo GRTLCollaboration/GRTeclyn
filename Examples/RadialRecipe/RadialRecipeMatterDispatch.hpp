@@ -5,9 +5,11 @@
 #include "CCZ4RHSWithMatter.hpp"
 #include "ComplexScalarField.hpp"
 #include "ConstraintsWithMatter.hpp"
+#include "ControllerReservoirMatter.hpp"
 #include "ExoticScalarField.hpp"
 #include "GRTresnaIndependentScalars.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
+#include "RadialRecipeMatterConstraints.hpp"
 #include "RLMatterPumpParams.hpp"
 #include "ScalarField.hpp"
 #include "SimulationParameters.hpp"
@@ -115,6 +117,99 @@ inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
     return pump;
 }
 
+//! Fill constraints for the active matter model. When
+//! controller_reservoir_mode >= 1 the reservoir is included in the diagnostic
+//! EMT (ledger / backreaction modes). ``with_abs_terms`` runs a second pass
+//! writing Ham_abs / Mom_abs into comps 4 / 5-7 (cst must have >= 8 comps).
+template <class Matter>
+inline void fill_constraints_maybe_abs(
+    amrex::MultiFab &cst, const amrex::MultiFab &state_new, const Matter &matter,
+    amrex::Real dx0, const std::array<double, AMREX_SPACEDIM> &center,
+    amrex::Real time, bool with_abs_terms)
+{
+    fill_matter_constraints(cst, state_new, matter, dx0, center, time);
+    if (with_abs_terms)
+    {
+        fill_matter_constraint_abs_terms(cst, state_new, matter, dx0, center,
+                                         time);
+    }
+}
+
+inline void fill_active_constraints(
+    amrex::MultiFab &cst, const amrex::MultiFab &state_new,
+    const SimulationParameters &params, amrex::Real dx0,
+    const std::array<double, AMREX_SPACEDIM> &center, amrex::Real time,
+    bool with_abs_terms = false)
+{
+    const int mode = params.controller_reservoir_mode;
+    // Constraints path: include reservoir in EMT for both ledger (1) and
+    // backreaction (2) so the reported norms are pump-corrected.
+    const bool include_em = (mode >= 1);
+
+    if (uses_independent_scalars(params))
+    {
+        GRTresnaIndependentScalars matter(
+            params.recipe_num_scalar_fields, params.recipe_scalar_field_signs,
+            params.recipe_scalar_mass, params.recipe_scalar_lambda);
+        fill_constraints_maybe_abs(cst, state_new, matter, dx0, center, time,
+                                   with_abs_terms);
+    }
+    else if (uses_complex_scalar(params))
+    {
+        const RLMatterPumpParams pump = build_rl_pump(params, 1, time);
+        ComplexScalarField inner(params.recipe_scalar_mass,
+                                 params.recipe_scalar_lambda,
+                                 params.recipe_scalar_sign,
+                                 params.recipe_scalar_mu, pump);
+        if (mode >= 1)
+        {
+            using Wrapped =
+                ControllerReservoirMatter<ComplexScalarField, false>;
+            Wrapped matter(inner, pump, mode, include_em);
+            fill_constraints_maybe_abs(cst, state_new, matter, dx0, center,
+                                       time, with_abs_terms);
+        }
+        else
+        {
+            fill_constraints_maybe_abs(cst, state_new, inner, dx0, center, time,
+                                       with_abs_terms);
+        }
+    }
+    else if (uses_bicomplex_scalar(params))
+    {
+        const RLMatterPumpParams pump = build_rl_pump(params, 2, time);
+        BiComplexScalarField inner(params.recipe_scalar_mass,
+                                   params.recipe_scalar_lambda,
+                                   params.recipe_scalar_mu, pump);
+        if (mode >= 1)
+        {
+            using Wrapped =
+                ControllerReservoirMatter<BiComplexScalarField, true>;
+            Wrapped matter(inner, pump, mode, include_em);
+            fill_constraints_maybe_abs(cst, state_new, matter, dx0, center,
+                                       time, with_abs_terms);
+        }
+        else
+        {
+            fill_constraints_maybe_abs(cst, state_new, inner, dx0, center, time,
+                                       with_abs_terms);
+        }
+    }
+    else if (params.recipe_exotic_matter)
+    {
+        ExoticScalarField<DefaultPotential> exotic_scalar(
+            DefaultPotential(), params.recipe_support_strength);
+        fill_constraints_maybe_abs(cst, state_new, exotic_scalar, dx0, center,
+                                   time, with_abs_terms);
+    }
+    else
+    {
+        ScalarField<DefaultPotential> scalar_field;
+        fill_constraints_maybe_abs(cst, state_new, scalar_field, dx0, center,
+                                   time, with_abs_terms);
+    }
+}
+
 inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
                      const SimulationParameters &params, double dx,
                      const std::array<double, AMREX_SPACEDIM> &center,
@@ -142,33 +237,72 @@ inline void eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
     else if (uses_complex_scalar(params))
     {
         const RLMatterPumpParams pump = build_rl_pump(params, 1, time);
+        const int mode = params.controller_reservoir_mode;
+        // Mode 2: include reservoir in the Einstein RHS (backreaction).
+        // Mode 1: evolve reservoir but do not source the metric from it.
+        const bool include_em = (mode >= 2);
 
-        ComplexScalarField matter(params.recipe_scalar_mass,
-                                  params.recipe_scalar_lambda,
-                                  params.recipe_scalar_sign,
-                                  params.recipe_scalar_mu, pump);
-        CCZ4RHSWithMatter<ComplexScalarField,
-                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
-            ccz4rhs(matter, params.ccz4_params, dx, params.sigma,
-                    params.formulation, 1.0, center, time);
-        amrex::ParallelFor(
-            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        ComplexScalarField inner(params.recipe_scalar_mass,
+                                 params.recipe_scalar_lambda,
+                                 params.recipe_scalar_sign,
+                                 params.recipe_scalar_mu, pump);
+        if (mode >= 1)
+        {
+            using Wrapped =
+                ControllerReservoirMatter<ComplexScalarField, false>;
+            Wrapped matter(inner, pump, mode, include_em);
+            CCZ4RHSWithMatter<Wrapped, MovingPunctureGaugeWithMatter,
+                              FourthOrderDerivatives>
+                ccz4rhs(matter, params.ccz4_params, dx, params.sigma,
+                        params.formulation, 1.0, center, time);
+            amrex::ParallelFor(
+                a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        }
+        else
+        {
+            CCZ4RHSWithMatter<ComplexScalarField, MovingPunctureGaugeWithMatter,
+                              FourthOrderDerivatives>
+                ccz4rhs(inner, params.ccz4_params, dx, params.sigma,
+                        params.formulation, 1.0, center, time);
+            amrex::ParallelFor(
+                a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        }
     }
     else if (uses_bicomplex_scalar(params))
     {
         const RLMatterPumpParams pump = build_rl_pump(params, 2, time);
+        const int mode = params.controller_reservoir_mode;
+        const bool include_em = (mode >= 2);
 
-        BiComplexScalarField matter(params.recipe_scalar_mass,
-                                    params.recipe_scalar_lambda,
-                                    params.recipe_scalar_mu, pump);
-        CCZ4RHSWithMatter<BiComplexScalarField,
-                          MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
-            ccz4rhs(matter, params.ccz4_params, dx, params.sigma,
-                    params.formulation, 1.0, center, time);
-        amrex::ParallelFor(
-            a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-            { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        BiComplexScalarField inner(params.recipe_scalar_mass,
+                                   params.recipe_scalar_lambda,
+                                   params.recipe_scalar_mu, pump);
+        if (mode >= 1)
+        {
+            using Wrapped =
+                ControllerReservoirMatter<BiComplexScalarField, true>;
+            Wrapped matter(inner, pump, mode, include_em);
+            CCZ4RHSWithMatter<Wrapped, MovingPunctureGaugeWithMatter,
+                              FourthOrderDerivatives>
+                ccz4rhs(matter, params.ccz4_params, dx, params.sigma,
+                        params.formulation, 1.0, center, time);
+            amrex::ParallelFor(
+                a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        }
+        else
+        {
+            CCZ4RHSWithMatter<BiComplexScalarField,
+                              MovingPunctureGaugeWithMatter,
+                              FourthOrderDerivatives>
+                ccz4rhs(inner, params.ccz4_params, dx, params.sigma,
+                        params.formulation, 1.0, center, time);
+            amrex::ParallelFor(
+                a_rhs, [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                { ccz4rhs(i, j, k, rhs_arrs[box_no], soln_c_arrs[box_no]); });
+        }
     }
     else if (params.recipe_exotic_matter)
     {

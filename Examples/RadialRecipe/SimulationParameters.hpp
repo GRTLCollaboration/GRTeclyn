@@ -86,6 +86,15 @@ class SimulationParameters : public SimulationParametersBase
         // fully off (k_p=k_d=0, num_sites=0) so post-stop evolution is
         // conservative Einstein-Klein-Gordon.  Default -1 => never auto-stop.
         pp.load("rl_pump_stop_time", rl_pump_stop_time, -1.0);
+        // Controller energy-momentum reservoir:
+        //   0 = off (default; bit-identical to pre-reservoir runs)
+        //   1 = ledger (evolve reservoir; include in constraint diagnostic)
+        //   2 = backreaction (also include reservoir in the CCZ4 RHS)
+        pp.load("controller_reservoir_mode", controller_reservoir_mode, 0);
+        if (controller_reservoir_mode < 0)
+            controller_reservoir_mode = 0;
+        if (controller_reservoir_mode > 2)
+            controller_reservoir_mode = 2;
         // Per-lump action state starts at zero; the RL agent populates it.
         rl_pump_amplitude.fill(0.0);
         rl_pump_frequency.fill(0.0);
@@ -277,6 +286,7 @@ class SimulationParameters : public SimulationParametersBase
     double rl_pump_target_width{0.0}; //!< physical 1/sqrt(m^2-omega^2); <=0 => width
     double rl_pump_target_amp{0.0}; //!< trap-target central amplitude (bs_phi_c); <=0 => site amp
     double rl_pump_stop_time{-1.0}; //!< >=0 => pump off for time>=stop; -1 => never
+    int controller_reservoir_mode{0}; //!< 0 off, 1 ledger, 2 backreaction
 
     // Trajectory-guided geometry survey (Independent of RL; no ZMQ needed).
     int trajectory_mode{0};        //!< 0 = off, 1 = parametric trajectory

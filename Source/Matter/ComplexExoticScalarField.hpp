@@ -17,6 +17,7 @@
 #include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
 #include "RLMatterPumpParams.hpp"
+#include "RLPumpForce.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"

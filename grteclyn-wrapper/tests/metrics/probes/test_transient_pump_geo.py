@@ -1,4 +1,4 @@
-"""Transient igniter: f_geo peak selection respects RL_PUMP_STOP_TIME."""
+"""Emit-floor filter: GEODESIC_EMIT_MIN_TIME / RL_PUMP_STOP_TIME."""
 
 from __future__ import annotations
 
@@ -29,6 +29,7 @@ def _rep(f_geo: float) -> EvolvingGeodesicFtlReport:
 
 
 def test_eligible_emit_reports_filters_pre_stop(monkeypatch) -> None:
+    monkeypatch.delenv("GEODESIC_EMIT_MIN_TIME", raising=False)
     monkeypatch.setenv("RL_PUMP_STOP_TIME", "4.0")
     reports = [
         (0.0, _rep(0.9)),
@@ -40,12 +41,28 @@ def test_eligible_emit_reports_filters_pre_stop(monkeypatch) -> None:
     assert [te for te, _ in kept] == [4.0, 6.0]
 
 
+def test_geodesic_emit_min_time_overrides_pump_stop(monkeypatch) -> None:
+    """Explicit emit floor wins over RL_PUMP_STOP_TIME (always-on pump)."""
+    monkeypatch.setenv("RL_PUMP_STOP_TIME", "4.0")
+    monkeypatch.setenv("GEODESIC_EMIT_MIN_TIME", "0.0")
+    reports = [
+        (0.0, _rep(0.9)),
+        (2.0, _rep(0.8)),
+        (4.0, _rep(0.1)),
+    ]
+    kept = _eligible_emit_reports(reports)
+    assert [te for te, _ in kept] == [0.0, 2.0, 4.0]
+
+
 def test_post_pump_emit_ok(monkeypatch) -> None:
+    monkeypatch.delenv("GEODESIC_EMIT_MIN_TIME", raising=False)
     monkeypatch.delenv("RL_PUMP_STOP_TIME", raising=False)
     assert _post_pump_emit_ok(0.0) is True
     monkeypatch.setenv("RL_PUMP_STOP_TIME", "5.0")
     assert _post_pump_emit_ok(4.9) is False
     assert _post_pump_emit_ok(5.0) is True
+    monkeypatch.setenv("GEODESIC_EMIT_MIN_TIME", "0.0")
+    assert _post_pump_emit_ok(0.0) is True
 
 
 def test_pump_controller_overrides_carry_stop_time(monkeypatch) -> None:

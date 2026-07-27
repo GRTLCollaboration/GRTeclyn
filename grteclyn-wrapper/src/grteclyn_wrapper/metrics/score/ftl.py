@@ -7,15 +7,24 @@ from .types import ScoringContext
 
 
 def _post_pump_emit_ok(t_emit: float) -> bool:
-    """False when t_emit is before RL_PUMP_STOP_TIME (igniter still on)."""
-    raw = os.environ.get("RL_PUMP_STOP_TIME", "").strip()
-    if not raw:
-        return True
-    try:
-        stop = float(raw)
-    except (TypeError, ValueError):
-        return True
-    if stop < 0.0:
+    """False when t_emit is below the configured emit floor.
+
+    Floor preference: ``GEODESIC_EMIT_MIN_TIME``, else ``RL_PUMP_STOP_TIME``.
+    When neither is set, every launch is accepted (always-on pump / no filter).
+    """
+    stop: float | None = None
+    for key in ("GEODESIC_EMIT_MIN_TIME", "RL_PUMP_STOP_TIME"):
+        raw = os.environ.get(key, "").strip()
+        if not raw:
+            continue
+        try:
+            val = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if val >= 0.0:
+            stop = val
+            break
+    if stop is None:
         return True
     return t_emit + 1.0e-12 >= stop
 
