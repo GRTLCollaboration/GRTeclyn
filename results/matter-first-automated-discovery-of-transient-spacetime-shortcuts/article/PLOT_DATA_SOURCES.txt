@@ -215,6 +215,32 @@ tab:endpoint_gauge  (research.tex; sec:endpoint_gauge)
     runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/small_data/metric_stack/*.npz
 
 
+tab:mechanism_ablation  (research.tex; sec:mechanism)
+  Article table:
+    data/mechanism_ablation.txt
+      block 1 columns: run variant f_geo_pct t_min n_reached
+      block 2 columns: t beta_x_min beta_x_max beta_x_absmax
+                         alpha_min alpha_max alpha_mean   (RM corridor profile)
+  Key numbers (RM / RC), 5-ray fan at t_emit=4 on the x axis:
+    baseline      20.15% / 20.60%
+    shift_off     22.76% / 23.10%   (beta^i -> 0; shortcut GROWS)
+    lapse_unit     1.70% /  1.63%   (alpha -> 1)
+    spatial_only   6.83% /  6.96%   (alpha -> 1, beta^i -> 0; matches f_ff)
+    shift_only     0.00% /  0.00%   (alpha -> 1, gamma_ij -> delta_ij)
+  Corridor |beta^x| peak: 0.0000 at t=0, 0.0433 at t=4.32, ~0.098 at t=10.08
+  Corridor mean alpha: 0.955 at t=4.32, crosses 1 at t~6.5, peaks 1.338 at
+    t=11.52 (local max 1.469 at t=10.80)
+  Note: the baseline re-trace gives 20.15% where the archived
+    evolving_geodesic.json records 20.21% on the byte-identical stack; the
+    earlier probe pass predates the plotfile-consumption fix (commit 00c7fef1).
+  Generator:
+    research/neuralspacetime/analysis/mechanism_ablation.py
+      run: cd grteclyn-wrapper; PYTHONPATH=src python \
+           ../research/neuralspacetime/analysis/mechanism_ablation.py
+  Source:
+    runs/grtresna_promote/bcma_{rm,rc}_*_eval000146/small_data/metric_stack/*.npz
+
+
 6) Casimir bound table
 ----------------------
 
@@ -225,7 +251,45 @@ sec:casimir_bounds  (research.tex)
     research/neuralspacetime/casimir_null_timing_bounds.py
 
 
-7) TikZ-only figures (no external numeric tables)
+7) Geometry-first stationary atlas
+----------------------------------
+
+tab:geometry_ceiling  (research.tex; sec:geometry_ceiling)
+  Source campaigns:
+    runs/geometry_atlas/geometry_atlas_topologies_n64_L32_e260_20260723/
+    runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/
+    runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/
+    runs/geometry_atlas/geometry_atlas_breadth_n64_L32_e220_20260723/
+  Every quoted atlas number comes from the per-eval rows of trajectory.jsonl
+  (fields: f_geo, descriptors = (f_shift, E_-), rejected). The elite genomes
+  live in elites/*.json. The 74 MB-per-eval *.gridinit grids are not shipped.
+
+  Quoted population = topologies + maxfgeo, accepted (not rejected) and
+  f_geo > 0.1  ->  n = 781:
+    f_shift >= 0.50            67.2%   (research.tex: 67%)
+    f_shift <= 0.05             4.5%   (research.tex: 4.5%)
+    best curvature-dominated   21.8%   (f_shift <= 0.05)
+    frozen ceiling             48.5%   (near-pure shift tube, f_shift ~ 0.99)
+
+  Frozen f_geo is a stationary single-slice probe and is NOT comparable to the
+  evolving 4D certificate (~20%); see the Table VII caption.
+
+
+8) Freely falling observer timing (f_ff column of tab:resolution)
+------------------------------------------------------------------
+
+  Source (one companion run per resolution):
+    runs/grtresna_promote/bcma_{rc,rm,rf}_freefall_corrected_*_eval000146/
+      small_data/freefall_observer_timing.json
+        field: fractional_arrival_advance
+          RC 0.0769   RM 0.0762   RF 0.0701
+    RM additionally carries freefall_observer_convergence.json.
+  These are separate runs from the bcma_{rc,rm,rf}_* ladder entries: the
+  free-fall observers must be released during evolution, so f_ff cannot be
+  reconstructed from the ladder runs after the fact.
+
+
+9) TikZ-only figures (no external numeric tables)
 -------------------------------------------------
 
 fig:matter_first, fig:genome, fig:campaign-stages, fig:pipeline,
@@ -233,8 +297,8 @@ fig:shortcut_cartoon
   Drawn in research.tex (no article/data/*.txt inputs).
 
 
-8) Stale article/data files (NOT used by current research.tex)
---------------------------------------------------------------
+10) Stale article/data files (NOT used by current research.tex)
+---------------------------------------------------------------
 
   data/peak_metric_profiles.txt   — removed GW / peak-fit section
   data/peak_metric_fit.json       — removed GW / peak-fit section
@@ -255,6 +319,11 @@ Promote-run directory map (candidate 146)
   PF   bcma_pfrm_L128_N256_t30_hq_eval000146   L=128 N=256 h=0.500  (t_pump=0)
   All under: runs/grtresna_promote/
 
+  Free-fall companions (f_ff column only), same directory:
+  RC-FF  bcma_rc_freefall_corrected_L128_N192_t30_hq_eval000146
+  RM-FF  bcma_rm_freefall_corrected_L128_N256_t30_hq_eval000146
+  RF-FF  bcma_rf_freefall_corrected_L128_N384_t30_hq_eval000146
+
 
 Quick regeneration map
 ----------------------
@@ -265,5 +334,6 @@ Quick regeneration map
   constraints_resolution.txt  ← constraint_convergence.py ← RC/RM/RF constraint_norms.dat
   constraint_order.txt        ← same script (observed Richardson order)
   pump_work_budget.txt        ← pump_work_budget.py ← RM/PF collapse_diagnostics.dat
+  mechanism_ablation.txt      ← mechanism_ablation.py ← RM/RC metric_stack/*.npz
   casimir_bounds.txt          ← casimir_null_timing_bounds.py
   fig_eval146_*.png           ← frozen eval_000146 initial_data.matter.json genome

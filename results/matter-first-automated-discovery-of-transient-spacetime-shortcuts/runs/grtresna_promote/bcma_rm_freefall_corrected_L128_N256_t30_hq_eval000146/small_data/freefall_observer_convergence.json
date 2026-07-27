@@ -1,0 +1,115 @@
+{
+  "cases": [
+    {
+      "emission_tau": 4.0,
+      "emission_t": 4.044642385337795,
+      "reception_tau": 16.796356339468954,
+      "reception_t": 15.797605803887958,
+      "initial_proper_separation": 13.851432323817656,
+      "flat_reception_tau": 17.851432323817654,
+      "receiver_clock_advance": 1.0550759843487008,
+      "fractional_arrival_advance": 0.07617089407674386,
+      "miss_distance": 9.259388207347609e-14,
+      "reception_tolerance": 0.0625,
+      "reached": true,
+      "max_null_relative_drift": 0.0047755877042033445,
+      "emitter_mass_shell_drift": 0.004386413706199077,
+      "receiver_mass_shell_drift": 0.004635117456417648,
+      "emitter_displacement": [
+        0.05477305175000424,
+        -0.03996311131690078,
+        0.023628667361961675
+      ],
+      "receiver_displacement": [
+        0.17361740723144692,
+        -1.000796066383515,
+        0.4092929169567583
+      ],
+      "optimizer_success": true,
+      "optimizer_evaluations": 5,
+      "notes": [
+        "initially Eulerian freely falling observers",
+        "emission scheduled by emitter proper time",
+        "flat reference uses matched initial proper separation",
+        "fraction normalized by matched flat transit duration"
+      ],
+      "case": "coarse",
+      "observer_step": 0.05,
+      "ray_step": 0.1
+    },
+    {
+      "emission_tau": 4.0,
+      "emission_t": 4.044628204556218,
+      "reception_tau": 16.796375356485242,
+      "reception_t": 15.797621754622009,
+      "initial_proper_separation": 13.851432323817656,
+      "flat_reception_tau": 17.851432323817654,
+      "receiver_clock_advance": 1.055056967332412,
+      "fractional_arrival_advance": 0.07616952114895963,
+      "miss_distance": 7.99689562072101e-14,
+      "reception_tolerance": 0.0625,
+      "reached": true,
+      "max_null_relative_drift": 0.002586065224498114,
+      "emitter_mass_shell_drift": 0.0024157896943870494,
+      "receiver_mass_shell_drift": 0.002513480729033124,
+      "emitter_displacement": [
+        0.05476376220477164,
+        -0.03995640830594027,
+        0.023624240847070155
+      ],
+      "receiver_displacement": [
+        0.17358894020112814,
+        -1.0008080508434176,
+        0.40929596435449866
+      ],
+      "optimizer_success": true,
+      "optimizer_evaluations": 5,
+      "notes": [
+        "initially Eulerian freely falling observers",
+        "emission scheduled by emitter proper time",
+        "flat reference uses matched initial proper separation",
+        "fraction normalized by matched flat transit duration"
+      ],
+      "case": "default",
+      "observer_step": 0.025,
+      "ray_step": 0.05
+    },
+    {
+      "emission_tau": 4.0,
+      "emission_t": 4.044630332822963,
+      "reception_tau": 16.79645262806121,
+      "reception_t": 15.79769015596743,
+      "initial_proper_separation": 13.851432323817656,
+      "flat_reception_tau": 17.851432323817654,
+      "receiver_clock_advance": 1.054979695756444,
+      "fractional_arrival_advance": 0.07616394255072072,
+      "miss_distance": 2.653691451718065e-13,
+      "reception_tolerance": 0.0625,
+      "reached": true,
+      "max_null_relative_drift": 0.0013514367698033408,
+      "emitter_mass_shell_drift": 0.001386167157279461,
+      "receiver_mass_shell_drift": 0.0012867996929959435,
+      "emitter_displacement": [
+        0.054764447046927955,
+        -0.039956965967121505,
+        0.023624618331368197
+      ],
+      "receiver_displacement": [
+        0.17365153569403446,
+        -1.0008494228550475,
+        0.4092944888871983
+      ],
+      "optimizer_success": true,
+      "optimizer_evaluations": 5,
+      "notes": [
+        "initially Eulerian freely falling observers",
+        "emission scheduled by emitter proper time",
+        "flat reference uses matched initial proper separation",
+        "fraction normalized by matched flat transit duration"
+      ],
+      "case": "fine",
+      "observer_step": 0.0125,
+      "ray_step": 0.025
+    }
+  ]
+}

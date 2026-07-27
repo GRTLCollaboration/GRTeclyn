@@ -1,0 +1,19 @@
+{
+  "run_id": "BCMA-RM-FF",
+  "campaign": "bicomplex_cmaes_freefall_observer",
+  "phase": 2,
+  "role": "corrected_champion_freefall_observer",
+  "manifest": "grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest_freefall.json",
+  "source_run": "runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1",
+  "eval_id": 146,
+  "n_full": 256,
+  "l_full": 128.0,
+  "h": 0.5,
+  "stop_time": 30.0,
+  "plot_interval": 72,
+  "max_level": 3,
+  "gpu_id": "0",
+  "evolution_mpi_ranks": 1,
+  "out_dir": "runs/grtresna_promote/bcma_rm_freefall_corrected_L128_N256_t30_hq_eval000146",
+  "git_commit": "00c7fef1437cb73d6fc001cbd27351d2c5c3df1b"
+}

@@ -20,6 +20,13 @@ Regenerate this pack after new HQ / search runs:
 bash research/neuralspacetime/pack_publishable_results.sh
 ```
 
+Re-packing is **append-only** under `runs/`: existing run extracts are kept, so
+a re-pack can never silently swap out the data the published figures were made
+from (RC/RM were re-run on 2026-07-21, after the article figures were
+generated). To deliberately re-pull them, run with `PACK_REFRESH_RUNS=1`.
+Extracts whose source run has since been pruned from `/runs` (RF, DS, DL,
+pump-free) survive here as the last remaining copy.
+
 Paths below are relative to
 `results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/`.
 
@@ -41,11 +48,17 @@ results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/
     │   └── qball_traj_canonical_v1/   ← canonical-only bound
     ├── grtresna_cmaes/
     │   └── qball_traj_bicomplex_cmaes_v1/  ← CMA-ES (CMA-146)
-    └── grtresna_promote/
-        ├── sources/.../eval_000146/   ← frozen champion genome
-        ├── bcma_rc_* … bcma_rf_*      ← resolution ladder
-        ├── bcma_ds_* / bcma_dl_*      ← domain ladder
-        └── bcma_pfrm_*                ← pump-free twin
+    ├── grtresna_promote/
+    │   ├── sources/.../eval_000146/   ← frozen champion genome
+    │   ├── bcma_rc_* … bcma_rf_*      ← resolution ladder
+    │   ├── bcma_ds_* / bcma_dl_*      ← domain ladder
+    │   ├── bcma_pfrm_*                ← pump-free twin
+    │   └── bcma_*_freefall_corrected_*  ← f_ff companion runs (Table V)
+    └── geometry_atlas/                ← stationary atlas (Sec. VI.D, Table VII)
+        ├── geometry_atlas_topologies_*   ← topology-complete, 1000 evals
+        ├── geometry_atlas_maxfgeo_*      ← pure-f_geo, 500 evals
+        ├── geometry_atlas_lowexotic_*    ← E_- <= 0.1 ban, 500 evals
+        └── geometry_atlas_breadth_*      ← breadth sweep
 ```
 
 Each HQ run directory contains only:
@@ -56,11 +69,19 @@ Each HQ run directory contains only:
 | `params.txt` | Evolution / pump knobs |
 | `small_data/evolving_geodesic.json` | \(f_\mathrm{geo}\) emit sweeps / peaks |
 | `small_data/confinement.dat` | Confinement timeseries |
+| `small_data/freefall_observer_timing.json` | \(f_\mathrm{ff}\) (freefall-corrected runs only) |
 | `data/constraint_norms.dat` | Hamiltonian / momentum norms |
 | `data/collapse_diagnostics.dat` | Collapse / pump-work inputs |
 
 Search eval directories contain only `score.json`, `metadata.json`,
 `params.txt`, and `initial_data.matter.json` (no gridinit).
+
+Each atlas campaign contains `archive.json`, `metadata.json`, `state.json`,
+`summary.json`, `trajectory.jsonl`, and `elites/*.json`. The per-eval
+`trajectory.jsonl` rows carry `f_geo`, the `(f_shift, E_-)` descriptors and the
+reject flag, which is everything needed to recompute the quoted atlas
+statistics; the 74 MB-per-eval `*.gridinit` grids, the `evals/*.json` dumps and
+the elite galleries are intentionally omitted.
 
 ---
 

@@ -1,0 +1,55 @@
+{
+  "created_at": "2026-07-23T06:48:23.936824+00:00",
+  "config": {
+    "runs_dir": "runs/geometry_atlas",
+    "name": "geometry_atlas_lowexotic_n64_L32_e500_20260723",
+    "target_evals": 500,
+    "bins": 8,
+    "seed": 11,
+    "batch_size": 4,
+    "n_rays": 3,
+    "compute_ff": false,
+    "resume": false,
+    "random_fraction": 0.55,
+    "localise_probe": true,
+    "exotic_penalty": 100.0,
+    "exotic_ban": 0.1,
+    "warm_start_genomes": [
+      "grteclyn-wrapper/scripts/campaigns/geometry_atlas/seeds/low_exotic/lowE_eval000090_f0.043_E0.056.json",
+      "grteclyn-wrapper/scripts/campaigns/geometry_atlas/seeds/low_exotic/lowE_eval000518_f0.027_E0.063.json",
+      "grteclyn-wrapper/scripts/campaigns/geometry_atlas/seeds/low_exotic/lowE_eval000519_f0.052_E0.065.json",
+      "grteclyn-wrapper/scripts/campaigns/geometry_atlas/seeds/low_exotic/lowE_eval000640_f0.068_E0.082.json"
+    ],
+    "genome": {
+      "n_centers": 3,
+      "support_radius": 10.0,
+      "rbf_width": 4.0,
+      "alpha_amp": 0.15,
+      "beta_amp": 0.25,
+      "log_metric_amp": 0.12,
+      "kij_amp": 0.05,
+      "mutation_sigma": 0.15,
+      "box_half_width": 16.0,
+      "alc_velocity_max": 2.0,
+      "alc_radius_min": 2.0,
+      "alc_radius_max": 8.0,
+      "alc_sigma_min": 0.5,
+      "alc_sigma_max": 3.0,
+      "feature_radius_min": 2.0,
+      "feature_radius_max": 10.0,
+      "feature_sigma_min": 0.5,
+      "feature_sigma_max": 4.0,
+      "tunnel_amp": 0.6,
+      "lens_amp": 0.6,
+      "throat_amp": 0.6,
+      "enable_alcubierre": true,
+      "enable_tunnel": true,
+      "enable_lens": true,
+      "enable_throat": true
+    },
+    "render": {
+      "n": 64,
+      "L": 32.0
+    }
+  }
+}

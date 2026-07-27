@@ -1,0 +1,19 @@
+{
+  "finished_at": "2026-07-23T04:05:07.752100+00:00",
+  "evals": 220,
+  "coverage": 0.265625,
+  "num_elites": 17,
+  "qd_score_f_geo": 1.8047418114284814,
+  "best_f_geo": 0.4479167182043151,
+  "best_score": 44.79164462249645,
+  "best_cell": [
+    7,
+    6
+  ],
+  "best_objectives": {
+    "f_geo": 0.4479167182043151,
+    "f_ff": 0.0,
+    "integral_negative_rho": 2.870699624450199,
+    "min_rho": -0.0018980552381962536
+  }
+}

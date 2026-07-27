@@ -202,6 +202,12 @@ print(f"machine-token gate: clean ({n_files} text files; {len(tokens)} runtime t
 PY
 }
 
+# The runs/ tree is append-only by default. A run directory under /runs may have
+# been re-run since the article figures were generated (RC/RM were), so blindly
+# re-copying would silently replace the data the published plots were made from.
+# Set PACK_REFRESH_RUNS=1 to deliberately re-pull existing run extracts.
+: "${PACK_REFRESH_RUNS:=0}"
+
 copy_file() {
   local src="$1"
   local dest="$2"
@@ -209,8 +215,13 @@ copy_file() {
     echo "[skip missing] ${src}" >&2
     return 0
   fi
+  if [[ -e "${dest}" && "${dest}" == "${DEST}/runs/"* && "${PACK_REFRESH_RUNS}" != "1" ]]; then
+    echo "[keep existing] ${dest#"${ROOT}/"}"
+    return 0
+  fi
   mkdir -p "$(dirname -- "${dest}")"
   cp -a "${src}" "${dest}"
+  chmod 0644 "${dest}"   # data only; avoids spurious 100644->100755 churn in git
   scrub_machine_paths "${dest}"
   echo "[ok] ${dest#"${ROOT}/"}"
 }
@@ -227,12 +238,37 @@ copy_hq_light() {
   for f in score.json params.txt metadata.json; do
     [[ -e "${src}/${f}" ]] && copy_file "${src}/${f}" "${dest}/${f}"
   done
-  for f in evolving_geodesic.json confinement.dat; do
+  for f in evolving_geodesic.json confinement.dat \
+           freefall_observer_timing.json freefall_observer_convergence.json; do
     [[ -e "${src}/small_data/${f}" ]] && copy_file "${src}/small_data/${f}" "${dest}/small_data/${f}"
   done
   for f in constraint_norms.dat collapse_diagnostics.dat; do
     [[ -e "${src}/data/${f}" ]] && copy_file "${src}/data/${f}" "${dest}/data/${f}"
   done
+}
+
+# Stationary geometry-first atlas (Sec. VI.D, Table VII).
+# trajectory.jsonl carries per-eval f_geo, descriptors and E_-, which reproduces
+# every quoted atlas statistic; elites/*.json carry the winning genomes.
+# The 74 MB-per-eval *.gridinit grids and the eval-level dumps are skipped.
+copy_atlas_light() {
+  local name="$1"
+  local src="${RUNS}/geometry_atlas/${name}"
+  local dest="${DEST}/runs/geometry_atlas/${name}"
+  if [[ ! -d "${src}" ]]; then
+    echo "[skip missing atlas campaign] ${src}" >&2
+    return 0
+  fi
+  mkdir -p "${dest}"
+  for f in archive.json metadata.json state.json summary.json trajectory.jsonl; do
+    [[ -e "${src}/${f}" ]] && copy_file "${src}/${f}" "${dest}/${f}"
+  done
+  if [[ -d "${src}/elites" ]]; then
+    mkdir -p "${dest}/elites"
+    while IFS= read -r -d '' f; do
+      copy_file "${f}" "${dest}/elites/$(basename -- "${f}")"
+    done < <(find "${src}/elites" -maxdepth 1 -name '*.json' -print0)
+  fi
 }
 
 copy_eval_light() {
@@ -261,7 +297,12 @@ fi
 
 echo "Packing publishable results -> ${DEST}"
 mkdir -p "${DEST}"
-for d in article figures manifests validation runs; do
+# Only wipe trees that are always fully regenerable from the repo itself.
+# runs/ is deliberately NOT wiped: source runs under /runs get pruned to reclaim
+# disk, and for those the committed extract here is the last surviving copy
+# (e.g. the RF/DS/DL/pump-free ladders behind Table V). Stale run extracts must
+# be removed by hand, never by a re-pack.
+for d in article figures manifests validation; do
   rm -rf "${DEST}/${d}"
 done
 rm -f "${DEST}/PLOT_DATA_SOURCES.txt"
@@ -276,6 +317,7 @@ for f in \
   constraints_resolution.txt \
   constraint_order.txt \
   pump_work_budget.txt \
+  mechanism_ablation.txt \
   casimir_bounds.txt \
   null_constraint_ray.txt \
   null_constraint_ray_rm.txt \
@@ -296,6 +338,7 @@ if [[ -d "${SRC_PAPER}/validation" ]]; then
   mkdir -p "${DEST}/validation"
   cp -a "${SRC_PAPER}/validation/." "${DEST}/validation/"
   while IFS= read -r -d '' f; do
+    chmod 0644 "${f}"
     scrub_machine_paths "${f}"
   done < <(find "${DEST}/validation" -type f -print0)
   echo "[ok] results/${ARTICLE_SLUG}/validation/"
@@ -343,9 +386,21 @@ for name in \
   bcma_rf_L128_N384_t30_hq_eval000146 \
   bcma_ds_L96_N192_t30_hq_eval000146 \
   bcma_dl_L160_N320_t30_hq_eval000146 \
-  bcma_pfrm_L128_N256_t30_hq_eval000146
+  bcma_pfrm_L128_N256_t30_hq_eval000146 \
+  bcma_rc_freefall_corrected_L128_N192_t30_hq_eval000146 \
+  bcma_rm_freefall_corrected_L128_N256_t30_hq_eval000146 \
+  bcma_rf_freefall_corrected_L128_N384_t30_hq_eval000146
 do
   copy_hq_light "${name}"
+done
+
+for name in \
+  geometry_atlas_topologies_n64_L32_e260_20260723 \
+  geometry_atlas_maxfgeo_n64_L32_e500_20260723 \
+  geometry_atlas_lowexotic_n64_L32_e500_20260723 \
+  geometry_atlas_breadth_n64_L32_e220_20260723
+do
+  copy_atlas_light "${name}"
 done
 
 copy_file "${SRC_PAPER}/article/PLOT_DATA_SOURCES.txt" "${DEST}/PLOT_DATA_SOURCES.txt"

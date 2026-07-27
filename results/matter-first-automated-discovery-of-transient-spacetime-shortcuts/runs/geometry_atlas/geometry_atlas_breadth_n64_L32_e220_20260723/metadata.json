@@ -1,0 +1,40 @@
+{
+  "created_at": "2026-07-23T03:17:55.177442+00:00",
+  "config": {
+    "runs_dir": "runs/geometry_atlas",
+    "name": "geometry_atlas_breadth_n64_L32_e220_20260723",
+    "target_evals": 220,
+    "bins": 8,
+    "seed": 7,
+    "batch_size": 4,
+    "n_rays": 3,
+    "compute_ff": false,
+    "resume": false,
+    "random_fraction": 0.35,
+    "localise_probe": true,
+    "warm_start_genomes": [
+      "grteclyn-wrapper/scripts/campaigns/geometry_atlas/seeds/cma_maxfgeo_trusted.json"
+    ],
+    "genome": {
+      "n_centers": 3,
+      "support_radius": 10.0,
+      "rbf_width": 4.0,
+      "alpha_amp": 0.15,
+      "beta_amp": 0.25,
+      "log_metric_amp": 0.12,
+      "kij_amp": 0.05,
+      "mutation_sigma": 0.15,
+      "box_half_width": 16.0,
+      "alc_velocity_max": 2.0,
+      "alc_radius_min": 2.0,
+      "alc_radius_max": 8.0,
+      "alc_sigma_min": 0.5,
+      "alc_sigma_max": 3.0,
+      "enable_alcubierre": true
+    },
+    "render": {
+      "n": 64,
+      "L": 32.0
+    }
+  }
+}

@@ -1,0 +1,639 @@
+{
+  "bins": 8,
+  "coverage": 0.359375,
+  "num_elites": 23,
+  "best_score": 48.475946800439175,
+  "tier_histogram": {
+    "rejected": 0,
+    "constructed": 1,
+    "nontrivial": 22,
+    "operational": 0,
+    "persistent": 0,
+    "observer_ec": 0,
+    "converged": 0,
+    "analytic": 0
+  },
+  "cells": [
+    {
+      "cell": [
+        7,
+        6
+      ],
+      "score": 48.475946800439175,
+      "descriptors": [
+        0.989072520096451,
+        0.8288324501385103
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.989072520096451,
+        "log_exotic_energy": 0.8288324501385103
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.4847598078122403,
+        "f_ff": 0.0,
+        "integral_negative_rho": 4.272278947668525,
+        "min_rho": -0.007180086400360831
+      },
+      "params": {
+        "eval_id": 2.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_7_6.gridinit"
+    },
+    {
+      "cell": [
+        6,
+        6
+      ],
+      "score": 32.17943117524664,
+      "descriptors": [
+        0.8393235324415015,
+        0.8373588156732624
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.8393235324415015,
+        "log_exotic_energy": 0.8373588156732624
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.3217946149598014,
+        "f_ff": 0.0,
+        "integral_negative_rho": 4.998854837424002,
+        "min_rho": -0.39849969902956806
+      },
+      "params": {
+        "eval_id": 438.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_6_6.gridinit"
+    },
+    {
+      "cell": [
+        5,
+        6
+      ],
+      "score": 29.592455972643638,
+      "descriptors": [
+        0.6669141289413426,
+        0.8489827955842656
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.6669141289413426,
+        "log_exotic_energy": 0.8489827955842656
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.29592474769909366,
+        "f_ff": 0.0,
+        "integral_negative_rho": 6.192447947427835,
+        "min_rho": -0.09272836223098306
+      },
+      "params": {
+        "eval_id": 341.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_5_6.gridinit"
+    },
+    {
+      "cell": [
+        4,
+        6
+      ],
+      "score": 28.361965214510708,
+      "descriptors": [
+        0.5764689321431303,
+        0.8386058466857036
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.5764689321431303,
+        "log_exotic_energy": 0.8386058466857036
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.2836197978406475,
+        "f_ff": 0.0,
+        "integral_negative_rho": 5.115013372884965,
+        "min_rho": -0.3175030703526354
+      },
+      "params": {
+        "eval_id": 380.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_4_6.gridinit"
+    },
+    {
+      "cell": [
+        2,
+        6
+      ],
+      "score": 27.869745251124463,
+      "descriptors": [
+        0.3015540014164921,
+        0.8478640155832614
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.3015540014164921,
+        "log_exotic_energy": 0.8478640155832614
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.2786975250520832,
+        "f_ff": 0.0,
+        "integral_negative_rho": 6.066135747158695,
+        "min_rho": -0.0987464315024631
+      },
+      "params": {
+        "eval_id": 286.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_2_6.gridinit"
+    },
+    {
+      "cell": [
+        7,
+        5
+      ],
+      "score": 27.353056673089647,
+      "descriptors": [
+        0.9481063726610433,
+        0.747237687480677
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.9481063726610433,
+        "log_exotic_energy": 0.747237687480677
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.27353069979570627,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.9503892161957856,
+        "min_rho": -0.0020984468653776423
+      },
+      "params": {
+        "eval_id": 333.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_7_5.gridinit"
+    },
+    {
+      "cell": [
+        3,
+        6
+      ],
+      "score": 25.910502965810487,
+      "descriptors": [
+        0.4946311325394132,
+        0.852503874790252
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.4946311325394132,
+        "log_exotic_energy": 0.852503874790252
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.2591052090405142,
+        "f_ff": 0.0,
+        "integral_negative_rho": 6.607406075273067,
+        "min_rho": -0.09975290616216556
+      },
+      "params": {
+        "eval_id": 251.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_3_6.gridinit"
+    },
+    {
+      "cell": [
+        6,
+        5
+      ],
+      "score": 22.78135602132038,
+      "descriptors": [
+        0.8709258812351369,
+        0.7295000353398164
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.8709258812351369,
+        "log_exotic_energy": 0.7295000353398164
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.22781359486831868,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.685488672694315,
+        "min_rho": -0.003928257289399732
+      },
+      "params": {
+        "eval_id": 41.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_6_5.gridinit"
+    },
+    {
+      "cell": [
+        0,
+        6
+      ],
+      "score": 21.144353999057277,
+      "descriptors": [
+        0.10354405656227766,
+        0.8072751887433831
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.10354405656227766,
+        "log_exotic_energy": 0.8072751887433831
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.21144354845426858,
+        "f_ff": 0.0,
+        "integral_negative_rho": 2.8721129154898177,
+        "min_rho": -0.028928802869168446
+      },
+      "params": {
+        "eval_id": 453.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_0_6.gridinit"
+    },
+    {
+      "cell": [
+        5,
+        5
+      ],
+      "score": 20.954549000368527,
+      "descriptors": [
+        0.6475127699247074,
+        0.7324658556666778
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.6475127699247074,
+        "log_exotic_energy": 0.7324658556666778
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.20954550856744497,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.7239804607445371,
+        "min_rho": -0.007190915730826582
+      },
+      "params": {
+        "eval_id": 417.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_5_5.gridinit"
+    },
+    {
+      "cell": [
+        1,
+        6
+      ],
+      "score": 19.938272554906657,
+      "descriptors": [
+        0.13819773921271153,
+        0.7971841063072229
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.13819773921271153,
+        "log_exotic_energy": 0.7971841063072229
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.19938273445219118,
+        "f_ff": 0.0,
+        "integral_negative_rho": 2.3849146999344373,
+        "min_rho": -0.029547172115060655
+      },
+      "params": {
+        "eval_id": 465.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_1_6.gridinit"
+    },
+    {
+      "cell": [
+        3,
+        5
+      ],
+      "score": 17.18359465335043,
+      "descriptors": [
+        0.4595910232934953,
+        0.7415076235006186
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.4595910232934953,
+        "log_exotic_energy": 0.7415076235006186
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.17183595607292018,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.8551867983955352,
+        "min_rho": -0.0038354360676227522
+      },
+      "params": {
+        "eval_id": 118.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_3_5.gridinit"
+    },
+    {
+      "cell": [
+        0,
+        5
+      ],
+      "score": 16.169215142006454,
+      "descriptors": [
+        0.017502765050502724,
+        0.745990593436728
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.017502765050502724,
+        "log_exotic_energy": 0.745990593436728
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.16169216563344357,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.928805433796561,
+        "min_rho": -0.10659274316813819
+      },
+      "params": {
+        "eval_id": 239.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_0_5.gridinit"
+    },
+    {
+      "cell": [
+        1,
+        5
+      ],
+      "score": 15.688871939226384,
+      "descriptors": [
+        0.13485338748555972,
+        0.7374294039504109
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.13485338748555972,
+        "log_exotic_energy": 0.7374294039504109
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.15688873555244412,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.7932959399672388,
+        "min_rho": -0.003889619167669496
+      },
+      "params": {
+        "eval_id": 381.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_1_5.gridinit"
+    },
+    {
+      "cell": [
+        2,
+        5
+      ],
+      "score": 14.799681580653896,
+      "descriptors": [
+        0.3490987724443728,
+        0.7488759844132751
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.3490987724443728,
+        "log_exotic_energy": 0.7488759844132751
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.1479968251093862,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.9795077472127658,
+        "min_rho": -0.006417613077448361
+      },
+      "params": {
+        "eval_id": 155.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_2_5.gridinit"
+    },
+    {
+      "cell": [
+        4,
+        5
+      ],
+      "score": 14.446886030220542,
+      "descriptors": [
+        0.5975895112476224,
+        0.7356235882618267
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.5975895112476224,
+        "log_exotic_energy": 0.7356235882618267
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.14446893785696593,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.7673415342490255,
+        "min_rho": -0.0030340114461268755
+      },
+      "params": {
+        "eval_id": 440.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_4_5.gridinit"
+    },
+    {
+      "cell": [
+        5,
+        4
+      ],
+      "score": 4.906570132786505,
+      "descriptors": [
+        0.7363254423486133,
+        0.5961067452483693
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.7363254423486133,
+        "log_exotic_energy": 0.5961067452483693
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.049065701827803176,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.05872918336621339,
+        "min_rho": -0.00023882562842589177
+      },
+      "params": {
+        "eval_id": 50.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_5_4.gridinit"
+    },
+    {
+      "cell": [
+        4,
+        4
+      ],
+      "score": 4.695403753732528,
+      "descriptors": [
+        0.5437681442782756,
+        0.6052154392299268
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.5437681442782756,
+        "log_exotic_energy": 0.6052154392299268
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.046954037929532316,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.06945819830510325,
+        "min_rho": -0.000265242069196717
+      },
+      "params": {
+        "eval_id": 183.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_4_4.gridinit"
+    },
+    {
+      "cell": [
+        6,
+        4
+      ],
+      "score": 4.522678049592213,
+      "descriptors": [
+        0.826928406722446,
+        0.5898756128757497
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.826928406722446,
+        "log_exotic_energy": 0.5898756128757497
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.045226781209799505,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.052360634785259694,
+        "min_rho": -0.00017176262889427135
+      },
+      "params": {
+        "eval_id": 327.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_6_4.gridinit"
+    },
+    {
+      "cell": [
+        2,
+        4
+      ],
+      "score": 2.2454282384000614,
+      "descriptors": [
+        0.3740827027246843,
+        0.6033133395928163
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.3740827027246843,
+        "log_exotic_energy": 0.6033133395928163
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.022454282634008088,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.06706666590662519,
+        "min_rho": -0.00031606443389985665
+      },
+      "params": {
+        "eval_id": 396.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_2_4.gridinit"
+    },
+    {
+      "cell": [
+        1,
+        4
+      ],
+      "score": 1.1383129195727615,
+      "descriptors": [
+        0.2019313265325275,
+        0.6061271673403132
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.2019313265325275,
+        "log_exotic_energy": 0.6061271673403132
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.011383129397137398,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.070634575376596,
+        "min_rho": -0.00019164646555318272
+      },
+      "params": {
+        "eval_id": 125.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_1_4.gridinit"
+    },
+    {
+      "cell": [
+        3,
+        4
+      ],
+      "score": 0.6526991604305894,
+      "descriptors": [
+        0.4702476498402032,
+        0.6240487323719298
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.4702476498402032,
+        "log_exotic_energy": 0.6240487323719298
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.006526992187760594,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.09826296375975549,
+        "min_rho": -0.0005873485963321148
+      },
+      "params": {
+        "eval_id": 5.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_3_4.gridinit"
+    },
+    {
+      "cell": [
+        0,
+        0
+      ],
+      "score": 0.0,
+      "descriptors": [
+        0.0,
+        0.0
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.0,
+        "log_exotic_energy": 0.0
+      },
+      "tier": 0,
+      "tier_name": "constructed",
+      "objectives": {
+        "f_geo": 0.0,
+        "f_ff": 0.0,
+        "integral_negative_rho": -0.0,
+        "min_rho": 0.0
+      },
+      "params": {
+        "eval_id": 0.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_maxfgeo_n64_L32_e500_20260723/elites/cell_0_0.gridinit"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "run_id": "PF-RM",
+  "campaign": "bicomplex_cmaes_pumpfree",
+  "phase": 2,
+  "role": "pump_free_hq_baseline",
+  "manifest": "grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest_pumpfree.json",
+  "source_run": "runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1",
+  "eval_id": 146,
+  "n_full": 256,
+  "l_full": 128.0,
+  "h": 0.5,
+  "stop_time": 30.0,
+  "plot_interval": 72,
+  "max_level": 3,
+  "gpu_id": "7",
+  "evolution_mpi_ranks": 1,
+  "out_dir": "runs/grtresna_promote/bcma_pfrm_L128_N256_t30_hq_eval000146",
+  "git_commit": "a758f3ade45a0b68d4b9bc4503aab337b1c7b949"
+}

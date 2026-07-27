@@ -1,0 +1,234 @@
+{
+  "bins": 8,
+  "coverage": 0.125,
+  "num_elites": 8,
+  "best_score": 0.0,
+  "tier_histogram": {
+    "rejected": 0,
+    "constructed": 1,
+    "nontrivial": 7,
+    "operational": 0,
+    "persistent": 0,
+    "observer_ec": 0,
+    "converged": 0,
+    "analytic": 0
+  },
+  "cells": [
+    {
+      "cell": [
+        7,
+        4
+      ],
+      "score": -0.374218652272746,
+      "descriptors": [
+        0.9006083377990942,
+        0.6009988557780386
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.9006083377990942,
+        "log_exotic_energy": 0.6009988557780386
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.06052523139281715,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.0642674171307456,
+        "min_rho": -0.0003988792496542092
+      },
+      "params": {
+        "eval_id": 473.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/elites/cell_7_4.gridinit"
+    },
+    {
+      "cell": [
+        4,
+        4
+      ],
+      "score": -1.2980430988819167,
+      "descriptors": [
+        0.5941932322789099,
+        0.6019192779294622
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.5941932322789099,
+        "log_exotic_energy": 0.6019192779294622
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.05238591779710158,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.0653663482567756,
+        "min_rho": -0.0003284523787909109
+      },
+      "params": {
+        "eval_id": 4.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/elites/cell_4_4.gridinit"
+    },
+    {
+      "cell": [
+        5,
+        4
+      ],
+      "score": -1.3567114299899474,
+      "descriptors": [
+        0.7246497574189349,
+        0.5935973994687263
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.7246497574189349,
+        "log_exotic_energy": 0.5935973994687263
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.04250916613605091,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.0560762800198691,
+        "min_rho": -0.0002173809855920464
+      },
+      "params": {
+        "eval_id": 2.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/elites/cell_5_4.gridinit"
+    },
+    {
+      "cell": [
+        6,
+        4
+      ],
+      "score": -1.9129405115753513,
+      "descriptors": [
+        0.8432350471900594,
+        0.5902581849647566
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.8432350471900594,
+        "log_exotic_energy": 0.5902581849647566
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.03360153137032654,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.052730935924468265,
+        "min_rho": -0.00018866083925826515
+      },
+      "params": {
+        "eval_id": 402.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/elites/cell_6_4.gridinit"
+    },
+    {
+      "cell": [
+        2,
+        4
+      ],
+      "score": -3.5670963459195866,
+      "descriptors": [
+        0.34578107090116217,
+        0.5856070498250178
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.34578107090116217,
+        "log_exotic_energy": 0.5856070498250178
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.012730266687783348,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.048401230030468846,
+        "min_rho": -0.00017686748756212925
+      },
+      "params": {
+        "eval_id": 250.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/elites/cell_2_4.gridinit"
+    },
+    {
+      "cell": [
+        1,
+        4
+      ],
+      "score": -5.148645841309091,
+      "descriptors": [
+        0.1602770839407391,
+        0.6072127038189241
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.1602770839407391,
+        "log_exotic_energy": 0.6072127038189241
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.020574765080659252,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.07206122333109545,
+        "min_rho": -0.0002033172412235675
+      },
+      "params": {
+        "eval_id": 36.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/elites/cell_1_4.gridinit"
+    },
+    {
+      "cell": [
+        3,
+        4
+      ],
+      "score": -5.443749733726095,
+      "descriptors": [
+        0.45794147429127957,
+        0.6085856226763509
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.45794147429127957,
+        "log_exotic_energy": 0.6085856226763509
+      },
+      "tier": 1,
+      "tier_name": "nontrivial",
+      "objectives": {
+        "f_geo": 0.019469402060760116,
+        "f_ff": 0.0,
+        "integral_negative_rho": 0.07390689916372445,
+        "min_rho": -0.00019312573192487503
+      },
+      "params": {
+        "eval_id": 304.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/elites/cell_3_4.gridinit"
+    },
+    {
+      "cell": [
+        0,
+        0
+      ],
+      "score": 0.0,
+      "descriptors": [
+        0.0,
+        0.0
+      ],
+      "descriptor_details": {
+        "shift_fraction": 0.0,
+        "log_exotic_energy": 0.0
+      },
+      "tier": 0,
+      "tier_name": "constructed",
+      "objectives": {
+        "f_geo": 0.0,
+        "f_ff": 0.0,
+        "integral_negative_rho": -0.0,
+        "min_rho": 0.0
+      },
+      "params": {
+        "eval_id": 0.0
+      },
+      "episode": "runs/geometry_atlas/geometry_atlas_lowexotic_n64_L32_e500_20260723/elites/cell_0_0.gridinit"
+    }
+  ]
+}

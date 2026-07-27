@@ -46,21 +46,23 @@ followed by CMA-ES refinement, yields a five-lump champion (candidate~146)
 supported by two canonical and three phantom (negative-energy) scalar
 sources. In the headline validation run ($L=128$, $N=256$, three refinement
 levels, $t=30$), null rays arrive $20.2\%$ earlier than the matched flat
-path, with all quality gates passed. A complementary freely falling observer
-protocol---proper-time reception on timelike geodesics---confirms a
-$7.0$--$7.7\%$ advance across the resolution ladder, isolating the physical
-timing gain from coordinate artifacts.
-The result is stable across a
-three-run resolution ladder ($N=192/256/384$; fine--medium relative
-difference $0.13\%$) and a matched-spacing domain ladder ($L=96$ and
-$L=160$; within $0.12\%$ of the baseline). An external ignition controller
-switches off at $t=4$; because the geodesic that defines the quoted
-advantage launches at $t_{\rm emit}=4$, the timing difference is measured
-in freely evolving Einstein--Klein--Gordon dynamics, and a controller-free
-twin run reproduces it at $20.46\%$. A matched canonical-only
-(positive-energy) search finds no evolving timing advantage. In all cases
-the channel is transient: confinement decays as the supporting matter
-disperses.
+path, stable across a three-run resolution ladder ($N=192/256/384$;
+fine--medium relative difference $0.13\%$) and a matched-spacing domain
+ladder. A freely falling observer protocol---proper-time reception on timelike
+geodesics---confirms a $7.0$--$7.7\%$ advance, isolating the physical timing
+gain from coordinate artifacts. Ablating the metric one field at a time shows
+the transport is carried by conformal spatial contraction and lapse elevation,
+not by frame dragging: deleting the shift entirely \emph{increases} the
+shortcut. A companion pure-geometry stationary atlas explains why. Its
+kinematic ceiling is $48.5\%$ for shift-dominated (Alcubierre) topologies but
+only $21.8\%$ for the curvature-dominated branch that candidate~146 sources and
+nearly saturates---a Pareto frontier between kinematic strength and dynamical
+sourceability. An external ignition controller switches off at $t=4$, and
+because the quoted geodesic launches at $t_{\rm emit}=4$ the timing difference
+is measured in freely evolving Einstein--Klein--Gordon dynamics; a
+controller-free twin reproduces it at $20.46\%$. A matched canonical-only
+(positive-energy) search finds no evolving timing advantage. The channel is
+transient throughout: confinement decays as the supporting matter disperses.
 \end{abstract}
 
 \maketitle
@@ -85,14 +87,10 @@ transport test.
 The standard route is \emph{geometry-first} (equivalently metric-first): one
 prescribes $g_{\mu\nu}$, reads off $T_{\mu\nu}=G_{\mu\nu}/8\pi$, and studies
 frozen slices~\cite{alcubierre94,natario02,helmerich2024warpfactory}.
-That recipe is poorly suited to automated search. The implied matter is rarely
-the output of a consistent initial-value problem, and under dynamical evolution
-it typically disperses or collapses, destroying the intended channel. For a
-quality-diversity optimizer that must evaluate hundreds of candidates, a
-geometry-first genome is especially poorly conditioned: most deformations of
-$g_{\mu\nu}$ either violate the constraints, have no local matter realization,
-or fail as soon as time advances---so the archive fills with numerical
-failures rather than competing mechanisms.
+That recipe is poorly conditioned for automated search. Most deformations of
+$g_{\mu\nu}$ violate the constraints, have no local matter realization, or fail
+as soon as time advances, so an archive of hundreds of such candidates fills
+with numerical failures rather than competing mechanisms.
 
 We therefore invert the loop (Fig.~\ref{fig:matter_first}): the optimizer
 proposes matter, \texttt{GRTresna} builds the constraint-satisfying initial
@@ -148,42 +146,29 @@ the 4D null-transport test.}
 \label{fig:matter_first}
 \end{figure*}
 
-This criterion does real work in the pipeline: it is the acceptance test,
-not a post-hoc diagnostic. A warp precursor is useful only if it changes what
-light can do between fixed distant observers. Local coordinate signal speeds,
-gauge artifacts of the lapse and shift, or a positive frozen-slice diagnostic
-can look ``superluminal'' while no ray actually connects the endpoints sooner
-once the metric evolves. Asking whether null geodesics arrive earlier than in
-flat space is therefore the operational definition of the search target: a
-gauge-invariant transport certificate that the optimizer must earn, not a
-post-hoc plot.
+This criterion is the acceptance test, not a post-hoc diagnostic. A warp
+precursor is useful only if it changes what light can do between fixed distant
+observers, and local coordinate signal speeds, lapse and shift artifacts, or a
+positive frozen-slice diagnostic can all look ``superluminal'' while no ray
+actually connects the endpoints sooner once the metric evolves.
 
 Equally important is the \emph{scoring metric} that turns each evolution into
-the fitness $S(\theta)$ used by the archive [Eq.~\eqref{eq:score}]. MAP-Elites
-converges to whatever $S$ rewards. In earlier campaigns with weaker objectives
-the search reliably ``cheated'': it harvested coordinate proxies while matter
-dispersed (``disperse-then-warp''), banked frozen-slice positives that failed
-the evolving geodesic test, or climbed scores through numerical
-pathologies---early horizons, integrator crashes, and other
-simulation-failure modes that accidentally produced large proxy signals. The
-present objective therefore rewards only the evolving 4D shortcut and
-persistence, gates health terms by nontriviality, penalizes exotic excess and
-horizon formation, and dispersion-gates transport credit so a flying-apart
-cloud cannot buy a high score. Without that metric design the archive does
-not discover physics; it exploits weaknesses of the objective.
+the fitness $S(\theta)$ [Eq.~\eqref{eq:score}], because MAP-Elites converges to
+whatever $S$ rewards. Earlier campaigns with weaker objectives reliably
+``cheated''---harvesting coordinate proxies while the matter dispersed, banking
+frozen-slice positives that failed the evolving test, or climbing scores
+through outright numerical pathologies. The gates that close those routes are
+detailed in Sec.~\ref{sec:scoring}.
 
 The search engine is MAP-Elites~\cite{mouret15}, a quality-diversity algorithm
 that keeps one elite per cell of a behavior archive rather than a single global
-optimum. We prefer this over a pure CMA-ES~\cite{hansen01} hill-climb, which
-collapses onto one basin and discards diverse near-misses, and over
-reinforcement learning, which would require dense credit assignment across
-expensive GPU evolutions with sparse, delayed rewards. After MAP-Elites
-identifies a high-scoring basin, CMA-ES warm-starts from the archive champion
-and locally refines the genome before any high-resolution replay or
-resolution ladder (Sec.~\ref{sec:methodology}). Both discovery stages run on
-a deliberately coarse grid chosen for evaluation throughput; production
-claims are deferred to the later high-quality (HQ) production replay and
-resolution matrix (Sec.~\ref{sec:stages}).
+optimum---preferred over a pure CMA-ES~\cite{hansen01} hill-climb, which
+collapses onto one basin, and over reinforcement learning, which would need
+dense credit assignment across expensive GPU evolutions with sparse rewards.
+CMA-ES then warm-starts from the archive champion and refines it locally
+(Sec.~\ref{sec:methodology}). Both discovery stages run on a deliberately
+coarse grid chosen for throughput; production claims are deferred to the
+high-quality (HQ) replay and resolution matrix (Sec.~\ref{sec:stages}).
 
 The headline champion (candidate~146) relies on a phantom scalar sector, so it
 does \emph{not} bypass the energy-condition violations required of FTL
@@ -196,38 +181,30 @@ falsification stack. As a first probe, a matched canonical-only
 $f_{\rm geo}^{\rm evol}=0$ for every accepted evaluation
 (Sec.~\ref{sec:canonical_bound}).
 
-\subsection{Methodological Rigor}
-\label{subsec:rigor}
-
-Three pillars distinguish this pipeline from geometry-first studies:
-\begin{enumerate}
-    \item \textbf{Initial value problem:} constraint-clean data from physical
-    scalar sources, not coordinate scripts.
-    \item \textbf{Dynamic feedback:} full BSSN/CCZ4 evolution; dispersing
-    matter collapses the channel.
-    \item \textbf{4D geodesic falsification:} the headline diagnostic is
-    \texttt{ftl\_geo\_evolving}---null rays integrated through the
-    \emph{time-evolving} metric stack. Frozen-slice geodesics are retained as
-    diagnostics but are not the transport certificate.
-\end{enumerate}
-
 \subsection{Contributions}
 \label{subsec:contributions}
 
-\begin{itemize}
-    \item[(i)] An end-to-end matter-first discovery pipeline---MAP-Elites
-    proposal, CMA-ES local refinement of the archive champion, constraint
-    solve, GPU evolution, and matched evolving-geodesic scoring---with an
+Three commitments separate this pipeline from geometry-first studies, and each
+is a contribution of the paper.
+\begin{enumerate}
+    \item \textbf{A solved initial-value problem.} Every candidate begins as
+    constraint-clean data from physical scalar sources, not a coordinate
+    script, produced by an end-to-end loop---MAP-Elites proposal, CMA-ES local
+    refinement, constraint solve, GPU evolution, matched scoring---with one
     explicit reward rule applied to every evaluation
     (Secs.~\ref{sec:pipeline}--\ref{sec:methodology}).
-    \item[(ii)] A hierarchical campaign protocol---quality-diversity search,
-    CMA-ES hill-climb, then higher-resolution replay and a Richardson
-    resolution ladder on the refined champion
-    (Sec.~\ref{sec:stages}).
-    \item[(iii)] Explicit numerical limits of the surviving candidates:
-    dispersing exotic matter and a transient ignition-phase controller---not
-    passenger transport (Sec.~\ref{sec:discussion}).
-\end{itemize}
+    \item \textbf{Dynamic feedback.} Full CCZ4 evolution, so dispersing matter
+    collapses the channel and cannot be scored around; claims are promoted
+    through a hierarchical protocol ending in a Richardson resolution ladder
+    on the frozen champion (Sec.~\ref{sec:stages}).
+    \item \textbf{4D geodesic falsification.} The headline diagnostic is
+    \texttt{ftl\_geo\_evolving}---null rays integrated through the
+    \emph{time-evolving} metric stack. Frozen-slice geodesics are retained as
+    diagnostics but never as the transport certificate. The surviving
+    candidate's limits are reported as explicitly as its successes: dispersing
+    exotic matter and a transient ignition controller, not passenger transport
+    (Sec.~\ref{sec:discussion}).
+\end{enumerate}
 
 \section{Matter-First Pipeline}
 \label{sec:pipeline}
@@ -244,18 +221,12 @@ and momentum constraints hold before any evolution.
 AMReX-based~\cite{amrex} code that evolves those data forward with the CCZ4
 formulation~\cite{alic12} of the Einstein equations under moving-puncture
 gauge~\cite{campanelli06,baker06}. Neither code is told what metric to
-produce; the geometry is whatever the proposed matter sources.
-
-\subsection{Search Loop}
-\label{sec:loop}
-
-One evaluation maps a parameter vector $\theta$ to a scalar fitness:
-$\theta \rightarrow$ initial data $\rightarrow$ \texttt{GRTeclyn}
-$\rightarrow$ diagnostics $\rightarrow S(\theta)$
-(Fig.~\ref{fig:pipeline}). The optimizer proposes $\theta$,
-\texttt{GRTresna} solves the constraints, \texttt{GRTeclyn} evolves
-the spacetime on GPU, and post-processing probes reduce the evolution to the
-fitness $S(\theta)$ that steers the next proposal.
+produce; the geometry is whatever the proposed matter sources. One evaluation
+therefore maps a parameter vector $\theta$ to a scalar fitness---$\theta
+\rightarrow$ initial data $\rightarrow$ \texttt{GRTeclyn} $\rightarrow$
+diagnostics $\rightarrow S(\theta)$---with post-processing probes reducing the
+evolution to the fitness that steers the next proposal
+(Fig.~\ref{fig:pipeline}).
 
 \subsection{Matter model: canonical and phantom scalar sectors}
 \label{sec:phantom_action}
@@ -273,14 +244,12 @@ S_i=-\mathrm{Re}\!\left(\Pi^{*}\partial_i\phi\right),
 \label{eq:scalar_sources}
 \end{equation}
 where $\psi$ is the conformal factor and $\tilde\nabla$ the conformal spatial
-gradient. The three terms in $\rho$ are, in order, the gradient (spatial
-shape), kinetic (time variation), and potential (rest) energy of the field;
-$S_i$ is nonzero only when the field oscillates in time ($\Pi\neq0$) with a
-spatial gradient, which is what lets a moving scalar lump carry momentum and
-drive a shift. Equation~\eqref{eq:scalar_sources} is the precise statement of
-``the matter tells the geometry what to be'': $\theta$ sets $\phi$ and $\Pi$,
-and \texttt{GRTresna} returns the $(\gamma_{ij},K_{ij})$ consistent with these
-sources.
+gradient. The three terms in $\rho$ are the gradient (spatial shape), kinetic
+(time variation), and potential (rest) energy of the field, while $S_i$ is
+nonzero only when the field oscillates in time ($\Pi\neq0$) with a spatial
+gradient. Equation~\eqref{eq:scalar_sources} is the precise statement of ``the
+matter tells the geometry what to be'': $\theta$ sets $\phi$ and $\Pi$, and
+\texttt{GRTresna} returns the $(\gamma_{ij},K_{ij})$ consistent with them.
 
 Because the exotic sign is central to the claim, we state exactly what the
 \texttt{grtresna\_bicomplex\_scalar} model integrates. Each complex scalar is
@@ -303,10 +272,9 @@ $\Phi_{-}$ obey the \emph{same} $3{+}1$ Klein--Gordon system,
 \label{eq:kg_evolution}
 \end{align}
 with $D_i$ the spatial covariant derivative and $\alpha,\beta^i,\gamma_{ij}$
-the usual lapse, shift, and spatial metric. The two sectors are therefore
-governed by identical, right-sign (non-ghost) kinetic operators; there is no
-wrong-sign kinetic term and hence none of the gradient or ghost instabilities
-that afflict a genuine phantom Lagrangian
+the usual lapse, shift, and spatial metric. Both sectors are therefore governed
+by identical right-sign (non-ghost) kinetic operators, free of the gradient and
+ghost instabilities that afflict a genuine phantom Lagrangian
 $\mathcal L=+\partial_\mu\phi\,\partial^\mu\phi^{*}-V$.
 
 The exotic character enters at exactly one place: the \emph{gravitational
@@ -322,12 +290,12 @@ $\Phi_{-}$); it is a controlled model of the negative-energy source required to
 violate the null energy condition, not a claim that a fundamental phantom
 field theory has been made well posed.
 
-The word ``canonical'' therefore describes the Klein--Gordon equation of
-motion, not the sign with which each initial lump gravitates. For each lump
-the optimizer stores $x_{{\rm ex},k}\in[0,1]$, which configuration
-construction rounds to $e_k=\operatorname{round}(x_{{\rm ex},k})$ and maps to
-$s_k=(-1)^{e_k}$, so there is no physical fractional interpolation. In the
-\texttt{GRTresna} constraint solve the signed independent-lump approximation is
+The word ``canonical'' therefore describes the equation of motion, not the sign
+with which each initial lump gravitates. For each lump the optimizer stores
+$x_{{\rm ex},k}\in[0,1]$, rounded at configuration time to
+$e_k=\operatorname{round}(x_{{\rm ex},k})$ and mapped to $s_k=(-1)^{e_k}$, so
+there is no fractional interpolation. In the \texttt{GRTresna} constraint solve
+the signed independent-lump approximation is
 \begin{equation}
 \rho_{\rm ID}=\sum_k s_k\rho_k,\qquad
 (S_i)_{\rm ID}=-\sum_k s_k\sum_{A=1}^{2}
@@ -336,15 +304,14 @@ $s_k=(-1)^{e_k}$, so there is no physical fractional interpolation. In the
 \end{equation}
 with inter-lump stress-tensor cross terms omitted; the profiles are then
 superposed into the two painted complex fields, one canonical and one phantom.
-This sign flip is applied consistently to $\rho$, $S_i$, and $S_{ij}$ in both
-the constraint solve and the \texttt{GRTeclyn} stress tensor, which removes the
+Applying the sign flip consistently to $\rho$, $S_i$, and $S_{ij}$ in both the
+constraint solve and the \texttt{GRTeclyn} stress tensor removes the
 initial-data / evolution mismatch of earlier single-field campaigns.
 Candidate~146 rounds to $s_k=(+1,-1,-1,+1,-1)$: two canonical and three phantom
-sources. A practical payoff is that the late-time dispersion reported below
-(Sec.~\ref{sec:dispersion}) is \emph{structural}---the finite lifetime of
-thick-wall Q-balls together with an unbound orbital arrangement---rather than a
-phantom kinetic instability, since the fields never leave the stable
-Klein--Gordon sector.
+sources. Because the fields never leave the stable Klein--Gordon sector, the
+late-time dispersion reported below (Sec.~\ref{sec:dispersion}) is
+\emph{structural}---the finite lifetime of thick-wall Q-balls in an unbound
+orbital arrangement---rather than a phantom kinetic instability.
 
 \subsection{Q-ball building blocks}
 \label{sec:qball}
@@ -358,7 +325,7 @@ real scalar because only a complex field has the phase symmetry that supports
 a stable charged lump, and its harmonic phase rotation
 $\phi\propto e^{-i\omega t}$ makes $\Pi=\dot\phi\neq0$, so by
 Eq.~\eqref{eq:scalar_sources} the lump carries a momentum density $S_i$ and can
-source a nontrivial shift---the ingredient a transport channel needs. Each lump
+source a nontrivial shift (Sec.~\ref{sec:mechanism}). Each lump
 starts from a spherically symmetric equilibrium profile obtained by solving the
 radial ODE for a sextic potential,
 \begin{equation}
@@ -370,32 +337,27 @@ with fixed parameters $m=1$, $\lambda=640$, $\mu=85333$, $\omega=0.8$.
 The attractive quartic ($\lambda>0$) provides self-binding; the repulsive
 sextic ($\mu>0$) is \emph{required} for a stable three-dimensional Q-ball---a
 pure quartic is the critical case and either collapses or disperses.
-The specific values are fixed by three requirements rather than tuned for
-performance: $m=1$ sets the mass (hence length) unit of the problem;
-$\lambda$ and $\mu$ are then chosen so that the stable thick-wall window
-$\omega_{\min}<\omega<m$ comfortably brackets the working frequency, where
-$\lambda^2/\mu$ sets $\omega_{\min}\approx0.316$; and $\omega=0.8$ places the
-soliton in the thick-wall regime, so that the equilibrium radial profile falls
-to zero within a radius of ${\sim}7$ code units and several lumps fit inside
-the evolution box. These microphysical constants are held fixed and are not
-part of the search.
+The values are fixed by requirements rather than tuned: $m=1$ sets the mass
+(hence length) unit; $\lambda$ and $\mu$ place the stable thick-wall window
+$\omega_{\min}<\omega<m$ comfortably around the working frequency (with
+$\lambda^2/\mu$ setting $\omega_{\min}\approx0.316$); and $\omega=0.8$ keeps
+the equilibrium profile inside a radius of ${\sim}7$ code units so several
+lumps fit in the box. These microphysical constants are not part of the search.
 
 \subsection{Shell Parameterization}
 \label{sec:shell}
 
 The search vector has 39 dimensions because the arrangement of the lumps, not
-the lump microphysics, is what is optimized. The shell contains five lumps---the
+their microphysics, is what is optimized. The shell contains five lumps---the
 maximum supported by the solver's state layout---giving enough independent
-tilted orbits to produce multi-stream frame dragging while keeping the search
-space tractable. Each lump carries seven searchable placement
-parameters---orbital radius $R_0$, phase, two tilt angles, radial velocity,
-angular (rotation) velocity, and a source-sign selector---giving
-$5\times7=35$ per-lump dimensions. Four collective variables set the shell's
-breathing amplitude and frequency and its vertical oscillation amplitude and
-frequency, for $35+4=39$ in total (Fig.~\ref{fig:genome}). Although sampled
-continuously, the sign variable is applied as the binary selector above; it
-lets the optimizer choose which initial-data lumps source positive or negative
-stress-energy.
+tilted orbits to build a structured source while keeping the search space
+tractable. Each lump carries seven placement parameters---orbital radius $R_0$,
+phase, two tilt angles, radial velocity, angular velocity, and a source-sign
+selector---for $5\times7=35$ dimensions, and four collective variables set the
+shell's breathing and vertical-oscillation amplitudes and frequencies, giving
+$39$ in total (Fig.~\ref{fig:genome}). The sign variable is sampled
+continuously but applied as the binary selector above, letting the optimizer
+choose which lumps source positive and which negative stress-energy.
 
 \begin{figure}[tbp]
 \centering
@@ -488,39 +450,34 @@ $E_{\rm pump}\simeq1.6\times10^{-17}$ over the ignition window of the
 pump-on HQ run---consistent with floating-point noise relative to the
 matter amplitude ($|\phi|_{\rm max}\sim7\times10^{-2}$). The pump therefore
 acts as a soft trajectory guide rather than a large energy injector. The
-campaign default switches the pump off at $t_{\rm pump}=4$; scoring credits
-4D geodesic transport only for $t_{\rm emit}\ge t_{\rm pump}$. A dedicated
-pump-free HQ twin with $t_{\rm pump}=0$ (Sec.~\ref{sec:pump_free}) tests
-whether the shortcut survives with the PD term identically off from $t=0$.
-The controller should therefore be read as a \emph{numerical guide}, not a
-physical part of the reported spacetime: because the headline geodesic
-launches at $t_{\rm emit}=4=t_{\rm pump}$, the metric it samples is freely
-evolved ($\nabla_\mu T^{\mu\nu}=0$).
+campaign default switches it off at $t_{\rm pump}=4$, and scoring credits
+4D geodesic transport only for $t_{\rm emit}\ge t_{\rm pump}$, so the
+headline geodesic---which launches at exactly $t_{\rm emit}=4$---samples a
+freely evolved metric ($\nabla_\mu T^{\mu\nu}=0$). A dedicated pump-free HQ
+twin with $t_{\rm pump}=0$ (Sec.~\ref{sec:pump_free}) tests whether the
+shortcut survives with the PD term identically off from $t=0$.
 
 \subsection{Constraint gate and source-model consistency}
 \label{sec:selfconsistent}
 
 A post-load constraint gate rejects inconsistent initial data before any GPU
 time is spent: the solved data are loaded into \texttt{GRTeclyn} for a short
-verification integration, and the volume-weighted $L^2$ norms of the
-Hamiltonian and momentum constraints must remain below a campaign threshold,
-otherwise the candidate is discarded and logged. The bicomplex Q-ball campaigns
-use a Hamiltonian threshold of $3\times10^{-2}$ and a momentum threshold of
-$10^{-2}$; candidate~146 comfortably clears both, with
+verification integration, and the volume-weighted $L^2$ constraint norms must
+stay below a campaign threshold or the candidate is discarded and logged. The
+bicomplex Q-ball campaigns use $3\times10^{-2}$ for the Hamiltonian and
+$10^{-2}$ for the momentum residual; candidate~146 clears both comfortably at
 $\|\mathcal H\|_2=5.9\times10^{-3}$ and
-$\|\mathcal M\|_2=1.1\times10^{-4}$. The campaign uses the
-\texttt{grtresna\_bicomplex\_scalar} matter model
-(Sec.~\ref{sec:phantom_action}). The post-load gate, together with bounded
-CCZ4 constraint growth, establishes numerical control and source-model
-consistency.
+$\|\mathcal M\|_2=1.1\times10^{-4}$. This gate, together with bounded CCZ4
+constraint growth, establishes numerical control and source-model consistency
+for the \texttt{grtresna\_bicomplex\_scalar} model of
+Sec.~\ref{sec:phantom_action}.
 
 \subsection{Scoring: how every evaluation is rewarded}
 \label{sec:scoring}
 
-Every evaluation in the campaign is reduced to one fitness value $S(\theta)$ by
-the same fixed rule, so candidates are ranked consistently. Each named quantity
-below is a normalized diagnostic in $[0,1]$ (penalties are negative); the score
-is their weighted sum,
+One fixed rule reduces every evaluation to a single fitness $S(\theta)$. Each
+named quantity below is a normalized diagnostic in $[0,1]$ (penalties are
+negative) and the score is their weighted sum,
 \begin{align}
 S =\;& 1000\,f_{\rm geo}^{\rm evol}
       + 1000\,f_{\rm geo}^{\rm op}
@@ -538,34 +495,28 @@ with the health block
 \Sigma_{\rm health}=150\,\mathrm{surv}+60\,E+40\,\mathrm{stab}
 +30\,\mathrm{cmv}+10\,\mathcal H_{\rm ok}+15\,I,
 \end{equation}
-gated by the nontriviality factor $g_{\rm h}\in[0,1]$ so that a trivial (flat)
-configuration earns no health reward. Inside the score, the raw timing
-advantage $f_{\rm geo}$ of Eq.~\eqref{eq:f_geo} is mapped to a saturating
-magnitude $\hat f=\min\!\bigl[(f_{\rm geo}-10^{-3})/(0.2-10^{-3}),\;1\bigr]$,
-so that small, marginal shortcuts earn proportionally less credit and full marks
-require $f_{\rm geo}\ge20\%$; the two geodesic slots in Eq.~\eqref{eq:score}
-then pay $1000\,\hat f\,p_{\rm s}$, where $p_{\rm s}$ is the structural
-persistence (density retention $\times$ coherence $\times$ confinement). When
-a 4D evolving trace is available, it is authoritative: the frozen-slice slot is
-zeroed and $f_{\rm geo}^{\rm op}\equiv0$, so the two 1000-weight terms are
-mutually exclusive rather than additive. Table~\ref{tab:weights} lists what each
-term measures. Two design choices matter. First, transport dominates: the
-evolving geodesic term carries the largest weight and is itself
-dispersion-gated, so the score chiefly tracks genuine null-transport gain in
-configurations that retain their matter.
-Second, the persistence and operational terms $P_{\rm ftl},F_{\rm op}$ are
-\emph{also dispersion-gated}---multiplied by the fraction of matter still
-confined---so a candidate cannot bank a coordinate superluminal channel after
-its lumps have flown apart. The exotic penalty $X_{\rm exotic}<0$ charges for
-energy-condition violation~\cite{le2026warpax} at campaign weight $w_x$. This penalty is
-deliberately sub-dominant to transport: at the campaign value $w_x=0.2$ and the
-graded floor $X_{\rm exotic}\ge-1.6$, the exotic term reaches at most
-$40\,w_x|X_{\rm exotic}|\approx13$ points, sub-dominant to the
-persistence-gated geodesic term (which contributes up to $1000\,\hat f\,p_{\rm s}$;
-for the champion the search-tier value is ${\approx}417$ points). The
-optimizer is thus permitted to spend exotic matter freely in exchange for
-genuine null-transport gain, which is why the archive populates the
-phantom-supported sector rather than being pinned to $X_{\rm exotic}=0$.
+gated by the nontriviality factor $g_{\rm h}\in[0,1]$ so that a flat
+configuration earns no health reward. Inside the score the raw advantage
+$f_{\rm geo}$ is mapped to a saturating magnitude
+$\hat f=\min\!\bigl[(f_{\rm geo}-10^{-3})/(0.2-10^{-3}),\;1\bigr]$, so marginal
+shortcuts earn proportionally less and full marks require
+$f_{\rm geo}\ge20\%$; the two geodesic slots then pay $1000\,\hat f\,p_{\rm s}$
+with $p_{\rm s}$ the structural persistence (density retention $\times$
+coherence $\times$ confinement). Whenever a 4D evolving trace exists it takes
+precedence: the frozen slot is zeroed, $f_{\rm geo}^{\rm op}\equiv0$, so the two
+$1000$-weight terms are mutually exclusive rather than additive.
+Table~\ref{tab:weights} lists what each
+term measures. Two design choices matter. First, transport dominates and every
+transport-flavored term---$f_{\rm geo}^{\rm evol}$, $P_{\rm ftl}$, and
+$F_{\rm op}$---is multiplied by the fraction of matter still confined, so no
+candidate can bank a coordinate superluminal channel after its lumps have flown
+apart. Second, the exotic penalty $X_{\rm exotic}<0$ charges for
+energy-condition violation~\cite{le2026warpax} but is deliberately weak: at the
+campaign value $w_x=0.2$ and the graded floor $X_{\rm exotic}\ge-1.6$ it reaches
+at most ${\approx}13$ points against the ${\approx}417$ the champion earns from
+the persistence-gated geodesic term. The optimizer may therefore spend exotic
+matter freely in exchange for genuine transport, which is why the archive
+populates the phantom sector rather than being pinned to $X_{\rm exotic}=0$.
 Search-tier scores are values of $S$ on a $t=16$ evolution
 (Sec.~\ref{sec:stages}); the only production $S$ values appear in the
 pump-free comparison (Table~\ref{tab:pump_compare}). For the CMA-ES champion
@@ -602,50 +553,29 @@ $H_{\rm hor}$ & horizon-formation penalty & $200$ \\
 \label{sec:stages}
 
 MAP-Elites and CMA-ES evaluate $\mathcal{O}(10^2)$ genomes, so the discovery
-loop uses a reduced GRTeclyn evolution configuration for wall-clock speed.
-Campaign env variables
-\texttt{GRTRESNA\_EVOLUTION\_L\_FULL},
-\texttt{GRTRESNA\_EVOLUTION\_N\_FULL},
-\texttt{GRTRESNA\_EVOLUTION\_MAX\_LEVEL}, and
-\texttt{GRTRESNA\_EVOLUTION\_REGRID\_THRESHOLD}
-set the search-tier AMReX inputs
-\texttt{max\_level} and \texttt{regrid\_threshold} together with the
-evolution box $(L,N)$ and $t_{\rm stop}$. Archive / CMA scores are therefore
-\emph{search-tier} diagnostics, not continuum claims. Only the frozen
-champion is re-run at production resolution for validation;
-Table~\ref{tab:search_vs_hq_grid} contrasts the two grid tiers and
-Fig.~\ref{fig:campaign-stages} summarizes the campaign ladder.
+loop uses a reduced GRTeclyn configuration for wall-clock speed
+(Table~\ref{tab:search_vs_hq_grid}). Archive and CMA scores are therefore
+\emph{search-tier} diagnostics, not continuum claims; only the frozen champion
+is re-run at production resolution. The campaign ladder
+(Fig.~\ref{fig:campaign-stages}) has four stages.
 
 \begin{itemize}
-    \item \textbf{Stage 1 --- MAP-Elites discovery (fast search grid):}
-    quality-diversity search at
-    $L=64$, $N=128$ (grid spacing $h\equiv L/N=0.5$),
-    \texttt{max\_level}$=1$,
-    \texttt{regrid\_threshold}$=0.1$,
-    and $t_{\rm stop}=16$
-    (bicomplex matter; per-lump gravitational signs retained in evolution).
-    Coarse AMR is intentional: it buys enough evaluations to fill the
-    behavior archive. Produces a diverse archive and a provisional score
-    leader.
-    \item \textbf{Stage 2 --- CMA-ES refinement (same search grid):}
-    warm-start from the MAP-Elites champion (and optionally its nearest
-    elites); local covariance-matrix adaptation at the \emph{same}
-    $(L,N,\texttt{max\_level},t_{\rm stop})$ and scoring rule. Only the
-    refined top genome is promoted further.
-    \item \textbf{Stage 3 --- production replay (HQ):} the frozen CMA-ES
-    champion is re-solved and evolved at higher fidelity / longer
-    $t_{\rm stop}$---typically
-    $L=128$, $N=256$,
-    \texttt{max\_level}$=3$,
-    \texttt{regrid\_threshold}$=0.02$,
-    $t_{\rm stop}=30$---with multiple emission times and multi-ray geodesic
-    probes. Paper headline numbers come from this stage, not from MAP-Elites.
-    \item \textbf{Stage 4 --- resolution and domain matrix:} matched
-    coarse/medium/fine resolution runs (RC/RM/RF at fixed $L=128$,
-    $N=192/256/384$) test continuum stability at the production
-    \texttt{max\_level}; matched-spacing domain runs (DS/DL at
-    $h=0.500$, $L=96/160$) test boundary sensitivity on the same
-    $t_{\rm stop}$ window.
+    \item \textbf{Stage 1 --- MAP-Elites discovery.} Quality-diversity search
+    on the search grid, with per-lump gravitational signs retained in
+    evolution. The coarse AMR is intentional: it buys enough evaluations to
+    fill the behavior archive.
+    \item \textbf{Stage 2 --- CMA-ES refinement.} Warm-start from the
+    MAP-Elites champion and its nearest elites; local covariance-matrix
+    adaptation at the \emph{same} grid, $t_{\rm stop}$, and scoring rule. Only
+    the refined top genome is promoted.
+    \item \textbf{Stage 3 --- production replay (HQ).} The frozen champion is
+    re-solved and evolved at higher fidelity and longer $t_{\rm stop}$, with
+    multiple emission times and multi-ray geodesic probes. Every headline
+    number in this paper comes from here, not from MAP-Elites.
+    \item \textbf{Stage 4 --- resolution and domain matrix.} Matched
+    coarse/medium/fine runs (RC/RM/RF at fixed $L=128$, $N=192/256/384$) test
+    continuum stability; matched-spacing domain runs (DS/DL at $h=0.500$,
+    $L=96/160$) test boundary sensitivity on the same $t_{\rm stop}$ window.
 \end{itemize}
 
 \begin{table}[tbp]
@@ -743,12 +673,10 @@ gate, and one failed the constraint solve. Nine cells were occupied
 ($14.06\%$ coverage). All nontrivial elites lie in the highest lifetime row,
 while peak strength spans the archive. The best score rose from $690.1$ to
 $825.19$ and last improved at batch~10, when candidate~87 entered cell
-$(7,7)$ (Fig.~\ref{fig:search_progress}a). The campaign runs to a fixed budget
-($200$ evaluations here), which is set so that it comfortably outlasts
-saturation: it is terminated once the archive-best score has plateaued and
-cell coverage has stopped growing. In this run both stall well before the
-budget is exhausted (no score improvement after batch~10), so the fixed
-budget and the saturation criterion coincide.
+$(7,7)$ (Fig.~\ref{fig:search_progress}a). The fixed $200$-evaluation budget is
+set to outlast saturation---termination requires a plateaued archive-best score
+and static cell coverage---and here both stall by batch~10, so the budget and
+the saturation criterion coincide.
 
 \begin{figure}[tbp]
 \centering
@@ -825,11 +753,10 @@ $852.15$ (candidate~146, $\Delta S\approx+27$;
 Fig.~\ref{fig:search_progress}b). The improvement is not a
 bigger raw shortcut---the search-tier $f_{\rm geo}$ actually \emph{decreased}
 from $25.3\%$ to $20.1\%$---but a better confinement-gated persistence
-($0.396\to0.417$). CMA-ES converged to a genome with nearly static lump
-placement: very slow angular velocities and small breathing, producing a
-quasi-static scaffold that keeps matter confined longer.
-Table~\ref{tab:search_handoff} summarizes
-the two-stage hand-off and its promotion to HQ validation.
+($0.396\to0.417$), achieved by converging on a quasi-static scaffold with very
+slow angular velocities and small breathing that keeps matter confined longer.
+Table~\ref{tab:search_handoff} summarizes the hand-off and its promotion to HQ
+validation.
 
 \begin{table}[tbp]
 \caption{Two-stage search hand-off: MAP-Elites champion (87)
@@ -890,21 +817,18 @@ F_{\rm op}=\frac{t_B^{\rm flat}-t_B^{\rm curved}}{t_B^{\rm flat}},
 f_{\rm geo}=\max\!\left(0,\;\frac{t_{\rm flat}-t_{\rm min}}{t_{\rm flat}}\right),
 \label{eq:f_geo}
 \end{equation}
-so $f_{\rm geo}=0$ means no shortcut. A launch is accepted only if
-its rays stay physical: the relative drift in the null Hamiltonian
+so $f_{\rm geo}=0$ means no shortcut. A launch is accepted only if its rays
+stay physical: the relative drift in the null Hamiltonian
 $g^{\mu\nu}k_\mu k_\nu=0$ must remain below $10^{-2}$, which rejects rays that
-have accumulated interpolation error. The simulation itself runs to $t=30$, but
-that is the evolution horizon of the metric stack, not the emission schedule.
-A ray launched at $t_{\rm emit}$ still needs a long remaining segment of
-evolved geometry to reach the far endpoint (flat transit is
-$t_{\rm flat}=14.4$), so late launches near $t=30$ cannot finish a fair
-comparison. We therefore sweep seven early launch times,
+have accumulated interpolation error. Because a ray needs a long remaining
+segment of evolved geometry to reach the far endpoint (flat transit is
+$t_{\rm flat}=14.4$) while the metric stack ends at $t=30$, late launches
+cannot finish a fair comparison. We therefore sweep seven early launch times,
 $t_{\rm emit}=0,2,\ldots,12$ (five rays each), and report the largest accepted
-$f_{\rm geo}$---the emission time at which the channel is most open. Across
-the pump-on validation matrix the peak sits at $t_{\rm emit}=4$ (just after
-the PD pump switches off) and has fallen to zero by $t_{\rm emit}=12$, so for
-those runs the window brackets the full life of the channel. (In the
-pump-free twin the optimum instead sits at the edge of the same window;
+$f_{\rm geo}$. Across the pump-on validation matrix the peak sits at
+$t_{\rm emit}=4$, just after the PD pump switches off, and has fallen to zero
+by $t_{\rm emit}=12$, so the window brackets the full life of the channel. (In
+the pump-free twin the optimum sits at the edge of the same window;
 Sec.~\ref{sec:pump_free}.)
 
 \subsection{Freely falling observer timing metric}
@@ -925,27 +849,21 @@ g^{\mu\nu}p_\mu p_\nu=-1,
 \end{equation}
 where $\tau$ is the observer's proper time. Emission is scheduled by the
 emitter's clock, $\tau_A=\tau_{\rm emit}$, rather than by simulation coordinate
-time.
-
-At the emission event, an orthonormal spatial triad
-$e_{(a)}{}^\mu$ is constructed in the emitter's rest frame. The initial photon
-wave vector is written
+time. At the emission event, an orthonormal spatial triad
+$e_{(a)}{}^\mu$ is constructed in the emitter's rest frame and the photon wave
+vector is launched as
 \begin{equation}
 k^\mu=u_A^\mu+\hat n^a e_{(a)}{}^\mu,\qquad
 \delta_{ab}\hat n^a\hat n^b=1,
 \label{eq:freefall_null_launch}
 \end{equation}
 up to an irrelevant positive affine rescaling. The two launch angles and the
-arrival affine parameter are solved simultaneously so that the null ray
-intersects the moving receiver worldline $\gamma_B$. Thus reception is a
-worldline event, not merely the crossing of a coordinate detector plane. The
-physical miss distance at the candidate event,
-\begin{equation}
-\delta_B=\sqrt{\gamma_{ij}\Delta x^i\Delta x^j},
-\label{eq:receiver_miss}
-\end{equation}
-is retained as a numerical quality diagnostic together with the null and
-timelike mass-shell residuals.
+arrival affine parameter are solved simultaneously so that the ray intersects
+the moving receiver worldline $\gamma_B$: reception is a worldline event, not
+the crossing of a coordinate detector plane. The physical miss distance
+$\delta_B=(\gamma_{ij}\Delta x^i\Delta x^j)^{1/2}$ at the candidate event is
+retained as a quality diagnostic alongside the null and timelike mass-shell
+residuals.
 
 For the matched Minkowski experiment, the two inertial observers are initially
 comoving, their clocks are synchronized on the reference initial slice, and
@@ -955,22 +873,20 @@ D_0=\int_A^B\sqrt{\gamma_{ij}\,dx^i dx^j}.
 \label{eq:freefall_initial_separation}
 \end{equation}
 The flat receiver therefore records
-$\tau_{B,\rm flat}=\tau_{\rm emit}+D_0$. If the curved-spacetime reception event
-occurs at receiver proper time $\tau_{B,\rm curved}$, the additional evaluation
-metric is
+$\tau_{B,\rm flat}=\tau_{\rm emit}+D_0$, and if the curved reception event
+occurs at receiver proper time $\tau_{B,\rm curved}$ the metric is
 \begin{equation}
 f_{\rm ff}
 =\frac{\tau_{B,\rm flat}-\tau_{B,\rm curved}}
        {D_0}.
 \label{eq:freefall_metric}
 \end{equation}
-A positive $f_{\rm ff}$ means that the freely falling receiver records the
-photon earlier than in the matched flat experiment. This protocol absorbs
-endpoint lapse, shift, gravitational clock rate, and receiver motion into the
-measured worldlines. It is less coordinate-conditioned than
-Eq.~\eqref{eq:f_geo}, but it is not asserted to be fully gauge invariant:
-the initial slice and endpoint-selection prescription remain part of the
-operational definition.
+A positive $f_{\rm ff}$ means the freely falling receiver records the photon
+earlier than in the matched flat experiment. Absorbing endpoint lapse, shift,
+clock rate, and receiver motion into the measured worldlines makes this less
+coordinate-conditioned than Eq.~\eqref{eq:f_geo}, though not fully gauge
+invariant: the initial slice and the endpoint-selection prescription remain
+part of the operational definition.
 
 \begin{figure}[tbp]
 \centering
@@ -1058,18 +974,24 @@ quality.}
 
 For candidate~146 in the corrected RM replay, the fixed-endpoint probe gives
 $f_{\rm geo}\simeq20\%$, whereas the freely falling protocol gives
-$f_{\rm ff}=7.62\%$. This is not a degradation of the candidate or a loss under
-resolution refinement: the two quantities ask different operational
-questions (Fig.~\ref{fig:timing_protocols}). In the observer protocol,
-$D_0=13.851$, $\tau_{B,\rm flat}=17.851$, and
+$f_{\rm ff}=7.62\%$: $D_0=13.851$, $\tau_{B,\rm flat}=17.851$, and
 $\tau_{B,\rm curved}=16.796$, so the receiver-clock advance is $1.055$ and
-$f_{\rm ff}=1.055/13.851=7.62\%$. Releasing the endpoints changes the reception
-event, while proper-time readout incorporates their motion and accumulated
-clock rates. The smaller magnitude therefore isolates a more demanding
-observer-to-observer shortcut; its positive sign is the relevant additional
-certificate. The normalization by $D_0$, rather than by the absolute clock
-reading $\tau_{B,\rm flat}$, makes the fraction independent of an arbitrary
-common shift of the clocks' zero.
+$f_{\rm ff}=1.055/13.851=7.62\%$. The smaller magnitude is not a degradation of
+the candidate. The two protocols measure different things
+(Fig.~\ref{fig:timing_protocols}): releasing the endpoints changes the
+reception event, and proper-time readout absorbs their motion and accumulated
+clock rates. Which piece of geometry accounts for the difference is settled
+quantitatively in Sec.~\ref{sec:mechanism}. Normalizing by $D_0$ rather than by
+the absolute clock reading $\tau_{B,\rm flat}$ makes the fraction independent
+of an arbitrary common shift of the clocks' zero.
+
+Moving-puncture coordinates are prone to slice stretching, so it matters that
+this protocol never leaves the weak field. Both $A$ and $B$ start in the
+near-flat region (Table~\ref{tab:endpoint_gauge}) and are released with
+Eulerian normal four-velocity; the reported quantity is the receiver's own
+proper time at a reception event on its own worldline, normalized by an
+initial proper length. The $7.6\%$ advance is therefore physically unambiguous
+in a way the coordinate figure is not.
 
 \subsection{Null-constraint accuracy along the flight path}
 \label{sec:null_accuracy}
@@ -1140,12 +1062,12 @@ The PD trajectory controller (Sec.~\ref{sec:pd_pump}) drives the lumps during
 the ignition phase ($t<4$) and then switches off; the evolution remains
 numerically controlled throughout (Fig.~\ref{fig:constraints}).
 Figure~\ref{fig:lump_topdown} shows an unscaled top-down ($x$--$y$) projection
-at grid scale, confirming that the shell spans only a few code units across the
-null-probe corridor. The support centers are the intended
-dynamical scaffold, not tracked density isosurfaces. The field follows them
-imperfectly: confinement falls from $72\%$ to $11\%$ and rms spread grows by a
-factor $3.27$ by $t=30$. Candidate~146 is therefore a transient, initially
-driven configuration, not a bound five-body soliton.
+confirming that the shell spans only a few code units across the null-probe
+corridor. Those support centers are the intended dynamical scaffold, not
+tracked density isosurfaces, and the field follows them imperfectly:
+confinement falls from $72\%$ to $11\%$ and rms spread grows by a factor $3.27$
+by $t=30$. Candidate~146 is a transient, initially driven configuration, not a
+bound five-body soliton.
 
 
 \begin{figure}[tbp]
@@ -1200,28 +1122,91 @@ mid-plane ($z=z_0$) slices at $t=0,4,16,30$. \emph{Top row:} required energy
 density $\rho_{\rm req}$, with blue the canonical ($+\rho$) lumps and red the
 phantom ($-\rho$) lumps---a direct view of the negative-energy sector of
 Sec.~\ref{sec:phantom_action}. \emph{Bottom row:} the shift component
-$\beta^{x}$ along the null-probe axis, whose sign tilts the local light cones
-and opens the transport channel. The channel is strongest just after
-pump-off ($t=4$, the peak-$f_{\rm geo}$ launch); by $t=30$ both the matter and
-the shift structure have spread and weakened, consistent with the transient
-nature of the shortcut.}
+$\beta^{x}$ along the null-probe axis. Its bipolar structure is why frame
+dragging does not carry the shortcut
+(Table~\ref{tab:mechanism_ablation}); the transporting geometry is the
+conformal well dug by the phantom lumps in the top row. The channel is
+strongest just after pump-off ($t=4$, the peak-$f_{\rm geo}$ launch); by
+$t=30$ both the matter and the shift structure have spread and weakened,
+consistent with the transient nature of the shortcut.}
 \label{fig:rf_field_maps}
 \end{figure*}
 
-\subsection{Transport mechanism}
+\subsection{Transport mechanism: conformal contraction, not frame dragging}
+\label{sec:mechanism}
 
-The shortcut arises from matter momentum sourcing geometry. Each Q-ball lump
-oscillates with $\Pi\neq0$, so by Eq.~\eqref{eq:scalar_sources} it carries a
-momentum density $S_i$ that enters the momentum constraint and generates a
-nontrivial shift $\beta^i$; the shift tilts the local light cones along the
-matter current, and null rays crossing the region gain coordinate time
-relative to the flat path (Fig.~\ref{fig:timing_protocols}a). The finest-run
-field maps (Fig.~\ref{fig:rf_field_maps}) make this concrete: the mixed-sign
-lumps ($\rho_{\rm req}$, top row) source a bipolar shift $\beta^{x}$ (bottom
-row) that is strongest at the peak-$f_{\rm geo}$ launch $t_{\rm emit}=4$
-(Fig.~\ref{fig:fgeo_validation}) and decays as the matter disperses.
-Lower-scoring archive configurations failed for the same reason
-(Sec.~\ref{sec:dispersion}).
+The obvious candidate mechanism is frame dragging. Each Q-ball lump oscillates
+with $\Pi\neq0$, so by Eq.~\eqref{eq:scalar_sources} it carries a momentum
+density $S_i$ that sources a shift $\beta^i$, and a shift tilts the local light
+cones---which is how the Alcubierre family transports. The shift is certainly
+there. It vanishes identically on the initial slice and the moving-puncture
+gauge then grows it out of $S_i$ and $A_{ij}$: along the $A$--$B$ corridor the
+peak $|\beta^{x}|$ reaches $4.3\times10^{-2}$ at the stored slice nearest the
+headline launch ($t=4.32$), an order of magnitude above the endpoint values of
+Table~\ref{tab:endpoint_gauge}, and climbs to ${\sim}10^{-1}$ by $t\approx10$
+while the ray is still in flight. But it is bipolar---at $t=4.32$ the corridor
+spans $\beta^{x}\in[-2.0,+4.3]\times10^{-2}$, the visual signature in the
+bottom row of Fig.~\ref{fig:rf_field_maps}---and that turns out to matter more
+than its amplitude.
+
+To attribute the timing gain we re-trace the headline five-ray fan through the
+stored metric stack with one ADM field at a time replaced by its flat value
+(Table~\ref{tab:mechanism_ablation}). These are kinematic substitutions on the
+stored spacetime, not new constraint solutions; they apportion the measured
+$f_{\rm geo}$ rather than describe alternative universes. The result inverts the
+naive expectation. Deleting the shift entirely \emph{improves} the shortcut,
+$20.2\%\to22.8\%$: because $\beta^{x}$ changes sign along the corridor, the
+segments that speed a $+x$ ray are more than cancelled by those that slow it,
+so net frame dragging costs about $2.5$ percentage points. A pure-shift
+geometry with flat lapse and flat spatial metric transports no faster than
+Minkowski at all. What does carry the effect is the other two fields:
+flattening the lapse collapses $f_{\rm geo}$ to $1.7\%$, and the spatial metric
+alone already delivers $6.8\%$.
+
+Both surviving contributions trace to the phantom sector rather than to the
+matter current. The negative-energy lumps contract the corridor, holding its
+proper length inside $[13.08,13.67]$ against a coordinate separation of $14.4$
+throughout the flight (Sec.~\ref{sec:endpoint_gauge}). They also raise the
+clock rate along it: the corridor-averaged lapse, $0.955$ at launch, crosses
+unity at $t\approx6.5$ and peaks at $1.34$ (local maximum $1.47$) for the
+middle of the transit, so a ray crosses a fixed coordinate distance in less
+coordinate time. Candidate~146 is therefore a \emph{conformal-well precursor}:
+the exotic matter digs a shortened, fast-clock corridor, and the shift it
+inevitably also sources is a mild parasitic drag.
+
+This also settles what would otherwise be a loose end. The
+spatial-metric-only entry, $6.8\%$ (RM) and $7.0\%$ (RC), sits inside the
+freely falling observer band $f_{\rm ff}=7.0$--$7.7\%$ measured independently
+in Sec.~\ref{sec:freefall_metric}. The two protocols are not merely asking
+different questions: the free-fall receiver reports the proper-distance
+contraction and discards the slicing-dependent lapse elevation, which is
+exactly the ${\sim}13$-point remainder of the coordinate figure. So $20.2\%$
+is the coordinate-referenced advantage in the selected gauge, $7.6\%$ is the
+observer-level one, and the ablation says which piece of geometry supplies
+each.
+
+\begin{table}[tbp]
+\caption{Mechanism ablation for candidate~146: peak evolving $f_{\rm geo}$
+when one ADM field of the stored metric stack is replaced by its flat value,
+with the same five-ray fan and launch $t_{\rm emit}=4$. Substitutions are
+diagnostic, not constraint-satisfying. Removing the shift \emph{raises} the
+shortcut; removing the lapse elevation removes almost all of it. Baseline
+re-traces of the archived stacks give $20.15\%$ (RM) and $20.60\%$ (RC),
+within $0.2$ percentage points of Table~\ref{tab:matrix}.
+Source: \texttt{mechanism\_ablation.txt}.}
+\label{tab:mechanism_ablation}
+\begin{ruledtabular}
+\begin{tabular}{lcc}
+metric retained & $f_{\rm geo}$ (RM) & $f_{\rm geo}$ (RC) \\
+\hline
+all (baseline)                                   & $20.15\%$ & $20.60\%$ \\
+$\beta^i\to0$ (no frame dragging)                & $22.76\%$ & $23.10\%$ \\
+$\alpha\to1$ (no lapse elevation)                & $1.70\%$  & $1.63\%$  \\
+$\gamma_{ij}$ only ($\alpha=1$, $\beta^i=0$)     & $6.83\%$  & $6.96\%$  \\
+$\beta^i$ only ($\alpha=1$, $\gamma_{ij}=\delta_{ij}$) & $0.00\%$ & $0.00\%$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
 
 \subsection{4D falsification certificate}
 
@@ -1259,6 +1244,17 @@ $0.5\%$ relative. The endpoint timing corresponds to an effective
 $c/(1-f_{\rm geo})\simeq1.25c$ relative to the matched flat path; nothing
 physical moves outside its local light cone
 (Fig.~\ref{fig:timing_protocols}a).
+
+The frozen peak in the same table reaches $29.45\%$, some nine percentage
+points higher, and the gap is physical rather than an error bar: the frozen
+trace assumes one snapshot persists for the whole flight, whereas the 4D trace
+watches the channel open and then weaken while the photon is inside it. Only
+the latter certifies transport. The frozen peak is itself stable across the
+resolution ladder ($29.1$--$29.5\%$), so the gap is not a snapshot-quality
+artifact. Sweeping the launch time (Fig.~\ref{fig:fgeo_validation}) shows the
+evolving advantage peaking at $t_{\rm emit}=4$ in all three runs and decaying
+monotonically thereafter, so successful transport coexists with the dispersal
+of Sec.~\ref{sec:dispersion} only inside a finite window.
 
 \begin{figure}[tbp]
 \centering
@@ -1298,22 +1294,19 @@ clamped advantage [Eq.~\eqref{eq:f_geo}] is zero.}
 \label{sec:endpoint_gauge}
 
 The timing advantage of Eq.~\eqref{eq:f_geo} compares two \emph{coordinate}
-transit durations between the same fixed endpoints. In moving-puncture gauge
-this is only a physical statement if the endpoints behave as nearly stationary,
-nearly flat observers; a deep lapse well ($\alpha\ll1$) at the endpoints could
-in principle manufacture a coordinate advance with no proper-time content. We
-therefore report the metric at the two probe endpoints. The emitter and
-receiver sit on the propagation axis at
-$A=(x,y,z)=(56.8,64,64)$ and $B=(71.2,64,64)$ in the $L=128$ box centered on
-$(64,64,64)$ (a corridor of coordinate length $t_{\rm flat}=14.4$).
-Table~\ref{tab:endpoint_gauge} lists the lapse $\alpha$ and shift magnitude
-$|\beta^i|$ there through the emission window. At the headline launch
-$t_{\rm emit}=4$ the endpoints are close to flat and stationary:
-$\alpha_A=0.96$, $\alpha_B=0.99$, and $|\beta^i|\lesssim3.5\times10^{-2}$.
-The lapse never enters the dangerous $\alpha\ll1$ regime; at late times it
-drifts modestly \emph{above} unity ($\alpha\lesssim1.2$), which if anything
-makes the coordinate advantage conservative, since a stationary clock with
-$\alpha>1$ accumulates proper time faster than coordinate time.
+transit durations between fixed endpoints, which is only a physical statement
+if those endpoints behave as nearly stationary, nearly flat observers---a deep
+lapse well ($\alpha\ll1$) there could manufacture a coordinate advance with no
+proper-time content. The emitter and receiver sit on the propagation axis at
+$A=(56.8,64,64)$ and $B=(71.2,64,64)$ in the $L=128$ box centered on
+$(64,64,64)$, a corridor of coordinate length $t_{\rm flat}=14.4$. At the
+headline launch $t_{\rm emit}=4$ both are close to flat and stationary
+(Table~\ref{tab:endpoint_gauge}): $\alpha_A=0.96$, $\alpha_B=0.99$, and
+$|\beta^i|\lesssim3.5\times10^{-2}$. The lapse never enters the dangerous
+$\alpha\ll1$ regime; at late times it drifts modestly \emph{above} unity
+($\alpha\lesssim1.2$), which if anything makes the coordinate advantage
+conservative, since a stationary clock with $\alpha>1$ accumulates proper time
+faster than coordinate time.
 
 \begin{table}[tbp]
 \caption{Lapse $\alpha$ and shift magnitude $|\beta^i|$ at the fixed probe
@@ -1335,13 +1328,11 @@ $t$ & $\alpha_A$ & $|\beta^i|_A$ & $\alpha_B$ & $|\beta^i|_B$ \\
 \end{ruledtabular}
 \end{table}
 
-As a gauge-robustness check, we re-express the timing
-advantage in the proper time of a static receiver at $B$, whose clock ticks at
-$d\tau=\sqrt{-g_{00}(B)}\,dt$. Integrating the measured $g_{00}(B,t)$ from
-$t_{\rm emit}$ to each arrival, the curved signal reaches $B$ at proper time
-$\tau_{\rm curved}=12.61$, while the matched flat-rate signal
-(coordinate arrival $t_{\rm emit}+t_{\rm flat}$) reaches it at
-$\tau_{\rm flat}=15.66$, giving a proper-time advantage
+As a gauge-robustness check, we re-express the advantage in the proper time of
+a static receiver at $B$, whose clock ticks at $d\tau=\sqrt{-g_{00}(B)}\,dt$.
+Integrating the measured $g_{00}(B,t)$ from $t_{\rm emit}$ to each arrival, the
+curved signal reaches $B$ at $\tau_{\rm curved}=12.61$ and the matched
+flat-rate signal at $\tau_{\rm flat}=15.66$, giving
 \begin{equation}
 f_{\rm geo}^{\tau}=\frac{\tau_{\rm flat}-\tau_{\rm curved}}{\tau_{\rm flat}}
 =19.5\%,
@@ -1356,20 +1347,19 @@ it confirms the signal is not a coordinate artifact of the $1+\log$ slicing.
 
 A complementary check concerns proper \emph{distance}. The negative-energy
 sources contract the spatial metric along the corridor, so the coordinate
-separation $14.4$ overstates the proper length of the A--B line. Integrating
-$\int\sqrt{\gamma_{xx}}\,dx$ along the corridor in the stored RM metric stack
-gives a proper length of $13.85$ at $t=0$ and $13.60$ at the stored slice
-nearest the headline launch ($t=4.32$), and the value remains in
-$[13.08,13.67]$ throughout the flight window. Part of the coordinate-level
-advantage therefore reflects genuine spatial contraction sourced by the
-exotic matter---itself a physical effect, but one worth separating from
-light-cone tilting. Under the most conservative
-renormalization, comparing the curved transit $t_{\rm min}=11.49$ against a
-flat transit across the \emph{smallest} instantaneous proper length,
-$(13.08-11.49)/13.08=12.2\%$, the advantage remains strictly positive. We
-quote the coordinate-referenced $f_{\rm geo}=20.2\%$ as the headline number
-because Eq.~\eqref{eq:f_geo} defines the flat baseline by the fixed
-coordinate endpoints, but both normalizations certify an early arrival.
+separation $14.4$ overstates the proper length of the $A$--$B$ line:
+integrating $\int\sqrt{\gamma_{xx}}\,dx$ in the stored RM metric stack gives
+$13.85$ at $t=0$, $13.60$ at the stored slice nearest the headline launch
+($t=4.32$), and a value inside $[13.08,13.67]$ throughout the flight window.
+Part of the coordinate advantage is therefore genuine spatial contraction
+sourced by the exotic matter---a physical effect, and one the ablation of
+Sec.~\ref{sec:mechanism} isolates quantitatively. Even under the most
+conservative renormalization, comparing the curved transit $t_{\rm min}=11.49$
+against a flat transit across the \emph{smallest} instantaneous proper length,
+$(13.08-11.49)/13.08=12.2\%$, the advantage stays strictly positive. We
+quote the coordinate-referenced $20.2\%$ as the headline number because
+Eq.~\eqref{eq:f_geo} defines its flat baseline by the fixed coordinate
+endpoints, but both normalizations certify an early arrival.
 
 \subsection{Resolution and domain matrix}
 
@@ -1393,7 +1383,11 @@ $f_{\rm geo}$ is the maximum evolving 4D null-geodesic timing advantage;
 frozen peak is the maximum of the frozen-slice $f_{\rm geo}$ time series;
 $f_{\rm ff}$ is the freely falling observer metric
 (Sec.~\ref{sec:freefall_metric}).
-RC/RM/RF change $h$ at fixed $L$; DS/DL change $L$ at fixed $h$.}
+RC/RM/RF change $h$ at fixed $L$; DS/DL change $L$ at fixed $h$.
+The $f_{\rm ff}$ column comes from three matched companion integrations
+(\texttt{bcma\_*\_freefall\_corrected\_*}) that repeat the RC/RM/RF settings
+with the observer probe enabled; their metric stacks are bit-identical to the
+runs in the other columns.}
 \label{tab:matrix}
 \begin{ruledtabular}
 \begin{tabular}{lrrrrrrr}
@@ -1401,31 +1395,27 @@ run & $L$ & $N$ & $h$ & peak $f_{\rm geo}$ & frozen peak & $f_{\rm ff}$ & $t_{\r
 \hline
 RC & 128 & 192 & 0.667 & 20.44\% & 29.15\% & 7.69\% & 4 \\
 RM & 128 & 256 & 0.500 & 20.21\% & 29.45\% & 7.62\% & 4 \\
-RF & 128 & 384 & 0.333 & 20.15\% & 29.45\% & 7.01\% & 4 \\
+RF & 128 & 384 & 0.333 & 20.19\% & 29.54\% & 7.01\% & 4 \\
 DS & 96 & 192 & 0.500 & 20.19\% & 29.21\% & --- & 4 \\
 DL & 160 & 320 & 0.500 & 20.22\% & 29.44\% & --- & 4 \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
-On the resolution ladder the evolving timing advantage spans
-$20.15$--$20.44\%$. The fine--medium relative difference is $0.30\%$
-(computed from unrounded values), well below the $10\%$ acceptance
-tolerance fixed for the ladder before it was run. The frozen-peak
-$f_{\rm geo}$ remains near ${\sim}29.5\%$ at
-all three resolutions. The freely falling observer metric $f_{\rm ff}$
-spans $7.01$--$7.69\%$ across the ladder, with a fine--medium difference
-of $8\%$ relative, indicating mild but acceptable resolution dependence
-in the proper-time measurement. On the domain ladder, evolving
-$f_{\rm geo}=20.19\%$ (DS) and $20.22\%$ (DL) differ from RM by at most
-$0.12\%$ relative; each run returns five of five completed rays with the
-null-Hamiltonian quality gate satisfied. The agreement indicates that
-outer-boundary reflections do not set the reported timing advantage on
-the interval $t\le30$. That conclusion is consistent with a causal
-estimate for the $L=128$ box: in $1{+}\log$ slicing, gauge modes with
-characteristic speeds up to ${\sim}\sqrt{2}\,c$ require
-$t\gtrsim L/(2\sqrt{2})\approx45$ for a one-way trip from the outer
-boundary to the central region.
+On the resolution ladder the evolving timing advantage runs
+$20.44\%\to20.21\%\to20.19\%$: monotonically decreasing, with a
+fine--medium relative difference of $0.13\%$, far inside the $10\%$
+acceptance tolerance fixed before the ladder was run. The frozen peak stays
+at $29.1$--$29.5\%$ and the freely falling observer metric at
+$7.01$--$7.69\%$, the latter with an $8\%$ fine--medium relative spread that
+indicates mild but acceptable resolution dependence in the proper-time
+measurement. On the domain ladder, $f_{\rm geo}=20.19\%$ (DS) and $20.22\%$
+(DL) differ from RM by at most $0.12\%$ relative, with five of five rays
+reaching in every run. Outer-boundary reflections therefore do not set the
+reported advantage on $t\le30$, consistent with a causal estimate for the
+$L=128$ box: in $1{+}\log$ slicing, gauge modes with characteristic speeds up
+to ${\sim}\sqrt{2}\,c$ need $t\gtrsim L/(2\sqrt{2})\approx45$ to travel from
+the outer boundary to the central region.
 
 For unequal spacings, a Richardson estimate assumes
 \begin{equation}
@@ -1434,24 +1424,19 @@ For unequal spacings, a Richardson estimate assumes
  =\frac{h_c^p-h_m^p}{h_m^p-h_f^p}.
  \label{eq:richardson_order}
 \end{equation}
-The $f_{\rm geo}$ sequence $20.44\%\to20.21\%\to20.19\%$ is monotonically
-decreasing and continuum-stable (fine--medium relative difference $0.13\%$),
-but the absolute gap is too small for a clean order extraction from
-$f_{\rm geo}$ alone. Applying Eq.~\eqref{eq:richardson_order} directly to the
-triplet with the actual spacings $(h_c,h_m,h_f)=(0.667,0.500,0.333)$ returns an
-unstable exponent ($p\approx8.7$) whose value is set by the fine--medium
-difference of a single significant figure; the sequence is thus consistent with
-rapid convergence but does not pin down $p$ on its own. We therefore measure the
-observed order on the constraint norms themselves
-(Fig.~\ref{fig:constraints}a). Over the ignition window
-$1.5\le t\le5$, the Hamiltonian residual converges at median observed order
+Applied to the $f_{\rm geo}$ triplet at the actual spacings
+$(h_c,h_m,h_f)=(0.667,0.500,0.333)$, Eq.~\eqref{eq:richardson_order} returns an
+unstable exponent ($p\approx8.7$) fixed by a fine--medium difference of one
+significant figure: the sequence is consistent with rapid convergence but
+cannot pin down $p$. We therefore measure the observed order on the constraint
+norms instead (Fig.~\ref{fig:constraints}a). Over the ignition window
+$1.5\le t\le5$ the Hamiltonian residual converges at median observed order
 $p_{\mathcal H}\approx3.3$ and the momentum residual at
 $p_{\mathcal M}\approx2.8$, consistent with the high-order finite-difference
-scheme. At late times the three resolutions already sit on top of each
-other to within a few percent, so the order estimator becomes
-noise-dominated---as expected once the continuum residual is reached. We
-accept the $20.2\%$ shortcut as continuum-stable without quoting a formal
-extrapolated value.
+scheme; at late times the three resolutions already overlie each other to
+within a few percent and the estimator becomes noise-dominated. We accept the
+$20.2\%$ shortcut as continuum-stable without quoting a formal extrapolated
+value.
 
 \begin{figure}[tbp]
 \centering
@@ -1511,21 +1496,6 @@ the early driven phase ($t\lesssim4$) and then plateau or slowly grow during
 the free evolution, consistent with the dispersing matter producing less
 active refinement at late times.
 
-\subsection{Frozen versus evolving shortcut, and confinement}
-
-RM's frozen-peak $f_{\rm geo}$ reaches $29.45\%$, compared with the evolving
-4D sweep peak of $20.21\%$. The ${\sim}9$-percentage-point gap is physical: the frozen
-trace assumes that one snapshot persists for the entire ray flight, whereas
-the 4D trace samples the actual changing metric and therefore ``sees'' the
-channel open and then weaken during propagation. Only the latter is used for
-the transport claim. The frozen peak is stable across all three resolutions
-($29.1$--$29.5\%$), confirming that the metric snapshot quality is not
-resolution-sensitive.
-
-The evolving $f_{\rm geo}$ curve declines steadily at later emission
-times; successful ray transport coexists with the substantial dispersal
-described in Sec.~\ref{sec:results}.
-
 \subsection{Evolution with the PD controller disabled}
 \label{sec:pump_free}
 
@@ -1561,29 +1531,24 @@ final score $S$ & $126.3$ & $47.0$ \\
 \end{table}
 
 With the PD term off, the evolving timing advantage remains
-$f_{\rm geo}=20.46\%$---within $1.3\%$ relative of the pump-on value---with
+$f_{\rm geo}=20.46\%$---within $1.2\%$ relative of the pump-on value---with
 all five rays reaching and the null-Hamiltonian quality gate satisfied. The
 integrated pump work vanishes identically, so the advantage cannot be
-ascribed to external PD energy injection. The emission optimum shifts from
-$t_{\rm emit}=4$ to $t_{\rm emit}=12$, indicating a slower opening of the
-null channel in the absence of the controller, while the peak amplitude
-is essentially unchanged. Because $t_{\rm emit}=12$ is the last point of
-the emission sweep, the pump-free value is strictly a lower bound on that
-run's peak advantage; the channel may still be opening when the sweep
+ascribed to external PD energy injection. The channel does open more slowly:
+the emission optimum shifts from $t_{\rm emit}=4$ to $t_{\rm emit}=12$ and
+migrates from the $x$ axis to the $z$ axis of the probe, while the peak
+amplitude is essentially unchanged. Because $t_{\rm emit}=12$ is the last
+point of the emission sweep, the pump-free value is strictly a lower bound on
+that run's peak advantage; the channel may still be opening when the sweep
 window closes.
 
-The principal effect of the brief ignition-phase controller is therefore
-on matter retention rather than on $f_{\rm geo}$. At $t=30$ the pump-on
-run still confines ${\sim}11\%$ of the matter, compared with ${\sim}2\%$
-when the controller is off; the rms spread ratios remain comparable
-(${\sim}3$). The composite score decreases from $S=126.3$ (RM) to
-$S=47.0$ (PF-RM) for the same reason: confinement- and horizon-gated
-terms penalize the more rapidly dispersing pump-free evolution, while
-the geodesic timing advantage itself is essentially unchanged. A short
-PD drive in the default campaign thus delays dispersal of the supporting
-lumps. In both integrations the observed shortcut remains a transient
-precursor---a null-timing advantage coexisting with dispersing exotic
-matter.
+The controller's principal effect is therefore on matter retention, not on
+$f_{\rm geo}$: at $t=30$ the pump-on run still confines ${\sim}11\%$ of the
+matter against ${\sim}2\%$ without it. That is also why the composite score
+falls from $S=126.3$ to $S=47.0$---confinement-gated terms penalize the faster
+dispersal, while the timing advantage itself is unchanged. In both
+integrations the shortcut remains a transient precursor coexisting with
+dispersing exotic matter.
 
 
 \section{Discussion}
@@ -1601,10 +1566,10 @@ state and blow apart almost immediately. Bicomplex phantom lumps \emph{without}
 Q-ball self-binding (an earlier, pre-soliton family) opened a
 gauge-invariant shortcut but lost ${\sim}\!98\%$ of their structure by $t=16$
 (structural persistence $\approx0.02$). Boosted and stiffened Q-ball variants
-improved early confinement but still sheared apart once placed on an orbit. The dispersion gate in the score (Sec.~\ref{sec:scoring}) prevents the
-optimizer from exploiting channels whose matter has already dispersed. CMA-ES improved confinement-gated persistence
-(Sec.~\ref{sec:methodology}), but candidate~146 retains only
-${\sim}11\%$ by $t=30$.
+improved early confinement but still sheared apart once placed on an orbit.
+CMA-ES improved confinement-gated persistence
+(Sec.~\ref{sec:methodology}), but candidate~146 still retains only
+${\sim}11\%$ of its structure by $t=30$.
 
 Beyond dispersal, the HQ runs develop a corroborated trapped surface at late
 times ($t\approx27$ in the resolution ladder, $t\approx24$ in the pump-free
@@ -1612,14 +1577,10 @@ twin), with a minimum expansion scalar $\theta_+\approx-0.9$ and
 $r_{\rm AH}\approx10.8$ code units. The headline geodesic launches at
 $t_{\rm emit}=4$ and arrives at $t\approx15.5$, well before any apparent
 horizon forms, so the transport certificate is unaffected. The collapse is
-itself a consequence of the transient nature of the configuration: once
-the exotic matter disperses, the residual positive-energy content exceeds the
-threshold for gravitational collapse. This reinforces the conclusion that
-the shortcut is a \emph{transient precursor}---not a sustained channel.
-
-In summary, a
-\emph{transient} shortcut is reproducible and robust, while a
-\emph{long-lived}, well-confined channel remains an open problem.
+itself a symptom of transience: once the exotic matter disperses, the residual
+positive-energy content exceeds the threshold for gravitational collapse. A
+transient shortcut is reproducible and robust here; a long-lived, well-confined
+channel remains an open problem.
 
 \subsection{Canonical-only (positive-energy) search bound}
 \label{sec:canonical_bound}
@@ -1666,30 +1627,20 @@ chosen matter model. Three specific limitations follow.
     represent, e.g., anisotropic fluids, higher-spin fields, or engineered
     equation-of-state shells. Broadening the matter sector is the most direct
     route to new mechanism families.
-  \item \textbf{$\mathbb{R}^3$ spatial topology.} The \texttt{GRTresna}
-    constraint solve and the \texttt{GRTeclyn} Cauchy evolution both operate
-    on a topologically trivial spatial slice ($\mathbb{R}^3$ with the
-    non-periodic Sommerfeld radiative boundaries described in
-    Sec.~\ref{sec:results}). Topological features that exist only in
-    the full four-dimensional manifold---wormhole throats, handles, or other
-    nontrivial $\mathbb{R}^4$ structures---cannot be represented on the
-    initial slice and are therefore invisible to the search. Discovering
-    such configurations would require either an extended initial-data
-    formalism (e.g., puncture or excision methods for nontrivial topology)
-    or a geometry-first seed that is subsequently evolved.
+  \item \textbf{$\mathbb{R}^3$ spatial topology.} Both the constraint solve
+    and the Cauchy evolution operate on a topologically trivial slice
+    ($\mathbb{R}^3$ with Sommerfeld radiative boundaries). Features that exist
+    only in the full four-dimensional manifold---wormhole throats, handles,
+    other nontrivial $\mathbb{R}^4$ structures---cannot be represented on the
+    initial slice and are invisible to the search. Reaching them would need an
+    extended initial-data formalism (puncture or excision methods) or a
+    geometry-first seed that is subsequently evolved.
   \item \textbf{Ignition-phase controller.} The PD pump
     (Sec.~\ref{sec:pd_pump}) is a non-Lagrangian external source; results
     without it (Sec.~\ref{sec:pump_free}) are comparable. A fully
     self-consistent confinement mechanism would remove the need for any
     external drive.
 \end{enumerate}
-
-The two approaches are therefore complementary: geometry-first is better
-suited to exploring exotic topologies and unconstrained metric deformations,
-while matter-first provides constraint-satisfying, dynamically evolvable
-candidates that can be scored by a 4D transport test. A hybrid strategy---using
-geometry-first motifs as seeds for a matter-first refinement loop---is a
-natural next step.
 
 \subsection{Geometry-first kinematic ceiling}
 \label{sec:geometry_ceiling}
@@ -1698,11 +1649,9 @@ The canonical-only bound of Sec.~\ref{sec:canonical_bound} asks how far the
 search reaches within one matter model. A complementary question is purely
 kinematic: setting sourceability aside, how large a frozen-slice shortcut is
 available to \emph{any} asymptotically flat stationary metric of this scale?
-To bound this we ran a deliberately geometry-first companion search---the
-regime the Introduction flags as poorly conditioned for dynamics, and the very
-hazard that motivated inverting the loop to a matter-first proposal in the first
-place (Sec.~\ref{sec:intro})---precisely to quantify what the matter-first
-pipeline leaves on the table and to make its cost explicit.
+To answer it we ran a deliberately geometry-first companion search---the very
+regime the Introduction rejects for dynamics---in order to price what the
+matter-first pipeline leaves on the table.
 
 Here a stationary metric is painted directly from a genome: compact-support
 radial-basis deformations of the lapse, shift, and symmetric log-spatial-metric
@@ -1711,51 +1660,44 @@ flatness), plus an analytic tail of coherent topologies---an Alcubierre shift
 tube, an anisotropic ``compression tunnel,'' a conformal ``lens'' well, and a
 Morris--Thorne--flavored ``throat.'' No initial-value problem is solved: the
 implied stress-energy is read off as $T_{\mu\nu}=G_{\mu\nu}/8\pi$, and only the
-\emph{frozen} single-slice null-geodesic shortcut $f_{\rm geo}$
-[Eq.~\eqref{eq:f_geo}] is scored---not the evolving certificate that defines the
-headline claim, so these numbers are \emph{not} comparable to
-Table~\ref{tab:certificate}. MAP-Elites~\cite{mouret15} tiles an archive by
-morphology (shift fraction $f_{\rm shift}$, running from $0$ for pure spatial
-curvature to $1$ for a pure shift tube) against exotic cost
-$E_-=-\!\int_{\rho<0}\rho\,dV$.
+\emph{frozen} single-slice $f_{\rm geo}$ is scored, so these numbers are
+\emph{not} comparable to Table~\ref{tab:certificate}.
+MAP-Elites~\cite{mouret15} tiles the archive by morphology (shift fraction
+$f_{\rm shift}$, running from $0$ for pure spatial curvature to $1$ for a pure
+shift tube) against exotic cost $E_-=-\!\int_{\rho<0}\rho\,dV$.
 
 Three campaigns totaling ${\sim}2000$ evaluations populate the archive: a
 topology-complete run ($1000$ evaluations, all analytic modes enabled), a
-pure-$f_{\rm geo}$ run that strips every exotic-cost term from the objective
-($500$ evaluations), and a low-exotic run that hard-rejects $E_->0.1$
-($500$ evaluations, $442$ rejected at the ban). Each is warm-started from the
-best shift-tube genome found so far, after which MAP-Elites mutates the
-surviving cell elites. Two behaviors of the optimizer shaped the design. First,
-left to the free-form radial-basis ``clay'' the search collapsed into a single
-monoculture: almost every strong elite piled into the maximal-shift archive
-cell, because isotropic Gaussian bumps cannot self-organize into a corridor. We
-therefore added the coherent analytic topologies (tunnel, lens, throat) as
-explicit genome modes purely to make non-shift mechanisms \emph{reachable}; they
-lifted the zero-shift ceiling from essentially nothing to the $9.4\%$ tunnel of
-Table~\ref{tab:geometry_ceiling}. Second, two probe-side choices were required
-for the frozen $f_{\rm geo}$ to mean anything: localizing the emitter/detector
-about the genome support (worth ${\sim}8$ percentage points relative to
-full-box endpoints, which dilute the ray through empty space) and refining the
-grid to $h=L/N\le0.5$ (at $h=2$ the shift wall is unresolved and the same
-geometry under-reads by nearly a factor of five). These are screening-tier
-settings chosen for throughput, not continuum claims.
+pure-$f_{\rm geo}$ run stripped of every exotic-cost term ($500$ evaluations),
+and a low-exotic run that hard-rejects $E_->0.1$ ($500$ evaluations, $442$
+rejected at the ban). Each warm-starts from the best shift-tube genome found so
+far. Two design choices were forced on us by the optimizer. Left to the
+free-form radial-basis ``clay'' the search collapsed into a monoculture in the
+maximal-shift archive cell, because isotropic Gaussian bumps cannot
+self-organize into a corridor; the coherent analytic topologies were added
+purely to make non-shift mechanisms \emph{reachable}. And the frozen probe only
+means anything when the emitter and detector are localized about the genome
+support (worth ${\sim}8$ percentage points against full-box endpoints, which
+dilute the ray through empty space) and the grid is refined to $h\le0.5$ (at
+$h=2$ the shift wall is unresolved and the same geometry under-reads by nearly
+a factor of five). These are screening-tier settings, not continuum claims.
 
-Two features of the resulting atlas (Table~\ref{tab:geometry_ceiling}) bear on
-the matter-first result. First, shortcut strength is monopolized by the shift
-channel: the frozen ceiling reaches $f_{\rm geo}\simeq48\%$ for near-pure shift
-tubes ($f_{\rm shift}\approx0.99$), and of all accepted geometries with
-$f_{\rm geo}>0.1$, $70\%$ sit at $f_{\rm shift}\ge0.5$ while only $4\%$ lie at
+Two features of the atlas (Table~\ref{tab:geometry_ceiling}) bear on the
+matter-first result. First, strength is monopolized by the shift channel: the
+frozen ceiling reaches $f_{\rm geo}\simeq48\%$ for near-pure shift tubes
+($f_{\rm shift}\approx0.99$), and of the $781$ accepted geometries with
+$f_{\rm geo}>0.1$, $67\%$ sit at $f_{\rm shift}\ge0.5$ against only $4.5\%$ at
 $f_{\rm shift}\le0.05$. Zero-shift curvature topologies do open genuine
-shortcuts---an isolated compression tunnel reaches $9.4\%$ and a conformal lens
-$5.5\%$ at $f_{\rm shift}=0$---but they are systematically weaker than the shift
-tube. Second, and decisively, none of these shortcuts is cheap: every geometry
-with a positive frozen shortcut carries substantial negative energy
-($E_-\sim3$--$6$ for the strong-shift ceiling, and comparable values for the
-curvature-dominated elites). A dedicated low-exotic sweep that hard-rejects
-$E_->0.1$ returned a best admissible shortcut of only $f_{\rm geo}=0.068$ in
-$500$ evaluations---a factor ${\sim}7$ below the unconstrained ceiling.
-Shift-tilted and curvature-contracted shortcuts alike therefore demand NEC
-violation, in line with the classical theorems cited in Sec.~\ref{sec:intro}.
+shortcuts---the best curvature-dominated elite reaches $21.8\%$, and isolated
+single-mode screens give $9.4\%$ for a compression tunnel and $5.5\%$ for a
+conformal lens---but they are systematically weaker. Second, none of these
+shortcuts is cheap: every geometry with a positive frozen shortcut carries
+substantial negative energy ($E_-\sim3$--$7$ at the strong-shift ceiling, and
+comparable values for the curvature elites), and a sweep that hard-rejects
+$E_->0.1$ returned a best admissible shortcut of only $0.068$---a factor
+${\sim}7$ below the unconstrained ceiling. Shift-tilted and
+curvature-contracted shortcuts alike demand NEC violation, in line with the
+classical theorems cited in Sec.~\ref{sec:intro}.
 
 \begin{table}[tbp]
 \caption{Frozen geometry-first kinematic ceiling from the stationary
@@ -1771,7 +1713,7 @@ hard $E_-\le0.1$ ban.}
 \begin{tabular}{lccc}
 family & $f_{\rm shift}$ & frozen $f_{\rm geo}$ & $E_-$ \\
 \hline
-shift tube (Alcubierre)      & ${\approx}0.99$ & $0.485$ & $4$--$6$ \\
+shift tube (Alcubierre)      & ${\approx}0.99$ & $0.485$ & $3$--$7$ \\
 curvature-dominated elite    & ${\le}0.05$     & $0.218$ & ${\sim}4$ \\
 compression tunnel (screen)  & $0.00$          & $0.094$ & --- \\
 conformal lens (screen)      & $0.00$          & $0.055$ & --- \\
@@ -1781,45 +1723,36 @@ low-exotic ban ($E_-\le0.1$) & ---             & $0.068$ & ${\le}0.1$ \\
 \end{ruledtabular}
 \end{table}
 
-The atlas thus reframes the $20.2\%$ matter-first result. The gap between the
-frozen geometric ceiling (${\sim}48\%$) and the dynamically sourced,
-constraint-satisfying candidate~146 ($20.2\%$ evolving) is not a failure to
-find a stronger geometry; it is the price of sourceability. The strong-shift
-ceiling requires exactly the concentrated momentum density $S_i$ that is
-hardest to realize with a smooth, constraint-clean scalar configuration and
-hardest to keep confined under evolution (Sec.~\ref{sec:dispersion}), whereas
-the geometries a bicomplex Q-ball can actually source and evolve occupy the
-more modest interior of the same landscape. Matter-first and geometry-first are
-complementary limits: the latter maps the kinematic envelope, the former
-certifies which points inside it survive a Cauchy evolution and a 4D transport
-test. Executing the natural hybrid---promoting an atlas motif through
-\texttt{GRTresna} constraint solving and \texttt{GRTeclyn} evolution to test
-sourceability directly---is left to future work.
+Placed against the atlas, candidate~146 stops looking like a weak imitation of
+an Alcubierre bubble and starts looking like a saturated optimum on the other
+branch. The ablation of Sec.~\ref{sec:mechanism} showed that its transport is
+carried by spatial contraction and lapse elevation, with the shift a net drag;
+its morphology therefore belongs at the low-$f_{\rm shift}$ end of the archive,
+where the kinematic ceiling is not $48.5\%$ but $21.8\%$. Candidate~146
+delivers $20.2\%$ under a full Cauchy evolution and a 4D transport test. The
+matter-first optimizer, in other words, came within $1.6$ percentage points of
+the frozen kinematic ceiling of the branch it can actually source---while
+leaving the stronger branch entirely untouched.
 
-The atlas carries the limitations the Introduction ascribes to any
-geometry-first search, which is precisely why it is used only as a bound and not
-as a transport claim. The frozen shortcut is scored on a single stationary slice
-with matter merely inferred ($T_{\mu\nu}=G_{\mu\nu}/8\pi$) rather than solved as
-an initial-value problem, so a positive frozen $f_{\rm geo}$ is a kinematic upper
-bound that need not survive a Cauchy evolution---exactly the false-positive mode
-of the frozen-slice negative control in Sec.~\ref{sec:probes}. Free-fall
-reception is not computed, so the numbers are coordinate-referenced;
-and like the matter-first genome the atlas remains confined to its own ansatz
-family (radial-basis clay plus four named topologies). It is therefore a mapping
-and screening instrument that motivates and bounds the matter-first search,
-never a substitute for its evolving 4D certificate.
+That split is the substance of the sourceability barrier. The shift tube needs
+a coherent, one-directional momentum density $S_i$ concentrated in a thin wall;
+a smooth superposition of orbiting Q-balls sources a bipolar $S_i$ instead
+(Fig.~\ref{fig:rf_field_maps}), and what confinement it does achieve decays
+(Sec.~\ref{sec:dispersion}). The conformal well needs only a localized negative
+energy density, which a phantom lump supplies directly. Kinematic strength and
+dynamical sourceability are thus traded against each other, and the trade is
+not smooth: the branch that is easy to source is capped at roughly half the
+frozen ceiling of the branch that is not. Promoting an atlas shift-tube motif
+through \texttt{GRTresna} and \texttt{GRTeclyn} to test that barrier directly
+is the obvious next experiment.
 
-\subsection{Applications and next steps}
-
-The pipeline supports (i)~inverse design of null transport under
-energy-condition penalties, (ii)~QD atlases of mechanism families, and
-(iii)~Pareto maps of shortcut versus exotic cost and persistence.
-The canonical-only MAP-Elites bound of Sec.~\ref{sec:canonical_bound}
-already constrains the all-$+\rho$ slice of the present ansatz.
-Immediate priorities include longer $t_{\rm stop}$ integrations to track
-late-time dispersal and broader positive-energy matter families.
-Longer-term goals include non-dispersing matter models and confinement
-world-tube objectives.
+Two caveats keep the atlas a bound rather than a claim. Its shortcut is scored
+on a single stationary slice with matter merely inferred
+($T_{\mu\nu}=G_{\mu\nu}/8\pi$), so a positive frozen $f_{\rm geo}$ need not
+survive a Cauchy evolution---exactly the false-positive mode of the negative
+control in Sec.~\ref{sec:probes}---and free-fall reception is not computed, so
+the numbers are coordinate-referenced. Like the matter-first genome, it also
+remains confined to its own ansatz family.
 
 \subsection{Laboratory Casimir bounds on null-timing shortcuts}
 \label{sec:casimir_bounds}
@@ -1845,35 +1778,34 @@ laboratory stress-energy budgets.
 
 \subsection{Computational cost}
 
-All runs were performed on a single 8-GPU node (NVIDIA H100 80\,GB HBM3).
-MAP-Elites and CMA-ES each dispatch one \texttt{GRTeclyn} evolution per GPU
-in parallel, with concurrent \texttt{GRTresna} constraint solves running on
-CPU (MPI, 8 ranks per solve). A 200-evaluation MAP-Elites campaign at search
-resolution ($N=128$, $t_{\rm stop}=16$) completes in approximately two
-wall-clock hours; the 150-evaluation CMA-ES refinement takes a similar time.
-The production validation stage is sequential: the headline RM run
-($N=256$, $t_{\rm stop}=30$, three refinement levels) fits on a single GPU; the
-fine Richardson run RF ($N=384$) required three GPUs due to memory
-constraints. Total wall-clock time from the start of MAP-Elites to the
-completion of the three-run resolution matrix was approximately ten hours.
+All runs used a single 8-GPU node (NVIDIA H100 80\,GB HBM3), with MAP-Elites
+and CMA-ES dispatching one \texttt{GRTeclyn} evolution per GPU and concurrent
+\texttt{GRTresna} solves on CPU (MPI, 8 ranks per solve). A 200-evaluation
+MAP-Elites campaign at search resolution takes about two wall-clock hours and
+the 150-evaluation CMA-ES refinement a similar time. Production validation is
+sequential: RM fits on one GPU, while the fine Richardson run RF ($N=384$)
+needed three for memory. Total wall-clock time from the start of MAP-Elites to
+the completed resolution matrix was approximately ten hours.
 
 \subsection{Future applications of the pipeline}
 \label{sec:future_apps}
 
-The matter-first search architecture is not specific to null-timing
-shortcuts. Any question of the form ``which
-initial matter configuration optimizes geometric observable $\mathcal{O}$?''
-can be attacked by replacing the scoring function while reusing the
-genome representation, constraint solver, and evolution infrastructure.
+Within the present target, the immediate priorities are longer $t_{\rm stop}$
+integrations to track late-time dispersal, positive-energy matter families
+beyond the canonical-only bound of Sec.~\ref{sec:canonical_bound},
+non-dispersing matter models, and confinement world-tube objectives.
+
+The architecture, however, is not specific to null-timing shortcuts. Any
+question of the form ``which initial matter configuration optimizes geometric
+observable $\mathcal{O}$?'' can be attacked by replacing the scoring function
+while reusing the genome, constraint solver, and evolution infrastructure.
 
 \textbf{Directional gravitational-wave generation.}
 A parallel campaign (in preparation) replaces $f_{\rm geo}$ with a
-beaming-weighted Weyl-scalar power score, searching for Q-ball
-configurations that emit preferentially along one axis. Early runs
-produce ${\sim}30\%$ directional beaming gain with mean Weyl power
-$P\sim10^{-6}$--$10^{-4}$, demonstrating that the optimizer can steer
-toward anisotropic radiation from matter that is individually
-spherically symmetric.
+beaming-weighted Weyl-scalar power score. Early runs produce ${\sim}30\%$
+directional beaming gain with mean Weyl power $P\sim10^{-6}$--$10^{-4}$,
+showing the optimizer can steer toward anisotropic radiation from matter that
+is individually spherically symmetric.
 
 \textbf{Other candidate targets.}
 (i)~Gravitational-lensing amplification---optimizing a matter shell to
@@ -1906,10 +1838,24 @@ drive---and, within this ansatz, requires the phantom sector: a matched
 canonical-only search found no $f_{\rm geo}>0$
 (Sec.~\ref{sec:canonical_bound}), while semiclassical Casimir bounds
 (Sec.~\ref{sec:casimir_bounds}) place laboratory vacuum stresses
-${\sim}50$ orders of magnitude short of the required exotic budget. The
-broader contribution is the falsification stack itself: a template for
-automated, constraint-satisfying searches of the positive-energy sector and
-of other geometric observables (Sec.~\ref{sec:future_apps}).
+${\sim}50$ orders of magnitude short of the required exotic budget.
+
+What the pipeline changes is not the size of the number but the question it
+answers. Warp geometries have been drawn on paper for three decades without
+anyone checking whether they can be sourced by a valid initial-value problem
+and survive their own evolution. When that check is enforced, the optimum
+moves. The strongest kinematic object in the landscape is still the Alcubierre
+shift tube at $48.5\%$, and our optimizer never went near it; what it found
+instead was a conformal-contraction precursor on the weaker curvature branch,
+which it drove to within $1.6$ percentage points of that branch's ceiling
+(Sec.~\ref{sec:geometry_ceiling}). Frame dragging, the mechanism the
+warp-drive literature is built on, turns out to work \emph{against} the
+shortcut here (Sec.~\ref{sec:mechanism}). This sourceability barrier---not the
+energy conditions, which both branches violate---is what selects the shape of
+a dynamically viable warp precursor, and mapping it is the agenda this
+falsification stack opens up. The same stack transfers unchanged to the
+positive-energy sector and to other geometric observables
+(Sec.~\ref{sec:future_apps}).
 
 \section*{Code and data availability}
 
