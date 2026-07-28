@@ -127,15 +127,17 @@ compare against pre-`fe5ef9f8` runs.
 ---------------------------------------------------------------------------
 ## 5. Data status
 
-### CONTAMINATED — do not use constraint columns (2,3,7,8)
+### CONTAMINATED — **DELETED** (do not go looking for them)
 `runs/always_on_pump/hq146_m1_tp4_t30`, `..._m1_tp8...`, `..._m1_tp16...`,
 `..._m1_tp30...`  (mode 1; ledger diverged AND governor closed at t~7-8;
 effective pump duration was ~7 in all of them regardless of setting, which is
-why tp8/tp16/tp30 are bit-identical)
+why tp8/tp16/tp30 came out bit-identical)
 `runs/always_on_pump/hq146_m2_tp30_t30` — CRASHED, NaN in K at t=9.69.
 
-Their *physics* outputs (confinement.dat, collapse_diagnostics.dat,
-ftl_timeseries.dat) are still valid up to the point the governor closed.
+These five directories were removed during the 2026-07-28 disk cleanup. Their
+constraint columns (2,3,7,8) were unusable and the HQ ladder supersedes them
+entirely. Every finding extracted from them before deletion is preserved in
+`research/neuralspacetime/Debug.md` (§3 reservoir, §7 governor table).
 
 ### VALID
 `runs/always_on_pump/hq146_m0_tp4_t30`  — mode 0, governor 1.0 throughout.
