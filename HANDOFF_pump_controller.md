@@ -2,7 +2,8 @@
 
 Repo: `/home/jovyan/nachevsky/test/simulation/GRTeclyn`
 Branch: `feature/interstellar`   Remote: `myfork` (github Nikchik-coder/GRTeclyn)
-Binary: `Examples/RadialRecipe/main3d.gnu.CUDA.ex` (built from `d6a0c350`)
+Binary: `Examples/RadialRecipe/main3d.gnu.CUDA.ex` (built from `d6a0c350`, 2026-07-28 00:18 —
+verified to postdate the governor-fix headers; later commits are docs-only, no rebuild needed)
 
 ---------------------------------------------------------------------------
 ## 1. TL;DR
@@ -29,8 +30,17 @@ Duhamel bound. No reservoir required.
 
 * `fe5ef9f8` fix: correct controller reservoir conservation law and force diagnostics
 * `d6a0c350` fix: never feed the controller ledger into the pump safety governor
+* `2ddaa87a` docs: this handoff
+* `a9376f77` docs: findings log — `research/neuralspacetime/Debug.md`
+* `b97868de` docs: node-local plotfile scratch is now MANDATORY (see §10)
 
 (parent was `aaba6b71`)
+
+**RULE: never `scp` code to the cluster.** Edit locally -> commit -> push ->
+`git pull` on the cluster -> run from the in-repo path. An scp'd file is
+untracked, so the cluster silently diverges and the change is lost on the next
+pull. This was violated once (the queue script) and has been corrected; the
+duplicate at `runs/ladder_queue.py` was deleted.
 
 ---------------------------------------------------------------------------
 ## 3. What was broken and what was fixed
@@ -141,37 +151,73 @@ Key valid numbers:
 ---------------------------------------------------------------------------
 ## 6. What is running RIGHT NOW
 
-`runs/pump_ladder_fast/` — 5 runs, mode 0, all reached t=30.02, draining.
-Queue script: `runs/pump_ladder_fast/fast_queue.py` (pid in `queue.pid`)
-Fast tier: L=128 (SAME box/centre/gridinit), N=128 (dx=1.0), max_level=2.
-~35 min for all five vs ~4.5 h at HQ. GPUs 0-4.
+The **fast ladder is FINISHED** (5 runs, mode 0, all reached t=30.02). Its
+directory `runs/pump_ladder_fast/` has had its plotfiles pruned; `data/` and
+`small_data/` are intact. Headline fast-tier results are in
+`research/neuralspacetime/Debug.md`.
 
-Runs: `fast_tp0` `fast_tp4` `fast_tp8` `fast_tp16` `fast_tp30`
-(`rl_pump_stop_time` = 0 / 4 / 8 / 16 / -1; -1 means never stop)
+The **HQ ladder is RUNNING**: `runs/pump_ladder_m0/`, 6 runs, ALL SIX
+CONCURRENT on GPUs 0-5. This is only possible because plotfiles now go to
+node-local NVMe — see §10.
 
-Results so far — the fix works:
-* governor min = 1.00000 in ALL FIVE (was 0.00000 before)
-* pump force in the always-on run is FLAT through the old failure window:
-  t=8: 2.94e-6, t=10: 2.68e-6, t=12: 2.45e-6, t=14: 2.70e-6, t=16: 3.05e-6
-  (previously it collapsed geometrically to exactly 0 by t=10.15)
-* every run respects its schedule exactly (tp4 stops 3.98, tp8 stops 8.00)
-* L2_Ham at t~16: always-on 2.93e-3 vs pump-free 3.56e-3 — sustained pumping
-  does NOT degrade the constraints
+```
+launcher : grteclyn-wrapper/scripts/campaigns/rl/pump_ladder_queue.py
+log      : runs/ladder_queue.out   (also runs/pump_ladder_m0/queue.log)
+launched : 01:40   ETA ~02:50   (measured 35 rows/min = 0.35 t/min to t=30)
+grid     : L=128 N=256 max_level=3, stop_time=30, plot_interval=144
+```
+
+| run | `rl_pump_stop_time` | purpose |
+|---|---|---|
+| `lad_m0_tp0`  | 0.0  | pump-free control rung |
+| `lad_m0_tp4`  | 4.0  | bit-identity regression vs `runs/always_on_pump/hq146_m0_tp4_t30` |
+| `lad_m0_tp8`  | 8.0  | |
+| `lad_m0_tp16` | 16.0 | last rung healthy at fast tier |
+| `lad_m0_tp24` | 24.0 | brackets the 16->30 turnover |
+| `lad_m0_tp30` | -1.0 | always on; headline + lapse-collapse test |
+
+Health at t~5-6 (20 min in), all confirmed good:
+* **governor = 1.000 in all six** — the `d6a0c350` fix confirmed in production
+  (previously it clamped to 0 at t~10).
+* **determinism check PASSES exactly.** tp8/tp16/tp24/tp30 differ only in stop
+  time, all > 5, so at t=5.01 they must be identical — and they are to every
+  printed digit: `3.4418205697e-03 / 2.6949606572e-04 / 3.0898006783e-06`.
+* consumers clean, no NaN, scratch flat at 3 plotfiles/run.
+
+`lad_m0_tp30` may blow up near t~29.8 as it did at the fast tier. That is a
+GAUGE pathology (min_lapse -> 1e-10 while min_chi stays 0.337), NOT collapse,
+and is itself a result. Do not treat it as a failed run.
+
+**ONE THING TO WATCH — may change the headline.** At t=5.01 the pumped runs
+sit at L2_Ham 3.44e-3 against 1.03e-3 pump-free (3.3x), and tp4 has relaxed
+only to 3.01e-3 a full time unit after switch-off. The fast-tier claim was
+"statistically indistinguishable", but that was a WHOLE-RUN MEAN (2.84e-3
+unpumped) — at t=5 the unpumped run is still far below its own average, which
+inflates the ratio. Unresolved until the curves reach t=15-30. **If the gap
+holds at late times, the "pump does not affect constraint growth" claim must be
+restated at 256^3.** Check this first when the runs finish.
 
 ---------------------------------------------------------------------------
 ## 7. Next steps
 
-1. Read the confinement dose-response off `runs/pump_ladder_fast/*/small_data/
-   confinement.dat` (col 5 = confined_frac). The contaminated ladder gave
-   0 -> 2.3%, 4 -> 13.1%, ~7 -> 17.2%, still climbing with no real ceiling.
-   This fast ladder gives the first clean answer for t_pump = 8/16/30.
-2. If the fast ladder looks right, run the HQ ladder:
-   `runs/pump_ladder_m0/ladder_queue.py` is already written and dry-run
-   verified (L=128 N=256 ml=3, 5 runs, 2 concurrent, ~4.5 h).
-   Note `lad_m0_tp4` doubles as a bit-identity regression check against
-   `runs/always_on_pump/hq146_m0_tp4_t30`.
-3. Resolution ladder on whichever t_pump wins.
-4. research.tex: NOT to be touched incrementally — user's decision is that a
+1. **When the HQ ladder finishes**, in order:
+   a. Resolve the open question above — plot L2_Ham(t) for all six rungs and
+      compare whole-run mean AND peak, not instantaneous values.
+   b. Confirm `lad_m0_tp4` is bit-identical to
+      `runs/always_on_pump/hq146_m0_tp4_t30` (the governor fix must be a no-op
+      in mode 0).
+   c. Re-run `research/neuralspacetime/analysis/pump_constraint_budget.py` for
+      the Duhamel bound at HQ resolution. It reads `pump_fi_L2` (col 11) for
+      the momentum bound.
+   d. Confinement dose-response from `*/small_data/confinement.dat`
+      (col 5 = confined_frac). Fast tier gave 1.9% -> 20.3% (10.7x), monotonic,
+      no saturation — but confinement DECAYS everywhere; the pump only slows
+      the leak. Check whether that survives at 256^3.
+   e. `f_geo`: fast tier showed NO dose-response (26.9 / 27.5 / 31.0 / 23.4 /
+      23.4) — the pump-free run beat tp16 and tp30. This is the weakest part of
+      the story. Verify at HQ before claiming anything about FTL geometry.
+2. Resolution ladder on whichever t_pump wins.
+3. research.tex: NOT to be touched incrementally — user's decision is that a
    validated fix means a full re-run and a total rewrite.
 
 ---------------------------------------------------------------------------
@@ -187,7 +233,11 @@ Results so far — the fix works:
   `areal_radius.dat` / `shell_profiles.dat`. Horizon info is still available:
   `collapse_diagnostics.dat` is written by the simulation itself.
 * The consumer's drain window must be generous. At 180 s the final plotfile
-  was cut off in 3 runs and had to be recovered manually. Now 300 s (HQ).
+  was cut off in 3 runs and had to be recovered manually. **Now 600 s.**
+* Scratch is TRANSIENT. A plotfile deleted from `/tmp` before extraction is
+  gone for good (on NFS it would have survived a stalled consumer). Purge a
+  run's scratch only when every resident plotfile appears in
+  `small_data/consume_state.json`; otherwise keep it and log `[KEEP-SCRATCH]`.
 * The pump does NOT track the matter. `trajectory_mode = 1` overwrites the
   lump centres every coarse step from a prescribed parametric path
   (`TrajectoryEvaluator`), and sets amplitude from `well_depth` (constant).
@@ -202,10 +252,65 @@ Results so far — the fix works:
 ---------------------------------------------------------------------------
 ## 9. Disk
 
-Cleaned: all plotfiles/checkpoints removed from `runs/` (was 145 G, now 65 G).
+Cleaned: all plotfiles/checkpoints removed from `runs/`, plus 5 contaminated /
+crashed HQ runs from the first campaign (was 145 G, now **62 G**).
 All `data/` and `small_data/` results preserved.
+Kept deliberately: `hq146_m0_tp4_t30` (bit-identity reference for
+`lad_m0_tp4`) and `hq146_m1_tp0_t30`.
 Remaining bulk: 26 G `runs/grtresna_promote/_cache` (gridinits, NEEDED) plus
 ~20 G of DUPLICATE gridinit copies inside published runs
 (`bcma_rf_freefall_corrected_*/initial_data.gridinit` is 14 G and duplicates
 `_cache/bcma_rf_L128_N384_*`). Deduping those would free ~18 G — not done,
 needs a byte-identity check first.
+
+---------------------------------------------------------------------------
+## 10. Plotfile scratch is NODE-LOCAL — mandatory for every run
+
+This is the change that unblocked 6-way concurrency. Full documentation:
+`grteclyn-wrapper/README.md` and `grteclyn-wrapper/scripts/campaigns/README.md`.
+Reference implementation:
+`grteclyn-wrapper/scripts/campaigns/rl/pump_ladder_queue.py`.
+
+```
+GPU sim ──plotfiles──▶ /tmp/grteclyn_scratch/<run>/RadialRecipePlt*  (local NVMe)
+   │                        │ consumer extracts (~16 s), then deletes (keep-last 3)
+   │                        ▼
+   └──.dat, KB/s──▶ <output_path>/data/  +  small_data/          (NFS, ~500 KB)
+```
+
+`amr.plot_file` / `amr.check_file` are INDEPENDENT of `output_path`, so:
+
+```
+output_path    = "<NFS>/runs/pump_ladder_m0/<run>"
+amr.plot_file  = "/tmp/grteclyn_scratch/<run>/RadialRecipePlt"
+amr.check_file = "/tmp/grteclyn_scratch/<run>/RadialRecipeChk"
+```
+
+Consumer: `--data /tmp/grteclyn_scratch/<run>` `--out <NFS>/.../small_data`.
+
+**Why.** A 256^3 ml=3 plotfile is ~3.2 GB, written AND read back every ~288 s
+per run. On NFS that capped concurrency at 2 — consumers blocked in NFS I/O
+(`D` state), backlogs grew, plotfiles accumulated. Measured after the move
+(2026-07-28, 6 concurrent HQ runs): local scratch 8.8 GB/run, NFS run dirs
+~500 KB each, extraction 15.7 s against a 288 s cadence (18x headroom), zero
+plotfiles leaked to NFS, 53 GB of 1.1 TB overlay used.
+
+**Keep every write inside your own directories.** On this cluster
+`~/.local/bin` and `~/.local/lib` are owned by `nobody:nogroup` and are NOT
+writable — admin policy is "write only to your own". An agent previously
+tampered with them and admins went looking for the culprit. So:
+* call `grteclyn-wrapper/.venv/bin/python -m ...` DIRECTLY, never `uv run`
+  (which writes `~/.cache/uv`);
+* pin `XDG_CACHE_HOME`, `UV_CACHE_DIR`, `MPLCONFIGDIR`, `TMPDIR`,
+  `PYTHONPYCACHEPREFIX` into `/tmp/grteclyn_scratch/_cache`.
+
+The complete set of write targets is `/tmp/grteclyn_scratch/` (transient) and
+the NFS run directory (`data/`, `small_data/`, `run.log`, `params.txt`).
+Nothing else. Do not write anywhere under `~/.local`.
+
+**Not yet enforced in code.** `grteclyn-wrapper/src/grteclyn_wrapper/core/
+params.py` still defaults `amr.plot_file` / `amr.check_file` to the episode
+directory, so on an NFS-backed `RUNS_DIR` the DEFAULT still lands on NFS.
+Until that default is changed this is a launcher-level convention that every
+campaign script must apply explicitly. Fixing the default would be a good
+piece of work.
