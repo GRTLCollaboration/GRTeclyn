@@ -6,7 +6,7 @@
 #ifndef LIKWID_MARKERS_HPP_
 #define LIKWID_MARKERS_HPP_
 
-#ifdef USE_LIKWID
+#ifdef LIKWID_PERFMON
 #include <likwid-marker.h>
 #else
 #define LIKWID_MARKER_INIT
