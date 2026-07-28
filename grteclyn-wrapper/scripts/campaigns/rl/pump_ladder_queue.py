@@ -54,6 +54,7 @@ WRAPPER = ROOT / "grteclyn-wrapper"
 # write inside the project, /tmp, or the NFS run dir. Nothing this
 # queue does touches ~/.local (which is admin-locked anyway).
 VENV_PY = WRAPPER / ".venv/bin/python"
+SCORE_EVOLVING = WRAPPER / "scripts/campaigns/rl/score_evolving_geodesic.py"
 
 # Plotfiles are 3.2 GB each and are written AND read back every ~288 s per run.
 # On NFS that is ~22 MB/s per run plus heavy metadata churn, which is what
@@ -131,6 +132,19 @@ def start_consumer(d: Path) -> subprocess.Popen:
         "--watch", "--delete", "--keep-last", "3",
         "--stable-seconds", "30", "--poll-seconds", "20", "-j", "1", "--verbose",
     ]
+    env = consumer_env()
+    fh = (d / "consumer.log").open("w")
+    return subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT,
+                            env=env, start_new_session=True)
+
+
+def consumer_env() -> dict:
+    """Environment shared by the consumer AND the post-run scoring pass.
+
+    They must agree: the scoring pass reads the cache the consumer wrote, so a
+    mismatch in GRTECLYN_METRIC_STACK_N_SPACE would have it validate against
+    the wrong resolution.
+    """
     env = dict(os.environ)
     env["GEODESIC_EMIT_MIN_TIME"] = "0"
     env.pop("RL_PUMP_STOP_TIME", None)
@@ -155,9 +169,7 @@ def start_consumer(d: Path) -> subprocess.Popen:
     env["TMPDIR"] = str(cache / "tmp")
     (cache / "tmp").mkdir(parents=True, exist_ok=True)
     env["PYTHONPYCACHEPREFIX"] = str(cache / "pyc")
-    fh = (d / "consumer.log").open("w")
-    return subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT,
-                            env=env, start_new_session=True)
+    return env
 
 
 def start_sim(d: Path, gpu: int) -> subprocess.Popen:
@@ -228,6 +240,32 @@ def main() -> int:
                     gov_min = f"{min(vals):.4f}" if vals else "?"
                 except (ValueError, IndexError):
                     pass
+            # The 4D evolving trace is NOT run by the consumer.  --evolving-geodesic
+            # only builds the metric_stack cache; the trace itself lives in the
+            # metrics aggregation layer, which only the QD/CMA-ES evaluation path
+            # calls.  Without this step f_geo_evol / f_geo_evol_ok (cols 13/14 of
+            # ftl_timeseries.dat) keep the hardcoded "0.0  0" placeholders that
+            # extraction/ftl.py writes on every row -- they look computed-and-zero
+            # rather than never-computed, which is exactly how that went unnoticed
+            # for two campaigns.  Runs BEFORE the scratch purge below so the
+            # plotfile fallback is still available if the cache is unusable.
+            log(f"[score] {job['name']}: 4D evolving geodesic")
+            try:
+                sc_rc = subprocess.run(
+                    [str(VENV_PY), "-u", str(SCORE_EVOLVING), str(job["dir"])],
+                    env=consumer_env(), capture_output=True, text=True, timeout=3600,
+                )
+                for line in (sc_rc.stdout or "").splitlines():
+                    if line.strip():
+                        log(f"    {line.rstrip()}")
+                if sc_rc.returncode != 0:
+                    log(f"[score-FAIL] {job['name']} rc={sc_rc.returncode} "
+                        f"{(sc_rc.stderr or '').strip()[:300]}")
+            except subprocess.TimeoutExpired:
+                log(f"[score-FAIL] {job['name']}: timed out after 3600s")
+            except Exception as exc:  # noqa: BLE001
+                log(f"[score-FAIL] {job['name']}: {exc}")
+
             # Scratch is transient: anything not extracted before we purge is
             # gone for good (on NFS it would have survived). So purge ONLY when
             # every resident plotfile is recorded as successfully extracted.
