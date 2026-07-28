@@ -24,6 +24,7 @@ Stage 2  HQ promotion        scripts/campaigns/hq/run_batch.sh
 | Stop time | **16** | **16** | **30** |
 | Frames | off | off | **on** |
 | Plotfile consumer | consume + delete, keep 3 | same | same (via `evaluation.py`) |
+| Plotfile scratch | node-local `/tmp` | node-local `/tmp` | node-local `/tmp` |
 | 4D geodesic | `search` (fast) | `search` (fast) | `hq` (full verify) |
 | Objective | `ftl_first` | `ftl_first` (default) | `ftl_first` (via replay) |
 | Output | `runs/grtresna_qd/…` | `runs/grtresna_cmaes/…` | `runs/grtresna_promote/…` |
@@ -32,6 +33,95 @@ Stage 2  HQ promotion        scripts/campaigns/hq/run_batch.sh
 QD and CMA-ES **must** stay aligned (same `search_common.sh`) so warm-started CMA-ES scores are comparable to the QD trajectory.
 
 HQ is **intentionally different**: higher resolution and longer time stress-test whether shortcuts survive refinement.
+
+---
+
+## Plotfile scratch is node-local — mandatory for every stage
+
+**Plotfiles must never be written to NFS.** They are write-once, read-once,
+delete-immediately transients. `amr.plot_file` / `amr.check_file` are
+independent of `output_path`, so send the heavy data to node-local NVMe and
+keep only results on the shared filesystem.
+
+```
+GPU sim ──plotfiles──▶ /tmp/<scratch>/<run>/RadialRecipePlt*   (local NVMe)
+   │                        │ consumer extracts (~16 s), then deletes
+   │                        ▼
+   └──.dat, KB/s──▶ <output_path>/data/  +  small_data/         (NFS, ~500 KB)
+```
+
+Every campaign launcher must emit:
+
+```
+output_path    = "<RUNS_DIR>/<run>"                        # NFS: .dat + small_data
+amr.plot_file  = "/tmp/grteclyn_scratch/<run>/RadialRecipePlt"
+amr.check_file = "/tmp/grteclyn_scratch/<run>/RadialRecipeChk"
+```
+
+and start the consumer with `--data /tmp/grteclyn_scratch/<run>`
+`--out <RUNS_DIR>/<run>/small_data`.
+
+**Why.** A 256³ ml=3 plotfile is ~3.2 GB written and read back every ~288 s
+per run. On NFS that capped concurrency at **2 runs** — consumers blocked in
+NFS I/O (`D` state), backlogs grew, plotfiles accumulated. On node-local NVMe
+the same node sustains **6 concurrent HQ runs**; NFS traffic drops from
+~130 MB/s to KB/s.
+
+Measured, mode-0 pump ladder, 2026-07-28 — 6 × (N=256, L=128, t=30) on GPUs 0–5:
+
+| | |
+|---|---|
+| Local scratch per run | 8.8 GB (3 plotfiles resident) |
+| NFS run dir per run | ~500 KB |
+| Extraction | 15.7 s vs 288 s cadence (18× headroom) |
+| Plotfiles leaked to NFS | 0 |
+| Overlay usage | 53 GB of 1.1 TB free |
+
+### Rules
+
+1. **Cloning a baseline `params.txt`** — `amr.plot_file` / `amr.check_file` are
+   absolute paths into the *source* run dir. Strip and re-emit them, or the
+   clone writes into the baseline and a `--delete` consumer prunes the
+   baseline's own plotfiles. Dry-run and assert each of `output_path`,
+   `amr.plot_file`, `amr.check_file` occurs exactly once.
+2. **Purge scratch only when everything was extracted** — scratch is transient,
+   so an unextracted plotfile deleted from `/tmp` is lost (on NFS it would have
+   survived). Compare resident plotfiles against
+   `small_data/consume_state.json`; if any are missing, keep the directory and
+   log it.
+3. **Drain for 600 s** after the simulation exits before killing the consumer.
+   120–180 s truncated confinement data in three fast-ladder runs.
+4. **Budget the disk** — `n_runs × (keep_last + jobs) × plotfile_size`. Check
+   `df -h /tmp`. Checkpoints are **not** pruned by the consumer; with
+   `checkpoint_interval > 0` they accumulate on scratch.
+5. **Never run an external deletion loop** alongside the consumer — see the
+   [race-condition post-mortem](../../README.md#plotfile-pruning-failure-mode-and-fix).
+
+### Keep writes inside your own directories
+
+Call the venv python directly instead of `uv run` (which writes to
+`~/.cache/uv`), and pin library caches into scratch:
+
+```python
+cmd = [str(WRAPPER / ".venv/bin/python"), "-m",
+       "grteclyn_wrapper.visualisation.process_wave.consume_plotfiles", ...]
+env["XDG_CACHE_HOME"]      = f"{SCRATCH}/_cache"
+env["UV_CACHE_DIR"]        = f"{SCRATCH}/_cache/uv"
+env["MPLCONFIGDIR"]        = f"{SCRATCH}/_cache/mpl"
+env["TMPDIR"]              = f"{SCRATCH}/_cache/tmp"
+env["PYTHONPYCACHEPREFIX"] = f"{SCRATCH}/_cache/pyc"
+```
+
+On the shared cluster `~/.local/bin` and `~/.local/lib` are owned by
+`nobody:nogroup` and are not writable — admin policy is write only to your own
+directories. The complete set of write targets for a campaign is
+`/tmp/<scratch>/` plus the NFS run directory. Nothing else.
+
+> **Not yet enforced in code.** `src/grteclyn_wrapper/core/params.py` still
+> defaults `amr.plot_file` / `amr.check_file` to the episode directory, so on
+> an NFS-backed `RUNS_DIR` the default lands on NFS. Until that changes, each
+> launcher must set the scratch paths explicitly. Reference implementation:
+> [`rl/pump_ladder_queue.py`](rl/pump_ladder_queue.py) (mode-0 pump ladder).
 
 ---
 
