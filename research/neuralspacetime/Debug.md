@@ -1848,6 +1848,27 @@ matter buys warp and costs stability. Whether an optimum exists between 0.08
 and 0.10 — or whether the superposed law at a REDUCED aim (~0.06, to land the
 mass back near 48) beats both — is the next campaign, not a settled result.
 
+**`pcd_match_t60` settles the endurance question: aim 0.08 dies at t ≈ 32.**
+Extended past its twin's stop time, the central lapse falls 0.94 → 0.108 and
+chi → 0.0153 by t = 32.2, with `max|K|` climbing to 0.79 — killed there on the
+`min_chi` criterion. Constraints stayed clean throughout (L2_Ham ~5e-3,
+governor 1.000), so this is the geometry running away, not the solver failing.
+**Consequence: `pcb_match`'s "clean finish" at t = 30 (§19.9) was collapse
+already in progress** — the run simply ended two time units before it showed.
+Any future claim of "held" must be made at t ≥ 40, not t = 30.
+
+Evidence standard used for every collapse call in this section: central
+`min_lapse` + `min_chi` + `max|K|` from `collapse_diagnostics.dat`. NOT the
+`theta_plus` proxy, for the reason above. Note the score-side guard in
+`grteclyn-wrapper/.../metrics/score/horizon.py` (`HORIZON_OFFCENTER_FRACTION
+= 0.5`) would NOT have caught our case: it rejects a proxy sitting beyond half
+the domain half-width (32 here), while ours sits at r ≈ 9.5. That guard is
+calibrated for corner-origin miscentering, not for the refinement-edge
+stencil noise identified here — so the TODO above stands, and there is
+currently **no independent apparent-horizon finder** in this repo to confirm a
+true trapped surface. "Collapsed" in this section therefore means the geometry
+ran away (lapse and chi → 0 together), not a horizon proven to exist.
+
 Disk audit (2026-07-28 14:27): node-local scratch 53 G, self-draining
 correctly (only live arms hold plotfiles; every finished arm's scratch was
 reclaimed by the consumer). `runs/` 134 G on a 22 T volume with 6.2 T free;
