@@ -1869,6 +1869,25 @@ currently **no independent apparent-horizon finder** in this repo to confirm a
 true trapped surface. "Collapsed" in this section therefore means the geometry
 ran away (lapse and chi → 0 together), not a horizon proven to exist.
 
+**Retention (pruned 2026-07-28 14:50, repo 141 G → 113 G).** Every number in
+§19.9–19.13 was taken before pruning and stands; what changed is which raw
+data survives to re-derive it.
+
+* Deleted entirely — `pcb_base` (crashed t = 11.5), `pcb_pg4` (killed t = 10.1
+  as a redundant duplicate of pcb_base's behaviour), `pce_sup_t60`
+  (`confinement.dat` byte-identical to `pce_sup`, md5 93d9a136…).
+* Kept in full, snapshots included — `pcc_t010` (the winning config; its
+  snapshots are the intended source for the profile-matched target
+  measurement), `pcb_match` (strongest FTL signature, most likely to be
+  re-scored), `pcd_match_t60` (the collapse evidence, to be re-examined once
+  the theta_plus TODO above is fixed).
+* Measurement files kept, `metric_stack/*.npz` dropped — `pcb_match_pg4`,
+  `pcc_match_tw2`, `pcd_match_p0`, `pce_sup`. Their claims rest on
+  `energy_conditions.dat` / `collapse_diagnostics.dat` / `confinement.dat` /
+  `ftl_timeseries.dat`, all retained. Consequence: `score_confine_abs.py` and
+  the timeseries still work on these four, but the 4D geodesic re-scorer
+  cannot be re-run against them without repeating the simulation.
+
 Disk audit (2026-07-28 14:27): node-local scratch 53 G, self-draining
 correctly (only live arms hold plotfiles; every finished arm's scratch was
 reclaimed by the consumer). `runs/` 134 G on a 22 T volume with 6.2 T free;
