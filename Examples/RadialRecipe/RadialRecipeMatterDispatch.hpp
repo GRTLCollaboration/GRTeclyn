@@ -135,13 +135,24 @@ inline void fill_constraints_maybe_abs(
     }
 }
 
+//! ``reservoir_mode_override >= 0`` forces a specific reservoir mode instead of
+//! reading it from the params.  This exists so the SAFETY GOVERNOR can be fed
+//! the true, physical constraint norm.  Feeding it the ledger-corrected value
+//! couples the controller's own bookkeeping back into its safety interlock: if
+//! the ledger misbehaves, the governor throttles the pump on the strength of a
+//! number that describes the ledger rather than the spacetime.  That is exactly
+//! what happened in the first always-on campaign (the reservoir diverged, the
+//! reported Ham crossed the 0.035 governor threshold at t~7.5, and the pump was
+//! cut to zero by t~10 in every mode-1 run).  Governor input must stay physical.
 inline void fill_active_constraints(
     amrex::MultiFab &cst, const amrex::MultiFab &state_new,
     const SimulationParameters &params, amrex::Real dx0,
     const std::array<double, AMREX_SPACEDIM> &center, amrex::Real time,
-    bool with_abs_terms = false)
+    bool with_abs_terms = false, int reservoir_mode_override = -1)
 {
-    const int mode = params.controller_reservoir_mode;
+    const int mode = (reservoir_mode_override >= 0)
+                         ? reservoir_mode_override
+                         : params.controller_reservoir_mode;
     // Constraints path: include reservoir in EMT for both ledger (1) and
     // backreaction (2) so the reported norms are pump-corrected.
     const bool include_em = (mode >= 1);

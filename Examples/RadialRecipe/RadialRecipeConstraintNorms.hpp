@@ -30,9 +30,12 @@ compute_radial_recipe_constraint_norms(RadialRecipeLevel &level)
     cst.setVal(0.0);
     const auto dx = level.Geom().CellSizeArray();
 
+    // This norm feeds RLRuntime::publish_cached_L2_Ham -> the pump governor.
+    // Force reservoir mode 0 so the safety interlock always sees the true
+    // physical Hamiltonian violation, never the controller's own ledger.
     RadialRecipeMatter::fill_active_constraints(
         cst, state_new, sim_params, dx[0], sim_params.recipe_params.grid_center,
-        time, /*with_abs_terms=*/false);
+        time, /*with_abs_terms=*/false, /*reservoir_mode_override=*/0);
 
     const amrex::Real cell_vol = dx[0] * dx[1] * dx[2];
 
