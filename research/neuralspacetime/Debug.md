@@ -1630,3 +1630,226 @@ that every params file *claimed* to be running. Expect the canonical injection
 to drop (2 sites, not 5) and the phantom sector to receive direct forcing for
 the first time — including the possibility that direct phantom pumping
 destabilises rather than confines, which no run has ever probed.
+
+### 19.9 Campaign B results — the target amplitude is the lever; gain is not
+
+All numbers are absolute per-sector confined activity (§19.1):
+`abs_canon = total_activity·canon_mass_frac·confined_frac_canon`,
+`abs_exotic = total_activity·(1−canon_mass_frac)·confined_frac_phantom`.
+Initial state for every arm: total 48.05, canonical 18.62, exotic 31.56.
+
+**`pcb_base` + `pcb_pg4` (target 0.15 = the historical `well_depth`): lethal.**
+With routing fixed, 5 spotlights aiming at ~2× the matter's real central
+amplitude (`bs_phi_c = 0.08`) inject mass monotonically — total 48 → 87 by
+t = 11.5 — and collapse the geometry: `min_chi` 0.942 → 1.6e-3, then
+`NaN diagnostic: rank=0 level=3 component=7 name=K` at t ≈ 12.3. `pcb_pg4`
+(same target, phantom gains ×4) tracked the same curve (89.2 at t = 10.1) and
+was killed at t ≈ 11 as redundant. This retro-explains why 0.15 "worked" for
+years: the mis-routed pump (§19.8) spread the same drive over one field, and
+§19.5's over-drive NaN was this same failure at 3× dose.
+
+**`pcb_match` (all five `well_depth` 0.08 = `bs_phi_c`): first run that HOLDS.**
+
+| t | total | canonical | exotic | min_chi |
+|---|---|---|---|---|
+| 0.00 | 48.05 | 18.62 | 31.56 | 0.942 |
+| 5.76 | 44.88 | 21.63 | 25.15 | 0.924 |
+| 12.96 | 44.74 | 22.23 | 24.66 | 0.797 |
+| 21.60 | 43.91 | 22.36 | 24.18 | 0.537 |
+| 30.00 | 42.77 | 22.09 | 23.56 | 0.075 |
+
+Finished t = 30 clean: governor 1.000 throughout, L2_Ham 4.9e-3 at the end
+(7× under the 0.035 choke) and *falling* — no tp30-style late runaway. Against
+the pump-off baseline (tp0 total ends at 2.89) this holds **43 vs 3**: the
+matched-target pump is the difference between dispersal and persistence.
+Scorer: `late_c = −0.0002`, `late_p = 0.0039` per unit time (tp30 baseline
+0.0247 — late exotic loss cut 6×). The two failures that remain: canonical
+still over-fills (+19% by t = 13, then flat), and the exotic sector loses 20%
+of its matter in the first ~1.4 time units (31.56 → 25.67 by t = 1.44) and
+never gets it back — see §19.10.
+
+**`pcb_match_pg4` (matched target + phantom gains 48/28): identical to
+`pcb_match` to ~3 digits at every slice (end: exotic 24.42 vs 23.56).** Gain
+is NOT a lever anywhere in this regime — with the target matched, the PD error
+is small, so quadrupling the multiplier on a near-zero error changes nearly
+nothing. The §18.6 "authority" framing is dead: what the phantom sector needed
+was routing (§19.8) and a correct target, not more force.
+
+The `min_chi` slide (0.94 → 0.075) is the one watch item: it is genuine
+geometric deepening as the prescribed trajectories converge the lumps toward
+the centre, not a constraint failure (L2_Ham flat while chi falls). A t = 60
+arm (§19.12) tests whether it floors or keeps falling.
+
+### 19.10 The exotic strip is geometric — per-site PD errors sum where lumps overlap
+
+The legacy PD law takes, at every point, one error **per spotlight**, each
+against *that site's own target lump alone*, and sums the forces
+(`RLPumpForce.hpp` per-site loop). Where two same-sector lumps overlap, the
+field is their superposition — so each site sees the neighbour's contribution
+as *excess above its own target* and drives it down. The down-drives add. The
+controller therefore strips matter exactly where same-sector lumps touch, and
+the strip turns on as fast as the pump does (done by t = 1.44 in every arm).
+
+The lump geometry makes this quantitative (centres from the elite's
+`initial_data.matter.json`, signs `1 -1 -1 1 -1`, envelope
+`sech(r/1.667)`):
+
+| pair | sector | separation | envelope overlap at midpoint |
+|---|---|---|---|
+| C0–C3 | canonical | 8.93 | 9.4e-3 (isolated) |
+| P1–P2 | exotic | 4.64 | 0.12 |
+| P2–P4 | exotic | 4.97 | 0.10 |
+
+The two canonical sites are isolated → canonical sector **gains** 11% by
+t = 1.44. The three exotic sites form an overlapping chain → exotic sector
+**loses** 19% in the same window, in every legacy-law arm, at every gain and
+every target amplitude. (C0–P1 sit 1.98 apart but are cross-sector: the two
+controllers write to different field components, so no crosstalk.)
+
+Confirmed by the decisive control `pcd_match_p0` (§19.12): with the exotic
+pump literally OFF (`kp/kd_phantom = 0.0`, the 0.0-literal selects a true
+zero force per `RLPumpForce.hpp` semantics), the exotic sector holds 33.05 at
+t = 1.44 — *no strip*. The legacy pump is what removes the matter.
+
+### 19.11 The superposed-target law — strip eliminated (`rl_pump_superpose_targets`, `64c89be4`)
+
+Fix: sites of the selected sector accumulate ONE summed target (φ and Π) and
+one summed envelope; a single PD error is taken against the superposition; the
+weight is capped at `governor·min(Σenv, 1)` so overlaps do not multiply the
+gain. Reduces exactly to the legacy law for an isolated site. Off by default
+(0 = legacy, bit-identical). Params knob `rl_pump_superpose_targets`; wired
+through `SimulationParameters.hpp` → `RadialRecipeMatterDispatch.hpp`. The
+rebuild was done under live sims by `mv`-ing the old binary first (running
+processes keep their inode); campaigns B/C/D ran the pre-superpose binary
+(they don't set the knob), E runs the new one.
+
+A/B at the first slice (t = 1.44), exotic sector:
+
+| run | law | exotic at t=1.44 |
+|---|---|---|
+| pce_sup | superposed | **42.87** |
+| pcb_match | legacy per-site | 25.67 |
+| pcd_match_p0 | exotic pump off | 33.05 |
+
+The strip is gone — and over-corrected: the superposed target's sech skirts
+overlap in the gaps between the exotic chain, so the summed target is *fatter*
+than the real three-lump field and the controller feeds the bridges
+("bridge-building"). Total activity 48 → 63.9 (t = 5.8) → 67.3 (t = 13), but
+the feed is **decelerating to a plateau** (Δ ≈ +16 then +3.4 per equal
+window), min_chi 0.665 at t = 13 and L2_Ham within 1.8× of pump-off. Next
+lever if the plateau misbehaves: profile-matched targets (measure the real
+lump profile from a plotfile, aim at that) — removes bridge-feeding and any
+residual shape mismatch in one move.
+
+### 19.12 Campaigns C/D/E record (runs/pump_confine_{c,d,e}, 2026-07-28)
+
+All arms: matched target 0.08 unless noted, fixed routing verified by the
+`parsed: 1 -1 -1 1 -1` echo in every log. Kill criteria as §19.6.
+
+| arm | delta | question |
+|---|---|---|
+| pcc_t010 | well_depth 0.10 | where between 0.08 (holds) and 0.15 (lethal) does injection start? |
+| pcc_match_tw2 | target_width ×2 (3.333) | grip-range: does a wider trap catch escapees or inject a fat blob? |
+| pcd_match_p0 | exotic pump OFF | decisive control: is exotic pumping net-positive at all? |
+| pcd_match_t60 | stop_time 60 | legacy law endurance; does min_chi floor? |
+| pce_sup | superpose ON | strip fix A/B twin of pcb_match |
+| pce_sup_t60 | superpose ON, t=60 | the actual goal: both sectors held through trajectory convergence |
+
+In-flight reads (t ≈ 13–26): `pcc_t010` total 55.1 at t = 25.9 (mild feeding,
+alive — 0.10 is over the line but survivable); `pcc_match_tw2` total 110.7 at
+t = 23 (fat-blob injection as §19.6 feared for tw2 — wider envelope = wider
+*target*, so it builds matter, min_chi still 0.74); `pcd_match_p0` exotic
+22.54 at t = 21.6 vs legacy-pumped 24.18 — note the **crossover**: the
+control was ahead early (33.4 vs 24.7 at t = 11.5, i.e. the legacy pump's
+strip is worse than no pump) but decays continuously while the pumped run
+holds flat, so the curves cross near t ≈ 20. "Legacy exotic pumping is net
+harmful" is therefore an early-time statement; the t = 30 endpoints decide
+the net. Finals to be appended when the arms land.
+
+### 19.13 Finals + geometry/FTL audit — holding the matter is NOT holding the geometry
+
+Endpoints (absolute per-sector; start is always 48.05 / 18.62 / 31.56):
+
+| arm | aim | law | t_end | total | canon | exotic | min_chi | min_lapse(29) |
+|---|---|---|---|---|---|---|---|---|
+| pcb_match | 0.08 | legacy | 30 | 42.8 | 22.1 | 23.6 | 0.075 | 0.280 |
+| pcb_match_pg4 | 0.08 | legacy | 30 | 43.5 | 22.0 | 24.4 | 0.085 | — |
+| pcc_t010 | 0.10 | legacy | 30 | 54.2 | 27.9 | **29.9** | **0.499** | **0.630** |
+| pcc_match_tw2 | 0.08, width×2 | legacy | 30 | 115.0 | 61.1 | 58.0 | 0.427 | 0.488 |
+| pcd_match_p0 | 0.08, exotic OFF | legacy | 30 | 25.2 | 13.3 | **11.9** | **0.014** | **0.015** |
+| pce_sup | 0.08 | superposed | 20† | 66.7 | 26.9 | 43.4 | 4.1e-3 | 0.109 |
+| pcb_base / pcb_pg4 | 0.15 | legacy | 12† | 87 | 43 | 48 | 1.6e-3 | — |
+
+† killed on the pre-registered `min_chi < 0.05` criterion / NaN.
+
+**`pcc_t010` (aim 0.10) is the best configuration found so far**, on every
+axis except warp strength: healthiest geometry by a factor 6 in `min_chi`,
+exotic sector essentially conserved (31.56 → 29.92, −5%), and — the surprise
+— **no early strip at all** (exotic 31.75 at t = 1.44, i.e. *above* its
+initial value). Aiming slightly ABOVE the matter's own amplitude removes the
+§19.10 overlap-strip under the *legacy* law: with the target above the local
+field, the neighbour's contribution in the overlap no longer reads as excess,
+so the down-drive never fires. That is a one-line config change achieving what
+§19.11's code fix was written for.
+
+**The exotic-pump-off control settles §19.12's crossover decisively, in the
+opposite direction from the early read.** `pcd_match_p0` ends at exotic 11.9
+(−62%) with `min_lapse` 0.015 and `min_chi` 0.014 — the worst end-state of any
+completed arm. Its energy-condition trace explains why: `matter_min_NEC` goes
+from −4.4e-3 at t = 1 to **+2.8e-4 at t = 18**, and the integrated violation
+to **exactly 0.0** — the negative-energy content is entirely gone, and the
+geometry collapses immediately after. Direct exotic pumping is therefore NET
+ESSENTIAL; §19.10's "legacy exotic pumping is net harmful" is now correctly
+scoped to t ≲ 20 only.
+
+**`pce_sup` (superposed law) collapses into a black hole at t ≈ 14–19.** This
+is the one unambiguous collapse in the set: the trapped-surface proxy goes
+negative at **r = 3.64 — inside the matter** — with `max|K|` = 1.14 (10× every
+other arm), lapse 0.72 → 0.11 and chi → 4.1e-3 by t = 20, and `pump_work`
+spiking 3.5e-2 → 1.11 as the controller fights the collapsing lapse. Cause is
+§19.11's bridge-feeding: 67 units of mass instead of 44. The fix does what it
+was designed to do (strip eliminated, exotic 42.9 vs 25.7) and then kills the
+run by over-feeding. Its A/B twin `pce_sup_t60` was bit-identical and was
+killed with it.
+
+**Caveat on `min_theta_plus` in the surviving arms — probable refinement-edge
+artifact, NOT a horizon.** `pcb_match`, `pcc_t010`, `pcc_match_tw2` and
+`pcd_match_p0` all show `min_theta_plus < 0` late (from t ≈ 22, 26, 29, 18
+respectively) with `max_ah_r` growing 10 → 12.4. But the minimum sits at a
+**fixed r ≈ 8.5–10.4** in every case — just outside `recipe_basis_radius_max
+= 8.0`, i.e. at the outer edge of the refined region where the `dchi_dr`
+stencil crosses a coarse-fine interface. Two reasons to distrust it as
+physics: (i) the radius does not move (9.11 → 9.36 over 7 time units) as a
+real horizon would; (ii) a true trapped surface at r ≈ 10 enclosing the whole
+configuration would force the interior to collapse promptly, yet `pcc_t010`
+keeps lapse 0.63 / chi 0.54 to the end. Treat central `min_lapse` + `min_chi`
++ `max|K|` as the trustworthy collapse indicators; by those only `pce_sup`,
+`pcd_match_p0` and the 0.15 arms collapsed. **TODO: exclude the finest level's
+outer ghost band from the theta_plus reduction, or evaluate it on level 0.**
+
+**FTL/geodesic scores (`ftl_timeseries.dat` peak `f_geo`, `evolving_geodesic.json`):**
+
+| arm | peak f_geo | end-to-end f_geo | max local speed | superluminal frac |
+|---|---|---|---|---|
+| pcb_match | **0.279** | 0.0798 | **1.78** | 0.988 |
+| pcb_match_pg4 | 0.278 | 0.0789 | 1.78 | 0.988 |
+| pcd_match_p0 | 0.266 | — | 1.51 | 0.963 |
+| pcd_match_t60 | 0.257 | — | 1.74 | 0.949 |
+| pcc_t010 | 0.182 | 0.0748 | 1.62 | 0.957 |
+| pce_sup | 0.114 | — | 1.41 | 0.855 |
+| pcc_match_tw2 | 0.089 | — | 1.34 | 0.939 |
+
+**A stability/effect tension is now visible in the data**: the arm with the
+strongest warp signature (`pcb_match`, f_geo 0.279, local speed 1.78) is the
+one that ends deepest (lapse 0.28), while the healthiest arm (`pcc_t010`,
+lapse 0.63) carries only 65% of that signature, and the flattest arm
+(`tw2`, 115 units of diffuse matter) the least (0.089). Concentration of
+matter buys warp and costs stability. Whether an optimum exists between 0.08
+and 0.10 — or whether the superposed law at a REDUCED aim (~0.06, to land the
+mass back near 48) beats both — is the next campaign, not a settled result.
+
+Disk audit (2026-07-28 14:27): node-local scratch 53 G, self-draining
+correctly (only live arms hold plotfiles; every finished arm's scratch was
+reclaimed by the consumer). `runs/` 134 G on a 22 T volume with 6.2 T free;
+the per-run 5.1 G is `small_data/metric_stack/*.npz` (22 snapshots), which is
+the input the FTL scorer needs. No orphans, no pollution.
