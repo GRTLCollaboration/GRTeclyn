@@ -68,6 +68,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void accumulate_site_sources(
         const amrex::Real inv_alpha = 1.0 / lapse;
         const amrex::Real tw =
             (pump.target_width > 0.0) ? pump.target_width : pump.width;
+        // Superposed-target accumulators (see RLMatterPumpParams.hpp): the
+        // sector's sites build ONE target field and one capped weight, and a
+        // single PD error is taken at the end of the loop.
+        amrex::Real env_sum{0.0};
+        amrex::Real T1{0.0}, T2{0.0}, TP1{0.0}, TP2{0.0};
         for (int s = 0; s < pump.num_sites; ++s)
         {
             const auto &site = pump.sites[s];
@@ -94,9 +99,25 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void accumulate_site_sources(
             const amrex::Real tphi2 = g * std::sin(arg);
             const amrex::Real tPi1  = site.frequency * tphi2 * inv_alpha;
             const amrex::Real tPi2  = -site.frequency * tphi1 * inv_alpha;
-            const amrex::Real w     = governor * env;
+            if (pump.superpose_targets != 0)
+            {
+                env_sum += env;
+                T1 += tphi1;
+                T2 += tphi2;
+                TP1 += tPi1;
+                TP2 += tPi2;
+                continue;
+            }
+            const amrex::Real w = governor * env;
             s1 += w * (-kp * (phi1 - tphi1) - kd * (Pi1 - tPi1));
             s2 += w * (-kp * (phi2 - tphi2) - kd * (Pi2 - tPi2));
+        }
+        if (pump.superpose_targets != 0 && env_sum > 0.0)
+        {
+            const amrex::Real w =
+                governor * ((env_sum < 1.0) ? env_sum : 1.0);
+            s1 += w * (-kp * (phi1 - T1) - kd * (Pi1 - TP1));
+            s2 += w * (-kp * (phi2 - T2) - kd * (Pi2 - TP2));
         }
         return;
     }

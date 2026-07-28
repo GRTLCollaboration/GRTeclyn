@@ -106,6 +106,7 @@ inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
     pump.target_profile  = params.rl_pump_target_profile;
     pump.target_width    = params.rl_pump_target_width;
     pump.target_amp      = params.rl_pump_target_amp;
+    pump.superpose_targets = params.rl_pump_superpose_targets;
     for (int s = 0; s < n; ++s)
     {
         pump.sites[s].center_x  = RLRuntime::g_lump_state[s].x;

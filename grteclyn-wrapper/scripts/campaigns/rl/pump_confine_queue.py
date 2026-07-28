@@ -210,6 +210,116 @@ ARMS_B = [
 ]
 ARMS += ARMS_B
 
+# --- campaign C -------------------------------------------------------------
+# Campaign B's verdict, read off the first ~19 time units: the TARGET AMPLITUDE
+# is the whole story and phantom GAIN is not a lever. pcb_base and pcb_pg4 (x4
+# phantom authority) trace the SAME collapse curve to three digits -- min_chi
+# 0.133 vs 0.139 at t=8.64 -- and pcb_base died at t=12.27 with "NaN in K" after
+# min_chi fell to 1.6e-3, the same signature as campaign A's pwd_up. Both
+# over-target arms inject 48 -> ~88 absolute in the first 3 units and then
+# collapse under the mass they added. The matched arms (target 0.08 = the seed
+# lumps' true phi_c) sit flat at ~44 with min_chi 0.64 at t=18.7.
+#
+# So campaign C brackets the surviving question: how much injection is safe, and
+# does grip range recover the ~19% phantom shed in the first 1.4 units?
+ARMS_C = [
+    # Injection ceiling. 0.08 is stable, 0.15 is lethal -- bisect once. If this
+    # survives to t=30 the safe target is >= 0.10 and there is headroom to gain
+    # matter; if it collapses, matched-only is the operating point.
+    ("pcc_t010", [
+        "trajectory_lump0_well_depth = 0.10",
+        "trajectory_lump1_well_depth = 0.10",
+        "trajectory_lump2_well_depth = 0.10",
+        "trajectory_lump3_well_depth = 0.10",
+        "trajectory_lump4_well_depth = 0.10",
+    ]),
+    # Grip range x2 at the safe target. The sech(r/w) envelope is ~4e-5 at the
+    # escaped-matter radius, so widening is the only lever that can reach matter
+    # already outside the well. Watch rms_radius_* (cols 13/15): a wider held
+    # blob is not a win.
+    ("pcc_match_tw2", [
+        "trajectory_lump0_well_depth = 0.08",
+        "trajectory_lump1_well_depth = 0.08",
+        "trajectory_lump2_well_depth = 0.08",
+        "trajectory_lump3_well_depth = 0.08",
+        "trajectory_lump4_well_depth = 0.08",
+        "rl_pump_target_width = 3.333333333333334",
+    ]),
+]
+ARMS += ARMS_C
+
+# --- campaign D -------------------------------------------------------------
+# Two arms launched onto the GPUs freed by the over-target deaths (pcb_base NaN
+# at t=12.27; pcb_pg4 killed at t=10.08 on the min_chi < 0.05 criterion, having
+# tracked pcb_base to three digits the whole way down).
+#
+# The gains here are honoured as LITERAL ZERO, not "inherit": RLPumpForce.hpp:62
+# selects the phantom gain on `k_p_phantom >= 0.0`, and only a NEGATIVE value
+# falls back to the canonical k_p. So 0.0 really does mean "no PD force on the
+# phantom sites" -- which is the control this project has never had.
+ARMS_D = [
+    # THE DECISIVE CONTROL. Matched target, canonical sites pumped normally,
+    # phantom sites pumped with zero gain. Sec. 19.8 concluded that every
+    # "phantom benefits from the pump" result to date was INDIRECT (geometric
+    # shielding by over-pumped canonical matter), because the phantom sites were
+    # mis-routed and received no force at all. This arm reproduces that
+    # condition deliberately at a survivable target: if the phantom sector still
+    # holds flat here, the direct forcing in pcb_match is not what confines it,
+    # and the confinement claim belongs to geometry, not the controller.
+    ("pcd_match_p0", [
+        "trajectory_lump0_well_depth = 0.08",
+        "trajectory_lump1_well_depth = 0.08",
+        "trajectory_lump2_well_depth = 0.08",
+        "trajectory_lump3_well_depth = 0.08",
+        "trajectory_lump4_well_depth = 0.08",
+        "rl_pump_kp_phantom = 0.0",
+        "rl_pump_kd_phantom = 0.0",
+    ]),
+    # Persistence. "Confined" has only ever been measured to t=30, and the tp30
+    # ladder rung choked on a constraint runaway at t~29 -- so t=30 cannot
+    # distinguish "held" from "not yet dispersed". Double the horizon at the
+    # matched target and find out which.
+    ("pcd_match_t60", [
+        "trajectory_lump0_well_depth = 0.08",
+        "trajectory_lump1_well_depth = 0.08",
+        "trajectory_lump2_well_depth = 0.08",
+        "trajectory_lump3_well_depth = 0.08",
+        "trajectory_lump4_well_depth = 0.08",
+        "stop_time = 60.0",
+    ]),
+]
+ARMS += ARMS_D
+
+# --- campaign E -------------------------------------------------------------
+# The superposed-target law (rl_pump_superpose_targets, RLPumpForce.hpp).
+# Diagnosis from campaign B geometry: the legacy per-site PD errors STRIP the
+# overlap between same-sector sites -- each site treats its neighbour's lump as
+# excess and their down-drives sum.  Canonical sites sit 8.9 apart (overlap
+# 9e-3, sector +11% by t=1.44); the three phantom sites sit 4.6-5.0 apart
+# (overlap ~0.1, sector -19%).  With the law ON, a sector's sites share one
+# summed target and a capped weight; identical to legacy for isolated sites.
+# A/B twins: pce_sup vs pcb_match (t=30), pce_sup_t60 vs pcd_match_t60 (t=60).
+ARMS_E = [
+    ("pce_sup", [
+        "trajectory_lump0_well_depth = 0.08",
+        "trajectory_lump1_well_depth = 0.08",
+        "trajectory_lump2_well_depth = 0.08",
+        "trajectory_lump3_well_depth = 0.08",
+        "trajectory_lump4_well_depth = 0.08",
+        "rl_pump_superpose_targets = 1",
+    ]),
+    ("pce_sup_t60", [
+        "trajectory_lump0_well_depth = 0.08",
+        "trajectory_lump1_well_depth = 0.08",
+        "trajectory_lump2_well_depth = 0.08",
+        "trajectory_lump3_well_depth = 0.08",
+        "trajectory_lump4_well_depth = 0.08",
+        "rl_pump_superpose_targets = 1",
+        "stop_time = 60.0",
+    ]),
+]
+ARMS += ARMS_E
+
 # Stripped from the baseline for every arm. amr.plot_file / amr.check_file are
 # absolute paths INTO THE BASELINE RUN DIR: if they survive the clone, this
 # campaign writes plotfiles into the baseline and its --delete consumer prunes

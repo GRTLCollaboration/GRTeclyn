@@ -88,6 +88,10 @@ class SimulationParameters : public SimulationParametersBase
         // Trap-target central amplitude (self-grav boson star: bs_phi_c).  0 =>
         // use the per-site amplitude (legacy).
         pp.load("rl_pump_target_amp", rl_pump_target_amp, 0.0);
+        // Superposed-target PD law: overlapping same-sector sites share one
+        // summed target and a capped weight instead of summing per-site
+        // errors (which strips matter where lumps overlap).  0 = legacy.
+        pp.load("rl_pump_superpose_targets", rl_pump_superpose_targets, 0);
         // Transient "igniter" pump: when >= 0 and time >= stop, force the pump
         // fully off (k_p=k_d=0, num_sites=0) so post-stop evolution is
         // conservative Einstein-Klein-Gordon.  Default -1 => never auto-stop.
@@ -293,6 +297,7 @@ class SimulationParameters : public SimulationParametersBase
     int rl_pump_target_profile{0}; //!< 0 Gaussian, 2 sech bound-lump target
     double rl_pump_target_width{0.0}; //!< physical 1/sqrt(m^2-omega^2); <=0 => width
     double rl_pump_target_amp{0.0}; //!< trap-target central amplitude (bs_phi_c); <=0 => site amp
+    int rl_pump_superpose_targets{0}; //!< 1 => summed sector target + capped weight; 0 legacy
     double rl_pump_stop_time{-1.0}; //!< >=0 => pump off for time>=stop; -1 => never
     int controller_reservoir_mode{0}; //!< 0 off, 1 ledger, 2 backreaction
 

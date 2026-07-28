@@ -80,6 +80,19 @@ struct RLMatterPumpParams
     //! excites a breathing mode that collapses the star.  <= 0 => use
     //! ``site.amplitude`` (legacy).
     double target_amp{0.0};
+    //! Superposed-target PD law (0 => legacy per-site errors).  With per-site
+    //! errors, overlapping same-sector sites each compare the field against
+    //! THEIR OWN lump alone, so in the overlap the (superposed) field looks
+    //! like an excess to every site and their down-drives sum -- the
+    //! controller strips matter exactly where lumps touch.  Measured on
+    //! pump_confine_b/pcb_match: the two canonical sites are 8.9 apart
+    //! (overlap 9e-3, sector +11% by t=1.44) while the three phantom sites
+    //! sit 4.6-5.0 apart (overlap ~0.1, sector -19%).  When enabled, sites of
+    //! the selected sector accumulate ONE summed target and one summed
+    //! envelope, the PD error is taken against that superposition, and the
+    //! weight is capped at min(sum env, 1) so overlaps do not multiply the
+    //! gain.  Reduces exactly to the legacy law for an isolated site.
+    int superpose_targets{0};
 };
 
 namespace RLRuntime
