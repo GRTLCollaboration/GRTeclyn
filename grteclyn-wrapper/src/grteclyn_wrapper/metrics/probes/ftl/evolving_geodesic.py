@@ -38,6 +38,7 @@ from .geodesic import (
     null_hamiltonian,
     project_null,
     ray_is_captured,
+    rays_complete,
 )
 from .metric_field import (
     EvolvingMetricField,
@@ -328,15 +329,20 @@ def compute_evolving_geodesic_ftl(
     )
 
 
+def evolving_report_trustworthy(report: EvolvingGeodesicFtlReport) -> bool:
+    """True when the 4D trace is certified: h-quality held and the bundle closed.
+
+    The single trust bar for an evolving report.  Consumers that only have the
+    scalar fields (``EvolvingGeodesicMetrics``, a JSON payload) should call
+    :func:`rays_complete` with the same three counts rather than re-deriving.
+    """
+    return report.h_quality_ok and rays_complete(
+        report.n_rays, report.n_reached, report.n_captured
+    )
+
+
 def _report_probe_score(report: EvolvingGeodesicFtlReport) -> float:
-    # Captured rays (fell into a puncture/horizon) are physics, not failures;
-    # trust requires every non-captured ray to reach.  Identical to the old bar
-    # when n_captured == 0.
-    if (
-        report.h_quality_ok
-        and report.n_reached > 0
-        and report.n_reached == report.n_rays - report.n_captured
-    ):
+    if evolving_report_trustworthy(report):
         return report.f_geo
     return -1.0
 

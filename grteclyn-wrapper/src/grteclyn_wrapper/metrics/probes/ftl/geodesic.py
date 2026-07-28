@@ -575,9 +575,25 @@ def geodesic_report_from_metric_g(
     )
 
 
+def rays_complete(n_rays: int, n_reached: int, n_captured: int = 0) -> bool:
+    """True when every ray that was not captured reached the detector.
+
+    THE canonical ray-bundle trust bar — import this rather than re-deriving
+    it.  Both geodesic probes (frozen and evolving) and every consumer of their
+    reports must agree, or a measurement the probe considers sound gets marked
+    untrusted downstream.
+
+    Captured rays (fell into a puncture throat / horizon) are physics, not
+    integration failures, so they leave the denominator.  Reduces to the older
+    ``n_reached == n_rays`` bar whenever ``n_captured == 0``.  Returns False if
+    every ray was captured — there is then no bundle left to certify.
+    """
+    return n_rays > 0 and n_reached > 0 and n_reached == n_rays - n_captured
+
+
 def _rays_complete(report: GeodesicFtlReport) -> bool:
     """True when every non-captured ray reached the detector."""
-    return report.n_reached > 0 and report.n_reached == report.n_rays - report.n_captured
+    return rays_complete(report.n_rays, report.n_reached, report.n_captured)
 
 
 def _frozen_report_score(report: GeodesicFtlReport) -> float:

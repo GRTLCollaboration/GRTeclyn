@@ -52,11 +52,15 @@ def four_d_geodesic_ran(metrics: Mapping[str, Any] | None) -> bool:
 
 
 def four_d_geodesic_trustworthy(evo: Mapping[str, Any] | None) -> bool:
+    from ..metrics.probes.ftl.geodesic import rays_complete
+
     if evo is None:
         return False
-    n_rays = int(evo.get("n_rays") or 0)
-    n_reached = int(evo.get("n_reached") or 0)
-    return bool(evo.get("h_quality_ok")) and n_rays > 0 and n_reached == n_rays
+    return bool(evo.get("h_quality_ok")) and rays_complete(
+        int(evo.get("n_rays") or 0),
+        int(evo.get("n_reached") or 0),
+        int(evo.get("n_captured") or 0),
+    )
 
 
 def authoritative_geo_strength(

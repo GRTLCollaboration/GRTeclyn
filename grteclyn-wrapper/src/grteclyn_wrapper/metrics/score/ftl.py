@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 
+from ..probes.ftl.geodesic import rays_complete
 from .types import ScoringContext
 
 
@@ -204,8 +205,9 @@ def compute_ftl_components(
     geo_trustworthy = bool(
         geo_report is not None
         and geo_report.h_quality_ok
-        and geo_report.n_rays > 0
-        and geo_report.n_reached == geo_report.n_rays
+        and rays_complete(
+            geo_report.n_rays, geo_report.n_reached, geo_report.n_captured
+        )
     )
     ctx.geo_trustworthy = geo_trustworthy
     ctx.f_geo = f_geo
@@ -257,8 +259,7 @@ def compute_ftl_components(
     evo_trustworthy = bool(
         evo_geo is not None
         and evo_geo.h_quality_ok
-        and evo_geo.n_rays > 0
-        and evo_geo.n_reached == evo_geo.n_rays
+        and rays_complete(evo_geo.n_rays, evo_geo.n_reached, evo_geo.n_captured)
     )
     if evo_geo is not None:
         # 4D evolving trace ran -- it is authoritative for geodesic FTL ranking.

@@ -60,6 +60,7 @@ def _extract_ftl_timeseries_line(
     if f_op > 1.0e-3 or max_speed > 1.0:
         from grteclyn_wrapper.metrics.probes.ftl.geodesic import (
             compute_geodesic_ftl_from_plotfile,
+            rays_complete,
         )
         from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic_options import (
             geo_directions_from_env,
@@ -79,7 +80,8 @@ def _extract_ftl_timeseries_line(
             n_reached = int(geo.n_reached)
             max_h_rel = float(geo.max_h_rel_drift)
             geo_trustworthy = 1 if (
-                geo.h_quality_ok and geo.n_rays > 0 and geo.n_reached == geo.n_rays
+                geo.h_quality_ok
+                and rays_complete(geo.n_rays, geo.n_reached, geo.n_captured)
             ) else 0
 
     coherence_str = f"{float(coherence):.16e}" if coherence is not None else "nan"

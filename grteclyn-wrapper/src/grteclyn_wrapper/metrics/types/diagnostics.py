@@ -170,6 +170,10 @@ class EvolvingGeodesicMetrics:
     n_reached: int
     h_quality_ok: bool
     max_h_rel_drift: float
+    # Rays that fell into a puncture throat / horizon.  Excluded from the trust
+    # bar (see ``probes.ftl.geodesic.rays_complete``) — capture is physics, not
+    # an integration failure.
+    n_captured: int = 0
 
 
 @dataclass(frozen=True)

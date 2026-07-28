@@ -45,6 +45,7 @@ from ..probes.ftl.geodesic import (
 from ..probes.ftl.evolving_geodesic import (
     compute_evolving_geodesic_ftl_from_metric_stack_cache,
     compute_evolving_geodesic_ftl_from_plotfiles,
+    evolving_report_trustworthy,
     patch_ftl_timeseries_evolving,
     write_evolving_geodesic_json,
 )
@@ -239,6 +240,7 @@ def _compute_evolving_geodesic_metrics(
             n_reached=int(evo_report.n_reached),
             h_quality_ok=bool(evo_report.h_quality_ok),
             max_h_rel_drift=float(evo_report.max_h_rel_drift),
+            n_captured=int(evo_report.n_captured),
         )
         json_path = ctx.episode_dir / "small_data" / "evolving_geodesic.json"
         write_evolving_geodesic_json(json_path, evo_report)
@@ -276,11 +278,7 @@ def _compute_evolving_geodesic_metrics(
         patch_ftl_timeseries_evolving(
             ctx.ftl_timeseries_path,
             f_geo_evol=float(evo_report.f_geo),
-            f_geo_evol_ok=(
-                bool(evo_report.h_quality_ok)
-                and evo_report.n_rays > 0
-                and evo_report.n_reached == evo_report.n_rays
-            ),
+            f_geo_evol_ok=evolving_report_trustworthy(evo_report),
         )
         logger.info(
             "patched ftl_timeseries at %s with f_geo_evol=%.4e",

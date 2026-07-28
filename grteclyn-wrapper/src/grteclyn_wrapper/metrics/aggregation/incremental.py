@@ -176,6 +176,7 @@ def _load_evolving_geodesic_metrics(episode_dir: Path) -> EvolvingGeodesicMetric
         n_reached=int(report.n_reached),
         h_quality_ok=bool(report.h_quality_ok),
         max_h_rel_drift=float(report.max_h_rel_drift),
+        n_captured=int(report.n_captured),
     )
 
 
