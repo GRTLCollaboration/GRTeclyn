@@ -1888,8 +1888,74 @@ data survives to re-derive it.
   the timeseries still work on these four, but the 4D geodesic re-scorer
   cannot be re-run against them without repeating the simulation.
 
-Disk audit (2026-07-28 14:27): node-local scratch 53 G, self-draining
-correctly (only live arms hold plotfiles; every finished arm's scratch was
-reclaimed by the consumer). `runs/` 134 G on a 22 T volume with 6.2 T free;
-the per-run 5.1 G is `small_data/metric_stack/*.npz` (22 snapshots), which is
-the input the FTL scorer needs. No orphans, no pollution.
+Disk audit (2026-07-28, final): node-local scratch drained 53 G → 91 M
+(`_cache` only) once the last arm reached `[done]` at 14:53; repo 141 G →
+113 G after the pruning above. The scratch protocol behaved exactly as
+designed and needs no change: the consumer deletes each plotfile as it
+extracts it but holds the newest three (`--keep-last 3`) so it can never
+delete a file the sim may still be writing, the queue releases those three
+only after extraction *and* the final scoring pass, and on a failed
+extraction it logs `KEEP-SCRATCH` and preserves the raw data rather than
+discarding it unprocessed (which is what fired on `pce_sup_t60` after its
+output dir was removed mid-flight). An 11 G residue during a live run is the
+designed steady state, not a leak.
+
+### 19.14 Next steps
+
+**Evidence standard (binding on all future claims).** A configuration may be
+called "held" only on a run reaching **t ≥ 40**, never t = 30. §19.13's
+`pcd_match_t60` showed `pcb_match` looking healthy at t = 30 and collapsing at
+t ≈ 32; every "success" in §19.9 is therefore only a statement about survival
+to 30. Report central `min_lapse`, `min_chi` and `max|K|` with any such claim,
+not the `theta_plus` proxy (see the TODO below).
+
+**Campaign F — config-only, no rebuild required, 8 GPUs free.** All arms clone
+`runs/pump_confine_c/pcc_t010/params.txt` (the current best) unless noted.
+Recall `recipe_scalar_field_signs = 1 -1 -1 1 -1`, so lumps **0 and 3 are
+canonical** and **1, 2 and 4 are exotic** — and `trajectory_lump<k>_well_depth`
+is already per lump, so per-sector aiming needs **no code change at all**.
+
+| arm | change vs pcc_t010 | question it answers |
+|---|---|---|
+| `pcf_t010_t60` | `stop_time = 60.0` | **PRIMARY.** Does the best config survive past t ≈ 32, where aim 0.08 died? |
+| `pcf_sup_a06` | all `well_depth = 0.06`, `rl_pump_superpose_targets = 1` | Does the §19.11 fix stop over-feeding at a reduced aim? Pass = total ≈ 48 (not 67) at t = 13 with the exotic strip still absent. |
+| `pcf_t012` | all `well_depth = 0.12` | Is the stability optimum above 0.10, or is the 0.15 cliff (§19.9) already near? |
+| `pcf_split` | lumps 0,3 → 0.08; lumps 1,2,4 → 0.12 | **The most promising new idea.** Exotic matter is what resists collapse (§19.13 control) and aiming high is what conserves it (§19.9), while aiming high on the canonical sector is what over-fills it (+50%). Aim high only where it pays. |
+
+Kill criteria unchanged (§19.6) except that `min_chi < 0.05` is now known to be
+a *late* indicator — add an abort on `min_lapse < 0.15`, which led `min_chi` by
+~1 time unit in both confirmed collapses.
+
+**Code fixes, in priority order.**
+
+1. **`theta_plus` refinement-edge artifact** (`RadialRecipeLevel.cpp:~838`).
+   The reduction runs over the finest level including its outer band, so the
+   minimum parks at a fixed r ≈ 9–10 just outside `recipe_basis_radius_max =
+   8.0` and reports a growing "horizon" in runs whose interiors stay healthy.
+   Fix: exclude cells within one stencil width of the finest level's boundary
+   (or evaluate the proxy on level 0). Until then every collapse call needs
+   manual lapse/chi corroboration, which is how §19.13 was produced.
+2. **Profile-matched target.** Both the §19.10 strip and the §19.11
+   bridge-feeding are shape errors: the controller aims at an analytic sech
+   whose skirts do not match the real lump. Measure the actual radial profile
+   from a `pcc_t010` snapshot (retained for exactly this purpose) and drive
+   toward it. This subsumes both defects and would make the pump a pure
+   stabiliser rather than a source.
+3. **Deferred hygiene** (unchanged, none blocking): `wiring.py`
+   `EVOLUTION_MATTER_KEYS`/`_pump_controller_overrides` lack the phantom and
+   superpose knobs, so generated configs silently cannot set them;
+   `RadialRecipeLevel.cpp` `reservoir_mode_override` race;
+   `structure_coherence` NaN in every row (§18.7); failing
+   `test_horizon_finder_guard.py`.
+
+**The open question the data now poses.** Every configuration collapses; only
+the timing differs (t ≈ 12 → 19 → 32 → ≥ 30 as aim and law vary), and §19.13's
+FTL table shows the strongest warp signature belongs to the arm that collapses
+soonest. Two readings are still open: either there is a stable window between
+aim 0.10 and 0.15 that campaign F will find, or the 2+3 lump geometry is
+gravitationally unstable at this mass and no pump setting saves it — in which
+case the lever is the *configuration* (lump count, separation, exotic fraction,
+rotation), not the controller. `pcf_split` is the cheapest probe of the second
+reading, since raising the exotic fraction is what the collapse-resistance
+evidence points at. **Nothing enters `research.tex` until an arm holds to
+t ≥ 40**, per the standing rule.
