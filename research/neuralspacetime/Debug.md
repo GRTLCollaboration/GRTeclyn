@@ -1,11 +1,16 @@
 # Pump controller / constraint investigation — findings log
 
 Status as of 2026-07-28. Branch `feature/interstellar`.
-Commits: `fe5ef9f8`, `d6a0c350`, `2ddaa87a`, `6daea1a3`.
+Commits: `fe5ef9f8`, `d6a0c350`, `2ddaa87a`, `6daea1a3`, `fbdbd740`.
 
-**The HQ ladder (`runs/pump_ladder_m0`, 6 rungs, 256³, t=30) is COMPLETE and
-validated.** All HQ numbers below are final. See §11 for the validation record,
-§12 for a retracted claim, §13 for what `f_geo_evol` actually is.
+**READ §15 FIRST.** The metric cache feeding the geodesic probes was sampling
+at the coarsest AMR level and silently erasing refined geometry. Every
+`f_geo_evol` number is void; §7's frozen `f_geo` needs an audit. The
+simulations themselves are unaffected — constraints (§4), retention (§5) and
+the tp30 instability (§6) all stand. A rerun is in progress.
+
+The 2026-07-28 HQ ladder is complete and validated (§11); its data now lives at
+`runs/pump_ladder_m0_v1`. §12 is a separate retracted claim.
 
 This file records what was broken, what was fixed, what was abandoned, and
 which numbers are safe to quote in the manuscript. Written so the results are
@@ -383,10 +388,12 @@ this measurement.
 ## 8. Data provenance
 
 **VALID**
-* `runs/pump_ladder_m0/lad_m0_tp{0,4,8,16,24}` — **HQ, 256³, t=30, complete,
-  validated (§11). These are the manuscript numbers.**
-* `runs/pump_ladder_m0/lad_m0_tp30` — valid to t≈29; governor engaged
+* `runs/pump_ladder_m0_v1/lad_m0_tp{0,4,8,16,24}` — HQ, 256³, t=30, complete,
+  validated (§11). Manuscript numbers for constraints / retention / lapse.
+  **Its `metric_stack` was deleted and `f_geo_evol` reset — see §15.**
+* `runs/pump_ladder_m0_v1/lad_m0_tp30` — valid to t≈29; governor engaged
   legitimately at the end, late-time values are inside the destabilised window
+* `runs/pump_ladder_m0/` — RERUN IN PROGRESS (launched 04:46), 257³ cache
 * `runs/always_on_pump/hq146_m0_tp4_t30` — HQ, mode 0, governor 1.0 throughout
   (bit-identity reference for `lad_m0_tp4`)
 * `runs/always_on_pump/hq146_m1_tp0_t30` — HQ, pump never on, reservoir ≡ 0
@@ -477,8 +484,10 @@ case (310 s) exceeded the 288 s plotfile cadence; that is how backlogs formed.
 
 **STILL CANNOT say**
 * anything about `t_pump > 24`
-* that the pump improves `f_geo` — it does not, at either resolution (§7)
-* that the pump improves `f_geo_evol` — it does not either (§13)
+* **anything at all about `f_geo_evol`** — every value is void (§15)
+* that the pump does not improve `f_geo` — the §7 verdict is *plausible but
+  unproven*; that probe is a milder case of the same resample problem and must
+  be audited against the rerun (§15)
 * where between 24 and 30 the turnover sits — needs rungs at 26/28
 
 ---
@@ -563,20 +572,16 @@ grteclyn-wrapper/.venv/bin/python \
   runs/pump_ladder_m0/lad_m0_tp*
 ```
 
-### Results (HQ ladder, all six)
+### Results — **ALL RETRACTED, see §15**
 
-| t_pump | f_geo_evol | ok | rays | t_emit |
-|--------|-----------|-----|------|--------|
-| 0 | **12.26%** | 1 | 5/5 | 0.00 |
-| 4 | **13.22%** | 1 | 5/5 | 0.00 |
-| 8 | 12.43% | 1 | 5/5 | 0.00 |
-| 16 | 12.04% | 1 | 5/5 | 0.00 |
-| 24 | 12.04% | 1 | 5/5 | 0.00 |
-| 30 | 12.04% | 1 | 5/5 | 0.00 |
+The numbers this pass produced (12–13%, and a later emission sweep giving up to
+26.4%) were computed from a cache that could not represent the geometry. They
+are deleted, not corrected. **§15 is the section that matters.** The machinery
+below is sound; the input it was fed was not.
 
-All trustworthy: 5/5 rays reached, `h_quality_ok=1`, 0 captured.
+### Three consequences — (1) stands, (2) and (3) are void
 
-### Three consequences
+Only the first survives §15. The other two were readings of retracted numbers.
 
 1. **This does NOT contradict `research.tex` line 172.** That line reports
    `f_geo^evol = 0` for a *canonical-only (positive-energy) search*
@@ -633,3 +638,158 @@ the correct bar even in principle. Regression test:
 **Behaviour is unchanged whenever `n_captured == 0`, which covers every run
 recorded to date** — including this ladder (0 captured in all six). No existing
 number moves.
+
+---
+
+## 15. THE BIG ONE — the metric cache silently erased the geometry (`fbdbd740`)
+
+**Every geodesic number derived from `metric_stack` is void. The simulations
+themselves are fine. A rerun is in progress.**
+
+### How it was caught
+Not by a test. By a physics objection from the user:
+
+> *"cause for the pump free matter collapsing and light rays should have more
+> trouble reaching detector compare to pump runs with more stable matter"*
+
+That is exactly right, and it is the check that should have been applied
+before reporting anything. A deep gravitational well produces **Shapiro
+delay** — light through it arrives *later*, not earlier. The pump-free run has
+the deepest well by three orders of magnitude (`min_chi` = 5.7e-4 vs 0.58 for
+tp24) and was reporting the **largest** apparent shortcut. That is backwards,
+and being backwards it falsified the measurement, not the physics.
+
+### The bug
+The evolving-geodesic probe does not read plotfiles. It reads
+`small_data/metric_stack/`, a cache of `g_{mu nu}` resampled onto a **uniform**
+grid — `n_space³` points over `±half_width`. Defaults: `n_space` = 33 in search
+mode, 65 in hq mode; `half_width` = `ftl_L` = 8.
+
+So the cache spacing is `dx = 2*8/32 = 0.5`.
+
+The runs use `amr.n_cell = 256` over `L = 128` (level-0 `dx` = 0.5) with
+`amr.max_level = 3`, i.e. finest `dx` = **0.0625**.
+
+**The cache sampled at the coarsest level and discarded all three levels of
+refinement.** There is no error, no warning, and no visible artifact: the
+resampled metric is smooth, positive-definite, and null geodesics integrate
+through it perfectly happily. It is simply a different spacetime — one with the
+sharp features removed.
+
+### Why it corrupted a comparison rather than shifting it
+
+The cache is faithful while the geometry is smooth, and fails exactly when a
+sharp feature appears. `min_chi` as the simulation reports it vs what the
+33³ cache can represent, `lad_m0_tp0`:
+
+| t | true `min_chi` | cache can represent | error |
+|---|---------------|---------------------|-------|
+| 0.00 | 9.419e-1 | 9.428e-1 | 1.0× |
+| 17.28 | 5.300e-1 | 5.453e-1 | 1.0× |
+| 23.04 | 1.175e-1 | 1.498e-1 | 1.3× |
+| 25.92 | 7.271e-3 | 6.319e-2 | 8.7× |
+| 27.36 | 1.790e-3 | 4.200e-2 | 23.5× |
+| 28.80 | 1.212e-3 | 8.796e-2 | 72.6× |
+| 30.00 | **5.682e-4** | **5.541e-2** | **97.5×** |
+
+And across the ladder at t=30:
+
+| run | true `min_chi` | cached | error |
+|-----|---------------|--------|-------|
+| **tp0** | 5.682e-4 | 5.622e-2 | **99.0×** |
+| tp4 | 5.955e-2 | 6.806e-2 | 1.1× |
+| tp8 | 1.720e-1 | 1.717e-1 | 1.0× |
+| tp16 | 4.026e-1 | 4.106e-1 | 1.0× |
+| tp24 | 5.826e-1 | 5.930e-1 | 1.0× |
+| tp30 | 2.914e-1 | 3.690e-1 | 1.3× |
+
+**Only the pump-free run develops a deep sharp well, so only its cache was
+wrong.** The pumped runs stay smooth and their caches are accurate to 1.0×.
+The error therefore did not shift all six equally — it inflated exactly one,
+and that one was the control. Its rays never paid the Shapiro delay, so it
+posted the biggest shortcut *because* it was the worst-resolved.
+
+Secondary red flag in the same direction: tp0's cache has `max(g_tt)` = **+1.79**
+(positive — shift exceeding lapse), while tp24 stays at −0.40. The tp0 cache is
+not a physical metric.
+
+### What it invalidates
+
+* every `f_geo_evol` number in §13 — deleted, not corrected
+* the emission sweep that followed (peak 26.4% for tp0 at `t_emit`=26, with the
+  pumped runs' ray bundles apparently failing at late launch times). The reading
+  drawn from it — *"the pump-free spacetime stays transparent while pumped ones
+  go opaque"* — was an artifact of the missing well and is withdrawn.
+* **NOT** the frozen `f_geo` (§7). That probe reads plotfiles directly via yt at
+  `n=65` over `±8` → `dx` = 0.25, twice as fine, and yt traverses the AMR
+  hierarchy. Less exposed — but it is still a uniform resample coarser than
+  `dx`=0.0625, so §7's numbers need the same audit before being quoted.
+* **NOT** anything that comes from the simulation itself: constraints (§4),
+  retention (§5), `min_chi`/`min_lapse` (§5), the tp30 instability (§6). Those
+  are written by the C++ at full AMR resolution and never pass through the cache.
+
+### The fix (`fbdbd740`)
+
+1. **`metric_stack_cache.cache_fidelity()`** — compares each cached slice's
+   representable `min_chi`, computed exactly as `(det gamma)^(-1/3)`, against
+   the value the simulation itself wrote to `collapse_diagnostics.dat` col 3.
+   The simulation is the ground truth and it was always sitting right there.
+   Verified: flags 5/22 tp0 slices, passes tp4/tp8/tp16/tp24 clean.
+2. **`metric_stack_cache.required_n_space()`** — derives the needed resolution
+   from `n_cell`, `box_length`, `max_level`, `half_width` instead of a guessed
+   default. For this ladder it returns **257**.
+3. **`score_evolving_geodesic.py` REFUSES** to report `f_geo_evol` from an
+   unfaithful cache (`--force` to override).
+4. **`pump_ladder_queue.py`** exports `GRTECLYN_METRIC_STACK_N_SPACE=257` and
+   `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` to the consumer.
+
+Cost of 257³: ~650 MB/slice compressed, ~85 GB for a 6-run ladder, against
+6.2 TB free. Cheap. The 33³ default was never a considered trade-off — it was
+a default nobody had tied to the AMR depth.
+
+### How this affects the paper
+
+**Unaffected — these do not touch the cache:**
+* the `E_pump ~ 1.6e-17` withdrawal (§1.1) — a C++ diagnostic bug, independent
+* the constraint claim, `t_pump ≤ 24` (§4), and the Duhamel bound
+* the retention result, 13.0× at tp24 (§5)
+* the tp30 lapse-collapse instability being resolution-independent (§6)
+* `research.tex` line 172 (canonical-only positive-energy sector) — untouched
+
+**Must not be written until the rerun lands:**
+* any `f_geo_evol` value
+* any claim about whether the pump helps or harms 4D geodesic FTL
+
+**Needs an audit before it is quoted:**
+* §7's frozen `f_geo` — same class of resample, milder. The verdict there
+  ("no dose–response", pump-free beats tp16/24/30) is *plausible but unproven*
+  until checked against the well-resolved rerun. Note the frozen probe's
+  worst-case exposure is the same run for the same reason.
+
+**The methodological point, which belongs in the paper if any geodesic number
+does:** a null-geodesic FTL measurement is only as good as the metric it is
+integrated through, and a uniform resample of an AMR grid is lossy in a way
+that is *invisible downstream*. Any reported `f_geo` should be accompanied by
+evidence that the sampled metric reproduces the run's own `min_chi`. That check
+is now `cache_fidelity()` and costs nothing.
+
+### Data status after this
+
+* `runs/pump_ladder_m0_v1/` — the completed 2026-07-28 ladder, **physics valid**
+  (§11 validation stands), metric_stack **deleted**, `f_geo_evol` columns reset
+  to placeholder. Retained as the bit-identity reference for the rerun.
+* `runs/pump_ladder_m0/` — rerun launched 04:46, identical simulation config,
+  only the consumer's cache resolution differs. **It must reproduce
+  `constraint_norms.dat` and `collapse_diagnostics.dat` bit-identically** —
+  that is the regression check, since nothing touching the sim changed.
+* `runs/reservoir_fix_check/` — deleted (abandoned ansatz, t=2 smoke tests).
+
+### The lesson
+
+Two bugs in one session (§14, §15) had the same shape: **a value was derived
+from a stale or lossy intermediate while the authoritative source sat unused
+next to it.** §14 re-derived a trust bar the probe already computed. §15
+resampled a metric whose true `min_chi` the simulation was already writing to
+disk every step. In both cases the fix was to compare against the source rather
+than trust the copy — and in both cases the check was cheap enough that there
+was never a reason not to.
