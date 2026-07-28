@@ -7,6 +7,7 @@
 #include "BHAMR.hpp"
 #include "DefaultLevelFactory.hpp"
 #include "GRParmParse.hpp"
+#include "LIKWIDMarkers.hpp"
 #include "MultiLevelTask.hpp"
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"
@@ -40,6 +41,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     bh_amr.init(0., sim_params.stop_time);
 
+    LIKWID_MARKER_INIT;
     while (
         (bh_amr.okToContinue() != 0) &&
         (bh_amr.levelSteps(0) < sim_params.max_steps ||
@@ -48,6 +50,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     {
         bh_amr.coarseTimeStep(sim_params.stop_time);
     }
+    LIKWID_MARKER_CLOSE;
 
     // Write final checkpoint and plotfile
     if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0) &&

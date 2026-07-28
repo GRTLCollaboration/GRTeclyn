@@ -7,3 +7,8 @@ ifeq ($(USE_TWOPUNCTURES),TRUE)
   $(info Loading $(GRTECLYN_HOME)/Tools/GNUMake/packages/Make.twopunctures...)
   include        $(GRTECLYN_HOME)/Tools/GNUMake/packages/Make.twopunctures
 endif
+
+ifeq ($(USE_LIKWID),TRUE)
+  $(info Loading $(GRTECLYN_HOME)/Tools/GNUMake/packages/Make.likwid...)
+  include        $(GRTECLYN_HOME)/Tools/GNUMake/packages/Make.likwid
+endif

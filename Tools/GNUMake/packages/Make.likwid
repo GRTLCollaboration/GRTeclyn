@@ -1,0 +1,15 @@
+CPPFLAGS += -DUSE_LIKWID
+
+LIBRARIES += -llikwid
+
+ifdef LIKWID_HOME
+  LIKWID_ABSPATH = $(abspath $(LIKWID_HOME))
+  INCLUDE_LOCATIONS += $(LIKWID_ABSPATH)/include
+  LIBRARY_LOCATIONS += $(LIKWID_ABSPATH)/lib
+  LDFLAGS += -Xlinker -rpath -Xlinker $(LIKWID_ABSPATH)/lib
+endif
+
+
+# This will be appended to the stem of the executable name to indicate
+# that it was built with LIKWID support.
+USERSuffix += .LIKWID
