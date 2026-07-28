@@ -53,7 +53,12 @@ def test_evolving_matches_frozen_on_stationary_stack():
         origin=origin,
         spacing=(1.0, *spacing),
     )
-    report = compute_evolving_geodesic_ftl(field, t_emit=0.0, n_rays=3)
+    # allow_frozen_tail: this stack is genuinely stationary, so completing the
+    # flight through the clamped final slice is exact (the strict default would
+    # correctly reject a real run's stack this short).
+    report = compute_evolving_geodesic_ftl(
+        field, t_emit=0.0, n_rays=3, allow_frozen_tail=True
+    )
     assert frozen.reached
     assert report.n_reached > 0
     rel = abs(report.f_geo - (frozen.t_flat - frozen.t_coord) / frozen.t_flat) / frozen.t_flat
@@ -98,14 +103,19 @@ def test_multi_direction_probe_finds_y_aligned_shortcut():
     g_y, spacing_y = _swap_spatial_xy(g, spacing)
     field = evolving_field_from_analytic_stack(g_y, spacing_y)
 
-    x_report = compute_evolving_geodesic_ftl(field, n_rays=5, axis=0)
-    y_report = compute_evolving_geodesic_ftl(field, n_rays=5, axis=1)
+    # Analytic stack spans only ±0.4 in t; lenient tail is the point here.
+    x_report = compute_evolving_geodesic_ftl(
+        field, n_rays=5, axis=0, allow_frozen_tail=True
+    )
+    y_report = compute_evolving_geodesic_ftl(
+        field, n_rays=5, axis=1, allow_frozen_tail=True
+    )
     assert x_report.f_geo < 0.05
     assert y_report.f_geo > 0.1
     assert y_report.n_reached == y_report.n_rays
 
     best = compute_evolving_geodesic_ftl_best_direction(
-        field, directions=("x", "y", "z"), n_rays=5
+        field, directions=("x", "y", "z"), n_rays=5, allow_frozen_tail=True
     )
     assert best.f_geo > 0.1
     assert any("best_direction=y" in n for n in best.notes)

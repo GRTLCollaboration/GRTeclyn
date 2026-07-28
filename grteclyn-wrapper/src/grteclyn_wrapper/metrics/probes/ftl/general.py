@@ -607,6 +607,15 @@ def matter_coherence_from_plotfile(
     """
     import yt  # local import: heavy optional dependency
 
+    # Single source of truth for the model-aware matter weight.  Until
+    # 2026-07-28 this function used sqrt(phi^2 + Pi^2) only -- HALF of the
+    # canonical complex field and NONE of the phantom sector -- so the
+    # coherence gate that scales every FTL reward never saw 3 of the 4 field
+    # components of a bicomplex run.
+    from grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.extraction.confinement import (  # noqa: E501
+        _matter_sectors,
+    )
+
     ds = yt.load(str(plotfile))
     dims = (n, n, n)
     grid = ds.covering_grid(
@@ -615,14 +624,12 @@ def matter_coherence_from_plotfile(
         dims=dims,
     )
 
-    def field(name: str) -> NDArray[np.float64]:
-        try:
-            arr = np.asarray(grid["boxlib", name], dtype=float)
-        except Exception:  # noqa: BLE001 - field-name fallback
-            arr = np.asarray(grid[name], dtype=float)
-        return arr
+    available = {name for (_ftype, name) in ds.field_list}
+    ftype = "boxlib"
+    if not any(f == "boxlib" for (f, _n) in ds.field_list):
+        ftype = ds.field_list[0][0] if ds.field_list else "boxlib"
 
-    phi = field("phi")
-    pi = field("Pi")
-    activity = np.sqrt(phi * phi + pi * pi)
-    return structure_coherence(activity)
+    sectors = _matter_sectors(grid, ftype, available)
+    if sectors is None:
+        return 1.0
+    return structure_coherence(np.asarray(sectors["total"], dtype=float))

@@ -17,9 +17,15 @@ from ..types.diagnostics import ConfinementMetrics
 # confinement.dat columns (0-indexed):
 #   0 time  1 total  2 peak  3 rms_radius  4 confined_frac
 #   5 bary_x  6 bary_y  7 bary_z  8 r_conf
+# Extended 2026-07-28 (append-only; older files stop at col 8):
+#   9 total_proper  10 rms_radius_proper  11 confined_frac_proper
+#   12 rms_canon  13 frac_canon  14 rms_phantom  15 frac_phantom
+#   16 canon_mass_frac  17 min_chi
 _RMS_COL = 3
 _FRAC_COL = 4
 _TOTAL_COL = 1
+_RMS_PROPER_COL = 10
+_FRAC_PROPER_COL = 11
 
 
 def _finite(value: float) -> float | None:
@@ -34,6 +40,12 @@ def read_confinement_metrics(path: Path) -> ConfinementMetrics | None:
     rms = [r[_RMS_COL] for r in rows]
     frac = [r[_FRAC_COL] for r in rows]
     total = [r[_TOTAL_COL] for r in rows]
+
+    final_rms_proper: float | None = None
+    final_frac_proper: float | None = None
+    if len(rows[-1]) > _FRAC_PROPER_COL:
+        final_rms_proper = _finite(rows[-1][_RMS_PROPER_COL])
+        final_frac_proper = _finite(rows[-1][_FRAC_PROPER_COL])
 
     initial_rms = _finite(rms[0])
     final_rms = _finite(rms[-1])
@@ -58,4 +70,6 @@ def read_confinement_metrics(path: Path) -> ConfinementMetrics | None:
         spread_ratio=spread_ratio,
         initial_total=_finite(total[0]),
         final_total=_finite(total[-1]),
+        final_rms_radius_proper=final_rms_proper,
+        final_confined_frac_proper=final_frac_proper,
     )

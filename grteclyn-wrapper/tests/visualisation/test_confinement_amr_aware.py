@@ -14,14 +14,16 @@ import pytest
 yt = pytest.importorskip("yt")
 
 from grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.extraction.confinement import (
+    CONFINEMENT_COLUMNS,
     _extract_confinement_line,
-    _matter_weight_on_grid,
+    _matter_sectors,
 )
 
 
 def _parse(row: str | None) -> dict[str, float]:
     assert row is not None
     cols = [float(x) for x in row.split()]
+    assert len(cols) == len(CONFINEMENT_COLUMNS)
     keys = [
         "time", "total", "peak", "rms_radius", "confined_frac",
         "bary_x", "bary_y", "bary_z", "r_conf",
@@ -78,9 +80,61 @@ def test_complex_scalar_named_components_share_one_activity_norm():
                 "Pi2": np.array([0.0]),
             }[key[1]]
 
-    weight = _matter_weight_on_grid(Grid(), "stream", {"phi", "Pi", "phi2", "Pi2"})
-    assert weight is not None
-    assert weight[0] == pytest.approx(13.0)
+    sectors = _matter_sectors(Grid(), "stream", {"phi", "Pi", "phi2", "Pi2"})
+    assert sectors is not None
+    assert sectors["total"][0] == pytest.approx(13.0)
+
+
+def test_bicomplex_weight_keeps_base_field_and_complex_moduli():
+    """Regression: phi/Pi must NOT be dropped for the bicomplex layout.
+
+    Layout (StateVariables.hpp): phi/Pi = Phi+ Re, lump0 = Phi+ Im,
+    lump1/lump2 = Phi- Re/Im.  Weight = |Phi+| + |Phi-| as moduli, not a sum
+    of per-pair moduli that silently omits phi/Pi.
+    """
+    fields = {
+        "phi": np.array([3.0]), "Pi": np.array([0.0]),
+        "phi_lump0": np.array([4.0]), "Pi_lump0": np.array([0.0]),
+        "phi_lump1": np.array([5.0]), "Pi_lump1": np.array([12.0]),
+        "phi_lump2": np.array([0.0]), "Pi_lump2": np.array([0.0]),
+    }
+
+    class Grid:
+        def __getitem__(self, key):
+            return fields[key[1]]
+
+    sectors = _matter_sectors(Grid(), "stream", set(fields))
+    assert sectors is not None
+    # canonical |Phi+| = sqrt(3^2 + 4^2) = 5; phantom |Phi-| = 13
+    assert sectors["canonical"][0] == pytest.approx(5.0)
+    assert sectors["phantom"][0] == pytest.approx(13.0)
+    assert sectors["total"][0] == pytest.approx(18.0)
+
+    # Explicit model tag gives the same result regardless of sniffing.
+    tagged = _matter_sectors(
+        Grid(), "stream", set(fields), model="grtresna_bicomplex_scalar"
+    )
+    assert tagged is not None
+    assert tagged["total"][0] == pytest.approx(18.0)
+
+
+def test_independent_scalars_keep_per_lump_moduli():
+    """phi/Pi identically zero + lump pairs => per-lump moduli sum (old rule)."""
+    fields = {
+        "phi": np.array([0.0]), "Pi": np.array([0.0]),
+        "phi_lump0": np.array([3.0]), "Pi_lump0": np.array([4.0]),
+        "phi_lump1": np.array([5.0]), "Pi_lump1": np.array([12.0]),
+        "phi_lump2": np.array([0.0]), "Pi_lump2": np.array([0.0]),
+    }
+
+    class Grid:
+        def __getitem__(self, key):
+            return fields[key[1]]
+
+    sectors = _matter_sectors(Grid(), "stream", set(fields))
+    assert sectors is not None
+    assert "canonical" not in sectors
+    assert sectors["total"][0] == pytest.approx(5.0 + 13.0)
 
 
 def test_uniform_grid_amr_path_matches_level0():

@@ -90,15 +90,20 @@ def extract_scalar_boundary_flux(
     if not np.any(np.isfinite(phi_f)):
         return None
 
-    dx = float(ds.index.grids[0].dds[0].to_value())
-    dr = max(dx, 1.0e-6)
-    phi_rp = sample_at(["phi"], pts + np.array([dr, 0.0, 0.0]))["phi"].reshape(x.shape)
-    phi_rm = sample_at(["phi"], pts - np.array([dr, 0.0, 0.0]))["phi"].reshape(x.shape)
-    dphi_dr = (phi_rp - phi_rm) / (2.0 * dr)
-
     nx = (x - center[0]) / np.maximum(r_shell, 1.0e-12)
     ny = (y - center[1]) / np.maximum(r_shell, 1.0e-12)
     nz = (z - center[2]) / np.maximum(r_shell, 1.0e-12)
+
+    # Radial derivative: displace each sample point along ITS OWN radial unit
+    # vector.  Until 2026-07-28 the displacement was a constant (dr, 0, 0), so
+    # what was integrated as "dphi/dr" was in fact dphi/dx -- correct only near
+    # the +-x poles of the shell and a transverse derivative elsewhere.
+    dx = float(ds.index.grids[0].dds[0].to_value())
+    dr = max(dx, 1.0e-6)
+    n_hat = np.stack([nx.ravel(), ny.ravel(), nz.ravel()], axis=1)
+    phi_rp = sample_at(["phi"], pts + dr * n_hat)["phi"].reshape(x.shape)
+    phi_rm = sample_at(["phi"], pts - dr * n_hat)["phi"].reshape(x.shape)
+    dphi_dr = (phi_rp - phi_rm) / (2.0 * dr)
 
     beta_dot_n = shift1 * nx + shift2 * ny + shift3 * nz
     flux = (-pi_f * dphi_dr / alpha + beta_dot_n * pi_f * pi_f / (alpha * alpha))

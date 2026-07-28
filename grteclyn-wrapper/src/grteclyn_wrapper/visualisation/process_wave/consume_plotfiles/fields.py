@@ -120,6 +120,25 @@ def _register_derived_fields(ds, field: str) -> None:
                 phi2 = data[base_ftype, "phi_lump0"]
                 pi2 = data[base_ftype, "Pi_lump0"]
                 return np.sqrt(phi**2 + pi**2 + phi2**2 + pi2**2)
+            # Bicomplex (canonical + phantom) layout: phi/Pi = Phi+ Re,
+            # lump0 = Phi+ Im, lump1/lump2 = Phi- Re/Im (StateVariables.hpp).
+            # Until 2026-07-28 this fell through to the independent-lump branch,
+            # dropping phi/Pi entirely and splitting Re/Im into separate moduli.
+            if (
+                len(lump_pairs) == 3
+                and lump_pairs[0] == ("phi_lump0", "Pi_lump0")
+                and "phi" in available_names
+                and "Pi" in available_names
+            ):
+                p0 = data[base_ftype, "phi_lump0"]
+                q0 = data[base_ftype, "Pi_lump0"]
+                p1 = data[base_ftype, "phi_lump1"]
+                q1 = data[base_ftype, "Pi_lump1"]
+                p2 = data[base_ftype, "phi_lump2"]
+                q2 = data[base_ftype, "Pi_lump2"]
+                canon = np.sqrt(phi**2 + pi**2 + p0**2 + q0**2)
+                phantom = np.sqrt(p1**2 + q1**2 + p2**2 + q2**2)
+                return canon + phantom
             if lump_pairs:
                 total = None
                 for phi_name, pi_name in lump_pairs:

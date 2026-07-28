@@ -600,14 +600,19 @@ def alcubierre_metric(
     half_width: float = 4.0,
     n_space: int = 20,
     dt: float = 0.2,
+    n_time: int = 5,
 ):
     """Alcubierre warp-bubble 4-metric grid; returns ``(g, spacing)``.
 
     ``ds^2 = -dt^2 + (dx - v f(r_s) dt)^2 + dy^2 + dz^2`` with the bubble centre
     moving as ``x_s(t) = v t`` (genuine time dependence so the Einstein tensor
-    has non-trivial ``d_t`` terms).
+    has non-trivial ``d_t`` terms).  ``n_time`` sets the stored time span
+    (``±(n_time//2)·dt``); a stack shorter than the probe flight relies on the
+    frozen-tail extrapolation of the evolving tracer.
     """
-    T, X, Y, Z, spacing = _grid(half_width=half_width, n_space=n_space, dt=dt)
+    T, X, Y, Z, spacing = _grid(
+        half_width=half_width, n_space=n_space, dt=dt, n_time=n_time
+    )
     xs = velocity * T
     rs = np.sqrt((X - xs) ** 2 + Y ** 2 + Z ** 2)
     f = _alcubierre_shape(rs, bubble_radius, sigma)

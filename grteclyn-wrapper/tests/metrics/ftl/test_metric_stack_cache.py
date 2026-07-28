@@ -24,11 +24,15 @@ from grteclyn_wrapper.metrics.probes.ftl.metric_stack_cache import (
 
 
 def _write_alcubierre_slices(cache_dir: Path) -> int:
+    # n_time=41 spans t in [-4, 4] at dt=0.2, longer than the ~7.2 flat flight,
+    # so the strict frozen-tail guard on the production cache path is satisfied
+    # honestly instead of leaning on clamped final-slice extrapolation.
     g, spacing = wf.alcubierre_metric(
         n_space=33,
         velocity=0.5,
         half_width=4.0,
         dt=0.2,
+        n_time=41,
     )
     field = evolving_field_from_analytic_stack(g, spacing)
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -70,7 +74,9 @@ def test_evolving_trace_from_metric_stack_cache(tmp_path: Path) -> None:
 
 
 def test_cached_field_matches_direct_analytic_stack(tmp_path: Path) -> None:
-    g, spacing = wf.alcubierre_metric(n_space=33, velocity=0.5, half_width=4.0, dt=0.2)
+    g, spacing = wf.alcubierre_metric(
+        n_space=33, velocity=0.5, half_width=4.0, dt=0.2, n_time=41
+    )
     direct = evolving_field_from_analytic_stack(g, spacing)
     cache_dir = metric_stack_dir(tmp_path)
     _write_alcubierre_slices(cache_dir)

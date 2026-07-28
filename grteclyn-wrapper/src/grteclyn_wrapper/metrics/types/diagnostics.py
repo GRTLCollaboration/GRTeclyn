@@ -238,3 +238,9 @@ class ConfinementMetrics:
     spread_ratio: float | None
     initial_total: float | None
     final_total: float | None
+    #: Proper-volume (sqrt(gamma) = chi^-3/2) counterparts of the final moments.
+    #: None for confinement.dat files written before 2026-07-28.  The scoring
+    #: gate still uses the coordinate ``final_confined_frac`` for continuity;
+    #: quote the proper values for any cross-run comparison involving collapse.
+    final_rms_radius_proper: float | None = None
+    final_confined_frac_proper: float | None = None

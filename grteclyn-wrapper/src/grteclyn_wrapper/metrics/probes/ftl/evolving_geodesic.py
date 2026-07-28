@@ -112,8 +112,14 @@ def integrate_null_ray_on_field(
     h_tol: float = 1.0e-6,
     h_rel_abort: float | None = None,
     detect_capture: bool = True,
+    allow_frozen_tail: bool = False,
 ) -> NullRayResult:
-    """Trace one null ray through a possibly time-dependent metric field."""
+    """Trace one null ray through a possibly time-dependent metric field.
+
+    ``allow_frozen_tail=True`` restores the pre-2026-07-28 behaviour of letting
+    a ray complete through the (time-clamped) final slice after the stack ends.
+    Only legitimate for genuinely stationary stacks (tests, analytic controls).
+    """
     prop_idx = axis + 1
     pos = [0.0, 0.0, 0.0]
     pos[axis] = x_start
@@ -133,15 +139,60 @@ def integrate_null_ray_on_field(
     ds = ds_init
     s_min, s_max = _spatial_extent(field, axis)
 
+    # A ray still in flight past the last stored slice would silently complete
+    # through a FROZEN final metric (EvolvingMetricField clamps its time
+    # bracket).  On the candidate-146 RM stack a t_emit=12 launch "arrived" at
+    # t=32.75 against a stack ending at t=30 -- 2.75 units of pretend geometry.
+    # Such rays are integration failures, not measurements.
+    t_stack_end = (
+        float(field.times[-1])
+        if isinstance(field, EvolvingMetricField) and not allow_frozen_tail
+        else None
+    )
+
+    x_prev = x.copy()
     for _ in range(max_steps):
         if x[prop_idx] >= x_end:
-            t_coord = abs(float(x[0] - t0))
+            # Interpolate the crossing back onto the detector plane: the RK
+            # step overshoots by up to one step, and reading the clock at the
+            # overshot position biased t_coord late (f_geo low) by up to
+            # ~ds ~ 0.05.
+            frac = 1.0
+            denom = float(x[prop_idx] - x_prev[prop_idx])
+            if denom > 0.0 and x_prev[prop_idx] < x_end:
+                frac = (x_end - float(x_prev[prop_idx])) / denom
+            t_cross = float(x_prev[0]) + frac * float(x[0] - x_prev[0])
+            if t_stack_end is not None and t_cross > t_stack_end + 1.0e-9:
+                return NullRayResult(
+                    reached=False,
+                    t_coord=None,
+                    t_flat=t_flat,
+                    max_h_drift=max_h,
+                    max_h_rel=max_h_rel,
+                    notes=(
+                        f"ray outlived metric stack (arrival t={t_cross:.2f} > "
+                        f"last slice t={t_stack_end:.2f}; frozen-tail geometry)",
+                    ),
+                )
+            t_coord = abs(t_cross - t0)
             return NullRayResult(
                 reached=True,
                 t_coord=t_coord,
                 t_flat=t_flat,
                 max_h_drift=max_h,
                 max_h_rel=max_h_rel,
+            )
+        if t_stack_end is not None and float(x[0]) > t_stack_end + 1.0e-9:
+            return NullRayResult(
+                reached=False,
+                t_coord=None,
+                t_flat=t_flat,
+                max_h_drift=max_h,
+                max_h_rel=max_h_rel,
+                notes=(
+                    f"ray outlived metric stack (t={float(x[0]):.2f} > last "
+                    f"slice t={t_stack_end:.2f}; frozen-tail geometry)",
+                ),
             )
 
         g_pt, ginv_pt, dg_pt = field.sample(x)
@@ -178,6 +229,7 @@ def integrate_null_ray_on_field(
         k2x, k2k = rhs(x + 0.5 * ds * k1x, k + 0.5 * ds * k1k)
         k3x, k3k = rhs(x + 0.5 * ds * k2x, k + 0.5 * ds * k2k)
         k4x, k4k = rhs(x + ds * k3x, k + ds * k3k)
+        x_prev = x
         x = x + (ds / 6.0) * (k1x + 2 * k2x + 2 * k3x + k4x)
         k = k + (ds / 6.0) * (k1k + 2 * k2k + 2 * k3k + k4k)
 
@@ -242,6 +294,7 @@ def compute_evolving_geodesic_ftl(
     h_rel_abort: float | None = None,
     frozen_peak: float | None = None,
     axis: int = 0,
+    allow_frozen_tail: bool = False,
 ) -> EvolvingGeodesicFtlReport:
     """Run a fan of evolving null rays and return end-to-end ``f_geo``."""
     if isinstance(field, EvolvingMetricField):
@@ -269,6 +322,7 @@ def compute_evolving_geodesic_ftl(
                 ds_init=ds_init,
                 h_tol=h_tol,
                 h_rel_abort=h_rel_abort,
+                allow_frozen_tail=allow_frozen_tail,
             )
         )
 
@@ -358,6 +412,7 @@ def compute_evolving_geodesic_ftl_best_direction(
     h_tol: float = 1.0e-6,
     h_rel_abort: float | None = None,
     frozen_peak: float | None = None,
+    allow_frozen_tail: bool = False,
 ) -> EvolvingGeodesicFtlReport:
     """Scan principal axes and return the report with the largest trustworthy ``f_geo``."""
     axis_map = {label: idx for idx, label in enumerate(_AXIS_LABELS)}
@@ -376,6 +431,7 @@ def compute_evolving_geodesic_ftl_best_direction(
             h_rel_abort=h_rel_abort,
             frozen_peak=frozen_peak if len(axes) == 1 else None,
             axis=axis,
+            allow_frozen_tail=allow_frozen_tail,
         )
         for axis in axes
     ]
@@ -686,14 +742,22 @@ def compute_evolving_geodesic_ftl_from_analytic(
     h_tol: float = 1.0e-6,
     directions: Sequence[str] | None = None,
 ) -> EvolvingGeodesicFtlReport:
-    """Analytic-stack entry point (Alcubierre validation)."""
+    """Analytic-stack entry point (Alcubierre validation).
+
+    allow_frozen_tail: analytic metrics are defined for all t; the stored stack
+    is a sampling convenience, so completing a flight through the clamped final
+    slice is acceptable here (and only here -- production cache paths stay
+    strict).
+    """
     field = evolving_field_from_analytic_stack(g, spacing)
     dirs = tuple(directions) if directions is not None else geo_directions_from_env()
     if len(dirs) == 1:
         axis = _AXIS_LABELS.index(dirs[0]) if dirs[0] in _AXIS_LABELS else 0
-        return compute_evolving_geodesic_ftl(field, n_rays=n_rays, h_tol=h_tol, axis=axis)
+        return compute_evolving_geodesic_ftl(
+            field, n_rays=n_rays, h_tol=h_tol, axis=axis, allow_frozen_tail=True
+        )
     return compute_evolving_geodesic_ftl_best_direction(
-        field, directions=dirs, n_rays=n_rays, h_tol=h_tol
+        field, directions=dirs, n_rays=n_rays, h_tol=h_tol, allow_frozen_tail=True
     )
 
 

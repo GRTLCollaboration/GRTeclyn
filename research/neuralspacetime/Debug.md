@@ -3,11 +3,14 @@
 Status as of 2026-07-28. Branch `feature/interstellar`.
 Commits: `fe5ef9f8`, `d6a0c350`, `2ddaa87a`, `6daea1a3`, `fbdbd740`.
 
-**READ §15 FIRST.** The metric cache feeding the geodesic probes was sampling
-at the coarsest AMR level and silently erasing refined geometry. Every
-`f_geo_evol` number is void; §7's frozen `f_geo` needs an audit. The
-simulations themselves are unaffected — constraints (§4), retention (§5) and
-the tp30 instability (§6) all stand. A rerun is in progress.
+**READ §15 AND §16 FIRST.** §15: the metric cache feeding the geodesic probes
+was sampling at the coarsest AMR level and silently erasing refined geometry —
+every ladder `f_geo_evol` number is void. §16: the full audit of every other
+metric in the paper and the campaign that §15 forced; nine more defects found
+(none voiding the paper's headline — the RM stack passes the §15 fidelity
+check and the 20.15% trace reproduces bit-exactly), several paper-level
+corrections required. The simulations themselves are unaffected — constraints
+(§4), retention (§5) and the tp30 instability (§6) all stand.
 
 The 2026-07-28 HQ ladder is complete and validated (§11); its data now lives at
 `runs/pump_ladder_m0_v1`. §12 is a separate retracted claim.
@@ -793,3 +796,234 @@ resampled a metric whose true `min_chi` the simulation was already writing to
 disk every step. In both cases the fix was to compare against the source rather
 than trust the copy — and in both cases the check was cheap enough that there
 was never a reason not to.
+
+---
+
+## 16. FULL METRIC AUDIT (2026-07-28) — every metric in the paper and this campaign
+
+After §15, every other measurement pipeline was audited before restarting the
+campaign: the C++ in-situ diagnostics, every Python probe/extractor the paper
+or the ladder quotes, the analysis scripts, and the paper's own surviving data
+artifacts (`runs/grtresna_promote/bcma_*`). Verdict first, details after.
+
+### 16.0 Verdict table
+
+| metric | measured by | verdict |
+|---|---|---|
+| evolving `f_geo` (headline 20.2%) | metric_stack + 4D tracer | **SOUND** — RM stack passes `cache_fidelity`; trace reproduces bit-exactly (16.2). Two probe defects found (frozen tail, overshoot; 16.4) that do NOT touch the t_emit=4 headline |
+| frozen `f_geo` (29.5%) | `geodesic.py`, n=65/dx=0.25 | SOUND for candidate-146 (fidelity passes); resample caveat stands for collapsing runs (§15) |
+| `f_ff` (7.6%) | `observer_timing.py` | math audited clean (mass-shell projection, tetrad, proper-length D0); reads the same fidelity-passing stacks |
+| `f_op` | 2D Dijkstra, y-midplane slice | machinery exact per edge; **2D-slice-only** caveat (16.6) |
+| `L2_Ham` / `L2_Mom` / governor | C++, `constraint_norms.dat` | **LEVEL-0 ONLY** (16.5). Within-protocol comparisons stand; absolute values carry the caveat |
+| `collapse_diagnostics` reductions | C++ | **finest-level footprint only** + `min/max_Pi` reads 1 of 8 matter components (16.5) |
+| `energy_conditions.dat` | C++ | **BUG — wrong potential (μ=0)**, fixed (16.3) |
+| `curvature_invariants.dat` | C++ | formulas correct; finest-footprint caveat |
+| confinement / dispersion | `extraction/confinement.py` | **3 BUGS, fixed** (16.3): weight dropped `phi`/`Pi`, unit-inconsistent `total`, coordinate-volume fractions |
+| `structure_coherence` gate | `general.py` | **BUG — canonical-Re-only weight**, fixed (16.3) |
+| `boundary_flux.dat` | `probes/boundary.py` | **BUG — "radial" derivative was ∂φ/∂x**, fixed (16.3) |
+| Duhamel bound | `pump_constraint_budget.py` | integrator fine; §4's ratio table mixes categories (16.6) |
+| trapped-surface claim | θ+ proxy | RM's signal is more collapse-like than §12's ladder case, but still a pointwise proxy; paper's t≈27 does not match data (16.7) |
+| Alcubierre control (32%) | analytic stack | 5-slice ±0.4 stack for a ~7-unit flight → validates shortcut detection, mostly frozen bubble (16.6) |
+
+### 16.1 The paper's stacks PASS the §15 check
+
+`cache_fidelity` (min_chi representability, tol 1.5×) run on all five surviving
+candidate-146 stacks — RM, RC, and the three freefall twins (65³, dx=0.25,
+`max_level=3`): **every slice passes, at every time, in every run.**
+Candidate-146 never develops a feature the probe grid cannot hold; the deep
+sharp well that voided the ladder's tp0 (99× error) simply never forms here
+(RM `min_chi` at t=30 is 5.96e-2, and the headline flight ends at t=15.5 where
+`min_chi` ≈ 0.8). **The §15 bug does not invalidate the paper's headline.**
+
+Correction to §15's *secondary* flag: `max(g_tt) > 0` (≈ +1.5) appears at t=30
+in **all** stacks, including every fidelity-passing one. β²>α² late in these
+gauges is a real feature, not per-se evidence of cache corruption. The §15
+primary evidence (99× min_chi mismatch) is untouched.
+
+### 16.2 The headline number reproduces bit-exactly
+
+Current code (post §14 trust-bar fix), stored RM stack, t_emit=4, x-axis:
+`f_geo = 0.201480`, `t_arrival = 15.498689474416453` — **identical to the
+stored `evolving_geodesic.json`** and within 0.2pp of the paper's table. The
+pipeline that produced the paper is deterministic and still reproducible.
+
+### 16.3 Bugs found and FIXED in this audit
+
+1. **Confinement weight dropped `phi`/`Pi` for bicomplex runs.** The extractor
+   fell through to the independent-lump branch, so the canonical field's Re
+   component and momentum — ∫|φ|dV=6.9, ∫|Π|dV=15.3 of a ~62 total — never
+   entered any dispersion number, and Re/Im of one complex field were summed as
+   `|Re|+|Im|` (a stationary Q-ball reads as breathing at ω). Aggregate impact
+   measured live at t=10: rms 6.768→6.851, conf_frac 0.6197→0.6122 (~1.2%) —
+   BUT canonical-only vs phantom-only differ by 5.4pp (0.588 vs 0.642): **the
+   sectors disperse at different rates and the old weight could not see it.**
+   Fixed: model-aware `_matter_sectors` (tag > sniff), per-sector columns
+   12–17 appended to `confinement.dat`.
+2. **`total_activity` changed units row-to-row.** The legacy covering-grid
+   branch summed cell values with no dV; the AMR branch integrates w·dV. A run
+   momentarily de-refining emitted rows 8× its neighbours (v1 tp0 t=1.44/2.88:
+   644.95 vs ~78). Ratios (rms, frac) were unaffected — dV cancels — and
+   nothing scored reads `total`. Fixed: both branches now integrate.
+3. **`confined_frac` was a coordinate-volume fraction.** The physical mass
+   element is w·√γ d³x = w·χ^(-3/2) d³x. At t=30 the ladder compares tp0
+   (χ_min=5.7e-4 → χ^(-3/2)=7.4e4) against tp24 (0.58 → 2.2): the control's
+   core was weighted ~3e4× less per unit proper volume — same error class as
+   §15, biased against the same run. At t=10 (χ_min 0.82) the shift is already
+   0.620→0.594. Direction: proper weighting RAISES tp0, so **§5's "13.0×
+   retention gain" is an upper bound**; the monotonic ordering is expected to
+   survive (matter that has left R_conf is in χ≈1 territory) but must be
+   re-measured. Fixed: proper-volume columns (`total/rms/frac_proper`) written
+   alongside; scoring still gates on the coordinate value for continuity.
+4. **The coherence gate saw 1 of 8 matter components.**
+   `matter_coherence_from_plotfile` (→ `structure_coherence` →
+   `structural_persistence` → scales EVERY FTL reward in Eq. (score)) used
+   `sqrt(phi²+Pi²)` — half the canonical field, none of the phantom sector.
+   For candidate-146 (2 canonical / 3 phantom lumps) fragmentation of the
+   phantom sector was invisible to the gate. Fixed: shares `_matter_sectors`.
+   (Same fallthrough fixed in the `scalar_activity` frame field.)
+5. **`energy_conditions.dat` used the wrong potential.** The EC diagnostic
+   constructed `BiComplexScalarField(mass, lambda)` — **μ silently defaulted
+   to 0** — while the evolution passes `recipe_scalar_mu = 85333`. At
+   candidate amplitudes (|φ|~0.08) the sextic term is comparable to the mass
+   and quartic terms, so every NEC/WEC/SEC/DEC margin and
+   `matter_integral_NEC_violation` ever written is quantitatively wrong (the
+   *sign structure* — phantom-sector violation — survives, since the kinetic
+   terms dominate the margins' signs). Same omission in the complex-scalar
+   branch. Fixed in `RadialRecipeLevel.cpp` (+ rebuild).
+6. **`boundary_flux.dat`'s "radial" derivative was ∂φ/∂x.** Sample points were
+   displaced by a constant (dr,0,0) instead of along each point's radial unit
+   vector — correct at the ±x poles, a transverse derivative elsewhere. Fixed.
+   (Remaining caveat: the flux still uses `phi`/`Pi` only.)
+7. **Rays completed through FROZEN geometry past the stack's end.**
+   `EvolvingMetricField` clamps its time bracket, so a ray still in flight
+   after the last slice silently finishes in a static spacetime. Demonstrated
+   on the paper's own data: the RM t_emit=12 launch "arrived" at t=32.75
+   against a stack ending at 30.0. Fixed: strict by default (such rays are
+   integration failures); `allow_frozen_tail=True` retained for analytic
+   controls and stationary-stack tests only.
+8. **Detector-plane overshoot.** Arrival time was read at the first RK sample
+   PAST the detector plane (up to one step late), biasing `f_geo` LOW by up to
+   ~0.4pp — conservative, but sloppy. Fixed: linear interpolation back to the
+   crossing. NOTE: future `f_geo` values shift up by ≤0.4pp relative to
+   published traces; within-campaign comparisons are unaffected.
+9. (§15's fixes — 257³ cache, `cache_fidelity` refusal, auto-scoring — carried
+   forward; the restarted campaign has all of them from t=0.)
+
+### 16.4 The paper's t_emit=12 sweep points are artifacts
+
+Stored sweeps: at t_emit=12 the bundles are INCOMPLETE — RM 2/5, **RC 0/5**,
+RF 4/5 rays — and RM's two "arrivals" ran 2.75 units past the stack end
+(defect 7). The caption of the emission-sweep figure claims "Every launch has
+5/5 rays reaching and passes the null-Hamiltonian quality gate; at
+t_emit=12 the rays arrive no earlier than the flat baseline". **That is false
+at t_emit=12** — the plotted zeros there are bundle failures, not measured
+zero advantage. t_emit ≤ 10 launches are clean 5/5 everywhere, and the peak
+(t_emit=4) is untouched. The manuscript must drop or annotate the t=12 point;
+"the window brackets the channel's life" survives via the 20%→12% decay over
+t_emit=4→10.
+
+### 16.5 C++ diagnostics: what they actually measure
+
+* **`constraint_norms.dat` is computed on LEVEL 0 ONLY** (`Level()==0`,
+  level-0 state, single cell_vol; `RadialRecipeLevel.cpp:437`). So are the
+  pump-force norms and the governor's input. Constraint violation living on
+  the refined levels (dx 0.25→0.0625) is invisible to all of them. Within-
+  protocol comparisons (the entire §4 ladder argument) are unaffected — every
+  run is measured the same way — but the absolute numbers are the level-0
+  restriction, and the paper's "volume-weighted L2 norms" should say so. The
+  Richardson order p≈3.3 is the convergence of that restriction.
+* **`collapse_diagnostics` / `energy_conditions` / `curvature_invariants`
+  reduce over the FINEST level's boxes only** — which cover 0.01–0.3% of the
+  domain mid-run (measured live: level 2 = 0.01% at t=14.4). Spot checks show
+  `min_chi`/`min_lapse` DO match the global values (refinement tracks the
+  well), but `max_Pi` is already wrong: on tp24 the footprint's canonical-Pi
+  range was [-1.4e-2, -3.1e-3] while the global max was +5.4e-4 and the true
+  activity peak sat in `Pi_lump0` (+8.4e-2) — **a component the diagnostic
+  never reads** (`c_phi`/`c_Pi` only). §6's max_Pi numbers are the canonical
+  Re component on a partial footprint: fine as a blow-up flag, not quotable
+  as "the field momentum".
+* `theta_plus` / `max_ah_r`: §12 stands. See 16.7 for the paper's version.
+
+### 16.6 Caveats that stay caveats (documented, not code-fixed)
+
+* **`f_op` is a 2D y-midplane probe** (yt FRB slice). A 3D channel off the
+  plane is invisible. Design choice; state it wherever f_op is quoted.
+* **§4's Duhamel table compares the wrong pair.** `ham_bound` bounds the
+  PUMP-ATTRIBUTED violation; comparing it against the TOTAL `L2_Ham` (which
+  includes the free-evolution residual ~3e-3 present with no pump) mixes
+  categories. The meaningful check — pumped-minus-pump-free difference
+  (≲1e-3) vs the bound (3.6e-3) — passes with more room, so the conclusion
+  survives; the table's framing should change.
+* **Resolution-matrix caveat:** the probe grid is FIXED at 65³/dx=0.25 while
+  the sim resolution varies (RC/RM/RF), so part of the f_geo ladder agreement
+  reflects the common probe grid, not pure sim convergence. Defensible
+  because fidelity passes at all three; the paper should state it.
+* **Temporal cadence:** the paper's stacks store Δt=0.72 (RM) / 0.24 (RF);
+  the ladder rerun stores Δt=2.88 — 4× coarser time interpolation for
+  `f_geo_evol`. The 257³ spatial fix did not change the cadence.
+* **Alcubierre control:** the analytic stack spans t∈[−0.4,+0.4] for a
+  ~7-unit flight — the 32% recovery validates shortcut detection through a
+  (mostly) frozen bubble, not the tracer's time interpolation. Tests now
+  build honest full-span stacks on the production cache path.
+* **Canonical-only bound (research.tex Eq. canonical_bound):** computed
+  through 33³ search-mode caches. §15's failure mode (missing wells) biases
+  TOWARD spurious shortcuts, so `max f_geo_evol = 0` over 105 evals survives
+  that bias; but smoothing can also erase a genuinely narrow corridor, so the
+  bound reads "none found within this ansatz/budget/resolution", which is how
+  the paper already phrases it. No action needed beyond the resolution note.
+* Pre-existing failing test (not from this audit's changes):
+  `test_horizon_finder_guard.py::test_charge_retention_columns_are_parsed`
+  writes a 22-column wormhole fixture; `read_collapse_metrics` requires ≥23
+  for that layout. RotatingWormholeCollapse column drift — reconcile against
+  that example's current writer before trusting its j_z/charge fields.
+
+### 16.7 Paper corrections required (for the rewrite; research.tex untouched)
+
+1. §1.1's E_pump withdrawal (already recorded).
+2. Emission-sweep figure caption: t_emit=12 points are bundle failures (16.4).
+3. **Trapped-surface claim**: the abstract and discussion say "collapses to an
+   apparent horizon by t≈27" with "θ+≈−0.9, r_AH≈10.8". In RM's own data
+   θ+ first goes negative at **t=18.71**, and unlike the ladder case the
+   proxy behaves collapse-like (r_at_min migrates inward 9.6→5.7, no
+   recovery, θ+=−0.9 not attributable to the −⅔K term at K=0.27). So the
+   signal is *plausible* — but it is still a pointwise radial proxy on the
+   finest-level footprint, there is no AH finder, "corroborated" overstates
+   it, and t≈27 matches no obvious feature of the data. The headline ray
+   (arrival 15.5) precedes even the earlier onset, so the transport
+   certificate is safe either way.
+4. Confinement numbers ("72%→11%" RM, "→2%" pump-free; spread 3.27): produced
+   by the old weight (defect 1) and coordinate volume (defect 3). RM's
+   min_chi(t=30)=0.0596 → χ^(-3/2)≈69 at the core, and the pump-free twin
+   collapses deeper — the same one-sided bias as the ladder. Dispersal itself
+   is not in doubt; the specific percentages are weight- and volume-choice
+   dependent and cannot be recomputed (plotfiles gone). Quote from the
+   restarted campaign's proper-volume columns instead.
+5. State the level-0 norm caveat (16.5) and the fixed-probe-grid caveat
+   (16.6) where those numbers appear.
+
+### 16.8 What was checked and found CLEAN
+
+For the record, because "audited" should mean audited: confinement AMR
+integral hygiene (Σ cell_volume = V_domain exactly; yt child-masking
+correct); code-unit handling and R_conf plumbing (col 9 = 6.668 everywhere);
+no radiation-halo contamination of the moments (99.57% of activity inside
+r<15; r<32 restriction changes nothing to 6 s.f.); Dijkstra edge speeds solve
+the exact per-edge null condition; both probes' flat baselines agree (14.4);
+trilinear interpolation, null re-projection (direction-preserving root
+choice), and the scale-free h_rel drift measure; `future_null_cov`
+future-directed root selection; the freefall probe's mass-shell projection,
+Gram–Schmidt tetrad, and proper-length D0 integral; `rays_complete` (§14)
+applied consistently at all five consumer sites; Duhamel trapezoid and 16π/8π
+factors; `remove_duplicate_time_data` on restart paths.
+
+### 16.9 Campaign restart
+
+The 04:46 rerun was killed at t≈20 (its confinement stream carried defects
+1–3 and its consumer predated the fixes; §15's caches were already fine). The
+campaign restarts from scratch with: fixed confinement extractor (sector +
+proper-volume columns), fixed coherence gate, fixed boundary flux, strict
+frozen-tail geodesics, interpolated detector crossing, 257³ metric_stack,
+auto-triggered end-of-run scoring, and the rebuilt binary whose only change
+is the EC μ fix. The bit-identity check against `runs/pump_ladder_m0_v1`
+(physics cols of `constraint_norms.dat` / `collapse_diagnostics.dat`) now
+also validates that the rebuild changed diagnostics only.

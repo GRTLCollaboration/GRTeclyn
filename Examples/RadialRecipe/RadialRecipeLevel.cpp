@@ -1170,16 +1170,24 @@ void RadialRecipeLevel::specificPostTimeStep()
             }
             else if (RadialRecipeMatter::uses_complex_scalar(simParams()))
             {
+                // NOTE: recipe_scalar_mu MUST be passed.  Until 2026-07-28 this
+                // constructor omitted it, so every EC margin was evaluated with
+                // the sextic term of the Q-ball potential silently zeroed --
+                // a different V than the one the evolution integrates.
                 ComplexScalarField matter(simParams().recipe_scalar_mass,
                                             simParams().recipe_scalar_lambda,
-                                            simParams().recipe_scalar_sign);
+                                            simParams().recipe_scalar_sign,
+                                            simParams().recipe_scalar_mu);
                 ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
                                            ec_cell_vol);
             }
             else if (RadialRecipeMatter::uses_bicomplex_scalar(simParams()))
             {
+                // Same μ omission as above; at candidate-146 amplitudes the
+                // sextic term is comparable to the mass/quartic terms.
                 BiComplexScalarField matter(simParams().recipe_scalar_mass,
-                                            simParams().recipe_scalar_lambda);
+                                            simParams().recipe_scalar_lambda,
+                                            simParams().recipe_scalar_mu);
                 ec_res = reduce_ec_margins(state_fine, matter, ec_dx,
                                            ec_cell_vol);
             }
