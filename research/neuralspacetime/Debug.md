@@ -1,7 +1,11 @@
 # Pump controller / constraint investigation — findings log
 
 Status as of 2026-07-28. Branch `feature/interstellar`.
-Commits: `fe5ef9f8`, `d6a0c350`, `2ddaa87a`.
+Commits: `fe5ef9f8`, `d6a0c350`, `2ddaa87a`, `6daea1a3`.
+
+**The HQ ladder (`runs/pump_ladder_m0`, 6 rungs, 256³, t=30) is COMPLETE and
+validated.** All HQ numbers below are final. See §11 for the validation record,
+§12 for a retracted claim, §13 for what `f_geo_evol` actually is.
 
 This file records what was broken, what was fixed, what was abandoned, and
 which numbers are safe to quote in the manuscript. Written so the results are
@@ -154,8 +158,35 @@ Fast tier (L=128, N=128, ml=2, mode 0), `controller_reservoir_mode = 0`:
 | 16 | 4.6754e-3 | 3.0894e-3 | 1.0000 |
 | 30 (t<29) | 1.9579e-2 | 3.4793e-3 | 0.0000 |
 
-**Claim, for `t_pump ≤ 16`:** constraint violation is statistically
-indistinguishable from the pump-free run.
+### HQ CONFIRMATION (256³, `runs/pump_ladder_m0`) — the claim extends to `t_pump ≤ 24`
+
+| t_pump | peak L2_Ham | mean L2_Ham | final | governor min |
+|--------|-------------|-------------|-------|--------------|
+| 0 (none) | 4.2723e-3 | 2.7116e-3 | 3.7868e-3 | 1.0000 |
+| 4 | **3.9018e-3** | 2.8828e-3 | 2.9172e-3 | 1.0000 |
+| 8 | 4.1969e-3 | 3.0880e-3 | 3.9745e-3 | 1.0000 |
+| 16 | 4.6773e-3 | 3.1984e-3 | 4.6773e-3 | 1.0000 |
+| 24 | 4.1474e-3 | 3.4027e-3 | 3.9829e-3 | 1.0000 |
+| 30 | *4.7606e-2* | *5.0860e-3* | *4.7606e-2* | **0.0002** |
+
+* peak is again **non-monotonic**: the UNPUMPED run (4.27e-3) sits *between*
+  tp4 (3.90e-3) and tp16 (4.68e-3) — the same shape as the fast tier
+* mean 2.71e-3 → 3.40e-3 over **24** units of continuous driving: 26% spread
+* governor never engaged for any `t_pump ≤ 24`
+* **the hard boundary moves from 16 to 24.** tp24 is completely healthy; only
+  tp30 destabilises (§6)
+
+Duhamel bound at HQ (all tight, all satisfied):
+
+| run | final L2_Ham | ham_bound | ratio |
+|-----|--------------|-----------|-------|
+| tp4 | 2.917e-3 | 3.594e-3 | 1.23× |
+| tp8 | 3.974e-3 | 4.189e-3 | 1.05× |
+| tp16 | 4.677e-3 | 5.235e-3 | 1.12× |
+| tp24 | 3.983e-3 | 6.892e-3 | 1.73× |
+
+**Claim, for `t_pump ≤ 16` (fast tier) / `≤ 24` (HQ):** constraint violation is
+statistically indistinguishable from the pump-free run.
 * mean varies 2.84e-3 → 3.09e-3 over 16 units of continuous driving: **9% spread**
 * peak is **non-monotonic** — the UNPUMPED run (4.45e-3) sits *between*
   tp4 (3.89e-3) and tp16 (4.68e-3)
@@ -171,8 +202,9 @@ indistinguishable from the pump-free run.
 * late-time constraint growth is dominated by dispersing matter + regridding
   and is present identically in the pump-free run
 
-**HARD BOUNDARY.** The claim holds to `t_pump = 16`, NOT to 30. tp30 reaches
-1.96e-2 (4.4× baseline) and then destabilises. Do not over-claim.
+**HARD BOUNDARY.** The claim holds to `t_pump = 24` at HQ (16 at the fast
+tier), NOT to 30. tp30 reaches 4.76e-2 (11× baseline) and destabilises. Do not
+over-claim.
 
 Analysis script: `research/neuralspacetime/analysis/pump_constraint_budget.py`
 
@@ -198,10 +230,41 @@ resists dispersion. What sustained driving buys is a slower leak:
 * monotonic in pump duration at every late epoch; **no saturation** in 0→16
 * early on (t=8.64) the pump marginally HURTS (unpumped 0.655 is highest)
 
+### HQ CONFIRMATION — larger gain, still monotonic, still no saturation
+
+`confined_frac`, 256³:
+
+| t | tp0 | tp4 | tp8 | tp16 | tp24 | tp30 |
+|---|-----|-----|-----|------|------|------|
+| 25.92 | 0.0852 | 0.1945 | 0.2286 | 0.2382 | 0.3075 | 0.2866 |
+| 28.80 | 0.0225 | 0.1312 | 0.1699 | 0.2161 | 0.2191 | 0.2462 |
+| 30.02 | **0.0157** | 0.1111 | 0.1431 | 0.1903 | **0.2042** | *0.2390* |
+
+* at t=30.02: **1.6% (no pump) → 20.4% (t_pump=24)** — a **13.0× gain**
+  (fast tier gave 10.7× at tp16)
+* monotonic in pump duration at every late epoch, `t_pump` 0→24, no saturation
+* tp30's 0.2390 is inside the destabilised window (§6) — quote tp24, not tp30
+* the early-time harm reproduces: below t≈14 every pumped rung sits *below* the
+  pump-free run (ratio 0.89–0.99)
+
 ### Lapse health is also monotonic — until it isn't
-`min_lapse` at t=30: **0.074 → 0.112 → 0.228 → 0.421 → floor(1e-10)**
-for t_pump 0/4/8/16/30. Longer driving keeps the spacetime *healthier*, right
-up to tp16, then tp30 collapses.
+Fast tier, `min_lapse` at t=30: **0.074 → 0.112 → 0.228 → 0.421 → floor(1e-10)**
+for t_pump 0/4/8/16/30.
+
+HQ at t=30, `min_lapse` / `min_chi` for t_pump 0/4/8/16/24/30:
+
+| t_pump | min_lapse | min_chi | max_abs_K | max_Pi |
+|--------|-----------|---------|-----------|--------|
+| 0 | 2.607e-2 | 5.682e-4 | 4.916e-1 | 6.61e-2 |
+| 4 | 1.111e-1 | 5.956e-2 | 2.746e-1 | 5.13e-2 |
+| 8 | 2.254e-1 | 1.720e-1 | 2.491e-1 | 8.08e-2 |
+| 16 | 4.236e-1 | 4.026e-1 | 2.090e-1 | 1.79e-2 |
+| 24 | **6.282e-1** | **5.826e-1** | 7.648e-2 | 3.36e-2 |
+| 30 | *4.953e-5* | *2.914e-1* | 3.853e-1 | *5.24* |
+
+Monotonic all the way to **tp24** at HQ (not 16), then tp30 collapses. Note the
+pump-free run has `min_chi` = 5.7e-4 — its central region compacts hard. That
+is a real, large effect; see §12 for what it does NOT license you to say.
 
 ---
 
@@ -239,8 +302,26 @@ controller pushes harder, and that drives the lapse collapse. This is exactly
 the failure the `RLMatterPumpParams.hpp` comment (lines 55–62) warns about:
 the trap fighting gravity and exciting a breathing mode.
 
-**Open question:** whether this survives at HQ resolution, or is a `dx=1.0`
-artifact. The HQ ladder answers it. `tp24` brackets the 16→30 turnover.
+**ANSWERED AT HQ — it is NOT a `dx=1.0` artifact.** `runs/pump_ladder_m0/lad_m0_tp30`
+reproduces the failure at 256³:
+
+| quantity | fast tier (t=30) | HQ (t=30) |
+|----------|------------------|-----------|
+| min_lapse | 1.00e-10 | **4.95e-5** |
+| min_chi | 0.337 | **0.291** |
+| max_Pi | 1.44e+4 | 5.24 |
+| peak L2_Ham | 1.96e-2 | 4.76e-2 |
+| governor min | 0.0000 | 0.0002 |
+
+Same signature: `min_lapse` collapses five orders while `min_chi` barely moves.
+Lapse collapse with a healthy conformal factor — a gauge / driving pathology,
+at both resolutions. The governor engaged legitimately in both.
+
+**The turnover is between 24 and 30, not 16 and 30.** `tp24` is completely
+healthy at HQ (governor 1.0000, min_lapse 0.628, min_chi 0.583, peak L2_Ham
+4.15e-3 — *below* the pump-free run). This ladder cannot localise the turnover
+further: `tp24` and `tp30` are bit-identical up to t=24 by construction, so a
+finer bracket needs new rungs at t_pump = 26/28.
 
 ---
 
@@ -267,18 +348,41 @@ Caveats: fast tier only (dx=1.0), and geodesic integration is
 resolution-sensitive — quote HQ. `geo_trustworthy` (col 4) is 0 at several
 epochs; filter those rows.
 
-**GAP:** `evolving_geodesic.json` is MISSING in all fast-tier runs. The queue
-runs the plotfile consumer but not the scoring layer, so `f_geo_evol` was
-never computed. Per `research.tex` line 172, `f_geo^evol = 0` for every
-accepted evaluation anyway. If it is wanted for these runs, it needs a
-separate scoring pass BEFORE the plotfiles are pruned.
+### HQ CONFIRMATION — no dose–response, confirmed at 256³
+
+Peak `f_geo` per rung (all 22/22 rows `geo_trustworthy=1`, better than the
+fast tier where several epochs were 0):
+
+| t_pump | peak f_geo | at t |
+|--------|-----------|------|
+| 0 (none) | 27.0% | 30.00 |
+| 4 | 29.5% | 10.08 |
+| 8 | **30.9%** | 14.40 |
+| 16 | 23.5% | 12.96 |
+| 24 | 23.5% | 12.96 |
+| 30 | 23.5% | 12.96 |
+
+Identical verdict to the fast tier: tp8 is best, and the PUMP-FREE run (27.0%)
+beats tp16/24/30 (23.5%). **The pump does not improve `f_geo`, at either
+resolution.** tp16/24/30 tie exactly because their peak falls at t=12.96, before
+any of them differ.
+
+**GAP — NOW CLOSED, and the answer overturns the premise. See §13.**
+`f_geo_evol` was never computed for the fast tier *or* the HQ ladder, because
+no campaign queue runs the scoring layer at all. A post-hoc pass now computes
+it from the `metric_stack` cache; the values are **~12–13%, not 0**.
 
 ---
 
 ## 8. Data provenance
 
 **VALID**
+* `runs/pump_ladder_m0/lad_m0_tp{0,4,8,16,24}` — **HQ, 256³, t=30, complete,
+  validated (§11). These are the manuscript numbers.**
+* `runs/pump_ladder_m0/lad_m0_tp30` — valid to t≈29; governor engaged
+  legitimately at the end, late-time values are inside the destabilised window
 * `runs/always_on_pump/hq146_m0_tp4_t30` — HQ, mode 0, governor 1.0 throughout
+  (bit-identity reference for `lad_m0_tp4`)
 * `runs/always_on_pump/hq146_m1_tp0_t30` — HQ, pump never on, reservoir ≡ 0
 * `runs/pump_ladder_fast/fast_tp{0,4,8,16}` — complete, governor 1.0
 * `runs/pump_ladder_fast/fast_tp30` — valid to t≈29, garbage after
@@ -303,16 +407,31 @@ the component the old code never measured and got the sign wrong on.
 
 ---
 
-## 9. In flight
+## 9. HQ ladder — COMPLETE
 
-`runs/pump_ladder_m0/` — HQ ladder, 6 rungs (`t_pump` = 0/4/8/16/24/30),
-mode 0, 2 concurrent, ~5 h total. Queue: `ladder_queue.py`.
-`lad_m0_tp4` doubles as a bit-identity regression check against
-`runs/always_on_pump/hq146_m0_tp4_t30`.
+`runs/pump_ladder_m0/` — 6 rungs (`t_pump` = 0/4/8/16/24/30), mode 0, L=128
+N=256 ml=3, t=30, `plot_interval=144`. Launched 01:40, finished 03:29
+(2026-07-28). **All six ran 6-way concurrent on one node** — possible only
+because plotfiles now go to node-local NVMe (wrapper README).
 
-Purpose: (a) does the tp30 lapse collapse survive at HQ, or was it a `dx=1.0`
-artifact; (b) where between 16 and 30 does driving turn destructive; (c) HQ
-values of f_geo and retention for the manuscript.
+Queue: `grteclyn-wrapper/scripts/campaigns/rl/pump_ladder_queue.py`.
+
+Its three purposes, all answered:
+* (a) does the tp30 lapse collapse survive at HQ → **yes**, §6
+* (b) where does driving turn destructive → **between 24 and 30**, not 16 and 30
+* (c) HQ f_geo + retention → §5, §7
+
+Throughput, measured against the surviving NFS-era campaign
+(`runs/always_on_pump/queue.log`, max 2 concurrent, 7 runs, 5 h 40 min):
+
+| | per-run rate | extraction mean / max | 6 runs to t=30 |
+|---|---|---|---|
+| NFS plotfiles, 2 concurrent | 0.333 t/min | 74.0 s / **310.3 s** | ~4 h 33 min |
+| node-local, 6 concurrent | 0.335–0.378 t/min | 15.7 s / 21.9 s | **1 h 30 min** |
+
+**3.2× on campaign wall-clock, and per-run speed is unchanged** — 3× the jobs
+at the same cost each, which is the proof the I/O wall is gone. The old worst
+case (310 s) exceeded the 288 s plotfile cadence; that is how backlogs formed.
 
 ---
 
@@ -335,3 +454,167 @@ values of f_geo and retention for the manuscript.
 * `E_pump ~ 1.6e-17`, or "soft trajectory guide" (§1.1)
 * "confinement saturates at t_pump = 8" (§1.2)
 * anything relying on the controller reservoir (§3)
+* `f_geo^evol = 0` (§13) — it is ~12–13% and trustworthy; the 0 in
+  `research.tex` line 172 is an emit-gate rejection, not a measurement
+* that a black hole / apparent horizon forms in any run (§12)
+
+### Updated for HQ
+
+**CAN now say**
+* the constraint claim holds to `t_pump ≤ 24` at 256³, not just 16
+* retention gain is **13.0×** at t_pump=24 (1.6% → 20.4% at t=30.02)
+* the tp30 lapse-collapse instability is resolution-independent (§6)
+* the governor fix is a verified no-op in mode 0 — `lad_m0_tp4` is
+  bit-identical to `hq146_m0_tp4_t30` on every physics column
+
+**STILL CANNOT say**
+* anything about `t_pump > 24`
+* that the pump improves `f_geo` — it does not, at either resolution (§7)
+* that the pump improves `f_geo_evol` — it does not either (§13)
+* where between 24 and 30 the turnover sits — needs rungs at 26/28
+
+---
+
+## 11. Validation record — HQ ladder
+
+| check | result |
+|-------|--------|
+| completion | 6/6 reached t=30.00, rc=0, 3000 rows each |
+| NaN / Inf | none (only expected `structure_coherence=nan`) |
+| **bit-identity** `lad_m0_tp4` vs `hq146_m0_tp4_t30` | **identical, cols 1–8** |
+| determinism tp16/tp24/tp30 for t ≤ 16 | exact at t=8.00 / 12.00 / 16.00 |
+| governor | 1.0000 for tp0–tp24; 0.0002 for tp30 (legitimate) |
+| Duhamel bound | satisfied, 1.05–1.73× |
+| plotfile GC | 0 deleted-before-extracted across all six; no empty skeletons |
+
+The bit-identity result is the important one: it proves `d6a0c350` (the
+governor fix) changes nothing in `controller_reservoir_mode = 0`, so every
+mode-0 number from the first campaign remains valid.
+
+---
+
+## 12. RETRACTED — "the pump delays black hole formation"
+
+**A claim was made from `collapse_diagnostics.dat` cols 8/9 and then withdrawn
+after checking. Do not re-derive it.**
+
+The claim was that horizons form at t = 15.82 (pump-free) → 24.50 (tp16), i.e.
+the pump delays collapse by ~9 time units. It is not supported.
+
+`min_theta_plus` (col 9) and `max_ah_r` (col 8) are **pointwise proxies**, not
+a surface-integrated expansion ([`RadialRecipeLevel.cpp:838`](../../Examples/RadialRecipe/RadialRecipeLevel.cpp)):
+
+```
+theta_plus = 2*sqrt(chi)/r - dchi_dr/sqrt(chi) + A_rr - (2/3)*K
+```
+
+`max_ah_r` is a `ReduceRealMax` of `r` over any cell with `theta_plus <= 0` —
+the OUTERMOST such cell, not a horizon radius. Four checks kill the claim:
+
+* `r_at_min_theta_plus` stays pinned at **8.2–8.6** and never migrates inward;
+  a forming horizon moves inward
+* `min_theta_plus` tracks `max_abs_K` almost exactly (tp0: 0.026 → −1.70 as
+  K goes 0.12 → 0.91)
+* at r ≈ 8.3 with chi ≈ 1, `2*sqrt(chi)/r ≈ 0.24`, so `K >~ 0.36` alone flips
+  the sign — no trapped surface required
+* `tp24` later returns to `min_theta_plus = +0.041`. **A horizon does not
+  un-form.**
+
+This is the `-(2/3)K` term in a gauge where K grows, nothing more.
+
+**What survives:** `min_chi` at t=30 (§5) — 5.7e-4 pump-free vs 0.583 at
+tp24 — is a real and large difference, monotonic to tp24. Central compaction
+is genuine. Calling it collapse requires a real apparent-horizon finder, which
+this codebase does not have.
+
+---
+
+## 13. `f_geo_evol` — computed at last, and it is NOT zero
+
+### Why it was never computed
+`consume_plotfiles --evolving-geodesic` does **not** run the 4D trace. Its only
+effects are setting `GRTECLYN_EVOLVING_GEODESIC=1` inside the consumer's own
+process (where nothing reads it) and enabling the `small_data/metric_stack`
+cache at the right resolution. The trace lives in
+`metrics.aggregation.collector`, reached only via `core/evaluation.py` →
+`runner.py` — the QD/CMA-ES evaluation path. **A hand-rolled campaign queue
+bypasses it entirely**; `pump_ladder_queue.py` has no post-run step at all.
+
+Worse, `consume_plotfiles/extraction/ftl.py` writes literal `0.0  0` into cols
+13/14 on every row, so the columns look *computed-and-zero* rather than
+*never-computed*. That is how this went unnoticed.
+
+### The fix
+`grteclyn-wrapper/scripts/campaigns/rl/score_evolving_geodesic.py` — a post-hoc
+pass reading the `metric_stack` cache (on NFS, survives plotfile pruning), so
+it can be run any time after a campaign finishes:
+
+```
+grteclyn-wrapper/.venv/bin/python \
+  grteclyn-wrapper/scripts/campaigns/rl/score_evolving_geodesic.py \
+  runs/pump_ladder_m0/lad_m0_tp*
+```
+
+### Results (HQ ladder, all six)
+
+| t_pump | f_geo_evol | ok | rays | t_emit |
+|--------|-----------|-----|------|--------|
+| 0 | **12.26%** | 1 | 5/5 | 0.00 |
+| 4 | **13.22%** | 1 | 5/5 | 0.00 |
+| 8 | 12.43% | 1 | 5/5 | 0.00 |
+| 16 | 12.04% | 1 | 5/5 | 0.00 |
+| 24 | 12.04% | 1 | 5/5 | 0.00 |
+| 30 | 12.04% | 1 | 5/5 | 0.00 |
+
+All trustworthy: 5/5 rays reached, `h_quality_ok=1`, 0 captured.
+
+### Three consequences
+
+1. **The `f_geo^evol = 0` in `research.tex` line 172 is an emit-gate
+   rejection, not a measurement.** `_post_pump_emit_ok` (`metrics/score/ftl.py`)
+   rejects any `t_emit` below `GEODESIC_EMIT_MIN_TIME` / `RL_PUMP_STOP_TIME`.
+   Every trace here emits at `t_emit = 0.00`, so in a scoring context all six
+   are rejected and recorded as 0. The value was real and discarded.
+2. **No dose–response here either.** tp4 is best (13.22%); pump-free (12.26%)
+   beats tp16/24/30. Same verdict as frozen `f_geo`.
+3. **This configuration cannot resolve pump duration.** tp16/24/30 are
+   bit-identical (0.12036) because a ray emitted at t=0 arrives before t=16 and
+   never samples the spacetime where those rungs differ. A meaningful test needs
+   an emission sweep with `GEODESIC_EMIT_MIN_TIME` set past each rung's stop time.
+
+### Caveat
+The cache is **33³** (search-mode `GRTECLYN_METRIC_STACK_N_SPACE`), fixed at
+write time. It cannot be raised after the fact — the plotfiles are gone. Future
+campaigns wanting HQ-resolution 4D traces must set
+`GRTECLYN_EVOLVING_GEODESIC_MODE=hq` **before launch**.
+
+---
+
+## 14. Bug fixed while validating — five disagreeing trust bars (`6daea1a3`)
+
+Both geodesic probes treat a captured ray (fell into a puncture throat /
+horizon) as physics, not an integration failure:
+`n_reached == n_rays - n_captured`. Every *consumer* of their reports still
+used `n_reached == n_rays`. Any run where a ray was captured was certified by
+the probe and simultaneously marked untrusted downstream.
+
+| site | gated | was |
+|------|-------|-----|
+| `metrics/score/ftl.py:204` | `geo_trustworthy` (frozen) | stale |
+| `metrics/score/ftl.py:256` | `evo_trustworthy` (4D) | stale |
+| `metrics/aggregation/collector.py:279` | `f_geo_evol_ok`, col 14 | stale |
+| `search/ftl_peak_metrics.py:54` | QD/MAP-Elites retention gate | stale |
+| `consume_plotfiles/extraction/ftl.py:82` | `geo_trustworthy`, col 4 | stale |
+
+The scoring ones had teeth: they zeroed `ftl_geo_evolving` /
+`operational_ftl_geodesic`, so a certified shortcut earned no FTL credit.
+
+Fixed: `geodesic.rays_complete(n_rays, n_reached, n_captured)` is now the single
+definition and all five call it. `EvolvingGeodesicMetrics` gained `n_captured`,
+which it never carried — so the scorer and the QD gate *could not* have applied
+the correct bar even in principle. Regression test:
+`tests/metrics/ftl/test_ray_bundle_trust_bar.py`.
+
+**Behaviour is unchanged whenever `n_captured == 0`, which covers every run
+recorded to date** — including this ladder (0 captured in all six). No existing
+number moves.
