@@ -65,6 +65,12 @@ def required_n_space(
     return int(round(2.0 * float(half_width) / finest_dx)) + 1
 
 
+def slice_time(slice_path: Path) -> float:
+    """Simulation time stored in a cached slice (reads only the ``t`` member)."""
+    with np.load(slice_path) as slab:
+        return float(slab["t"])
+
+
 def slice_min_chi(slice_path: Path) -> float:
     """Smallest conformal factor the cached slice can represent.
 
@@ -83,6 +89,7 @@ def cache_fidelity(
     true_min_chi_at: dict[float, float],
     *,
     tol: float = 1.5,
+    max_time: float | None = None,
 ) -> list[tuple[float, float, float, float]]:
     """Slices where the cache CANNOT represent the geometry the sim produced.
 
@@ -105,6 +112,8 @@ def cache_fidelity(
     for path in list_slice_files(cache_dir):
         with np.load(path) as slab:
             t = float(slab["t"])
+        if max_time is not None and t > max_time + 1.0e-9:
+            continue
         if not true_min_chi_at:
             continue
         t_ref = min(true_min_chi_at, key=lambda x: abs(x - t))
@@ -150,10 +159,20 @@ def evolving_field_from_metric_stack_cache(
     *,
     slice_stride: int = 1,
     max_slices: int | None = None,
+    max_time: float | None = None,
 ) -> EvolvingMetricField | None:
-    """Rebuild ``EvolvingMetricField`` from cached per-plotfile slices."""
+    """Rebuild ``EvolvingMetricField`` from cached per-plotfile slices.
+
+    ``max_time`` drops slices after that simulation time.  Truncation is
+    conservative under the strict no-frozen-tail guard: a ray still in flight
+    past the last kept slice reports ``reached=False`` rather than completing
+    through clamped geometry.
+    """
+    all_files = list_slice_files(cache_dir)
+    if max_time is not None:
+        all_files = [p for p in all_files if slice_time(p) <= max_time + 1.0e-9]
     files = subsample_slice_files(
-        list_slice_files(cache_dir),
+        all_files,
         stride=slice_stride,
         max_slices=max_slices,
     )
@@ -168,7 +187,10 @@ def evolving_field_from_metric_stack_cache(
     for path in files:
         data = np.load(path)
         times.append(float(data["t"]))
-        slices.append(np.asarray(data["g"], dtype=np.float64))
+        # Keep the stored float32: promotion inside ``trilinear`` is exact, so
+        # results are bit-identical to a float64 upcast at half the resident
+        # memory (24 GB vs 48 GB per process at 257^3).
+        slices.append(np.asarray(data["g"]))
         if origin is None:
             origin = np.asarray(data["origin"], dtype=np.float64)
             sp = np.asarray(data["spacing"], dtype=np.float64)

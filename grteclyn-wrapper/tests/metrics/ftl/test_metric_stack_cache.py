@@ -73,6 +73,35 @@ def test_evolving_trace_from_metric_stack_cache(tmp_path: Path) -> None:
     assert report.f_geo_frozen_peak > 0.0
 
 
+def test_max_time_truncates_stack(tmp_path: Path) -> None:
+    """--max-time recovery path: late slices are dropped, early ones intact."""
+    cache_dir = metric_stack_dir(tmp_path)
+    _write_alcubierre_slices(cache_dir)
+    full = evolving_field_from_metric_stack_cache(cache_dir)
+    assert full is not None
+    cut = float(full.times[len(full.times) // 2])
+    trunc = evolving_field_from_metric_stack_cache(cache_dir, max_time=cut)
+    assert trunc is not None
+    expected = int(np.sum(full.times <= cut + 1.0e-9))
+    assert trunc.g_stack.shape[0] == len(trunc.times) == expected
+    assert float(trunc.times[-1]) <= cut + 1.0e-9
+    np.testing.assert_array_equal(trunc.g_stack, full.g_stack[:expected])
+
+
+def test_frozen_peak_override_skips_recompute(tmp_path: Path) -> None:
+    """compute_frozen_peak=False + override reports the supplied peak."""
+    from dataclasses import replace
+
+    cache_dir = metric_stack_dir(tmp_path)
+    _write_alcubierre_slices(cache_dir)
+    opts = replace(HQ_OPTIONS, compute_frozen_peak=False)
+    report = compute_evolving_geodesic_ftl_from_metric_stack_cache(
+        cache_dir, options=opts, frozen_peak_override=0.123
+    )
+    assert report is not None
+    assert report.f_geo_frozen_peak == 0.123
+
+
 def test_cached_field_matches_direct_analytic_stack(tmp_path: Path) -> None:
     g, spacing = wf.alcubierre_metric(
         n_space=33, velocity=0.5, half_width=4.0, dt=0.2, n_time=41

@@ -33,6 +33,8 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
+from dataclasses import replace
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
@@ -64,6 +66,7 @@ from grteclyn_wrapper.metrics.probes.ftl.metric_stack_cache import (  # noqa: E4
     cache_fidelity,
     list_slice_files,
     metric_stack_dir,
+    slice_time,
 )
 
 MIN_SLICES = 3
@@ -88,6 +91,43 @@ def true_min_chi_at(run_dir: Path) -> dict[float, float]:
     return out
 
 
+def frozen_peak_from_ftl_timeseries(run_dir: Path) -> float | None:
+    """Peak trustworthy frozen ``f_geo`` the consumer measured per plotfile.
+
+    The consumer computed these from full-fidelity plotfiles during the
+    campaign; recomputing them from the float32 cache costs two full-grid
+    inversions plus gradients per slice (the dominant cost of the whole pass at
+    257^3) and can only produce a number of LOWER provenance.  Reuse the column.
+    """
+    path = run_dir / "small_data" / "ftl_timeseries.dat"
+    if not path.is_file():
+        return None
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if not lines or not lines[0].lstrip().startswith("#"):
+        return None
+    cols = lines[0].lstrip("#").split()
+    try:
+        i_geo = cols.index("f_geo")
+        i_ok = cols.index("geo_trustworthy")
+    except ValueError:
+        return None
+    peak: float | None = None
+    for line in lines[1:]:
+        if line.lstrip().startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) <= max(i_geo, i_ok):
+            continue
+        try:
+            ok = float(parts[i_ok])
+            val = float(parts[i_geo])
+        except ValueError:
+            continue
+        if ok >= 0.5 and (peak is None or val > peak):
+            peak = val
+    return peak
+
+
 def cached_n_space(cache_dir: Path) -> int | None:
     """Spatial resolution actually baked into the cache (cannot be changed now)."""
     import numpy as np
@@ -99,23 +139,43 @@ def cached_n_space(cache_dir: Path) -> int | None:
         return int(slab["g"].shape[0])
 
 
-def score_one(run_dir: Path, *, ftl_L: float, dry_run: bool, force: bool) -> int:
+def score_one(
+    run_dir: Path,
+    *,
+    ftl_L: float,
+    dry_run: bool,
+    force: bool,
+    max_time: float | None = None,
+) -> int:
+    t_start = time.monotonic()
     small = run_dir / "small_data"
     cache_dir = metric_stack_dir(small)
-    n_cached = len(list_slice_files(cache_dir))
-    if n_cached < MIN_SLICES:
-        print(f"  {run_dir.name}: SKIP -- {n_cached} slices (< {MIN_SLICES})")
+    all_files = list_slice_files(cache_dir)
+    n_cached = len(all_files)
+    if max_time is not None:
+        n_used = sum(1 for p in all_files if slice_time(p) <= max_time + 1.0e-9)
+        print(
+            f"  {run_dir.name}: truncating stack to t<={max_time:g} "
+            f"({n_used}/{n_cached} slices kept)",
+            flush=True,
+        )
+    else:
+        n_used = n_cached
+    if n_used < MIN_SLICES:
+        print(f"  {run_dir.name}: SKIP -- {n_used} slices (< {MIN_SLICES})")
         return 1
 
     n_space = cached_n_space(cache_dir)
 
     # A uniform resample coarser than the finest AMR level erases sharp
     # features silently.  Refuse to report a number the cache cannot support.
-    bad = cache_fidelity(cache_dir, true_min_chi_at(run_dir), tol=FIDELITY_TOL)
+    bad = cache_fidelity(
+        cache_dir, true_min_chi_at(run_dir), tol=FIDELITY_TOL, max_time=max_time
+    )
     if bad:
         worst_t, true, cached, ratio = bad[0]
         print(
-            f"  {run_dir.name}: UNFAITHFUL CACHE -- {len(bad)}/{n_cached} slices "
+            f"  {run_dir.name}: UNFAITHFUL CACHE -- {len(bad)}/{n_used} slices "
             f"under-resolved; worst t={worst_t:.2f} true min_chi={true:.3e} "
             f"cached={cached:.3e} ({ratio:.0f}x too shallow) at {n_space}^3"
         )
@@ -125,35 +185,61 @@ def score_one(run_dir: Path, *, ftl_L: float, dry_run: bool, force: bool) -> int
             print(
                 "      REFUSING to report f_geo_evol. Rays would not feel the "
                 "well -> spurious shortcut. Re-run with a finer "
-                "GRTECLYN_METRIC_STACK_N_SPACE, or pass --force to override."
+                "GRTECLYN_METRIC_STACK_N_SPACE, truncate the stack before the "
+                "offending slices with --max-time, or pass --force to override."
             )
             return 1
+    print(
+        f"  {run_dir.name}: fidelity PASS ({n_used} slices @ {n_space}^3) "
+        f"[{time.monotonic() - t_start:.0f}s]",
+        flush=True,
+    )
+
+    # The consumer already measured per-plotfile frozen f_geo at plotfile
+    # fidelity; skip the cache-side recompute (dominant cost at 257^3).
+    frozen = frozen_peak_from_ftl_timeseries(run_dir)
+    opts = replace(evolving_geodesic_options_from_env(), compute_frozen_peak=False)
 
     report = compute_evolving_geodesic_ftl_from_metric_stack_cache(
-        cache_dir, options=evolving_geodesic_options_from_env()
+        cache_dir,
+        options=opts,
+        max_time=max_time,
+        frozen_peak_override=frozen,
     )
     if report is None:
-        print(f"  {run_dir.name}: FAILED -- {n_cached} slices but no report")
+        print(f"  {run_dir.name}: FAILED -- {n_used} slices but no report")
         return 1
 
+    extra_notes = [
+        "f_geo_frozen_peak from ftl_timeseries.dat (consumer, plotfile fidelity)"
+        if frozen is not None
+        else "f_geo_frozen_peak unavailable (no trustworthy ftl_timeseries rows)"
+    ]
+    if max_time is not None:
+        extra_notes.append(
+            f"stack truncated to t<={max_time:g} ({n_used}/{n_cached} slices; "
+            "strict no-frozen-tail guard makes truncation conservative)"
+        )
+    report = replace(report, notes=report.notes + tuple(extra_notes))
+
     ok = evolving_report_trustworthy(report)
+    # Persist BEFORE printing: a broken stdout pipe (dead parent) must not cost
+    # the result of an hour-long trace.
+    if not dry_run:
+        write_evolving_geodesic_json(small / "evolving_geodesic.json", report)
+        patch_ftl_timeseries_evolving(
+            small / "ftl_timeseries.dat",
+            f_geo_evol=float(report.f_geo),
+            f_geo_evol_ok=ok,
+        )
     print(
         f"  {run_dir.name}: f_geo_evol={report.f_geo:.4e} ok={int(ok)} "
         f"rays={report.n_reached}/{report.n_rays} captured={report.n_captured} "
         f"h_ok={int(report.h_quality_ok)} t_emit={report.t_emit:.2f} "
-        f"slices={n_cached}@{n_space}^3"
+        f"slices={n_used}@{n_space}^3 [{time.monotonic() - t_start:.0f}s]"
     )
     for note in report.notes:
         print(f"      note: {note}")
-    if dry_run:
-        return 0
-
-    write_evolving_geodesic_json(small / "evolving_geodesic.json", report)
-    patch_ftl_timeseries_evolving(
-        small / "ftl_timeseries.dat",
-        f_geo_evol=float(report.f_geo),
-        f_geo_evol_ok=ok,
-    )
     return 0
 
 
@@ -169,6 +255,16 @@ def main() -> int:
         action="store_true",
         help="report even when the cache cannot represent the geometry (unsafe)",
     )
+    ap.add_argument(
+        "--max-time",
+        type=float,
+        default=None,
+        help=(
+            "drop cached slices after this simulation time (e.g. exclude "
+            "late under-resolved slices; conservative under the strict "
+            "no-frozen-tail guard)"
+        ),
+    )
     args = ap.parse_args()
 
     mode = os.environ.get("GRTECLYN_EVOLVING_GEODESIC_MODE", "search")
@@ -180,7 +276,11 @@ def main() -> int:
             failures += 1
             continue
         failures += score_one(
-            run_dir, ftl_L=args.ftl_l, dry_run=args.dry_run, force=args.force
+            run_dir,
+            ftl_L=args.ftl_l,
+            dry_run=args.dry_run,
+            force=args.force,
+            max_time=args.max_time,
         )
     return 1 if failures else 0
 

@@ -20,7 +20,7 @@ import json
 import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Iterable, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
@@ -50,6 +50,7 @@ from .metric_field import (
 from .metric_stack_cache import (
     evolving_field_from_metric_stack_cache,
     list_slice_files,
+    slice_time,
     subsample_slice_files,
 )
 from .evolving_geodesic_options import (
@@ -591,7 +592,7 @@ def compute_evolving_geodesic_ftl_emission_sweep(
 
 
 def _frozen_peak_from_g_slices(
-    slices: Sequence[NDArray[np.float64]],
+    slices: Iterable[NDArray[np.float64]],
     origin: NDArray[np.float64],
     spacing: tuple[float, float, float],
     *,
@@ -632,30 +633,45 @@ def compute_evolving_geodesic_ftl_from_metric_stack_cache(
     options: EvolvingGeodesicOptions | None = None,
     n_rays: int | None = None,
     h_tol: float = 1.0e-6,
+    max_time: float | None = None,
+    frozen_peak_override: float | None = None,
 ) -> EvolvingGeodesicFtlReport | None:
-    """End-to-end evolving trace from cached per-plotfile metric slices."""
+    """End-to-end evolving trace from cached per-plotfile metric slices.
+
+    ``frozen_peak_override`` supplies a frozen-slice peak measured elsewhere
+    (e.g. the consumer's per-plotfile ``f_geo`` column) when
+    ``compute_frozen_peak`` is off; recomputing it from the cache costs two
+    full-grid inversions plus gradients per slice, which at 257^3 dominates the
+    entire pass while only reproducing a number of lower provenance.
+    """
     opts = options or evolving_geodesic_options_from_env()
     ray_count = opts.n_rays if n_rays is None else n_rays
     field = evolving_field_from_metric_stack_cache(
         cache_dir,
         slice_stride=opts.slice_stride,
         max_slices=opts.max_slices,
+        max_time=max_time,
     )
     if field is None:
         return None
-    frozen_peak = None
+    frozen_peak = frozen_peak_override
     if opts.compute_frozen_peak:
+        all_files = list_slice_files(cache_dir)
+        if max_time is not None:
+            all_files = [p for p in all_files if slice_time(p) <= max_time + 1.0e-9]
         files = subsample_slice_files(
-            list_slice_files(cache_dir),
+            all_files,
             stride=opts.slice_stride,
             max_slices=opts.max_slices,
         )
-        slices: list[NDArray[np.float64]] = []
-        for path in files:
-            slices.append(np.asarray(np.load(path)["g"], dtype=np.float64))
         spacing = field.spatial_spacing
+        # Stream one slice at a time: preloading the whole list held a second
+        # full-precision copy of the stack (~47 GB at 257^3) for the entire pass.
+        slice_iter = (
+            np.asarray(np.load(path)["g"], dtype=np.float64) for path in files
+        )
         frozen_peak = _frozen_peak_from_g_slices(
-            slices,
+            slice_iter,
             field.origin,
             spacing,
             n_rays=ray_count,
