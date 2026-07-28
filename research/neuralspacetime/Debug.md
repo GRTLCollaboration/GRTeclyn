@@ -1269,6 +1269,11 @@ controller fails to act on, or fails to reach, exotic matter is retracted.
 
 ### 18.3 What actually fails: decay is SLOWED, not ARRESTED
 
+> **SUPERSEDED by §19 (2026-07-28).** Every number below is a `confined_frac`
+> fit, and §19.1 shows that ratio's denominator grows all run — the "0.50
+> plateau = half leaked" and "phantom decays 0.076/unit throughout" readings
+> are both artifacts of that. Absolute re-read: §19.2. Kept for the record.
+
 Fit the decay of `confined_frac` over t ∈ [13, 30] (after the shared early
 transient), per unit time:
 
@@ -1358,6 +1363,16 @@ next suspect is the 3-spotlight phase conflict on the shared Phi− field (three
 sites with different `phase0` driving one U(1) field through overlapping sech
 tails). Nothing here goes into the paper before that run exists.
 
+> **CORRECTIONS (2026-07-28, §19).** (1) The fallback suspect above is
+> falsified: `rl_pump_phase` is never written in trajectory mode — all sites
+> share frequency 0.8 and phase 0, and `phase0` is orbital azimuth, not field
+> phase (§19.4). The real overlap effect is summed PD errors, not phase
+> conflict. (2) The prediction's metric was wrong: score gain arms in absolute
+> per-sector activity (§19.1), where the phantom defect is zero *injection*
+> plus a late-onset 0.025/unit decline — not a run-long 0.076 decay. The gain
+> arms (pca_pg2/pg4, §19.6) still run, testing the same authority question
+> against the corrected metric.
+
 ### 18.7 `structure_coherence` is NaN in 22/22 rows of every run
 
 `ftl_timeseries.dat` col 8 is NaN for all 22 plotfiles in all six runs. Cause:
@@ -1389,3 +1404,162 @@ lives on NFS — the 22-slice `small_data/metric_stack` caches and
 sector barycentres vs spotlight centres) is no longer possible from stored
 data; `confinement.dat`'s 22-row moments are all that remain. Re-deriving
 anything finer requires a re-run.
+
+## 19. The confinement metric was the bug — measured absolutely, the pump works
+
+Everything in §18 (and the §5 ladder read) scored confinement with
+`confined_frac`. That column is a **ratio whose denominator grows during the
+run**: `total_activity` rises 68.6 → 171.1 in the pump-free rung (dispersal
+spreads modulus over more volume) and 68.6 → 279.0 in the always-on rung (the
+pump injects). A falling fraction therefore does *not* mean matter is being
+lost, and most of the drama the fraction showed was denominator motion. This
+section replaces the metric, re-reads the ladder in absolute terms, and records
+what one day of variant runs falsified.
+
+### 19.1 Use absolute per-sector confined activity, not `confined_frac`
+
+From the existing `confinement.dat` columns (nothing needs re-running):
+
+```
+abs_total = total_activity × confined_frac                    (cols 2 × 5)
+abs_canon = total_activity × canon_mass_frac × confined_frac_canon    (2 × 17 × 14)
+abs_phan  = total_activity × (1 − canon_mass_frac) × confined_frac_phantom  (2 × 17 × 16)
+```
+
+Caveats that stay attached to the number: activity is an **amplitude** measure
+(`A·√(1+ω²)` per §18.1), not an energy, and `canon_mass_frac` is an amplitude
+share (§18.1 misnomer note), so the sector split is amplitude-weighted. Within
+those limits the absolute number answers "how much matter is still inside
+r_conf", which is the question confinement was always meant to ask.
+`confined_frac` remains meaningful only when `total_activity` is flat — true of
+no run in this campaign.
+
+### 19.2 The ladder re-read: three phases, not one decay
+
+tp0 (pump off) vs tp30 (always on), absolute confined activity:
+
+| t | tp0 total | tp0 canon | tp0 phan | tp30 total | tp30 canon | tp30 phan |
+|---|---|---|---|---|---|---|
+| 0.00 | 48.1 | 18.6 | 31.6 | 48.1 | 18.6 | 31.6 |
+| 1.44 | 49.4 | 18.5 | 33.1 | **79.2** | **46.8** | 33.0 |
+| 5.76 | 49.4 | 18.0 | 33.2 | 81.2 | 49.6 | 32.2 |
+| 12.96 | 47.2 | 13.4 | 34.6 | 78.8 | 45.3 | 33.9 |
+| 18.72 | 40.4 | 8.0 | 32.7 | 78.7 | 46.3 | 33.2 |
+| 24.48 | 19.4 | 4.9 | 15.5 | 73.0 | 48.4 | 26.4 |
+| 27.36 | 7.0 | 3.6 | 4.8 | 74.9 | 52.6 | 25.2 |
+| 30.00 | 2.9 | 2.7 | 2.0 | 80.2 | 62.2* | 22.9 |
+
+\* the t>27.4 canonical rise (50.0 → 62.2) sits inside the L2_Ham runaway and
+governor choke (§19.6); treat it as contaminated, not as recapture.
+
+The corrected story:
+
+1. **Injection (t < 1.44, canonical only).** The pump injects the canonical
+   sector 18.6 → 46.8 (×2.5) within the first plotfile interval and the phantom
+   sector **not at all** (33.03 vs 33.05 unpumped — identical). This is the §18.1
+   injection seen absolutely, and it is strictly sector-asymmetric.
+2. **Hold (t ≈ 1.4–19, both sectors).** Canonical sits at 45–50 (flat to ±5%)
+   and phantom at 31–35 — *in both runs*. Nothing is failing anywhere yet; the
+   fraction was falling only because totals grew.
+3. **Late divergence (t > 19).** Unpumped, both sectors collapse (total 40 → 2.9;
+   λ_phan ≈ 0.174/unit over [15.8, 27.4]). Pumped, canonical holds and phantom
+   declines gently: 33.2 → 22.9, λ_phan ≈ 0.025/unit over [20.2, 27.4] — **7×
+   slower than unpumped**, but still the only genuine loss the pump has.
+
+End-state gains, absolute: total 27.8×, canonical ~23×, phantom ~12×.
+
+### 19.3 What this flips in §18 (corrections, not deletions)
+
+* §18.3 "canonical arrested at a 0.50 plateau — half leaked before arrest" —
+  **wrong**. Nothing leaked: absolute canonical never dropped below its injected
+  level. The 0.50 was injected-denominator arithmetic. The bimodal-end-state
+  caveat survives (rms_canon does grow), but the "escaped halo" is dispersed
+  *injected* amplitude, not lost initial matter.
+* §18.3 "phantom slowed 2.9×, still monotonic (0.217 → 0.076)" — **understated
+  and mistimed**. Absolutely: phantom is *fully flat* until t ≈ 19 (better than
+  arrested — unchanged), then declines at 0.025/unit vs 0.174 unpumped (7×
+  suppression). The failure is late-onset, not a run-long decay.
+* §18.2's "10.6×" end-state phantom gain — direction right, number now ~12×
+  absolute; keep the absolute version.
+* The §5 ladder conclusions quoted in fractions need the same re-read before
+  any of them reaches the paper.
+
+### 19.4 §18.6's fallback suspect (3-spotlight phase conflict) is falsified
+
+`rl_pump_phase` is **never written** in trajectory mode: it is zero-filled at
+construction (`SimulationParameters.hpp:105-107`) and its only writer is the
+compiled-out `USE_RL` action path. All five sites drive at the shared
+`trajectory_pump_frequency = 0.8` with field phase 0 — and 0.8 is exactly the
+initial data's `bs_omega` (initial_data.matter.json), with `Pi_im = −ω·φ/α`
+painted, so pump and matter rotate in phase by construction.
+(`trajectory_lump<k>_phase0` is *orbital azimuth* input to the trajectory,
+not a field phase.) What multi-site overlap actually does is **sum the per-site
+PD errors** on a shared field (`RLPumpForce.hpp:98-99`) — up to 3× local gain
+toward mismatched targets where the three phantom wells overlap. Amplitude
+superposition, not phase conflict.
+
+### 19.5 Over-driving the target destroys the evolution (measured, 2026-07-28)
+
+Campaign A (§19.6) bracketed the flat `well_depth = 0.15` target against the
+seed lumps' true central amplitude `phi_c = 0.08`:
+
+* `pca_pwd_up` (phantom lumps' target 0.15 → 0.30): AMR refined
+  **12,255,232 level-3 cells vs 110,592** in the lowered-target twin (111×),
+  ran 3× slower, GPU memory 81.0/81.6 GB, and **aborted at t = 4.31 with
+  `NaN in K` in `post_timestep`**.
+* `pca_cwd_up` (canonical target → 0.30): same pathology building (71 GB,
+  t = 5.6 while siblings were at t ≈ 12); killed before the crash.
+
+So the pump's commanded amplitude is already ~1.9× the matter's true height,
+and doubling it again is fatal — the grid refines everywhere the over-driven
+field develops structure, then the constraint system produces NaN curvature.
+"More target" is not a confinement lever; it is a failure mode. (This also
+recolors §18.3's "authority-limited" framing: authority in *amplitude* was
+already oversupplied; what the phantom sector lacks is something else.)
+
+### 19.6 Campaign A record (runs/pump_confine_a, launched 2026-07-28)
+
+All arms clone `lad_m0_tp30` (pump always on) with single-lever deltas;
+launcher `grteclyn-wrapper/scripts/campaigns/rl/pump_confine_queue.py`
+(generalised MATRIX, `--only`/`--gpus` wave selection, preflight binary/disk
+checks). Kill criteria: governor < 0.5 before t = 27 (baseline crosses at
+28.9), L2_Ham > 0.035 before t = 27, min_chi < 0.05, NaN.
+
+| arm | delta vs tp30 | status |
+|---|---|---|
+| pca_pg2 | kp/kd_phantom ×2 (24/14) | running |
+| pca_pg4 | kp/kd_phantom ×4 (48/28) | running |
+| pca_tw2 | rl_pump_target_width 1.667 → 3.333 | running |
+| pca_pg4tw2 | both of the above | running |
+| pca_cwd_up | canonical well_depth 0.30 | **killed** (§19.5) |
+| pca_cwd_dn | canonical well_depth 0.075 | running |
+| pca_pwd_up | phantom well_depth 0.30 | **NaN in K, t=4.31** (§19.5) |
+| pca_pwd_dn | phantom well_depth 0.075 | running |
+| pca_match | all lumps well_depth 0.08 (= phi_c) | running (wave 2) |
+| pca_match_pg4 | 0.08 target + kp/kd_phantom 48/28 | running (wave 2) |
+
+Context for the governor kill-line: tp30's `constraint_norms.dat` (col 2 =
+L2_Ham, col 10 = governor) shows governor ≈ 1.0000 until t ≈ 28.9, then an
+L2_Ham runaway doubling every ~0.5–0.7 units from t ≈ 27.5 (6.0e-3 → 4.8e-2)
+floors it at 2.2e-4 by t ≈ 29.3. Pump injection is constraint-free until then
+(tp30 L2_Ham tracks tp0 through t = 25), so [13, 27] is the clean window.
+Scoring for every arm: **absolute per-sector activity (§19.1)**, not
+`confined_frac`.
+
+### 19.7 The open question the arms must answer: the injection asymmetry
+
+Identical target amplitude (0.15), identical gains (12/7), identical seed
+amplitude (0.08), in-phase rotation in both sectors — yet the pump injects the
+canonical sector ×2.5 in 1.4 time units and the phantom sector **×1.0
+exactly**. That asymmetry, not a decay rate, is now the central phantom-sector
+fact. Working hypothesis: the sectors differ only in stress-energy sign, so
+canonical injected amplitude deepens its own well (self-gravitating,
+self-trapping) while phantom injected amplitude flattens/repels
+(self-dispersing) — the pump pours, the sector drains at the same rate.
+If that is right, no PD gain fixes it (pca_pg4 will show little phantom
+response), matched targets fix stability but not the asymmetry (pca_match),
+and the honest levers become mechanism-level: confine phantom *geometrically*
+(canonical-sourced wells at the phantom sites) or accept phantom as a
+supported-not-confined sector. If pca_pg4/pca_match_pg4 *do* move phantom
+retention, the hypothesis is wrong and authority was the story after all —
+either way the ambiguity dies with this batch.

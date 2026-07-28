@@ -495,11 +495,20 @@ read back every ~288 s per run — ~22 MB/s per run plus heavy metadata churn.
 On NFS that is what capped concurrency at 2 runs; consumers went to `D` state
 in NFS I/O and stalled, backlogs grew, and plotfiles accumulated. Moving the
 transients to local NVMe drops NFS traffic from ~130 MB/s to KB/s and lets
-**6 concurrent HQ runs** share one node. Measured on the mode-0 pump ladder
-(2026-07-28): 6 × 256³ t=30 runs, NFS run dirs ~12 MB each — dominated by
-`small_data/metric_stack` at ~1.4 MB per extracted plotfile, so budget ~30 MB
-per completed t=30 run — while local scratch held 8.8 GB per run; extraction
-15.7 s against a 288 s plotfile cadence (18× headroom).
+**6 concurrent HQ runs** share one node (the ceiling is GPU count, not I/O —
+an 8-GPU node runs 8). Measured on the mode-0 pump ladder (2026-07-28): 6 ×
+256³ t=30 runs, local scratch 8.8 GB per run; extraction 15.7 s against a 288 s
+plotfile cadence (18× headroom).
+
+**NFS per-run cost is set by `GRTECLYN_METRIC_STACK_N_SPACE`, and it is not
+small.** `small_data/metric_stack` dominates the run directory, and its size
+scales as `n_space³`. At the default `n_space = 33` a slice is ~1.4 MB (~30 MB
+per completed t=30 run), but every HQ campaign pins `n_space = 257` to match
+the finest AMR level — which is **~190–280 MB per slice, 4.2–6.2 GB per
+completed 22-slice run**, ~200× the default. Budget ~5 GB of NFS per HQ run
+(the six-rung ladder holds ~34 GB). The cache is what post-hoc rescoring reads
+after plotfiles are purged, so delete it only once no further scoring pass —
+e.g. an emission sweep at a later `t_emit` — is wanted.
 
 **Cloning a baseline `params.txt`: `amr.plot_file` / `amr.check_file` are
 absolute paths into the source run directory.** Strip and re-emit them, or the
@@ -515,11 +524,14 @@ Allow a drain window of **600 s** after the simulation exits before tearing the
 consumer down — shorter windows (120–180 s) truncated confinement data in three
 runs of the fast ladder.
 
-**Sizing.** Steady state is `n_runs × (keep_last + jobs) × plotfile_size`.
-Six runs × 3 kept × ~2.9 GB ≈ 53 GB, against 1.1 TB free on the overlay. Check
+**Sizing.** Local scratch steady state is
+`n_runs × (keep_last + jobs) × plotfile_size` — six runs × (3 kept + 1
+in flight) × ~2.9 GB ≈ 70 GB, against 1.1 TB free on the overlay. Check
 `df -h /tmp` before launching; if `checkpoint_interval > 0`, remember
 checkpoints are **not** pruned by the consumer and must be budgeted separately
-(the pump ladder runs with `checkpoint_interval = -1`).
+(the pump ladder runs with `checkpoint_interval = -1`). Budget NFS separately
+at ~5 GB per HQ run for `metric_stack` (see above) — that is the number that
+actually accumulates, since scratch is reclaimed and NFS is not.
 
 **Keep every write inside your own space.** Call the project venv python
 directly (`grteclyn-wrapper/.venv/bin/python -m ...`) rather than `uv run`,
