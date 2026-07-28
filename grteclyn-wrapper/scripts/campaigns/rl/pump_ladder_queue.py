@@ -134,6 +134,17 @@ def start_consumer(d: Path) -> subprocess.Popen:
     env = dict(os.environ)
     env["GEODESIC_EMIT_MIN_TIME"] = "0"
     env.pop("RL_PUMP_STOP_TIME", None)
+    # metric_stack resolution MUST match the run's finest AMR level.  The cache
+    # is a UNIFORM resample: at n_space=33 its dx is 0.5, the COARSEST level,
+    # so every feature living on the 3 refined levels (finest dx=0.0625) is
+    # smoothed away with no error and no artifact.  On the 2026-07-28 ladder
+    # this erased the pump-free run's collapsing well (true min_chi 5.7e-4,
+    # cached 5.6e-2 -- 99x too shallow); its rays never paid the Shapiro delay
+    # and it reported the LARGEST apparent shortcut precisely because it was
+    # the worst-resolved run.  257 = 2*half_width/finest_dx + 1.
+    # See metric_stack_cache.required_n_space / cache_fidelity.
+    env["GRTECLYN_EVOLVING_GEODESIC_MODE"] = "hq"
+    env["GRTECLYN_METRIC_STACK_N_SPACE"] = "257"
     # Keep every cache/temp write inside our own scratch, never ~/.local
     # or ~/.cache.
     cache = SCRATCH / "_cache"

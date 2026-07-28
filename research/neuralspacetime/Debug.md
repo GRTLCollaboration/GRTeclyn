@@ -367,10 +367,16 @@ beats tp16/24/30 (23.5%). **The pump does not improve `f_geo`, at either
 resolution.** tp16/24/30 tie exactly because their peak falls at t=12.96, before
 any of them differ.
 
-**GAP — NOW CLOSED, and the answer overturns the premise. See §13.**
-`f_geo_evol` was never computed for the fast tier *or* the HQ ladder, because
-no campaign queue runs the scoring layer at all. A post-hoc pass now computes
-it from the `metric_stack` cache; the values are **~12–13%, not 0**.
+**GAP — NOW CLOSED. See §13.** `f_geo_evol` was never computed for the fast
+tier *or* the HQ ladder, because no campaign queue runs the scoring layer at
+all. A post-hoc pass now computes it from the `metric_stack` cache; the values
+are **~12–13% and trustworthy**.
+
+CORRECTION to the sentence previously here: it cited `research.tex` line 172 as
+saying `f_geo^evol = 0` "for every accepted evaluation anyway", dropping the
+qualifier. Line 172 is about the **canonical-only (positive-energy)** search,
+not these exotic runs. The paper's claim stands; it was never in tension with
+this measurement.
 
 ---
 
@@ -454,8 +460,10 @@ case (310 s) exceeded the 288 s plotfile cadence; that is how backlogs formed.
 * `E_pump ~ 1.6e-17`, or "soft trajectory guide" (§1.1)
 * "confinement saturates at t_pump = 8" (§1.2)
 * anything relying on the controller reservoir (§3)
-* `f_geo^evol = 0` (§13) — it is ~12–13% and trustworthy; the 0 in
-  `research.tex` line 172 is an emit-gate rejection, not a measurement
+* that `f_geo^evol` is unmeasured or zero **for the exotic pump runs** — it is
+  ~12–13% and trustworthy (§13). This leaves `research.tex` line 172 intact:
+  that line is about the *canonical-only positive-energy* search, a different
+  sector. Do not conflate them.
 * that a black hole / apparent horizon forms in any run (§12)
 
 ### Updated for HQ
@@ -570,11 +578,18 @@ All trustworthy: 5/5 rays reached, `h_quality_ok=1`, 0 captured.
 
 ### Three consequences
 
-1. **The `f_geo^evol = 0` in `research.tex` line 172 is an emit-gate
-   rejection, not a measurement.** `_post_pump_emit_ok` (`metrics/score/ftl.py`)
-   rejects any `t_emit` below `GEODESIC_EMIT_MIN_TIME` / `RL_PUMP_STOP_TIME`.
-   Every trace here emits at `t_emit = 0.00`, so in a scoring context all six
-   are rejected and recorded as 0. The value was real and discarded.
+1. **This does NOT contradict `research.tex` line 172.** That line reports
+   `f_geo^evol = 0` for a *canonical-only (positive-energy) search*
+   (`sec:canonical_bound`) — a different matter sector from these exotic pump
+   runs. §7 of this file previously quoted it without the "canonical-only"
+   qualifier; that was a misreading. The two numbers do not compete.
+
+   What IS worth knowing: `_post_pump_emit_ok` (`metrics/score/ftl.py`) rejects
+   any `t_emit` below `GEODESIC_EMIT_MIN_TIME` / `RL_PUMP_STOP_TIME`. Every
+   trace here emits at `t_emit = 0.00`, so **in a scoring context these six
+   values would be rejected and recorded as 0** — the raw measurement is real,
+   but the scorer would not credit it. That is a property of this pass's
+   configuration, not a defect in the paper.
 2. **No dose–response here either.** tp4 is best (13.22%); pump-free (12.26%)
    beats tp16/24/30. Same verdict as frozen `f_geo`.
 3. **This configuration cannot resolve pump duration.** tp16/24/30 are

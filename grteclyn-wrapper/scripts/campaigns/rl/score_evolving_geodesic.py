@@ -61,11 +61,31 @@ from grteclyn_wrapper.metrics.probes.ftl.evolving_geodesic_options import (  # n
     evolving_geodesic_options_from_env,
 )
 from grteclyn_wrapper.metrics.probes.ftl.metric_stack_cache import (  # noqa: E402
+    cache_fidelity,
     list_slice_files,
     metric_stack_dir,
 )
 
 MIN_SLICES = 3
+FIDELITY_TOL = 1.5
+
+
+def true_min_chi_at(run_dir: Path) -> dict[float, float]:
+    """time -> min_chi as reported by the simulation (collapse_diagnostics col 3)."""
+    path = run_dir / "data" / "collapse_diagnostics.dat"
+    out: dict[float, float] = {}
+    if not path.is_file():
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) > 2:
+            try:
+                out[round(float(parts[0]), 3)] = float(parts[2])
+            except ValueError:
+                continue
+    return out
 
 
 def cached_n_space(cache_dir: Path) -> int | None:
@@ -79,7 +99,7 @@ def cached_n_space(cache_dir: Path) -> int | None:
         return int(slab["g"].shape[0])
 
 
-def score_one(run_dir: Path, *, ftl_L: float, dry_run: bool) -> int:
+def score_one(run_dir: Path, *, ftl_L: float, dry_run: bool, force: bool) -> int:
     small = run_dir / "small_data"
     cache_dir = metric_stack_dir(small)
     n_cached = len(list_slice_files(cache_dir))
@@ -88,6 +108,27 @@ def score_one(run_dir: Path, *, ftl_L: float, dry_run: bool) -> int:
         return 1
 
     n_space = cached_n_space(cache_dir)
+
+    # A uniform resample coarser than the finest AMR level erases sharp
+    # features silently.  Refuse to report a number the cache cannot support.
+    bad = cache_fidelity(cache_dir, true_min_chi_at(run_dir), tol=FIDELITY_TOL)
+    if bad:
+        worst_t, true, cached, ratio = bad[0]
+        print(
+            f"  {run_dir.name}: UNFAITHFUL CACHE -- {len(bad)}/{n_cached} slices "
+            f"under-resolved; worst t={worst_t:.2f} true min_chi={true:.3e} "
+            f"cached={cached:.3e} ({ratio:.0f}x too shallow) at {n_space}^3"
+        )
+        for t_bad, tr, ca, ra in bad[:5]:
+            print(f"      t={t_bad:6.2f}  true={tr:.3e}  cached={ca:.3e}  {ra:6.1f}x")
+        if not force:
+            print(
+                "      REFUSING to report f_geo_evol. Rays would not feel the "
+                "well -> spurious shortcut. Re-run with a finer "
+                "GRTECLYN_METRIC_STACK_N_SPACE, or pass --force to override."
+            )
+            return 1
+
     report = compute_evolving_geodesic_ftl_from_metric_stack_cache(
         cache_dir, options=evolving_geodesic_options_from_env()
     )
@@ -123,6 +164,11 @@ def main() -> int:
     ap.add_argument(
         "--dry-run", action="store_true", help="compute and print, write nothing"
     )
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="report even when the cache cannot represent the geometry (unsafe)",
+    )
     args = ap.parse_args()
 
     mode = os.environ.get("GRTECLYN_EVOLVING_GEODESIC_MODE", "search")
@@ -133,7 +179,9 @@ def main() -> int:
             print(f"  {run_dir}: SKIP -- no small_data/")
             failures += 1
             continue
-        failures += score_one(run_dir, ftl_L=args.ftl_l, dry_run=args.dry_run)
+        failures += score_one(
+            run_dir, ftl_L=args.ftl_l, dry_run=args.dry_run, force=args.force
+        )
     return 1 if failures else 0
 
 
