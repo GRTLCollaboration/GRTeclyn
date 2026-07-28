@@ -471,7 +471,7 @@ case (310 s) exceeded the 288 s plotfile cadence; that is how backlogs formed.
 * "confinement saturates at t_pump = 8" (§1.2)
 * anything relying on the controller reservoir (§3)
 * that `f_geo^evol` is unmeasured or zero **for the exotic pump runs** — it is
-  ~12–13% and trustworthy (§13). This leaves `research.tex` line 172 intact:
+  12.35–13.13% and trustworthy at 257³ (§17). This leaves `research.tex` line 172 intact:
   that line is about the *canonical-only positive-energy* search, a different
   sector. Do not conflate them.
 * that a black hole / apparent horizon forms in any run (§12)
@@ -487,7 +487,8 @@ case (310 s) exceeded the 288 s plotfile cadence; that is how backlogs formed.
 
 **STILL CANNOT say**
 * anything about `t_pump > 24`
-* **anything at all about `f_geo_evol`** — every value is void (§15)
+* ~~anything at all about `f_geo_evol`~~ — RESOLVED 2026-07-28: trustworthy
+  257³ values exist, 12.35–13.13%, no dose–response (§17); quote from there
 * that the pump does not improve `f_geo` — the §7 verdict is *plausible but
   unproven*; that probe is a milder case of the same resample problem and must
   be audited against the rerun (§15)
@@ -1047,3 +1048,130 @@ auto-triggered end-of-run scoring, and the rebuilt binary whose only change
 is the EC μ fix. The bit-identity check against `runs/pump_ladder_m0_v1`
 (physics cols of `constraint_norms.dat` / `collapse_diagnostics.dat`) now
 also validates that the rebuild changed diagnostics only.
+
+---
+
+## 17. Scoring-pass performance bug — an hour recomputing a number it already had (`4f31f33a`)
+
+**The §15 fix (257³ cache) exposed a scaling bug in the scorer itself: at the
+corrected resolution the pass took >60 min/run and 90–110 GB RSS, and the
+queue's serial version was killing it at its own 3600 s timeout. No result was
+wrong — none was ever produced. Fixed; the pass now takes ~3 min/run at ~25 GB.**
+
+### Symptom
+
+Six parallel `score_evolving_geodesic.py` processes at 257³, one core each,
+90–110 GB RSS apiece; the longest-running (tp16) passed 66 min CPU with
+nothing written. The in-queue serial run before that had hit
+`subprocess.TimeoutExpired` at 3600 s. At the old (void) 33³ resolution the
+same pass took ~1 min — a ~470× blowup for an 8× resolution step, i.e. the
+cost was scaling with **grid volume**, not with anything the trace needs.
+
+### Root cause — three compounding defects
+
+1. **The dominant cost recomputed a number of LOWER provenance than one already
+   on disk.** HQ mode defaults `compute_frozen_peak=True`: for each of the 22
+   cached slices it rebuilt a `StaticMetricField`, whose constructor performs
+   TWO full-grid 4×4 matrix inversions plus three full-grid finite-difference
+   passes over all 257³ ≈ 17M points (~13 GB of allocations per slice). That
+   is O(N³) per slice and was ~100% of the runtime — to reproduce the peak
+   frozen `f_geo`, which the consumer already measured per plotfile at full
+   AMR fidelity into `ftl_timeseries.dat` col 3 during the campaign. The
+   float32-cache recomputation cannot beat the plotfile-derived number even in
+   principle. Same disease as §14/§15: deriving from a lossy copy while the
+   authoritative source sits unused beside it — except here the copy also cost
+   an hour.
+2. **A second full-precision copy of the whole stack was preloaded** for that
+   frozen pass (~47 GB) and held alongside the field's own copy for the whole
+   pass.
+3. **The resident stack was upcast float32 → float64 at load** (~47 GB instead
+   of ~24). Pointless: the cache stores float32, promotion inside `trilinear`
+   is exact, so keeping float32 is bit-identical at half the memory.
+
+The actual 4D evolving trace — the only thing this pass exists to produce —
+is resolution-independent per step (trilinear gathers) and costs ~1 min for
+15 rays (5 rays × 3 axes). It was never the problem.
+
+### The fix (`4f31f33a`, 87/87 ftl tests green, 2 new regression tests)
+
+1. Scorer takes `f_geo_frozen_peak` = max of `ftl_timeseries.dat` col 3 over
+   `geo_trustworthy` rows; provenance recorded in the report notes. No
+   recompute.
+2. The recompute path (still used by other callers) streams slices one at a
+   time instead of preloading the list.
+3. Stack stays float32 in memory.
+4. New `--max-time <t>` truncates the stack before late under-resolved slices,
+   threaded through `cache_fidelity` and the loader. **Conservative by
+   construction**: the strict no-frozen-tail guard (16.3 defect 7) fails any
+   ray still in flight past the last kept slice, so truncation can only lose
+   rays, never fabricate arrivals.
+5. `evolving_geodesic.json` + col 13/14 patch are written BEFORE the result
+   line is printed — a broken stdout pipe (dead parent shell) had already cost
+   one finished ~50 min trace via `BrokenPipeError` on the `print`.
+
+Measured: 60+ min unfinished → **~2.5–3 min/run end-to-end** (fidelity gate
+~2 min — full-grid `det` per slice, now the dominant cost — trace ~1 min),
+~25 GB RSS. All six runs score in parallel in under 4 min wall-clock.
+
+### tp0 recovery — `--max-time 27.5`
+
+§15's fidelity gate correctly refused tp0 even at 257³: its final two slices
+(t=28.80 / 30.00) are 1.7× / 3.8× too shallow — the deep-collapse endgame
+outruns even the finest uniform resample (at 33³ the same slice was 99×). But
+rays launched at `t_emit=0` arrive at t≈12.6, an epoch where all 20 kept
+slices pass fidelity; the discarded slices describe spacetime the rays never
+sample. Scored against the truncated stack: **`f_geo_evol` = 12.35%, 5/5 rays,
+h-quality ok, trustworthy** — with the no-frozen-tail guard enforcing that no
+ray silently outlived t=27.36.
+
+### Launch-hygiene trap (cost one scoring round)
+
+`export VARS && nohup python … & for k in …; do nohup python … & done` — the
+trailing `&` backgrounds the ENTIRE `&&` list, so the exports live in that
+subshell and every loop launch runs WITHOUT them, silently falling back to
+SEARCH mode (3 rays, stride-2 slices → Δt 5.76, 15k steps, h_rel_abort 0.5)
+while still writing plausible result files. Five runs scored that way before
+the `rays=3/3` field gave it away. Detection: first log line `mode=hq` and
+result line `rays=5/5`, both now documented in the wrapper README recipe.
+Export first on its own line; then launch.
+
+### Results — HQ 4D `f_geo_evol` at 257³ (first trustworthy values ever)
+
+The §13 numbers were void (§15). These replace them:
+
+All six trustworthy: 5/5 rays, 0 captured, h-quality ok, `t_emit=0`,
+`f_geo_evol_ok=1` patched into col 13/14 and `evolving_geodesic.json` written.
+~3 min each, six in parallel.
+
+| run | f_geo_evol | rays | best axis | notes |
+|-----|-----------|------|-----------|-------|
+| tp0 | 12.35% | 5/5 | z | truncated stack (20/22 slices, see above) |
+| tp4 | **13.13%** | 5/5 | y | |
+| tp8 | 12.61% | 5/5 | y | |
+| tp16 | 12.39% | 5/5 | y | tie with tp24/tp30 — by construction, below |
+| tp24 | 12.39% | 5/5 | y | |
+| tp30 | 12.39% | 5/5 | y | |
+
+(search-mode accident of the same day, NOT quotable, kept for the delta: tp4
+12.65%, tp8 12.46%, tp16/24/30 12.18% — HQ sits 0.2–0.5pp above 3-ray/stride-2.)
+
+* **No dose–response, again.** tp4 is best (13.13%); the spread over the whole
+  ladder is 0.78pp. Same verdict as frozen `f_geo` (§7) and as the void §13
+  numbers. Three independent configurations now agree the pump does not buy
+  4D geodesic shortcut at `t_emit=0`.
+* **tp16/tp24/tp30 identical to the last digit by construction** (§13
+  consequence 3 reproduces): those three are bit-identical until t=16, and a
+  `t_emit=0` ray arrives at t≈12.6, before any of them differ. The
+  single-launch protocol cannot resolve pump duration ≥16; that needs the
+  emission sweep with `GEODESIC_EMIT_MIN_TIME` past each rung's stop time.
+* **tp0 no longer leads the non-tp4 pack.** In the void 33³ numbers pump-free
+  (12.26%) beat tp16/24/30 (12.04%); at 257³ it sits at the bottom (12.35% vs
+  12.39%). Direction is consistent with §15 (restoring the well restores
+  Shapiro delay in the collapsing run), but the shift is small because at
+  arrival time t≈12.6 tp0's well has not yet deepened — the 99× cache error
+  lived at t≳26. Do not over-read a 0.04pp difference, especially with tp0 on
+  a truncated stack and a different best axis.
+* Corollary: the §13 single-launch values were numerically close to correct
+  after all — the cache corruption mattered at late times, which `t_emit=0`
+  rays never sample. They were still rightly retracted: that they came out
+  close could only be known by redoing them on a faithful cache.

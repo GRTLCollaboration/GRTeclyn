@@ -1007,6 +1007,63 @@ reports the peak `f_geo(t_emit)`.
 `GRTECLYN_EVOLVING_GEODESIC_MODE=search`; HQ `--evolving-geodesic` or
 `GRTECLYN_EVOLVING_GEODESIC_MODE=hq`.
 
+### Scoring `f_geo_evol` for hand-rolled campaigns — the corrected recipe
+
+A campaign queue never reaches the metrics aggregation layer, so
+`ftl_timeseries.dat` cols 13/14 stay at their `0.0  0` placeholders and no
+`evolving_geodesic.json` exists until the post-hoc pass runs (Debug.md §13).
+This is the correct way to run it after the fixes of 2026-07-28 (`4f31f33a`):
+
+```bash
+# ONE process per run, all in parallel — the pass is single-core.
+# Export the env FIRST, on its own line. Do NOT chain `export … && nohup … &`:
+# the trailing `&` backgrounds the whole && list, the exports land in that
+# subshell only, and every later launch silently runs in SEARCH mode
+# (3 rays, stride-2 slices, 15k steps) while still writing result files.
+S=/tmp/grteclyn_scratch/_cache
+export GRTECLYN_EVOLVING_GEODESIC_MODE=hq GEODESIC_EMIT_MIN_TIME=0 \
+       XDG_CACHE_HOME=$S UV_CACHE_DIR=$S/uv MPLCONFIGDIR=$S/mpl \
+       TMPDIR=$S/tmp PYTHONPYCACHEPREFIX=$S/pyc
+for k in 0 4 8 16 24 30; do
+  nohup grteclyn-wrapper/.venv/bin/python -u \
+    grteclyn-wrapper/scripts/campaigns/rl/score_evolving_geodesic.py \
+    runs/pump_ladder_m0/lad_m0_tp$k --ftl-l 8 \
+    > $S/score_tp$k.log 2>&1 &
+done
+```
+
+**Verify before trusting output:** the first log line must say `mode=hq` and
+the result line must say `rays=5/5` (search mode reports `rays=3/3`). The two
+profiles produce different numbers from the same cache with no other visible
+difference.
+
+Rules baked into the script (do not work around them):
+
+* **It refuses unfaithful caches.** `cache_fidelity` compares each slice's
+  representable `min_chi` against the run's own `collapse_diagnostics.dat`;
+  any slice >1.5× too shallow aborts the run's score (Debug.md §15). For a run
+  whose *late* slices fail (deep-collapse endgame after the rays have already
+  arrived), pass `--max-time <t>` to truncate the stack before the offending
+  slices instead of `--force`. Truncation is conservative by construction:
+  the strict no-frozen-tail guard fails any ray still in flight past the last
+  kept slice rather than letting it coast through frozen geometry.
+* **It does not recompute frozen per-slice `f_geo`.** The consumer already
+  measured it per plotfile at full AMR fidelity into `ftl_timeseries.dat`
+  col 3; the scorer reuses the peak over `geo_trustworthy` rows and records
+  the provenance in the report notes. The old behaviour — rebuilding a
+  `StaticMetricField` per cached slice — cost two full-grid 4×4 inversions
+  plus three full-grid gradients per slice and was the entire runtime at
+  257³ (>60 min/run, 90–110 GB RSS). The corrected pass runs **~3 min/run at
+  ~25 GB** (fidelity check ~2 min, 15-ray 4D trace ~1 min).
+* **Results are written before they are printed**, so a dead parent shell
+  (broken stdout pipe) can no longer discard a finished trace.
+* A single launch at `t_emit=0` arrives at t≈12–13 and therefore **cannot
+  distinguish rungs that only differ after t=16** — `tp16/tp24/tp30` report
+  identical `f_geo_evol` to the last digit because the ray never samples any
+  spacetime where they differ. That is the emission protocol, not a bug; use
+  the emission sweep (`GRTECLYN_GEO_EMIT_INTERVAL`, `GEODESIC_EMIT_MIN_TIME`)
+  to probe late launches.
+
 ### Scoring pipeline
 
 `score_episode()` runs phases in fixed order (each mutates
