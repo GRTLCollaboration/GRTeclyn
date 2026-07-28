@@ -1563,3 +1563,70 @@ and the honest levers become mechanism-level: confine phantom *geometrically*
 supported-not-confined sector. If pca_pg4/pca_match_pg4 *do* move phantom
 retention, the hypothesis is wrong and authority was the story after all —
 either way the ambiguity dies with this batch.
+
+### 19.8 ROOT CAUSE — the phantom sector was never pumped: a params-parsing bug
+
+**§19.7's "injection asymmetry" was not physics. It was a silent config-parsing
+bug, and it invalidates every statement ever made about "the pump acting on the
+phantom sector" — in this file, in §5, and in the paper draft.**
+
+How it was caught: campaign A's gain arms `pca_pg2` (phantom gains 24/14) and
+`pca_pg4` (48/28) produced `confinement.dat` rows **bit-identical to each other
+and to `lad_m0_tp30`** through 11+ slices. Two different gain values cannot
+produce identical bits unless the gain multiplies a force that is exactly zero.
+
+The bug (`Examples/RadialRecipe/SimulationParameters.hpp`,
+`load_scalar_field_signs`): the params line
+
+```
+recipe_scalar_field_signs = 1 -1 -1 1 -1
+```
+
+is tokenized by AMReX ParmParse into five values, but the loader read the key
+into a **single `std::string`** — and a scalar string query returns only token
+0 (`AMReX_ParmParse.cpp::squeryval`, `ival = 0`). The parsed array was
+`[1, 0, 0, 0, 0]`, and the router treats 0 as canonical
+(`field_sign = (sign < 0) ? -1 : +1`). Therefore **all five spotlights drove
+the canonical field Phi+ and the phantom field Phi− received zero pump force in
+every bicomplex campaign to date** (`load_rl_lump_seed_axis` had the same
+first-token bug; both fixed via `countval` + `getarr`, and the parsed signs are
+now echoed to the log at startup:
+`recipe_scalar_field_signs parsed: 1 -1 -1 1 -1`).
+
+What this retro-explains, at one stroke:
+
+* **§19.7's asymmetry** (canonical injected ×2.5, phantom ×1.0 exactly) — five
+  pumps on canonical, zero on phantom. The self-gravity/self-repulsion
+  hypothesis is withdrawn — untested, not falsified.
+* **§18.1's "pure canonical injection"** — same.
+* **§19.5's NaN**: `pca_pwd_up` raised the "phantom" lumps' well_depth, but
+  those three sites were mis-routed to canonical — it actually tripled the
+  canonical drive, hence the 111× refinement blow-up and `NaN in K`.
+* **§18.2/§19.2's phantom retention gains (10.6×/~12×)** — real measurements,
+  wrong attribution: the benefit was **indirect** (geometry sourced by the
+  pumped canonical sector slowing phantom dispersal), not pump forcing.
+* The `pca_tw2` early governor kill (t = 5.2) — doubling the envelope width on
+  five canonical-driving sites, not a grip-range result.
+
+Campaign A is therefore void as a sector experiment; its dirs and scratch were
+deleted (findings preserved here). What survives independent of routing: the
+absolute-metric correction (§19.1–19.3), the over-drive → NaN falsification
+(§19.5, re-attributed to canonical), and the governor timeline (§19.6).
+
+**Campaign B** (`runs/pump_confine_b`, fixed binary, launched 2026-07-28
+12:12, first slice verified to echo `parsed: 1 -1 -1 1 -1` in all four logs):
+
+| arm | delta vs tp30 (routing now correct) | question |
+|---|---|---|
+| pcb_base | none | first-ever measurement of the pump actually driving Phi− |
+| pcb_pg4 | kp/kd_phantom = 48/28 | §18.6's authority question, now testable |
+| pcb_match | all well_depth 0.15 → 0.08 (= phi_c) | target matched to the matter |
+| pcb_match_pg4 | both | do they compose? |
+
+Score with `score_confine_abs.py` (absolute per-sector, §19.1). Note
+`pcb_base` is **not** comparable to `lad_m0_tp30` as "the same config": tp30
+was effectively a 5-site canonical pump; pcb_base is the 2+3 configuration
+that every params file *claimed* to be running. Expect the canonical injection
+to drop (2 sites, not 5) and the phantom sector to receive direct forcing for
+the first time — including the possibility that direct phantom pumping
+destabilises rather than confines, which no run has ever probed.

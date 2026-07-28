@@ -50,6 +50,8 @@ from pathlib import Path
 
 ROOT = Path("/home/jovyan/nachevsky/test/simulation/GRTeclyn")
 BASE = ROOT / "runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/params.txt"
+# Overridable with --out; campaign B (corrected spotlight routing) writes to
+# runs/pump_confine_b so the broken-routing A record stays separate.
 OUT = ROOT / "runs/pump_confine_a"
 EXE = ROOT / "Examples/RadialRecipe/main3d.gnu.CUDA.ex"
 WRAPPER = ROOT / "grteclyn-wrapper"
@@ -168,6 +170,45 @@ ARMS = [
 # more level-3 cells than their _dn counterparts (12.3M vs 110k), ran ~3x
 # slower, and pca_pwd_up aborted with "NaN in K" at t=4.31. Over-driving the
 # target does not merely waste grid, it destroys the evolution.
+#
+# CAMPAIGN A POSTMORTEM (2026-07-28, Debug.md 19.8): every pca_* arm above ran
+# on a binary whose recipe_scalar_field_signs parser kept only the FIRST value
+# of "1 -1 -1 1 -1" -- all five spotlights drove the canonical field, none
+# drove Phi-. pca_pg2/pg4 came out bit-identical to lad_m0_tp30 (the phantom
+# gains multiplied a force that never existed), which is how the bug was
+# caught. Campaign B below reruns the decisive arms on the fixed binary; its
+# first-slice check is the "recipe_scalar_field_signs parsed: 1 -1 -1 1 -1"
+# echo in run.log.
+ARMS_B = [
+    # Corrected baseline: stock tp30 knobs, routing fixed -- the first run in
+    # which the pump ACTUALLY drives the phantom sector (2 canonical sites +
+    # 3 phantom sites, as configured all along).
+    ("pcb_base", []),
+    # Phantom authority x4 on top of correct routing -- the original 18.6
+    # question, now actually testable.
+    ("pcb_pg4", [
+        "rl_pump_kp_phantom = 48.0",
+        "rl_pump_kd_phantom = 28.0",
+    ]),
+    # Target matched to the seed lumps' true amplitude (phi_c = 0.08).
+    ("pcb_match", [
+        "trajectory_lump0_well_depth = 0.08",
+        "trajectory_lump1_well_depth = 0.08",
+        "trajectory_lump2_well_depth = 0.08",
+        "trajectory_lump3_well_depth = 0.08",
+        "trajectory_lump4_well_depth = 0.08",
+    ]),
+    ("pcb_match_pg4", [
+        "trajectory_lump0_well_depth = 0.08",
+        "trajectory_lump1_well_depth = 0.08",
+        "trajectory_lump2_well_depth = 0.08",
+        "trajectory_lump3_well_depth = 0.08",
+        "trajectory_lump4_well_depth = 0.08",
+        "rl_pump_kp_phantom = 48.0",
+        "rl_pump_kd_phantom = 28.0",
+    ]),
+]
+ARMS += ARMS_B
 
 # Stripped from the baseline for every arm. amr.plot_file / amr.check_file are
 # absolute paths INTO THE BASELINE RUN DIR: if they survive the clone, this
@@ -357,6 +398,10 @@ def preflight(arms: list[tuple[str, list[str]]]) -> list[str]:
 
 
 def main() -> int:
+    global OUT
+    out_spec = cli_value("--out")
+    if out_spec:
+        OUT = Path(out_spec) if "/" in out_spec else ROOT / "runs" / out_spec
     OUT.mkdir(parents=True, exist_ok=True)
     force = "--force" in sys.argv
     arms = selected_arms()

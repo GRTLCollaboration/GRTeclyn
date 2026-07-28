@@ -305,45 +305,62 @@ class SimulationParameters : public SimulationParametersBase
     SpongeZoneParams sponge_params{};
 
   private:
+    // NOTE on multi-value keys: `key = 1 -1 -1 1 -1` is tokenized by
+    // ParmParse into five values, and a scalar query returns ONLY token 0.
+    // Both helpers below used to read the key into ONE std::string and split
+    // it -- which silently kept just the first value. For
+    // recipe_scalar_field_signs that parsed `1 -1 -1 1 -1` as [1, 0, 0, 0, 0],
+    // and since 0 routes to canonical, EVERY pump spotlight drove the
+    // canonical field: the phantom sector never received any pump force on
+    // any bicomplex campaign up to 2026-07-28 (Debug.md 19.8). Multi-value
+    // keys must go through countval + getarr.
     void load_rl_lump_seed_axis(
         GRParmParse &pp, const char *key,
         std::array<double, GRTRESNA_MAX_INDEPENDENT_SCALARS> &out)
     {
         out.fill(0.0);
-        std::string line;
-        pp.load(key, line, std::string(""));
-        if (line.empty())
+        const int nvals = pp.countval(key);
+        if (nvals < 1)
             return;
-        std::istringstream iss(line);
-        double value = 0.0;
-        int idx      = 0;
-        while (iss >> value && idx < GRTRESNA_MAX_INDEPENDENT_SCALARS)
+        std::vector<double> vals;
+        pp.getarr(key, vals, 0,
+                  std::min(nvals, GRTRESNA_MAX_INDEPENDENT_SCALARS));
+        for (std::size_t i = 0; i < vals.size(); ++i)
         {
-            out[idx++] = value;
+            out[i] = vals[i];
         }
     }
 
     void load_scalar_field_signs(GRParmParse &pp)
     {
-        std::string signs_line;
-        pp.load("recipe_scalar_field_signs", signs_line, std::string(""));
-        if (!signs_line.empty())
+        const int nvals = pp.countval("recipe_scalar_field_signs");
+        if (nvals > 0)
         {
-            std::istringstream iss(signs_line);
-            int sign = 0;
-            int idx  = 0;
-            while (iss >> sign && idx < GRTRESNA_MAX_INDEPENDENT_SCALARS)
+            std::vector<int> signs;
+            pp.getarr("recipe_scalar_field_signs", signs, 0,
+                      std::min(nvals, GRTRESNA_MAX_INDEPENDENT_SCALARS));
+            for (std::size_t i = 0; i < signs.size(); ++i)
             {
-                recipe_scalar_field_signs[idx++] = sign;
+                recipe_scalar_field_signs[i] = signs[i];
             }
-            return;
         }
+        else
+        {
+            for (int k = 0; k < GRTRESNA_MAX_INDEPENDENT_SCALARS; ++k)
+            {
+                std::ostringstream key;
+                key << "recipe_scalar_field_sign_" << k;
+                pp.load(key.str().c_str(), recipe_scalar_field_signs[k], 1);
+            }
+        }
+        // Echo what was actually parsed: the silent first-token bug above
+        // survived four campaigns because nothing ever printed this.
+        amrex::Print() << "recipe_scalar_field_signs parsed:";
         for (int k = 0; k < GRTRESNA_MAX_INDEPENDENT_SCALARS; ++k)
         {
-            std::ostringstream key;
-            key << "recipe_scalar_field_sign_" << k;
-            pp.load(key.str().c_str(), recipe_scalar_field_signs[k], 1);
+            amrex::Print() << " " << recipe_scalar_field_signs[k];
         }
+        amrex::Print() << "\n";
     }
 
     void load_coeff_array(GRParmParse &pp, const char *prefix,
