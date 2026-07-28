@@ -397,13 +397,88 @@ of `output_path`, so route the heavy data to node-local NVMe (`/tmp`, the
 overlay mount) and keep only `.dat` diagnostics and `small_data/` results on
 the shared filesystem.
 
+##### Topology — what lives on which filesystem
+
+Bulk data never crosses the network. The 3.2 GB plotfile is born, read, and
+destroyed inside the node; only the ~1.4 MB of extracted numbers it distils
+down to is written to NFS. Figures are measured on the mode-0 pump ladder
+(2026-07-28, 6 × 256³ ml=3, t=30, `plot_interval=144`).
+
 ```
-GPU sim ──plotfiles, ~11 MB/s each──▶  /tmp/<scratch>/<run>/RadialRecipePlt*
-   │                                        │  consumer reads, ~16 s/file
-   │                                        ▼  extract, then delete (keep-last 3)
-   └──diagnostics, KB/s──▶  <output_path>/data/*.dat            (NFS)
-                            <output_path>/small_data/*          (NFS, few MB)
+┌─ ONE RUN — replicated ×6, one per GPU, all sharing this node ────────────────┐
+│                                                                              │
+│   GRTeclyn sim (GPU N)                                                       │
+│        │                                                                     │
+│        │  plotfile, 3.2 GB every ~288 s                                      │
+│        ▼                                                                     │
+│   ╔═══════════════════════════════════════════╗                              │
+│   ║  NODE-LOCAL NVMe  (overlay, 1.8 TB)       ║   never leaves the node      │
+│   ║  /tmp/grteclyn_scratch/<run>/             ║                              │
+│   ║      RadialRecipePlt*   ≤3 resident       ║   steady state 8.8 GB/run    │
+│   ║      _cache/            pinned lib caches ║   53 GB for all six          │
+│   ╚═══════════════════╤═══════════════════════╝                              │
+│        ▲              │  read back 3.2 GB, extract in 15.7 s                 │
+│        │  GC          ▼  (18× headroom against the 288 s cadence)            │
+│        └───── consume_plotfiles (sidecar, one per run)                       │
+│                       │                                                      │
+│        ┌──────────────┘  distilled: ~1.4 MB per plotfile                     │
+│        │                                                                     │
+│        │      ┌─ .dat diagnostics, KB/s, written by the sim itself           │
+│        ▼      ▼                                                              │
+│   ╔══════════════════════════════════════════════════════════╗               │
+│   ║  NFS  <output_path>/                                     ║               │
+│   ║    data/*.dat                    772 KB   ← sim          ║               │
+│   ║    small_data/metric_stack/       11 MB   ← consumer     ║               │
+│   ║    small_data/{confinement,ftl_timeseries,…}.dat  12 KB  ║               │
+│   ║    small_data/consume_state.json          ← the ledger   ║               │
+│   ║    run.log, params.txt           676 KB                  ║               │
+│   ╚══════════════════════════════════════════════════════════╝               │
+│                                            ~12 MB per run, growing slowly    │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+The write set is exactly these two boxes. Nothing else on the machine is
+touched — see *Keep every write inside your own space* below.
+
+##### What the move bought
+
+| | plotfiles on NFS (before) | plotfiles node-local (after) |
+|---|---|---|
+| NFS traffic | ~130 MB/s aggregate | KB/s |
+| max concurrent HQ runs | **2** | **6** (GPU-bound, not I/O-bound) |
+| consumer state | blocked in `D`, backlog grew | 15.7 s/file, lag ≤ 1 plotfile |
+| plotfiles resident | unbounded accumulation | flat at `keep_last` = 3 |
+
+##### Plotfile lifecycle
+
+Extraction is the only path that deletes anything, and it deletes only what it
+has already recorded in `consume_state.json`. A file that fails extraction is
+never marked and never collected — it is retried instead.
+
+```mermaid
+flowchart TD
+    A["sim writes RadialRecipePltNNNNN<br/>to node-local scratch"] --> B{"_is_plotfile_ready?<br/>Header + Level_0/Cell_D_00000 exist<br/>and mtime stable ≥ 30 s"}
+    B -- "not yet" --> W["skip this pass"]
+    W --> B
+    B -- "ready" --> C["extract: yt.load →<br/>small_data metrics + optional PNG frames"]
+    C -- "FileNotFoundError / OSError" --> R["retry ×3, 10 s backoff"]
+    R --> C
+    C -- "still failing" --> F["NOT marked in consume_state.json<br/>file retained, retried next watch pass"]
+    F --> B
+    C -- "ok" --> M["append to small_data/*.dat + metric_stack<br/>mark entry in consume_state.json"]
+    M --> G{"outside the newest<br/>keep_last = 3?"}
+    G -- "no" --> K["protected — log says 'kept'"]
+    K --> G
+    G -- "yes" --> D["gc: deleted previously-processed …<br/>3.2 GB reclaimed"]
+```
+
+Two consequences worth internalising:
+
+* `[ok] … kept` means *protected at that instant*, not *retained permanently*.
+  The same file is collected later once three newer ones exist.
+* Because deletion is gated on the ledger, **any extraction not enabled during
+  the run is unrecoverable.** Decide on `--areal-radius`, `--shell-fields`,
+  frames, and scoring passes *before* launch.
 
 Params:
 
@@ -421,9 +496,10 @@ On NFS that is what capped concurrency at 2 runs; consumers went to `D` state
 in NFS I/O and stalled, backlogs grew, and plotfiles accumulated. Moving the
 transients to local NVMe drops NFS traffic from ~130 MB/s to KB/s and lets
 **6 concurrent HQ runs** share one node. Measured on the mode-0 pump ladder
-(2026-07-28): 6 × 256³ t=30 runs, NFS run dirs ~500 KB each while local
-scratch held 8.8 GB per run; extraction 15.7 s against a 288 s plotfile
-cadence (18× headroom).
+(2026-07-28): 6 × 256³ t=30 runs, NFS run dirs ~12 MB each — dominated by
+`small_data/metric_stack` at ~1.4 MB per extracted plotfile, so budget ~30 MB
+per completed t=30 run — while local scratch held 8.8 GB per run; extraction
+15.7 s against a 288 s plotfile cadence (18× headroom).
 
 **Cloning a baseline `params.txt`: `amr.plot_file` / `amr.check_file` are
 absolute paths into the source run directory.** Strip and re-emit them, or the

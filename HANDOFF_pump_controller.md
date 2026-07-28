@@ -277,7 +277,7 @@ Reference implementation:
 GPU sim ──plotfiles──▶ /tmp/grteclyn_scratch/<run>/RadialRecipePlt*  (local NVMe)
    │                        │ consumer extracts (~16 s), then deletes (keep-last 3)
    │                        ▼
-   └──.dat, KB/s──▶ <output_path>/data/  +  small_data/          (NFS, ~500 KB)
+   └──.dat, KB/s──▶ <output_path>/data/  +  small_data/          (NFS, ~12 MB)
 ```
 
 `amr.plot_file` / `amr.check_file` are INDEPENDENT of `output_path`, so:
@@ -294,7 +294,7 @@ Consumer: `--data /tmp/grteclyn_scratch/<run>` `--out <NFS>/.../small_data`.
 per run. On NFS that capped concurrency at 2 — consumers blocked in NFS I/O
 (`D` state), backlogs grew, plotfiles accumulated. Measured after the move
 (2026-07-28, 6 concurrent HQ runs): local scratch 8.8 GB/run, NFS run dirs
-~500 KB each, extraction 15.7 s against a 288 s cadence (18x headroom), zero
+~12 MB each (metric_stack dominates), extraction 15.7 s against a 288 s cadence (18x headroom), zero
 plotfiles leaked to NFS, 53 GB of 1.1 TB overlay used.
 
 **Keep every write inside your own directories.** On this cluster

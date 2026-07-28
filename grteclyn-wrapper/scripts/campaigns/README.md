@@ -47,7 +47,7 @@ keep only results on the shared filesystem.
 GPU sim ──plotfiles──▶ /tmp/<scratch>/<run>/RadialRecipePlt*   (local NVMe)
    │                        │ consumer extracts (~16 s), then deletes
    │                        ▼
-   └──.dat, KB/s──▶ <output_path>/data/  +  small_data/         (NFS, ~500 KB)
+   └──.dat, KB/s──▶ <output_path>/data/  +  small_data/         (NFS, ~12 MB)
 ```
 
 Every campaign launcher must emit:
@@ -72,7 +72,7 @@ Measured, mode-0 pump ladder, 2026-07-28 — 6 × (N=256, L=128, t=30) on GPUs 0
 | | |
 |---|---|
 | Local scratch per run | 8.8 GB (3 plotfiles resident) |
-| NFS run dir per run | ~500 KB |
+| NFS run dir per run | ~12 MB (~30 MB at t=30; `metric_stack` dominates) |
 | Extraction | 15.7 s vs 288 s cadence (18× headroom) |
 | Plotfiles leaked to NFS | 0 |
 | Overlay usage | 53 GB of 1.1 TB free |
