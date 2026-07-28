@@ -52,10 +52,19 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void accumulate_site_sources(
         return;
     }
     const amrex::Real governor = pump.governor;
+    // The PD-vs-open-loop MODE stays global (keyed on the shared ``k_p``), so a
+    // zero phantom gain means "no PD drive on the phantom sector", never
+    // "silently switch that sector to the legacy open-loop source".  Only the
+    // gains inside the PD branch are per-sector.
     if (pump.k_p > 0.0)
     {
-        const amrex::Real kp        = pump.k_p;
-        const amrex::Real kd        = pump.k_d;
+        const bool phantom   = (want_sign < 0);
+        const amrex::Real kp = (phantom && pump.k_p_phantom >= 0.0)
+                                   ? pump.k_p_phantom
+                                   : pump.k_p;
+        const amrex::Real kd = (phantom && pump.k_d_phantom >= 0.0)
+                                   ? pump.k_d_phantom
+                                   : pump.k_d;
         const amrex::Real inv_alpha = 1.0 / lapse;
         const amrex::Real tw =
             (pump.target_width > 0.0) ? pump.target_width : pump.width;

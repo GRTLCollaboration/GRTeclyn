@@ -43,6 +43,26 @@ struct RLMatterPumpParams
     //! falls back to the legacy additive-source pump.
     double k_p{0.0};
     double k_d{0.0};
+    //! Per-sector gain override for the PHANTOM (Phi-) field.  Negative => the
+    //! phantom sector inherits ``k_p`` / ``k_d`` (the historical behaviour, so
+    //! existing configs are bit-identical).
+    //!
+    //! WHY THIS EXISTS.  The two sectors need different authority, not the same
+    //! authority.  Measured on the mode-0 pump ladder (runs/pump_ladder_m0,
+    //! t in [13, 30], confined_frac decay rate per unit time):
+    //!
+    //!     sector      pump off   pump on    outcome
+    //!     canonical     0.100      ~0.000   decay ARRESTED (plateau ~0.50)
+    //!     phantom       0.217       0.076   decay only SLOWED (2.9x)
+    //!
+    //! With one shared gain the controller removes a similar absolute amount of
+    //! decay from each sector (~0.10 canonical, ~0.14 phantom), but the phantom
+    //! sector's intrinsic dispersal rate is 2.2x larger, so the same authority
+    //! arrests one and merely slows the other.  The shortfall is ~0.076 per unit
+    //! time of unsuppressed phantom decay.  Raising only the phantom gain is the
+    //! minimal lever that targets it without perturbing the canonical plateau.
+    double k_p_phantom{-1.0};
+    double k_d_phantom{-1.0};
     //! Trap-target matter profile shape and scale.  ``target_profile`` 0 =>
     //! Gaussian (legacy), 2 => sech bound lump (correct exponential tail).
     //! ``target_width`` is the physical bound-state size 1/sqrt(m^2-omega^2);

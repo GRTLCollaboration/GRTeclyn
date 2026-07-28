@@ -62,6 +62,32 @@ reconstructed for. With `recipe_exotic_matter = 0` the canonical `ScalarField` i
 used. The `grteclyn-wrapper` sets `recipe_exotic_matter = 1` automatically
 whenever `--phantom` is passed.
 
+### Per-sector pump gain (bicomplex runs)
+
+For `recipe_matter_model = grtresna_bicomplex_scalar` the PD trap pump routes
+each spotlight to the canonical (Phi+) or phantom (Phi−) field via
+`recipe_scalar_field_signs`. The two sectors do **not** need the same control
+authority: measured on `runs/pump_ladder_m0` over t ∈ [13, 30], one shared gain
+arrests the canonical `confined_frac` decay (0.100 → ~0.000 per unit time) but
+only slows the phantom one (0.217 → 0.076), because the phantom sector
+disperses ~2.2× faster to begin with.
+
+```
+rl_pump_kp        = 12.0   # shared PD gains (0 => legacy open-loop source)
+rl_pump_kd        = 7.0
+rl_pump_kp_phantom = -1.0  # phantom-sector override; < 0 => inherit rl_pump_kp
+rl_pump_kd_phantom = -1.0  # phantom-sector override; < 0 => inherit rl_pump_kd
+```
+
+Both default to −1, so omitting them reproduces the historical single-gain
+behaviour exactly. The PD-vs-open-loop *mode* stays keyed on the shared
+`rl_pump_kp`, so `rl_pump_kp_phantom = 0` means "no PD drive on the phantom
+sector", never "switch that sector to the legacy source pump". Raising the
+phantom gain is numerically cheap (`ω_eff² ≈ k_p·w`; a 4× raise gives
+`ω·dt ≈ 0.11` at the finest level). See `research/neuralspacetime/Debug.md`
+§18 for the measurement and the falsifiable prediction this knob is meant to
+test — **it has not been validated by a run yet.**
+
 ## Two findings worth your attention
 
 1. **Matter-sector EC is a null result by construction with a canonical field.**

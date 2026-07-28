@@ -98,6 +98,11 @@ inline RLMatterPumpParams build_rl_pump(const SimulationParameters &params,
     // Closed-loop PD "trap" controller gains (0 => legacy open-loop source).
     pump.k_p             = pump_stopped ? 0.0 : params.rl_pump_kp;
     pump.k_d             = pump_stopped ? 0.0 : params.rl_pump_kd;
+    // Phantom-sector gain override; negative keeps the inherit-the-shared-gain
+    // default.  Not gated on pump_stopped: that already forces num_sites = 0,
+    // which returns before any gain is read.
+    pump.k_p_phantom     = params.rl_pump_kp_phantom;
+    pump.k_d_phantom     = params.rl_pump_kd_phantom;
     pump.target_profile  = params.rl_pump_target_profile;
     pump.target_width    = params.rl_pump_target_width;
     pump.target_amp      = params.rl_pump_target_amp;

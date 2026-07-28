@@ -870,11 +870,37 @@ pipeline that produced the paper is deterministic and still reproducible.
    (χ_min=5.7e-4 → χ^(-3/2)=7.4e4) against tp24 (0.58 → 2.2): the control's
    core was weighted ~3e4× less per unit proper volume — same error class as
    §15, biased against the same run. At t=10 (χ_min 0.82) the shift is already
-   0.620→0.594. Direction: proper weighting RAISES tp0, so **§5's "13.0×
-   retention gain" is an upper bound**; the monotonic ordering is expected to
-   survive (matter that has left R_conf is in χ≈1 territory) but must be
-   re-measured. Fixed: proper-volume columns (`total/rms/frac_proper`) written
+   0.620→0.594. Fixed: proper-volume columns (`total/rms/frac_proper`) written
    alongside; scoring still gates on the coordinate value for continuity.
+
+   **DIRECTION CORRECTED, and now MEASURED (2026-07-28, t=30, 257³ rerun).**
+   The prediction above — "proper weighting RAISES tp0, so 13.0× is an upper
+   bound" — is **backwards**. Proper weighting *lowers* tp0 (0.0169→0.0159,
+   −6.0%) and *raises* every pumped run (tp30 0.2875→0.2956, +2.8%), so the
+   retention gain goes UP and **13.0× was a LOWER bound**:
+
+   | run | frac (coord) | frac (proper) | gain vs tp0 (coord) | gain vs tp0 (proper) | min_chi |
+   |---|---|---|---|---|---|
+   | tp0  | 0.0169 | 0.0159 | 1.00 | 1.00 | 5.68e-4 |
+   | tp4  | 0.0965 | 0.2205 | 5.72 | 13.89 | 5.96e-2 |
+   | tp8  | 0.1415 | 0.2242 | 8.38 | 14.13 | 1.72e-1 |
+   | tp16 | 0.2014 | 0.2245 | 11.93 | 14.15 | 4.03e-1 |
+   | tp24 | 0.2683 | 0.2656 | 15.89 | 16.74 | 5.83e-1 |
+   | tp30 | 0.2875 | 0.2956 | 17.03 | 18.63 | 2.91e-1 |
+
+   The reasoning error: tp0's χ_min=5.7e-4 core is *nearly empty* by t=30, so
+   up-weighting it by χ^(−3/2) adds almost nothing to the numerator while the
+   same weight is applied to the (heavily populated) pumped cores.
+
+   **AND THE LADDER'S SHAPE CHANGES.** Under proper weighting the tp4→tp16
+   dose–response **disappears**: 0.2205 / 0.2242 / 0.2245, a 1.8% spread,
+   against a 2.1× spread (0.0965→0.2014) in coordinate volume. A real
+   dose–response survives only at tp24/tp30 (0.2656 / 0.2956). The coordinate
+   ladder's smooth monotonic rise across tp4–tp16 is therefore **mostly a
+   χ-weighting artifact** driven by how deeply each run's core collapsed
+   (χ_min 0.060 / 0.172 / 0.403) — the same error class as §15, and it must
+   not be quoted as evidence that retention scales with pump duration below
+   t_pump=16. See §18.1.
 4. **The coherence gate saw 1 of 8 matter components.**
    `matter_coherence_from_plotfile` (→ `structure_coherence` →
    `structural_persistence` → scales EVERY FTL reward in Eq. (score)) used
@@ -1175,3 +1201,191 @@ All six trustworthy: 5/5 rays, 0 captured, h-quality ok, `t_emit=0`,
   after all — the cache corruption mattered at late times, which `t_emit=0`
   rays never sample. They were still rightly retracted: that they came out
   close could only be known by redoing them on a faithful cache.
+
+---
+
+## 18. Sector audit — the pump DOES confine phantom matter; the earlier read was wrong
+
+Three questions were open after §17: is `canon_mass_frac`'s jump real energy
+transfer, why does the phantom sector disperse, and what happened to
+`structure_coherence`. All three are answered here from
+`runs/pump_ladder_m0/*/small_data/confinement.dat` (22 rows/run, cols 12–17,
+tp0 = pump never on, tp30 = pump always on).
+
+### 18.1 `canon_mass_frac` 0.400 → 0.684 — ARTIFACT, no sector transfer
+
+Decompose the absolute per-sector activity, `A_c = canon_mass_frac × total`
+and `A_p = (1 − canon_mass_frac) × total`:
+
+| t | A_canon (off) | A_canon (ON) | A_phan (off) | A_phan (ON) |
+|---|---|---|---|---|
+| 0.00 | 27.42 | 27.42 | 41.20 | 41.20 |
+| 4.32 | 27.70 | **90.81** | 42.89 | **41.87** |
+| 30.0 | 29.89 | 123.37 | 141.25 | 155.61 |
+
+Within the first 4 time units of pumping the canonical activity goes ×3.3
+while the phantom activity is **unchanged** — 41.87 pumped vs 42.89 unpumped,
+i.e. the pumped run's phantom sector is if anything *marginally smaller* than
+the control's, entirely within the drift the control shows on its own.
+
+**Verdict: the rise in `canon_mass_frac` is 100% numerator growth from external
+injection into the canonical field and 0% transfer out of the phantom sector.**
+Nothing moved between sectors. Two rules follow:
+
+* The composition change is real (the canonical field really does carry ~3.3×
+  the amplitude) but **"the pump moves mass from the phantom sector to the
+  canonical sector" is false and must not be written.**
+* `canon_mass_frac` is a **misnomer**. The weight is
+  `w = sqrt(φ² + Π² + …)` — an *amplitude*, linear in the field, not an energy
+  density (which is quadratic). It is also ω-dependent: for a U(1) lump
+  `φ = A e^{iωt}` the weight evaluates to `A√(1+ω²)`, so two sectors with
+  different phase frequencies are weighted differently at equal amplitude.
+  Quote it as "canonical share of total field activity", never as a mass
+  fraction, and never compare it across configurations with different ω.
+
+Sector *retention* comparisons (`confined_frac_canon` / `_phantom`) are
+unaffected by this and remain quotable — they are ratios within one sector, so
+the weight normalisation cancels.
+
+### 18.2 The pump DOES confine the phantom sector — 10.6×
+
+The earlier working note claimed "the phantom sector disperses almost exactly
+as if the pump were off", resting on end-state RMS radius: 17.93 (pumped) vs
+18.88 (unpumped), a 5% difference, against canonical's 14.08 vs 17.63 (20%).
+**That inference is wrong, and the metric is the reason.** RMS radius is a
+second moment: it is dominated by whatever little matter has reached large
+radius, so it is nearly blind to how much is retained in the core.
+`confined_frac` — the actual retention measure — says the opposite:
+
+| sector | t=30, pump off | t=30, pump ON | ratio |
+|---|---|---|---|
+| phantom | 0.0139 | **0.1471** | **10.6×** |
+| canonical | 0.0907 | 0.5040 | 5.6× |
+| total | 0.0169 | 0.2875 | 17.0× |
+
+**The pump's relative effect on the phantom sector (10.6×) is nearly twice its
+relative effect on the canonical sector (5.6×).** Any statement that the
+controller fails to act on, or fails to reach, exotic matter is retracted.
+
+### 18.3 What actually fails: decay is SLOWED, not ARRESTED
+
+Fit the decay of `confined_frac` over t ∈ [13, 30] (after the shared early
+transient), per unit time:
+
+| sector | pump off | pump ON | outcome |
+|---|---|---|---|
+| canonical | 0.100 | ~0.000 | **arrested** — plateau at 0.50 |
+| phantom | 0.217 | 0.076 | **slowed 2.9×**, still monotonic |
+
+Read together with 18.2 this is a clean **authority-limited** story, not a
+targeting failure. The controller removes a comparable *absolute* amount of
+decay rate from each sector (~0.10 canonical, ~0.14 phantom). The canonical
+sector only had 0.100 to remove, so it is fully arrested; the phantom sector
+started at 0.217 — 2.2× larger — so ~0.076/unit-time survives. **Same gain,
+different problem size.**
+
+Two caveats on the canonical "success": the plateau is at 0.50, and `rms_canon`
+keeps growing (6.4 → 14.1) while `frac_canon` sits flat. That is a *bimodal*
+end state — a locked core plus an escaped halo — not a fully confined star. The
+controller holds what is still inside; what has already left is unrecoverable,
+because the PD law has no positional term that can pull distant matter back.
+
+### 18.4 Two mechanism claims in the working note are also wrong
+
+* **"`if (env < 1.0e-8) continue` makes it a local trap; matter that drifts
+  outside cannot be reached at all."** Not with this config. The run sets
+  `rl_pump_target_profile = 2`, which is `sech(r/w)` with `w = 1.667` — an
+  *exponential* tail (`≈ 2e^{−r/w}`), deliberately chosen to match the
+  initial-data profile. `sech(r/1.667) < 1e-8` puts the cutoff at **r ≈ 32**,
+  far outside the entire matter region of an L=128 box whose lumps sit within
+  ~±10. The gate essentially never fires. What the controller actually has is a
+  *soft, exponentially decaying authority* (gain ∝ `sech(r/1.667)`: ~5×10⁻² at
+  r=6, ~1.5×10⁻³ at r=12), not a hard trap boundary. The distinction matters
+  for the fix: widening the well changes a falloff rate, it does not switch a
+  cutoff on.
+* **"The PD controller is mis-signed for phantom matter."** Checked and false.
+  `GRTresnaIndependentScalars.impl.hpp:83` gives `∂_t φ = α Π + β·∂φ` for
+  *every* field regardless of sign — the phantom nature enters only the
+  stress-energy coupling (`sign × (½Π² + …)`), never the field EOM. So the PD
+  target `tPi1 = ω·tphi2/α` is sign-correct in both sectors, and
+  `compute_bicomplex_sources` routes each spotlight to the right field via
+  `site.field_sign` (this run: `recipe_scalar_field_signs = 1 -1 -1 1 -1`, so
+  3 of 5 spotlights genuinely drive Phi−).
+
+### 18.5 Config defects found while checking the above
+
+* **`trajectory_lump<k>_exotic` is dead config.** Written into every
+  `params.txt` (0.240 / 0.845 / 0.598 / 0.443 / 0.803) and **never read by the
+  solver** — there is no `exotic` member on `TrajectoryLumpParams`. It is a
+  leftover of the search parameterisation. It does not affect any result, but
+  it makes `params.txt` look as though per-lump exotic fractions were in play
+  when they were not.
+* **The PD target amplitude is a flat constant for every site, both sectors.**
+  `TrajectoryEvaluator::evaluate` sets `out_amp[k] = max(0, well_depth)`, and
+  this campaign has `well_depth = 0.15` for all five lumps. With
+  `rl_pump_target_amp` unset, the controller therefore commands **the same
+  target amplitude to canonical and phantom lumps alike**, with no sector or
+  per-lump scaling of any kind.
+
+### 18.6 The fix — per-sector PD gains (backwards compatible)
+
+18.3 says the phantom sector needs *more authority*, not different targeting.
+The minimal lever is a per-sector gain, added as:
+
+* `RLMatterPumpParams::k_p_phantom` / `k_d_phantom` — **negative ⇒ inherit
+  `k_p`/`k_d`**, so every existing config is bit-identical.
+* `RLPumpForce::accumulate_site_sources` selects the gains on `want_sign < 0`.
+  The PD-vs-open-loop **mode** stays keyed on the shared `k_p`, so
+  `rl_pump_kp_phantom = 0` means "no PD drive on the phantom sector", never
+  "silently switch that sector to the legacy open-loop source".
+* New inputs `rl_pump_kp_phantom` / `rl_pump_kd_phantom` (RadialRecipe), both
+  defaulting to −1. Not gated on `pump_stopped`: that already forces
+  `num_sites = 0`, which returns before any gain is read.
+
+Numerical headroom check: the P-term acts as a restoring force with
+`ω_eff² ≈ k_p·w`. At the current `k_p = 12` that is `ω_eff ≈ 3.5` against
+`dt ≈ 0.016` at the finest level (`ω·dt ≈ 0.055`), so raising the phantom gain
+by 4× keeps `ω·dt ≈ 0.11` — comfortably stable. Gain is a safe knob here;
+the well width is not equivalent (see 18.4).
+
+**This is a mechanism-directed hypothesis, not a validated result.** The
+prediction it makes is specific and falsifiable: raising only
+`rl_pump_kp_phantom` should push `confined_frac_phantom`'s decay rate below
+0.076/unit-time and, if authority is the whole story, toward the canonical
+sector's arrested plateau, **without** moving `confined_frac_canon`. If
+phantom retention does not respond to gain, the limit is not authority and the
+next suspect is the 3-spotlight phase conflict on the shared Phi− field (three
+sites with different `phase0` driving one U(1) field through overlapping sech
+tails). Nothing here goes into the paper before that run exists.
+
+### 18.7 `structure_coherence` is NaN in 22/22 rows of every run
+
+`ftl_timeseries.dat` col 8 is NaN for all 22 plotfiles in all six runs. Cause:
+the consumer's `_extract_ftl_timeseries_line` reads `gen.structure_coherence`
+off the general FTL probe, which never populates it;
+`matter_coherence_from_plotfile` — the function that actually computes it, and
+the one §16.3 defect 4 fixed to share `_matter_sectors` — is called **only**
+from `aggregation/collector.py:324`, a path this campaign never ran.
+
+Two consequences:
+
+1. **The §16.3 defect-4 fix is unexercised.** It is committed and correct by
+   inspection, but no number in this campaign depends on it, and it has never
+   been exercised on bicomplex data end-to-end.
+2. **NaN is not neutral.** `score/survival.py` maps a non-finite coherence to
+   `0.0` — "treating as fully fragmented" — which gates `structural_persistence`
+   and through it every FTL reward. Any aggregate score computed for these runs
+   off the timeseries path has the coherence gate pinned at its worst value.
+   The per-run FTL numbers reported in §17 are unaffected (they are read
+   directly from `evolving_geodesic.json`, not through the survival gate).
+
+### 18.8 Scratch purge
+
+`/tmp/grteclyn_scratch` plotfiles deleted (51 GB, 5 runs × 3 late plotfiles).
+Retained: `_cache/` (scoring logs cited in §17). Everything scoring depends on
+lives on NFS — the 22-slice `small_data/metric_stack` caches and
+`evolving_geodesic.json` per run — and was verified present before deletion.
+**Consequence to remember:** per-sector *spatial* analysis (radial profiles,
+sector barycentres vs spotlight centres) is no longer possible from stored
+data; `confinement.dat`'s 22-row moments are all that remain. Re-deriving
+anything finer requires a re-run.

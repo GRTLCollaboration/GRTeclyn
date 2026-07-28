@@ -75,6 +75,12 @@ class SimulationParameters : public SimulationParametersBase
         // source.  Default 0 => legacy source pump (backward compatible).
         pp.load("rl_pump_kp", rl_pump_kp, 0.0);
         pp.load("rl_pump_kd", rl_pump_kd, 0.0);
+        // Per-sector gain override for the phantom (Phi-) field.  < 0 => the
+        // phantom sector inherits the shared gains above (bit-identical to the
+        // historical single-gain behaviour).  See RLMatterPumpParams for the
+        // measured decay rates that motivate a separate phantom gain.
+        pp.load("rl_pump_kp_phantom", rl_pump_kp_phantom, -1.0);
+        pp.load("rl_pump_kd_phantom", rl_pump_kd_phantom, -1.0);
         // Trap-target matter shape: 0 Gaussian (legacy), 2 sech bound lump.
         // target width = physical bound size 1/sqrt(m^2-omega^2); <=0 => pump width.
         pp.load("rl_pump_target_profile", rl_pump_target_profile, 0);
@@ -282,6 +288,8 @@ class SimulationParameters : public SimulationParametersBase
     double rl_l2_ham_governor_width{0.003};
     double rl_pump_kp{0.0}; //!< PD trap proportional gain (0 => legacy source)
     double rl_pump_kd{0.0}; //!< PD trap derivative gain
+    double rl_pump_kp_phantom{-1.0}; //!< phantom-sector k_p (<0 => inherit k_p)
+    double rl_pump_kd_phantom{-1.0}; //!< phantom-sector k_d (<0 => inherit k_d)
     int rl_pump_target_profile{0}; //!< 0 Gaussian, 2 sech bound-lump target
     double rl_pump_target_width{0.0}; //!< physical 1/sqrt(m^2-omega^2); <=0 => width
     double rl_pump_target_amp{0.0}; //!< trap-target central amplitude (bs_phi_c); <=0 => site amp
