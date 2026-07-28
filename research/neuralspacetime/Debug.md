@@ -886,10 +886,30 @@ pipeline that produced the paper is deterministic and still reproducible.
    to 0** — while the evolution passes `recipe_scalar_mu = 85333`. At
    candidate amplitudes (|φ|~0.08) the sextic term is comparable to the mass
    and quartic terms, so every NEC/WEC/SEC/DEC margin and
-   `matter_integral_NEC_violation` ever written is quantitatively wrong (the
-   *sign structure* — phantom-sector violation — survives, since the kinetic
-   terms dominate the margins' signs). Same omission in the complex-scalar
-   branch. Fixed in `RadialRecipeLevel.cpp` (+ rebuild).
+   `matter_integral_NEC_violation` ever written is quantitatively wrong. Same
+   omission in the complex-scalar branch. Fixed in `RadialRecipeLevel.cpp`
+   (+ rebuild).
+
+   **MEASURED old-vs-new, 2026-07-28** (v1 vs rerun, identical evolution —
+   `constraint_norms`/`collapse_diagnostics`/`curvature_invariants` are
+   bit-identical row-for-row on all six runs, so this isolates the EC fix):
+
+   | column | changed? | magnitude |
+   |---|---|---|
+   | `matter_min_NEC` | **no** — bit-identical | kinetic-dominated, potential cancels |
+   | `matter_min_WEC` | yes, all rows | up to 137% rel.; **151 rows flip sign** |
+   | `matter_min_SEC` | yes, all rows | up to 141% rel.; **50 rows flip sign** |
+   | `matter_min_DEC` | yes, all rows | up to 102% rel.; **18 rows flip sign** |
+   | `matter_integral_NEC_violation` | **no** — bit-identical | NEC-derived |
+
+   Every flip runs the SAME direction — old margin **negative**, corrected
+   margin **positive** (e.g. tp24 t∈[1.69, 3.82]: WEC −8.81e-3 → +6.0e-4).
+   **The μ=0 bug fabricated energy-condition violations that do not exist.**
+   This corrects the earlier claim in this entry that "the sign structure
+   survives": it survives for NEC and the integral-NEC diagnostic only. Any
+   statement in the paper resting on a WEC/SEC/DEC *violation* in the
+   canonical sector must be re-derived from the rerun; the phantom sector's
+   NEC violation is unaffected.
 6. **`boundary_flux.dat`'s "radial" derivative was ∂φ/∂x.** Sample points were
    displaced by a constant (dr,0,0) instead of along each point's radial unit
    vector — correct at the ±x poles, a transverse derivative elsewhere. Fixed.
