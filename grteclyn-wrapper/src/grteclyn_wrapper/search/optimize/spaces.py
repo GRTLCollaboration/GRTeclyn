@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+import re
+from typing import Any, Sequence
 
 from .dimension import SearchDimension
+
+#: Matches the per-lump angular-velocity dimensions of a trajectory space.
+_TRAJECTORY_OMEGA_DIM_RE = re.compile(r"^trajectory_lump(\d+)_omega_rot$")
 
 DEFAULT_SEARCH_SPACE: list[SearchDimension] = [
     SearchDimension("recipe_chi_coeff_0", -0.5, 0.1, -0.1),
@@ -287,6 +291,19 @@ def grtresna_shell_search_space(profile: str = "compact") -> list[SearchDimensio
     ]
 
 
+#: The dimensions that give the shell's matter a velocity.  Stripping any of
+#: them is what makes a family "static", so it also has to settle
+#: ``grtresna_shell_static``.
+_SHELL_VELOCITY_DIMS = frozenset(
+    {
+        "grtresna_shell_toroidal_velocity",
+        "grtresna_shell_poloidal_velocity",
+        "grtresna_shell_radial_velocity",
+        "grtresna_shell_omega",
+    }
+)
+
+
 def grtresna_boson_shell_search_space(
     profile: str = "compact",
     *,
@@ -397,7 +414,24 @@ def grtresna_boson_shell_search_space(
             SearchDimension("grtresna_shell_poloidal_velocity", -0.2, 0.2, 0.0),
             SearchDimension("grtresna_shell_omega", -0.15, 0.15, 0.0),
         ])
-    return dims
+    return _drop_dead_static_switch(dims)
+
+
+def _drop_dead_static_switch(
+    dims: list[SearchDimension],
+) -> list[SearchDimension]:
+    """Remove ``grtresna_shell_static`` from a space that searches no velocity.
+
+    With no current to switch off the flag has nothing left to do, and leaving
+    it in was worse than useless: its centre is 0 = moving, so roughly half the
+    population decoded as non-static and collected the 0.35c toroidal default --
+    a current no dimension declared and no record mentioned.  The decoder now
+    treats "no velocity searched" as static outright; this just stops the search
+    from spending an axis on a decision it no longer makes.  DebugPreGPU.md PG-2.
+    """
+    if any(d.param_key in _SHELL_VELOCITY_DIMS for d in dims):
+        return dims
+    return [d for d in dims if d.param_key != "grtresna_shell_static"]
 
 
 def grtresna_boson_splash_search_space() -> list[SearchDimension]:
@@ -549,6 +583,33 @@ TRAJECTORY_DEFAULT_NUM_LUMPS = 5
 TRAJECTORY_PROFILE_CHOICES = ("discovery", "rotation_only", "breathing_only")
 
 
+def _check_drivable_lumps(num_lumps: int) -> None:
+    """Refuse to declare trajectory dimensions GRTeclyn cannot drive.
+
+    GRTeclyn reads ``trajectory_lump<k>_*`` only for ``k`` below its compile-time
+    scalar-slot cap.  It used to clamp an over-cap request silently, so the
+    8-lump campaign declared 56 trajectory dimensions and evolved 5 lumps' worth:
+    21 of those dimensions had no effect on anything, while the archive reported
+    coverage over all 56.  Failing here costs a second; failing in the evolution
+    cost a campaign.  See DebugPreGPU.md PG-9.
+
+    Skipped when the C++ tree is not reachable -- an unknown cap must not be
+    turned into a guessed one.
+    """
+    from ...core.param_contract import scalar_slot_cap
+
+    cap = scalar_slot_cap()
+    if cap is not None and num_lumps > cap:
+        raise ValueError(
+            f"trajectory search space asks for {num_lumps} lumps but GRTeclyn "
+            f"can drive at most {cap} (GRTRESNA_MAX_INDEPENDENT_SCALARS in "
+            f"Source/Matter/GRTresnaScalarLayout.hpp). The extra lumps' "
+            f"trajectory parameters would be emitted into params.txt and read "
+            f"by nothing. Either lower the lump count or raise the cap -- "
+            f"raising it widens the state vector by 2 components per lump."
+        )
+
+
 def grtresna_trajectory_search_space(
     num_lumps: int = TRAJECTORY_DEFAULT_NUM_LUMPS,
     profile: str = "discovery",
@@ -591,6 +652,7 @@ def grtresna_trajectory_search_space(
             f"unknown trajectory profile: {profile!r} "
             f"(choices: {', '.join(TRAJECTORY_PROFILE_CHOICES)})"
         )
+    _check_drivable_lumps(num_lumps)
 
     dims: list[SearchDimension] = []
 
@@ -723,6 +785,8 @@ def grtresna_trajectory_boson_search_space(
             f"unknown trajectory-boson profile: {profile!r} "
             f"(choices: {', '.join(TRAJECTORY_BOSON_PROFILE_CHOICES)})"
         )
+    # This is the builder the 8-lump campaign used; PG-9 came out of here.
+    _check_drivable_lumps(num_lumps)
 
     dims: list[SearchDimension] = []
 
@@ -898,6 +962,36 @@ def build_search_space(
     if nonspherical:
         space += ANGULAR_SEARCH_SPACE
     return space
+
+
+def restrict_retrograde_omega(
+    dims: Sequence[SearchDimension],
+    *,
+    enabled: bool,
+) -> list[SearchDimension]:
+    """Halve the omega axes when the campaign only wants retrograde orbits.
+
+    ``trajectory_retrograde_only`` negates any positive ``omega_rot`` at decode,
+    so genome ``+x`` and ``-x`` produce the same spacetime.  The optimizer
+    cannot see that: CMA-ES fits a covariance over an axis whose upper half is a
+    mirror of its lower, and every QD mutation that crosses zero is folded back
+    onto its own reflection.  Searching the sign-correct half instead makes the
+    axis identifiable, and leaves the fold as a backstop for pinned or legacy
+    values rather than a routine event.  DebugPreGPU.md PG-7.
+    """
+    if not enabled:
+        return list(dims)
+
+    out: list[SearchDimension] = []
+    for dim in dims:
+        if not _TRAJECTORY_OMEGA_DIM_RE.match(dim.param_key):
+            out.append(dim)
+            continue
+        upper = min(dim.upper, 0.0)
+        lower = min(dim.lower, upper)
+        initial = None if dim.initial is None else min(dim.initial, upper)
+        out.append(SearchDimension(dim.param_key, lower, upper, initial))
+    return out
 
 # Default GRTresna search space (used as a fallback when none is supplied).
 GRTRESNA_SEARCH_SPACE: list[SearchDimension] = grtresna_search_space()

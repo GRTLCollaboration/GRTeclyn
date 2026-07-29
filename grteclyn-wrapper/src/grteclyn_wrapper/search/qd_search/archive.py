@@ -19,6 +19,12 @@ class Elite:
     tier_name: str = "rejected"
     objectives: dict[str, float] = field(default_factory=dict)
     descriptor_details: dict[str, float] = field(default_factory=dict)
+    #: The raw optimizer vector this elite was decoded from, in genome
+    #: coordinates.  ``params`` holds the *decoded* physical values, which are
+    #: not the same thing on the trajectory speed axes -- reading them back as a
+    #: genome is ``DebugPreGPU.md`` PG-1.  ``None`` for archives written before
+    #: genomes were stored; ``sampling.elite_genome`` then reconstructs it.
+    genome: list[float] | None = None
 
 
 @dataclass
@@ -66,6 +72,7 @@ class QDArchive:
                     "tier_name": e.tier_name,
                     "objectives": e.objectives,
                     "params": e.params,
+                    "genome": e.genome,
                     "episode": e.episode,
                 }
                 for e in sorted(self.cells.values(), key=lambda e: (-e.tier, -e.score))
@@ -82,6 +89,11 @@ class QDArchive:
                 score=float(cell_data["score"]),
                 descriptors=tuple(cell_data["descriptors"]),
                 params=dict(cell_data["params"]),
+                genome=(
+                    [float(v) for v in cell_data["genome"]]
+                    if isinstance(cell_data.get("genome"), list)
+                    else None
+                ),
                 episode=cell_data.get("episode"),
                 tier=int(cell_data.get("tier", int(Tier.REJECTED))),
                 tier_name=str(cell_data.get("tier_name", "rejected")),

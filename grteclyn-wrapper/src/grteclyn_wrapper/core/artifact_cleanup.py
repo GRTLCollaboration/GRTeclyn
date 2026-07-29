@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from .scratch import purge_plotfile_scratch
+
 logger = logging.getLogger(__name__)
 
 Tier = Literal["plotfiles_only", "full_non_hq"]
@@ -60,6 +62,15 @@ def cleanup_episode_artifacts(
         if child.is_dir() and any(child.name.startswith(prefix) for prefix in _PLOTFILE_PREFIXES):
             shutil.rmtree(child, ignore_errors=True)
             report.removed_paths.append(str(child))
+
+    # Plotfiles normally live on node-local scratch, so the loop above finds
+    # nothing.  Reclaiming that space is the whole point of local scratch --
+    # unlike NFS, nobody else is going to notice it filling up.
+    purged, warning = purge_plotfile_scratch(episode_dir)
+    report.removed_paths.extend(purged)
+    if warning:
+        report.warnings.append(warning)
+        logger.warning(warning)
 
     if tier == "plotfiles_only":
         return report

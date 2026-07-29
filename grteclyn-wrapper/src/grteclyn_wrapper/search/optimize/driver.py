@@ -12,6 +12,7 @@ from typing import Any, Mapping, Sequence
 
 from ...core.config import ExampleConfig, resolve_example
 from ...core.episode import write_json
+from ...core.scratch import purge_orphan_scratch
 from ..grtresna_convergence_gate import (
     DEFAULT_GRTRESNA_CONVERGENCE_CONFIG,
     GRTresnaConvergenceConfig,
@@ -208,6 +209,11 @@ def run_optimize(
         name = f"optimize_{timestamp}"
     opt_dir = (runs_dir / name).expanduser().resolve()
     opt_dir.mkdir(parents=True, exist_ok=False)
+
+    # Plotfiles live on the node's own disk now, which is the small one.  A
+    # campaign killed mid-flight leaves directories nothing will return for;
+    # reclaim them before adding a few hundred more.
+    purge_orphan_scratch()
 
     # FTL champion retention + top-N disk pruning (same logic as the QD loop):
     # keep only the best eval dirs on disk plus one champion dir per FTL peak.

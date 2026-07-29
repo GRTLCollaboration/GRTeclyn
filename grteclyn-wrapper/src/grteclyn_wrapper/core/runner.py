@@ -19,6 +19,7 @@ from .plot_consumer import (
     default_radii_for_example,
     post_run_frames_enabled,
 )
+from .scratch import plotfile_dir
 
 
 @dataclass(frozen=True)
@@ -65,9 +66,13 @@ def build_command(
 
 
 def _merged_env(cuda_devices: str | None = None, extra_env: Mapping[str, str] | None = None) -> dict[str, str]:
+    from .scratch import cache_env
     from .site_paths import grtresna_env_bin, grtresna_env_lib, openmpi_root
 
     env = dict(os.environ)
+    # Matplotlib, uv and pycache otherwise write into $HOME, which is the same
+    # shared filesystem the plotfiles just stopped touching.
+    env.update(cache_env())
     mpi_root = openmpi_root()
     mpi_bin_dirs = [mpi_root / "bin"]
     mpi_lib_dirs = [mpi_root / "lib"]
@@ -322,6 +327,9 @@ def run_episode(
             "example": executable.example.name,
             "mpi_ranks": executable.mpi_ranks,
             "cuda_devices": cuda_devices,
+            # The plotfiles are not in the episode directory any more, and the
+            # scratch name carries a digest that does not invert.  Record it.
+            "plotfile_dir": str(plotfile_dir(episode.path)),
         },
     )
 

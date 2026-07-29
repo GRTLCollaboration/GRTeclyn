@@ -9,6 +9,8 @@
 #include "SpongeZone.hpp"
 #include "TrajectoryParams.hpp"
 
+#include <AMReX.H>
+
 #include <array>
 #include <sstream>
 #include <string>
@@ -63,8 +65,18 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("rl_num_lumps", rl_num_lumps, 1);
         if (rl_num_lumps < 1)
             rl_num_lumps = 1;
+        // Refuse rather than truncate -- same reasoning as trajectory_num_lumps
+        // below (DebugPreGPU.md PG-9): a silently reduced lump count makes every
+        // rl_lump<k>_* key past the cap a dead knob that still looks configured.
         if (rl_num_lumps > GRTRESNA_MAX_INDEPENDENT_SCALARS)
-            rl_num_lumps = GRTRESNA_MAX_INDEPENDENT_SCALARS;
+        {
+            amrex::Abort(
+                "rl_num_lumps = " + std::to_string(rl_num_lumps) +
+                " exceeds GRTRESNA_MAX_INDEPENDENT_SCALARS = " +
+                std::to_string(GRTRESNA_MAX_INDEPENDENT_SCALARS) +
+                ". Lower rl_num_lumps or raise the cap in "
+                "Source/Matter/GRTresnaScalarLayout.hpp.");
+        }
         pp.load("rl_pump_width", rl_pump_width, 1.5);
         pp.load("rl_pump_max_amplitude", rl_pump_max_amplitude, 0.05);
         pp.load("rl_l2_ham_governor_center", rl_l2_ham_governor_center, 0.035);
@@ -123,8 +135,24 @@ class SimulationParameters : public SimulationParametersBase
             pp.load("trajectory_num_lumps", n_traj, 5);
             if (n_traj < 1)
                 n_traj = 1;
+            // Refuse rather than truncate.  This used to silently clamp to the
+            // compile-time cap, so a campaign configured for 8 lumps drove 5 and
+            // said nothing: trajectory_lump5..7_* were written into every
+            // params.txt and read by no one, leaving 21 declared search
+            // dimensions with zero effect on the evolution while the archive
+            // reported coverage over all of them.  A run that cannot do what its
+            // config asks must not start.  See DebugPreGPU.md PG-9.
             if (n_traj > GRTRESNA_MAX_INDEPENDENT_SCALARS)
-                n_traj = GRTRESNA_MAX_INDEPENDENT_SCALARS;
+            {
+                amrex::Abort(
+                    "trajectory_num_lumps = " + std::to_string(n_traj) +
+                    " exceeds GRTRESNA_MAX_INDEPENDENT_SCALARS = " +
+                    std::to_string(GRTRESNA_MAX_INDEPENDENT_SCALARS) +
+                    ". The extra lumps' trajectory parameters would be ignored "
+                    "silently. Either lower trajectory_num_lumps or raise the "
+                    "cap in Source/Matter/GRTresnaScalarLayout.hpp (which also "
+                    "widens the state vector by 2 components per lump).");
+            }
             trajectory_params.num_lumps = n_traj;
         }
 

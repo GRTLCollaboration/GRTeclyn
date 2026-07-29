@@ -428,4 +428,21 @@ def _descriptors(
 
 
 def _bin_index(value: float, bins: int) -> int:
-    return int(min(bins - 1, max(0, math.floor(value * bins))))
+    """Map a descriptor in [0, 1] onto an archive column.
+
+    A NaN lands in bin 0.  It used to raise out of ``math.floor`` in the middle
+    of the completion callback, taking a pipeline slot with it -- the gw_beam
+    axis can carry a NaN Psi4 all the way here.  Bin 0 is where an
+    all-zeros descriptor would go anyway, and the record keeps the raw NaN in
+    ``descriptor_details``, so nothing is disguised as a real measurement.
+    See DebugPreGPU.md PG-8.
+    """
+    try:
+        scaled = float(value) * bins
+    except (TypeError, ValueError):
+        return 0
+    if math.isnan(scaled):
+        return 0
+    if math.isinf(scaled):
+        return bins - 1 if scaled > 0 else 0
+    return int(min(bins - 1, max(0, math.floor(scaled))))

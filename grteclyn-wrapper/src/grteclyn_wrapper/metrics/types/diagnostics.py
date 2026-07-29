@@ -59,6 +59,18 @@ class ConstraintMetrics:
     max_step_ham_ratio: float | None = None
     mom_spike_ratio: float | None = None
     has_constraint_spike: bool = False
+    # Whole-hierarchy ("composite") norms, cols 12/16/17 of constraint_norms.dat.
+    # The fields above come from cols 2-3, which are level-0 only, count cells
+    # sitting under the refinement, and average over a domain that is mostly
+    # vacuum -- fine as the governor's input, not an accuracy figure.  These are
+    # None for any file written before the columns existed.
+    max_hamiltonian_l2_amr: float | None = None
+    max_hamiltonian_linf_amr: float | None = None
+    max_hamiltonian_l2_amr_ref: float | None = None
+    # False when the run never built a level >= 1, in which case the composite
+    # numbers describe a single-level grid and the refined-region norm is
+    # *unmeasured*, not zero.  See DebugPreGPU.md PG-3.
+    has_refined_region: bool = False
 
 
 @dataclass(frozen=True)

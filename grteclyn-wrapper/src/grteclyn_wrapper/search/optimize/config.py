@@ -25,6 +25,74 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _LUMP_KEY_RE = re.compile(r"^grtresna_lump(\d+)_(\w+)$")
+# Trajectory campaigns name their lumps differently, and every consumer that
+# matched only the line above treated them as having no lumps at all.
+_TRAJECTORY_LUMP_KEY_RE = re.compile(r"^trajectory_lump(\d+)_(\w+)$")
+
+# The four knobs that give the shell's matter a velocity, with the defaults the
+# decoder falls back to when a campaign does not supply them.  The toroidal
+# default is 0.35c -- a real, large frame-dragging current that no search
+# dimension and no trajectory record ever mentioned.  See DebugPreGPU.md PG-2.
+SHELL_CURRENT_DEFAULTS: dict[str, float] = {
+    "grtresna_shell_toroidal_velocity": 0.35,
+    "grtresna_shell_poloidal_velocity": 0.0,
+    "grtresna_shell_radial_velocity": 0.0,
+    "grtresna_shell_omega": 0.0,
+}
+
+
+def resolved_shell_currents(overrides: Mapping[str, Any]) -> dict[str, float]:
+    """The matter currents the decoder will actually use, defaults included.
+
+    Two rules, and they have to agree or the campaign is describing something it
+    is not running:
+
+    * ``grtresna_shell_static >= 1`` means static matter -- every current zero.
+    * A campaign that supplies **no** current key is not searching motion, so
+      it gets static matter too.  Previously such a campaign still picked up the
+      0.35c toroidal default for any candidate whose ``shell_static`` bit
+      happened to decode to 0, which is half of them, since that dimension stays
+      in the space with its centre at 0 = moving.
+    """
+    supplied = [key for key in SHELL_CURRENT_DEFAULTS if key in overrides]
+
+    static = False
+    if not supplied:
+        static = True
+    else:
+        try:
+            static = int(round(float(overrides.get("grtresna_shell_static", 0.0)))) >= 1
+        except (TypeError, ValueError):
+            static = False
+
+    resolved: dict[str, float] = {}
+    for key, default in SHELL_CURRENT_DEFAULTS.items():
+        if static:
+            resolved[key] = 0.0
+            continue
+        try:
+            resolved[key] = float(overrides.get(key, default))
+        except (TypeError, ValueError):
+            resolved[key] = default
+    return resolved
+
+
+def unrecorded_shell_currents(
+    overrides: Mapping[str, Any],
+    searched_keys: frozenset[str] | set[str],
+) -> dict[str, float]:
+    """Non-zero currents that no search dimension and no override declares.
+
+    A trajectory record lists the searched dimensions only, so a current that
+    arrives as a decode default leaves no trace anywhere -- which is how a fixed
+    0.35c toroidal flow rode along through a whole campaign unnoticed.
+    """
+    resolved = resolved_shell_currents(overrides)
+    return {
+        key: value
+        for key, value in resolved.items()
+        if value != 0.0 and key not in searched_keys and key not in overrides
+    }
 
 
 def _expand_shell_lumps_from_overrides(
@@ -41,12 +109,14 @@ def _expand_shell_lumps_from_overrides(
     thickness = get_float("grtresna_shell_thickness", 0.5)
     axis_theta = get_float("grtresna_shell_axis_theta", 0.5 * math.pi)
     axis_phi = get_float("grtresna_shell_axis_phi", 0.0)
-    v_tor = get_float("grtresna_shell_toroidal_velocity", 0.35)
-    v_pol = get_float("grtresna_shell_poloidal_velocity", 0.0)
-    v_rad = get_float("grtresna_shell_radial_velocity", 0.0)
-    omega = get_float("grtresna_shell_omega", 0.0)
-    if int(round(get_float("grtresna_shell_static", 0.0))) >= 1:
-        v_tor = v_pol = v_rad = omega = 0.0
+    # Single source of truth for the static/moving decision -- the space builder
+    # strips the velocity dimensions in the static families, and this is what
+    # makes "stripped" mean "no motion" instead of "0.35c you cannot see".
+    currents = resolved_shell_currents(overrides)
+    v_tor = currents["grtresna_shell_toroidal_velocity"]
+    v_pol = currents["grtresna_shell_poloidal_velocity"]
+    v_rad = currents["grtresna_shell_radial_velocity"]
+    omega = currents["grtresna_shell_omega"]
     dipole = get_float("grtresna_shell_dipole_amp", 0.0)
     quadrupole = get_float("grtresna_shell_quadrupole_amp", 0.0)
     if canonical_boson:

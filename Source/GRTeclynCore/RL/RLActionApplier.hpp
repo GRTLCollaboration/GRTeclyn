@@ -4,6 +4,8 @@
 #include "CCZ4RHS.hpp"
 #include "GRTresnaScalarLayout.hpp" // GRTRESNA_MAX_INDEPENDENT_SCALARS
 
+#include <AMReX_BLassert.H>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -28,8 +30,13 @@ inline void apply_rl_actions(
 
     if (num_lumps < 0)
         num_lumps = 0;
-    if (num_lumps > GRTRESNA_MAX_INDEPENDENT_SCALARS)
-        num_lumps = GRTRESNA_MAX_INDEPENDENT_SCALARS;
+    // Unreachable once SimulationParameters refuses an over-cap rl_num_lumps
+    // (DebugPreGPU.md PG-9).  Kept as a bounds guard on the std::array writes
+    // below, but assert rather than clamp: silently pumping fewer lumps than
+    // the agent was told it controls poisons every action it takes afterwards.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        num_lumps <= GRTRESNA_MAX_INDEPENDENT_SCALARS,
+        "apply_rl_actions: num_lumps exceeds GRTRESNA_MAX_INDEPENDENT_SCALARS");
 
     const int needed = 3 * num_lumps + 2;
     if (static_cast<int>(actions.size()) < needed)

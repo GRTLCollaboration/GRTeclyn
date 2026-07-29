@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .config import _LUMP_KEY_RE
+from .config import _LUMP_KEY_RE, _TRAJECTORY_LUMP_KEY_RE
 from .dimension import SearchDimension
 
 # Hard cap on per-lump tangential speed v_t = R0 * |omega_rot| (geometric units,
@@ -232,20 +232,130 @@ def _clip_vector(x: Sequence[float], dims: Sequence[SearchDimension]) -> list[fl
     ]
 
 
+def _normalized_trajectory_speeds(
+    overrides: Mapping[str, Any],
+    *,
+    default_v_max: float = TRAJECTORY_V_MAX_DEFAULT,
+) -> dict[str, float]:
+    """Inverse of :func:`_clamp_trajectory_speed`: physical -> genome fractions.
+
+    ``_clamp_trajectory_speed`` writes the *physical* angular velocity and radial
+    drift back into the very keys the *normalized* genome coordinates arrived in.
+    Any consumer that reads those keys back as a genome therefore re-applies the
+    ``v_max / R0`` contraction (a factor of 9-19 for realistic R0) on every round
+    trip, while mutation noise stays at full scale -- so rotation and drift were
+    not inherited at all.  See ``DebugPreGPU.md`` PG-1.
+
+    This undoes the conversion::
+
+        omega_norm = omega_phys * R0 / v_max
+        v_rad_norm = v_rad_phys / v_max
+
+    Returns only the keys it can invert; callers fall back to the raw value for
+    everything else.  Lumps with ``R0 <= 0`` are skipped here exactly as they are
+    skipped on the way out, so their stored value is still a genome coordinate.
+    """
+    try:
+        v_max = float(overrides.get("trajectory_v_max", default_v_max))
+    except (TypeError, ValueError):
+        v_max = default_v_max
+    if not math.isfinite(v_max) or v_max <= 0.0:
+        return {}
+
+    normalized: dict[str, float] = {}
+    for key in overrides:
+        match = _TRAJECTORY_OMEGA_RE.match(str(key))
+        if match is None:
+            continue
+        lump_idx = match.group(1)
+        try:
+            r0 = float(overrides.get(f"trajectory_lump{lump_idx}_R0", 0.0))
+        except (TypeError, ValueError):
+            r0 = 0.0
+        if r0 <= 0.0:
+            continue
+        try:
+            normalized[str(key)] = float(overrides[key]) * r0 / v_max
+        except (TypeError, ValueError):
+            continue
+        v_rad_key = f"trajectory_lump{lump_idx}_v_rad"
+        if v_rad_key in overrides:
+            try:
+                normalized[v_rad_key] = float(overrides[v_rad_key]) / v_max
+            except (TypeError, ValueError):
+                pass
+    return normalized
+
+
 def _overrides_to_vector(
     overrides: Mapping[str, Any],
     dims: Sequence[SearchDimension],
 ) -> list[float]:
-    """Map a trajectory overrides dict back onto the current search vector."""
+    """Map a *decoded* overrides dict back onto the current search vector.
+
+    *overrides* is expected to hold physical values -- what ``_vector_to_overrides``
+    produced and what ``params.txt`` received.  The trajectory speed axes are
+    converted back to genome coordinates on the way in; everything else is stored
+    in genome units already and passes through untouched.
+
+    Prefer :func:`genome_from_record`, which uses the recorded raw genome when one
+    is available and only falls back to this inverse for legacy trajectories.
+    """
+    normalized = _normalized_trajectory_speeds(overrides)
     vals: list[float] = []
     for dim in dims:
-        raw = overrides.get(dim.param_key, dim.center)
+        if dim.param_key in normalized:
+            raw: Any = normalized[dim.param_key]
+        else:
+            raw = overrides.get(dim.param_key, dim.center)
         try:
             value = float(raw)
         except (TypeError, ValueError):
             value = dim.center
+        if not math.isfinite(value):
+            value = dim.center
         vals.append(max(dim.lower, min(dim.upper, value)))
     return vals
+
+
+def project_vector(
+    x: Sequence[float],
+    dims: Sequence[SearchDimension],
+    base: Mapping[str, Any] | None = None,
+) -> list[float]:
+    """The genome the decoder actually acts on: ``P(x) = E(D(x))``.
+
+    Decoding is a *projection*, not a bijection: the speed disk clamp, the spiral
+    radius floor and the retrograde fold all discard information on purpose.  For
+    any genome inside those limits ``P(x) == x``; for one outside, ``P(x)`` is the
+    point on the boundary that was really evaluated.  ``P`` is idempotent, and
+    ``D(P(x)) == D(x)``, so storing ``P(x)`` loses no physics and makes what was
+    stored agree exactly with what was run.
+    """
+    return _overrides_to_vector(_vector_to_overrides(x, dims, base or {}), dims)
+
+
+def genome_from_record(
+    record: Mapping[str, Any],
+    dims: Sequence[SearchDimension],
+) -> list[float] | None:
+    """Recover a candidate's genome from a stored trajectory/archive record.
+
+    Uses the recorded raw genome when the record has one, and falls back to
+    inverting the decoded overrides for records written before genomes were
+    stored.  Returns ``None`` when the record carries neither.
+    """
+    genome = record.get("genome")
+    if isinstance(genome, Sequence) and not isinstance(genome, (str, bytes)):
+        if len(genome) == len(dims):
+            try:
+                return _clip_vector([float(v) for v in genome], dims)
+            except (TypeError, ValueError):
+                pass
+    overrides = record.get("overrides")
+    if isinstance(overrides, Mapping):
+        return _overrides_to_vector(overrides, dims)
+    return None
 
 
 def _load_trajectory_records(path: Path) -> list[dict[str, Any]]:
@@ -291,11 +401,14 @@ def _load_warm_start_vectors(
             except (TypeError, ValueError):
                 continue
             if math.isfinite(score_f):
-                gpu_records.append((score_f, overrides))
+                gpu_records.append((score_f, rec))
     gpu_records.sort(key=lambda item: item[0], reverse=True)
+    # CMA-ES is *started* from these, so a contracted warm vector is not a slow
+    # start but a permanently confined run (sigma0 = 0.05 cannot climb back out).
     vectors = [
-        _overrides_to_vector(overrides, dims)
-        for _, overrides in gpu_records[:top_k]
+        vec
+        for _, rec in gpu_records[:top_k]
+        if (vec := genome_from_record(rec, dims)) is not None
     ]
     if include_near_miss and near_miss_k > 0 and all_records:
         from ..pre_gpu.near_miss_pool import near_miss_vectors_from_trajectory
@@ -333,6 +446,20 @@ def _jitter_vector(
     return _clip_vector(jittered, dims)
 
 
+def _exotic_subset(lump_ids: Sequence[int], template_index: int) -> set[int]:
+    """Which lumps this template turns exotic: one, the ends, alternating, all."""
+    if not lump_ids:
+        return set()
+    n = len(lump_ids)
+    if template_index % 4 == 0:
+        return {lump_ids[n // 2]}
+    if template_index % 4 == 1:
+        return {lump_ids[0], lump_ids[-1]}
+    if template_index % 4 == 2:
+        return {k for i, k in enumerate(lump_ids) if i % 2 == 0}
+    return set(lump_ids)
+
+
 def _force_exotic_template(
     x: Sequence[float],
     dims: Sequence[SearchDimension],
@@ -368,17 +495,28 @@ def _force_exotic_template(
         if (m := _LUMP_KEY_RE.match(dim.param_key))
     })
     if not lump_ids:
+        # Trajectory campaigns name their lumps ``trajectory_lump{k}_*``, which
+        # matched nothing above, so EXOTIC_INJECTION_FRACTION quietly did
+        # nothing for every qball CMA-ES run while the logs said otherwise.
+        # Their orbits are searched dimensions and this function has no business
+        # inventing one, so only the exotic flag is imposed -- which is the whole
+        # point of an exotic template.  DebugPreGPU.md PG-6.
+        traj_ids = sorted({
+            int(m.group(1))
+            for dim in dims
+            if (m := _TRAJECTORY_LUMP_KEY_RE.match(dim.param_key))
+        })
+        exotic_ids = _exotic_subset(traj_ids, template_index)
+        for k in traj_ids:
+            i = index.get(f"trajectory_lump{k}_exotic")
+            if i is None:
+                continue
+            dim = dims[i]
+            vec[i] = max(dim.lower, min(dim.upper, 1.0 if k in exotic_ids else 0.0))
         return vec
 
     n = len(lump_ids)
-    if template_index % 4 == 0:
-        exotic = {lump_ids[n // 2]}
-    elif template_index % 4 == 1:
-        exotic = {lump_ids[0], lump_ids[-1]}
-    elif template_index % 4 == 2:
-        exotic = {k for i, k in enumerate(lump_ids) if i % 2 == 0}
-    else:
-        exotic = set(lump_ids)
+    exotic = _exotic_subset(lump_ids, template_index)
 
     radius = rng.uniform(2.0, 5.0)
     for pos, k in enumerate(lump_ids):

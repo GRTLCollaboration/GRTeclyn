@@ -217,6 +217,13 @@ def scan_partial_eval_dirs(
         records.append(record)
         if remove_partial:
             import shutil
+
+            from ..core.scratch import purge_plotfile_scratch
+
+            # A crashed eval left plotfiles on node-local scratch that no
+            # consumer is coming back for.  Dropping the eval dir without them
+            # would leak the disk a resumed campaign is about to need.
+            purge_plotfile_scratch(child, force=True)
             shutil.rmtree(child, ignore_errors=True)
     return records
 

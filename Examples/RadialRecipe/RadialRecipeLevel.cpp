@@ -973,13 +973,11 @@ void RadialRecipeLevel::specificPostTimeStep()
         }
 
         amrex::ReduceOps<amrex::ReduceOpMin, amrex::ReduceOpMin,
-                         amrex::ReduceOpMax, amrex::ReduceOpMax,
-                         amrex::ReduceOpMin,
+                         amrex::ReduceOpMax,
                          amrex::ReduceOpMin, amrex::ReduceOpMax,
                          amrex::ReduceOpMin, amrex::ReduceOpMax>
             reduce_ops;
-        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real,
-                          amrex::Real,
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real,
                           amrex::Real, amrex::Real,
                           amrex::Real, amrex::Real>
             reduce_data(reduce_ops);
@@ -988,97 +986,22 @@ void RadialRecipeLevel::specificPostTimeStep()
         const auto prob_lo = fine_geom.ProbLoArray();
         const auto dx_arr = fine_geom.CellSizeArray();
 
-        // The apparent-horizon / expansion proxy must be measured about the
-        // physics center (where the initial data is centered), not the
-        // coordinate origin at the domain corner.  Using the corner makes
-        // r ~ |grid_center| at the actual center, which collapses the
-        // 2*sqrt(chi)/r regularizing term and produces spurious theta_plus<0
-        // (false trapped surfaces) offset to r ~ |grid_center|.
-        const amrex::Real cx = simParams().recipe_params.grid_center[0];
-        const amrex::Real cy = simParams().recipe_params.grid_center[1];
-        const amrex::Real cz = simParams().recipe_params.grid_center[2];
-
-        // The dchi_dr stencil below reads i+-1 neighbours; on cells at the
-        // finest level's outer boundary those are ghosts interpolated from
-        // the coarse level, and the resulting theta_plus minimum parks at
-        // the refinement edge (fixed r just outside recipe_basis_radius_max)
-        // mimicking a growing horizon in runs whose interiors stay healthy.
-        // Mask = 1 on this level's valid cells (faces shared with a sibling
-        // box become 1 via FillBoundary), 0 on coarse-fine / domain ghosts;
-        // the proxy is only evaluated where all six neighbours are valid.
-        amrex::iMultiFab fine_mask(state_fine.boxArray(),
-                                   state_fine.DistributionMap(), 1, 1);
-        fine_mask.setVal(0);
-        fine_mask.setVal(1, 0, 1, 0);
-        fine_mask.FillBoundary(fine_geom.periodicity());
-
         for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
             const auto arr       = state_fine.const_array(mfi);
-            const auto mask_arr  = fine_mask.const_array(mfi);
             reduce_ops.eval(
                 bx, reduce_data,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple
                 {
-                    const amrex::Real lapse = arr(i, j, k, c_lapse);
-                    const amrex::Real chi   = arr(i, j, k, c_chi);
-                    const amrex::Real K     = arr(i, j, k, c_K);
-
-                    const amrex::Real x = prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0] - cx;
-                    const amrex::Real y = prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1] - cy;
-                    const amrex::Real z = prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2] - cz;
-                    const amrex::Real r2 = x*x + y*y + z*z;
-                    const amrex::Real r = std::sqrt(r2);
-
-                    const bool stencil_valid =
-                        mask_arr(i - 1, j, k) != 0 && mask_arr(i + 1, j, k) != 0 &&
-                        mask_arr(i, j - 1, k) != 0 && mask_arr(i, j + 1, k) != 0 &&
-                        mask_arr(i, j, k - 1) != 0 && mask_arr(i, j, k + 1) != 0;
-
-                    amrex::Real ah_radius = 0.0;
-                    amrex::Real theta_plus_min_proxy = 1.0e30;
-                    if (r > 1e-6 && stencil_valid)
-                    {
-                        const amrex::Real A11 = arr(i, j, k, c_A11);
-                        const amrex::Real A22 = arr(i, j, k, c_A22);
-                        const amrex::Real A33 = arr(i, j, k, c_A33);
-                        const amrex::Real A12 = arr(i, j, k, c_A12);
-                        const amrex::Real A13 = arr(i, j, k, c_A13);
-                        const amrex::Real A23 = arr(i, j, k, c_A23);
-
-                        const amrex::Real Arr = (A11*x*x + A22*y*y + A33*z*z + 2.0*A12*x*y + 2.0*A13*x*z + 2.0*A23*y*z) / r2;
-
-                        const amrex::Real dx_chi =
-                            (arr(i + 1, j, k, c_chi) - arr(i - 1, j, k, c_chi)) /
-                            (2.0 * dx_arr[0]);
-                        const amrex::Real dy_chi =
-                            (arr(i, j + 1, k, c_chi) - arr(i, j - 1, k, c_chi)) /
-                            (2.0 * dx_arr[1]);
-                        const amrex::Real dz_chi =
-                            (arr(i, j, k + 1, c_chi) - arr(i, j, k - 1, c_chi)) /
-                            (2.0 * dx_arr[2]);
-                        const amrex::Real dchi_dr =
-                            (x * dx_chi + y * dy_chi + z * dz_chi) / r;
-                        const amrex::Real sqrt_chi =
-                            std::sqrt(amrex::max(chi, amrex::Real(1.0e-20)));
-
-                        const amrex::Real theta_plus =
-                            2.0 * sqrt_chi / r - dchi_dr / sqrt_chi + Arr -
-                            (2.0 / 3.0) * K;
-                        theta_plus_min_proxy = theta_plus;
-
-                        if (theta_plus <= 0.0)
-                        {
-                            ah_radius = r;
-                        }
-                    }
-
+                    const amrex::Real lapse  = arr(i, j, k, c_lapse);
+                    const amrex::Real chi    = arr(i, j, k, c_chi);
+                    const amrex::Real K      = arr(i, j, k, c_K);
                     const amrex::Real sf_phi = arr(i, j, k, c_phi);
                     const amrex::Real sf_Pi  = arr(i, j, k, c_Pi);
 
-                    return {lapse, chi, amrex::Math::abs(K), ah_radius, theta_plus_min_proxy,
+                    return {lapse, chi, amrex::Math::abs(K),
                             sf_phi, sf_phi, sf_Pi, sf_Pi};
                 });
         }
@@ -1087,17 +1010,13 @@ void RadialRecipeLevel::specificPostTimeStep()
         amrex::Real min_lapse  = amrex::get<0>(reduce_vals);
         amrex::Real min_chi    = amrex::get<1>(reduce_vals);
         amrex::Real max_abs_K  = amrex::get<2>(reduce_vals);
-        amrex::Real max_ah_r   = amrex::get<3>(reduce_vals);
-        amrex::Real min_theta_plus = amrex::get<4>(reduce_vals);
-        amrex::Real min_phi    = amrex::get<5>(reduce_vals);
-        amrex::Real max_phi    = amrex::get<6>(reduce_vals);
-        amrex::Real min_Pi     = amrex::get<7>(reduce_vals);
-        amrex::Real max_Pi     = amrex::get<8>(reduce_vals);
+        amrex::Real min_phi    = amrex::get<3>(reduce_vals);
+        amrex::Real max_phi    = amrex::get<4>(reduce_vals);
+        amrex::Real min_Pi     = amrex::get<5>(reduce_vals);
+        amrex::Real max_Pi     = amrex::get<6>(reduce_vals);
         amrex::ParallelDescriptor::ReduceRealMin(min_lapse);
         amrex::ParallelDescriptor::ReduceRealMin(min_chi);
         amrex::ParallelDescriptor::ReduceRealMax(max_abs_K);
-        amrex::ParallelDescriptor::ReduceRealMax(max_ah_r);
-        amrex::ParallelDescriptor::ReduceRealMin(min_theta_plus);
         amrex::ParallelDescriptor::ReduceRealMin(min_phi);
         amrex::ParallelDescriptor::ReduceRealMax(max_phi);
         amrex::ParallelDescriptor::ReduceRealMin(min_Pi);
@@ -1148,15 +1067,78 @@ void RadialRecipeLevel::specificPostTimeStep()
         const amrex::Real min_lapse_y = (count > 0.0) ? (sum_y / count) : 0.0;
         const amrex::Real min_lapse_z = (count > 0.0) ? (sum_z / count) : 0.0;
 
-        const amrex::Real tol_theta = amrex::max(
-            amrex::Real(1.0e-12),
-            amrex::Real(1.0e-8) * amrex::Math::abs(min_theta_plus));
+        // ---- Apparent-horizon test: shell-averaged outgoing expansion ------
+        //
+        // A marginally trapped surface is a property of a whole closed
+        // surface: the outgoing expansion must average to zero over it.  The
+        // previous diagnostic instead took the pointwise minimum of theta
+        // over the grid, with r measured from the grid center.  Because the
+        // lumps collapse off-center, that minimum simply tracked whichever
+        // lump was deepest and reported its distance from the grid center
+        // (r ~ 11) as a "horizon radius" -- firing while every interior was
+        // still healthy (lapse 0.70, chi 0.64).  Masking the coarse-fine
+        // stencil edge removed a real contamination but not that artifact,
+        // because the artifact was never at the refinement edge: it was at
+        // the lump.  See Debug.md 16a.
+        //
+        // The corrected test averages theta over concentric coordinate
+        // spheres centered on the lapse minimum -- the one place a horizon
+        // can form first -- and only trusts shells the finest level actually
+        // covers, so partially sampled spheres at the edge of the refined
+        // region can no longer masquerade as a surface.
+        //
+        // The dchi_dr stencil reads i+-1 neighbours; at the finest level's
+        // outer boundary those are ghosts interpolated from the coarse
+        // level.  Mask = 1 on this level's valid cells (faces shared with a
+        // sibling box become 1 via FillBoundary), 0 on coarse-fine and
+        // domain ghosts; theta is evaluated only where all six neighbours
+        // are valid.
+        amrex::iMultiFab fine_mask(state_fine.boxArray(),
+                                   state_fine.DistributionMap(), 1, 1);
+        fine_mask.setVal(0);
+        fine_mask.setVal(1, 0, 1, 0);
+        fine_mask.FillBoundary(fine_geom.periodicity());
 
-        amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum>
-            reduce_ops_theta_loc;
-        amrex::ReduceData<amrex::Real, amrex::Real> reduce_data_theta_loc(
-            reduce_ops_theta_loc);
-        using ReduceTupleThetaLoc = typename decltype(reduce_data_theta_loc)::Type;
+        const amrex::Real hx = min_lapse_x;
+        const amrex::Real hy = min_lapse_y;
+        const amrex::Real hz = min_lapse_z;
+
+        // Shell grid: span the finest level's bounding box as seen from the
+        // search center, at roughly two fine cells per shell.
+        amrex::Real shell_r_max = 0.0;
+        {
+            const amrex::Box fbox = state_fine.boxArray().minimalBox();
+            for (int c = 0; c < 8; ++c)
+            {
+                const amrex::Real px =
+                    prob_lo[0] +
+                    amrex::Real((c & 1) ? (fbox.bigEnd(0) + 1) : fbox.smallEnd(0)) *
+                        dx_arr[0];
+                const amrex::Real py =
+                    prob_lo[1] +
+                    amrex::Real((c & 2) ? (fbox.bigEnd(1) + 1) : fbox.smallEnd(1)) *
+                        dx_arr[1];
+                const amrex::Real pz =
+                    prob_lo[2] +
+                    amrex::Real((c & 4) ? (fbox.bigEnd(2) + 1) : fbox.smallEnd(2)) *
+                        dx_arr[2];
+                const amrex::Real d2 = (px - hx) * (px - hx) +
+                                       (py - hy) * (py - hy) +
+                                       (pz - hz) * (pz - hz);
+                shell_r_max = amrex::max(shell_r_max, std::sqrt(d2));
+            }
+        }
+        const int n_shells = std::min(
+            1024, std::max(8, static_cast<int>(shell_r_max /
+                                               (2.0 * dx_arr[0])) + 1));
+        const amrex::Real shell_dr = shell_r_max / amrex::Real(n_shells);
+
+        // [0, n_shells) accumulates sum(theta); [n_shells, 2*n_shells)
+        // accumulates the cell count, so one device buffer serves both.
+        amrex::Gpu::DeviceVector<amrex::Real> d_shell(2 * n_shells);
+        amrex::Real *shell_acc = d_shell.data();
+        amrex::ParallelFor(2 * n_shells,
+                           [=] AMREX_GPU_DEVICE(int b) { shell_acc[b] = 0.0; });
 
         for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
@@ -1164,32 +1146,40 @@ void RadialRecipeLevel::specificPostTimeStep()
             const amrex::Box &bx = mfi.validbox();
             const auto arr       = state_fine.const_array(mfi);
             const auto mask_arr  = fine_mask.const_array(mfi);
-            reduce_ops_theta_loc.eval(
-                bx, reduce_data_theta_loc,
-                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleThetaLoc
+            amrex::ParallelFor(
+                bx,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k)
                 {
-                    const amrex::Real chi = arr(i, j, k, c_chi);
-                    const amrex::Real K   = arr(i, j, k, c_K);
-
-                    const amrex::Real x =
-                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0] - cx;
-                    const amrex::Real y =
-                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1] - cy;
-                    const amrex::Real z =
-                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2] - cz;
-                    const amrex::Real r2 = x * x + y * y + z * z;
-                    const amrex::Real r  = std::sqrt(r2);
-
-                    const bool stencil_valid =
-                        mask_arr(i - 1, j, k) != 0 && mask_arr(i + 1, j, k) != 0 &&
-                        mask_arr(i, j - 1, k) != 0 && mask_arr(i, j + 1, k) != 0 &&
-                        mask_arr(i, j, k - 1) != 0 && mask_arr(i, j, k + 1) != 0;
-
-                    if (r <= 1e-6 || !stencil_valid)
+                    if (mask_arr(i - 1, j, k) == 0 ||
+                        mask_arr(i + 1, j, k) == 0 ||
+                        mask_arr(i, j - 1, k) == 0 ||
+                        mask_arr(i, j + 1, k) == 0 ||
+                        mask_arr(i, j, k - 1) == 0 ||
+                        mask_arr(i, j, k + 1) == 0)
                     {
-                        return {0.0, 0.0};
+                        return;
                     }
 
+                    const amrex::Real x =
+                        prob_lo[0] + (amrex::Real(i) + 0.5) * dx_arr[0] - hx;
+                    const amrex::Real y =
+                        prob_lo[1] + (amrex::Real(j) + 0.5) * dx_arr[1] - hy;
+                    const amrex::Real z =
+                        prob_lo[2] + (amrex::Real(k) + 0.5) * dx_arr[2] - hz;
+                    const amrex::Real r2 = x * x + y * y + z * z;
+                    const amrex::Real r  = std::sqrt(r2);
+                    if (r <= 1.0e-6)
+                    {
+                        return;
+                    }
+                    const int b = static_cast<int>(r / shell_dr);
+                    if (b < 0 || b >= n_shells)
+                    {
+                        return;
+                    }
+
+                    const amrex::Real chi = arr(i, j, k, c_chi);
+                    const amrex::Real K   = arr(i, j, k, c_K);
                     const amrex::Real A11 = arr(i, j, k, c_A11);
                     const amrex::Real A22 = arr(i, j, k, c_A22);
                     const amrex::Real A33 = arr(i, j, k, c_A33);
@@ -1221,22 +1211,65 @@ void RadialRecipeLevel::specificPostTimeStep()
                         2.0 * sqrt_chi / r - dchi_dr / sqrt_chi + Arr -
                         (2.0 / 3.0) * K;
 
-                    const bool is_min =
-                        (amrex::Math::abs(theta_plus - min_theta_plus) <=
-                         tol_theta);
-                    if (!is_min)
-                    {
-                        return {0.0, 0.0};
-                    }
-                    return {r, 1.0};
+                    amrex::HostDevice::Atomic::Add(&shell_acc[b], theta_plus);
+                    amrex::HostDevice::Atomic::Add(&shell_acc[n_shells + b],
+                                                   amrex::Real(1.0));
                 });
         }
+        amrex::Gpu::streamSynchronize();
 
-        auto [sum_r_theta, count_r_theta] = reduce_data_theta_loc.value();
-        amrex::ParallelDescriptor::ReduceRealSum(sum_r_theta);
-        amrex::ParallelDescriptor::ReduceRealSum(count_r_theta);
-        const amrex::Real r_at_min_theta_plus =
-            (count_r_theta > 0.0) ? (sum_r_theta / count_r_theta) : 0.0;
+        std::vector<amrex::Real> h_shell(2 * n_shells);
+        amrex::Gpu::copy(amrex::Gpu::deviceToHost, d_shell.begin(),
+                         d_shell.end(), h_shell.begin());
+        amrex::ParallelDescriptor::ReduceRealSum(h_shell.data(), 2 * n_shells);
+
+        // A shell counts only if the finest level covers essentially all of
+        // it -- a partially sampled sphere has no meaningful average, and it
+        // was exactly those partial spheres that used to produce phantom
+        // horizons.
+        constexpr amrex::Real shell_coverage_min = 0.90;
+        constexpr amrex::Real shell_count_min    = 32.0;
+        const amrex::Real cell_vol = dx_arr[0] * dx_arr[1] * dx_arr[2];
+        const amrex::Real four_thirds_pi =
+            amrex::Real(4.0 / 3.0) * amrex::Math::pi<amrex::Real>();
+
+        amrex::Real ah_r_out = 0.0;
+        amrex::Real min_theta_bar =
+            std::numeric_limits<amrex::Real>::quiet_NaN();
+        amrex::Real r_at_min_theta_bar = 0.0;
+        amrex::Real n_shells_ok        = 0.0;
+        amrex::Real best_theta_bar     = 1.0e30;
+        for (int b = 0; b < n_shells; ++b)
+        {
+            const amrex::Real cnt = h_shell[n_shells + b];
+            if (cnt < shell_count_min)
+            {
+                continue;
+            }
+            const amrex::Real r_in  = amrex::Real(b) * shell_dr;
+            const amrex::Real r_out = amrex::Real(b + 1) * shell_dr;
+            const amrex::Real expected =
+                four_thirds_pi *
+                (r_out * r_out * r_out - r_in * r_in * r_in) / cell_vol;
+            if (cnt < shell_coverage_min * expected)
+            {
+                continue;
+            }
+            n_shells_ok += 1.0;
+            const amrex::Real theta_bar = h_shell[b] / cnt;
+            const amrex::Real r_mid     = 0.5 * (r_in + r_out);
+            if (theta_bar < best_theta_bar)
+            {
+                best_theta_bar     = theta_bar;
+                min_theta_bar      = theta_bar;
+                r_at_min_theta_bar = r_mid;
+            }
+            // Outermost fully covered sphere that is marginally trapped.
+            if (theta_bar <= 0.0)
+            {
+                ah_r_out = r_mid;
+            }
+        }
 
         // Pump control-effort diagnostic: instantaneous power injected by the
         // PD/open-loop matter pump into the scalar momentum equations,
@@ -1366,9 +1399,16 @@ void RadialRecipeLevel::specificPostTimeStep()
                                         static_cast<double>(min_lapse_x),
                                         static_cast<double>(min_lapse_y),
                                         static_cast<double>(min_lapse_z),
-                                        static_cast<double>(max_ah_r),
-                                        static_cast<double>(min_theta_plus),
-                                        static_cast<double>(r_at_min_theta_plus),
+                                        // Shell-averaged replacements for the
+                                        // withdrawn pointwise proxy; same three
+                                        // columns, so nothing reading this file
+                                        // by position moves.  min_theta_plus is
+                                        // NaN when no sphere was fully covered
+                                        // by the finest level -- unmeasured, and
+                                        // it must not read as zero.
+                                        static_cast<double>(ah_r_out),
+                                        static_cast<double>(min_theta_bar),
+                                        static_cast<double>(r_at_min_theta_bar),
                                         static_cast<double>(min_phi),
                                         static_cast<double>(max_phi),
                                         static_cast<double>(min_Pi),

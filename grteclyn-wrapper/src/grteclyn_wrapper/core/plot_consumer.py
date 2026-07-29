@@ -9,6 +9,7 @@ from typing import Literal, Mapping, Sequence
 
 from .config import REPO_ROOT, WRAPPER_ROOT
 from .episode import Episode
+from .scratch import plotfile_dir
 
 ConsumerProfile = Literal["wormhole", "radial"]
 
@@ -251,10 +252,17 @@ def build_consume_command(
         *resolve_consume_python(),
         "-m",
         "grteclyn_wrapper.visualisation.process_wave.consume_plotfiles",
+        # Read the plotfiles where the simulation actually wrote them (node-local
+        # scratch), but write the distilled numbers to the episode.  The two are
+        # the same directory only when scratch is off.
         "--data",
-        str(episode.path),
+        str(plotfile_dir(episode.path)),
         "--out",
         str(episode.small_data_dir),
+        # The early-termination flag is a message to the *runner*, which watches
+        # the episode directory -- it must not follow the plotfiles to scratch.
+        "--stop-sim-path",
+        str(episode.path / ".stop_sim"),
         "--radii",
         *[str(r) for r in radii],
         "--n-points",
@@ -325,13 +333,7 @@ def build_consume_command(
         if _central_radial_enabled():
             command.extend(["--central-radial-profile", "--central-radial-r-max", "6.0"])
         if _splash_early_term_enabled():
-            command.extend(
-                [
-                    "--splash-early-term",
-                    "--stop-sim-path",
-                    str(episode.path / ".stop_sim"),
-                ]
-            )
+            command.append("--splash-early-term")
         if not ftl_timeseries and objective_mode != "weighted":
             if "--objective-mode" not in command:
                 command.extend(["--objective-mode", str(objective_mode)])

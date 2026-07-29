@@ -416,17 +416,33 @@ def wait_for_plotfile_complete(
 
 
 def _scan_plotfiles(episode_dir: Path, *, complete_only: bool) -> dict[int, Path]:
+    """Index the episode's plotfiles by step, wherever they were written.
+
+    Since the transients moved to node-local scratch the episode directory is
+    usually empty of them, so scanning it alone would silently score every run
+    as having produced nothing.  Both locations are searched, and scratch wins
+    on a tie because that is where the live run is writing.
+    """
+    from ....core.scratch import plotfile_dir
+
     found: dict[int, Path] = {}
-    for pattern in ("*Plt*", "plt*"):
-        for p in episode_dir.rglob(pattern):
-            if not p.is_dir():
-                continue
-            m = _PLOTFILE_RE.search(p.name)
-            if not m:
-                continue
-            if complete_only and not plotfile_is_complete(p):
-                continue
-            found[int(m.group(1))] = p
+    roots = [episode_dir]
+    scratch = plotfile_dir(episode_dir)
+    if scratch != episode_dir.expanduser().resolve():
+        roots.append(scratch)
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for pattern in ("*Plt*", "plt*"):
+            for p in root.rglob(pattern):
+                if not p.is_dir():
+                    continue
+                m = _PLOTFILE_RE.search(p.name)
+                if not m:
+                    continue
+                if complete_only and not plotfile_is_complete(p):
+                    continue
+                found[int(m.group(1))] = p
     return found
 
 

@@ -34,11 +34,15 @@ def shadow_elite_from_record(
     d1, d2 = details["x"], details["y"]
     cell = (_bin_index(d1, bins), _bin_index(d2, bins))
     params = {str(k): float(v) for k, v in overrides.items() if isinstance(v, (int, float))}
+    genome = record.get("genome")
+    if not isinstance(genome, list):
+        genome = None  # legacy record; sampling.elite_genome inverts params instead
     return Elite(
         cell=cell,
         score=float(score),
         descriptors=(d1, d2),
         params=params,
+        genome=[float(v) for v in genome] if genome is not None else None,
         episode=record.get("episode"),
         tier=int(Tier.REJECTED),
         tier_name="rejected",

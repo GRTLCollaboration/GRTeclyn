@@ -16,6 +16,14 @@ SPIKE_STEP_HAM_RATIO = 50.0
 SPIKE_MOM_ABS = 0.1
 SPIKE_MOM_RATIO = 20.0
 
+# Column layout of constraint_norms.dat, 0-based, as written by
+# RadialRecipeLevel::post_timestep.  Columns 0-10 are the original set; 11-16
+# are the whole-hierarchy norms appended later, so older files stop at 11 wide.
+_COL_L2_HAM_AMR = 11  # composite L2(Ham), covered + boundary cells dropped
+_COL_LINF_HAM_AMR = 15  # composite max|Ham| -- undiluted by empty space
+_COL_L2_HAM_AMR_REF = 16  # same, restricted to levels >= 1
+_AMR_COLUMNS = _COL_L2_HAM_AMR_REF + 1
+
 
 @dataclass(frozen=True)
 class ConstraintSpikeInfo:
@@ -89,6 +97,18 @@ def read_constraint_metrics(path: Path) -> ConstraintMetrics | None:
     initial_peak_rho_req = rho_rows[0][4] if rho_rows else None
     spike = spike_info_from_rows(rows)
 
+    amr_rows = [row for row in rows if len(row) >= _AMR_COLUMNS]
+    max_ham_amr = max((row[_COL_L2_HAM_AMR] for row in amr_rows), default=None)
+    max_linf_amr = max((row[_COL_LINF_HAM_AMR] for row in amr_rows), default=None)
+    max_ham_amr_ref = max(
+        (row[_COL_L2_HAM_AMR_REF] for row in amr_rows), default=None
+    )
+    # The composite refined-region norm sums over levels >= 1 and is written as
+    # exactly 0.0 when there are none.  A single-level run therefore reports a
+    # perfect 0 for the very quantity meant to catch violation hiding in the
+    # refinement -- so treat >0 as the only evidence a refinement existed.
+    has_refined = max_ham_amr_ref is not None and max_ham_amr_ref > 0.0
+
     return ConstraintMetrics(
         final_time=rows[-1][0],
         max_hamiltonian_l2=max(row[1] for row in rows),
@@ -105,4 +125,8 @@ def read_constraint_metrics(path: Path) -> ConstraintMetrics | None:
         max_step_ham_ratio=spike.max_step_ham_ratio,
         mom_spike_ratio=spike.mom_spike_ratio,
         has_constraint_spike=spike.has_constraint_spike,
+        max_hamiltonian_l2_amr=max_ham_amr,
+        max_hamiltonian_linf_amr=max_linf_amr,
+        max_hamiltonian_l2_amr_ref=max_ham_amr_ref,
+        has_refined_region=has_refined,
     )

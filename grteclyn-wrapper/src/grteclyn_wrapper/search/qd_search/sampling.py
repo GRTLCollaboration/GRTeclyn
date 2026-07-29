@@ -8,6 +8,7 @@ from typing import Mapping, Sequence
 import numpy as np
 
 from ..optimize import SearchDimension
+from ..optimize.candidates import _clip_vector, _overrides_to_vector
 from ..pre_gpu.near_miss_pool import NearMissPool
 from .archive import Elite, QDArchive
 
@@ -34,22 +35,62 @@ def _reflect(value: float, lower: float, upper: float) -> float:
     return lower + t
 
 
-def _feasible_bounds(
+def elite_genome(
+    elite: Elite,
     dims: Sequence[SearchDimension],
-    elites: Sequence[Elite],
+) -> list[float]:
+    """The elite's genome coordinates.
+
+    Elites recorded since ``DebugPreGPU.md`` PG-1 carry the raw optimizer vector;
+    for older archives it is recovered by inverting the decode.  Reading
+    ``elite.params`` directly is the PG-1 bug: those are *physical* values, and
+    the trajectory speed axes contract by ``v_max / R0`` every time they are
+    mistaken for a genome.
+    """
+    if elite.genome is not None and len(elite.genome) == len(dims):
+        return _clip_vector([float(v) for v in elite.genome], dims)
+    return _overrides_to_vector(elite.params, dims)
+
+
+def _bounds_from_values(
+    dims: Sequence[SearchDimension],
+    per_dim: Sequence[list[float]],
 ) -> list[tuple[float, float]]:
     bounds: list[tuple[float, float]] = []
-    for d in dims:
-        vals = [
-            float(e.params[d.param_key])
-            for e in elites
-            if d.param_key in e.params
-        ]
+    for d, vals in zip(dims, per_dim):
         if len(vals) >= 2 and max(vals) > min(vals):
             bounds.append((min(vals), max(vals)))
         else:
             bounds.append((d.lower, d.upper))
     return bounds
+
+
+def _collect_genome_values(
+    dims: Sequence[SearchDimension],
+    vectors: Sequence[Sequence[float]],
+    present: Sequence[Sequence[bool]],
+) -> list[list[float]]:
+    per_dim: list[list[float]] = [[] for _ in dims]
+    for vec, mask in zip(vectors, present):
+        for i, (value, has) in enumerate(zip(vec, mask)):
+            if has:
+                per_dim[i].append(float(value))
+    return per_dim
+
+
+def _feasible_bounds(
+    dims: Sequence[SearchDimension],
+    elites: Sequence[Elite],
+) -> list[tuple[float, float]]:
+    """Bounding box of the elites, **in genome coordinates**.
+
+    Built from physical values this box collapsed onto the contracted range, so
+    every "feasible" sample landed inside the artifact rather than inside the
+    region the elites actually occupy.
+    """
+    vectors = [elite_genome(e, dims) for e in elites]
+    present = [[d.param_key in e.params for d in dims] for e in elites]
+    return _bounds_from_values(dims, _collect_genome_values(dims, vectors, present))
 
 
 def _feasible_bounds_from_params(
@@ -58,18 +99,9 @@ def _feasible_bounds_from_params(
 ) -> list[tuple[float, float]] | None:
     if not param_sets:
         return None
-    bounds: list[tuple[float, float]] = []
-    for d in dims:
-        vals = [
-            float(params[d.param_key])
-            for params in param_sets
-            if d.param_key in params
-        ]
-        if len(vals) >= 2 and max(vals) > min(vals):
-            bounds.append((min(vals), max(vals)))
-        else:
-            bounds.append((d.lower, d.upper))
-    return bounds
+    vectors = [_overrides_to_vector(params, dims) for params in param_sets]
+    present = [[d.param_key in params for d in dims] for params in param_sets]
+    return _bounds_from_values(dims, _collect_genome_values(dims, vectors, present))
 
 
 def _sample_random(dims: Sequence[SearchDimension], rng: np.random.Generator) -> list[float]:
@@ -84,6 +116,23 @@ def _sample_feasible_box(
     return [float(rng.uniform(lo, hi)) for (lo, hi) in bounds]
 
 
+def _mutate_vector(
+    x: Sequence[float],
+    dims: Sequence[SearchDimension],
+    rng: np.random.Generator,
+    *,
+    sigma: float = 0.15,
+) -> list[float]:
+    return [
+        _reflect(
+            float(xi) + rng.normal(0.0, sigma * max(d.range, 1.0e-9)),
+            d.lower,
+            d.upper,
+        )
+        for xi, d in zip(x, dims)
+    ]
+
+
 def _mutate_params(
     params: Mapping[str, float],
     dims: Sequence[SearchDimension],
@@ -91,12 +140,16 @@ def _mutate_params(
     *,
     sigma: float = 0.15,
 ) -> list[float]:
-    x = []
-    for d in dims:
-        base = float(params.get(d.param_key, d.center))
-        step = rng.normal(0.0, sigma * max(d.range, 1.0e-9))
-        x.append(_reflect(base + step, d.lower, d.upper))
-    return x
+    """Mutate a stored candidate, in genome coordinates.
+
+    *params* holds physical values; mutating them directly is PG-1.  With the
+    contraction in place a parent's rotation contributed about 2% of the child's,
+    the rest being noise at full scale -- MAP-Elites was doing random search on
+    those axes.
+    """
+    return _mutate_vector(
+        _overrides_to_vector(params, dims), dims, rng, sigma=sigma
+    )
 
 
 def _mutate_elite(
@@ -106,7 +159,7 @@ def _mutate_elite(
     *,
     sigma: float = 0.15,
 ) -> list[float]:
-    return _mutate_params(elite.params, dims, rng, sigma=sigma)
+    return _mutate_vector(elite_genome(elite, dims), dims, rng, sigma=sigma)
 
 
 def sample_next_candidate(

@@ -8,6 +8,8 @@ import shutil
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from ...core.scratch import purge_plotfile_scratch
+
 
 def _load_trajectory_records(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
@@ -82,6 +84,10 @@ def _prune_eval_dirs(
         if not prunable:
             # No trajectory row yet — still in flight; only protected ids are kept.
             continue
+        # The eval is being discarded whole, so its node-local scratch has to go
+        # with it: nothing will ever come back to look for those plotfiles, and
+        # unlike NFS the scratch disk is small enough to notice.
+        purge_plotfile_scratch(eval_dir, force=True)
         shutil.rmtree(eval_dir, ignore_errors=True)
         deleted += 1
 

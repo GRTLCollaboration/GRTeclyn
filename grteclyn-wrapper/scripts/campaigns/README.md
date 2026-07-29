@@ -50,7 +50,7 @@ GPU sim ──plotfiles──▶ /tmp/<scratch>/<run>/RadialRecipePlt*   (local 
    └──.dat, KB/s──▶ <output_path>/data/  +  small_data/         (NFS, ~12 MB)
 ```
 
-Every campaign launcher must emit:
+Every params.txt carries:
 
 ```
 output_path    = "<RUNS_DIR>/<run>"                        # NFS: .dat + small_data
@@ -58,8 +58,18 @@ amr.plot_file  = "/tmp/grteclyn_scratch/<run>/RadialRecipePlt"
 amr.check_file = "/tmp/grteclyn_scratch/<run>/RadialRecipeChk"
 ```
 
-and start the consumer with `--data /tmp/grteclyn_scratch/<run>`
+and the consumer runs with `--data /tmp/grteclyn_scratch/<run>`
 `--out <RUNS_DIR>/<run>/small_data`.
+
+**This is now the default, for every stage.** `core/scratch.py` applies it in
+`episode_path_overrides`, so QD, CMA-ES, HQ and the post-load gate all get it
+without a launcher change; the consumer, the scoring plotfile lookup and the
+cleanup paths follow the same mapping. `GRTECLYN_SCRATCH=/other/path` moves the
+root, `GRTECLYN_SCRATCH=0` restores the old episode-directory layout, and an
+unwritable root falls back to the episode directory with a warning rather than
+killing the campaign. A launcher that sets `amr.plot_file` explicitly (the RL
+gate scripts, the pump queues) still wins — an explicit override is never
+overwritten.
 
 **Why.** A 256³ ml=3 plotfile is ~3.2 GB written and read back every ~288 s
 per run. On NFS that capped concurrency at **2 runs** — consumers blocked in
@@ -117,11 +127,10 @@ On the shared cluster `~/.local/bin` and `~/.local/lib` are owned by
 directories. The complete set of write targets for a campaign is
 `/tmp/<scratch>/` plus the NFS run directory. Nothing else.
 
-> **Not yet enforced in code.** `src/grteclyn_wrapper/core/params.py` still
-> defaults `amr.plot_file` / `amr.check_file` to the episode directory, so on
-> an NFS-backed `RUNS_DIR` the default lands on NFS. Until that changes, each
-> launcher must set the scratch paths explicitly. Reference implementation:
-> [`rl/pump_ladder_queue.py`](rl/pump_ladder_queue.py) (mode-0 pump ladder).
+`core/scratch.py` pins the same variables for every child process the wrapper
+spawns (`cache_env`), filling in only the ones the operator has not already
+set. Reference launcher implementation, predating the central one:
+[`rl/pump_ladder_queue.py`](rl/pump_ladder_queue.py) (mode-0 pump ladder).
 
 ---
 

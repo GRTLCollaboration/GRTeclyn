@@ -22,7 +22,7 @@ from ..grtresna_convergence_gate import (
 )
 from ..ftl_peak_metrics import peak_fields_for_descriptor_details
 from ..trajectory_log import format_eval_log_line, format_trajectory_line, infer_trajectory_status, trajectory_flags_from_evaluation
-from .candidates import _vector_to_overrides
+from .candidates import _vector_to_overrides, genome_from_record
 from .dimension import SearchDimension
 
 if TYPE_CHECKING:
@@ -47,7 +47,13 @@ def _collect_training(
     trajectory: Sequence[Mapping[str, Any]],
     dims: Sequence[SearchDimension],
 ):
-    """Build (X, y) arrays of evaluated candidates for surrogate fitting."""
+    """Build (X, y) arrays of evaluated candidates for surrogate fitting.
+
+    In genome coordinates, because the surrogate is *screened* with genome
+    vectors.  Training on the decoded physical values while screening genomes
+    meant the model was queried in a different space from the one it was fit in
+    on the trajectory speed axes -- DebugPreGPU.md PG-1.
+    """
     xs: list[list[float]] = []
     ys: list[float] = []
     for rec in trajectory:
@@ -57,11 +63,16 @@ def _collect_training(
         score = rec.get("score")
         if not isinstance(overrides, dict) or score is None:
             continue
-        try:
-            xs.append([float(overrides[d.param_key]) for d in dims])
-            ys.append(float(score))
-        except (KeyError, TypeError, ValueError):
+        if any(d.param_key not in overrides for d in dims):
             continue
+        vec = genome_from_record(rec, dims)
+        if vec is None:
+            continue
+        try:
+            ys.append(float(score))
+        except (TypeError, ValueError):
+            continue
+        xs.append(vec)
     if not xs:
         return None, None
     return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float)

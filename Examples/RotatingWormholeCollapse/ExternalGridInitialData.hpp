@@ -140,6 +140,20 @@ class ExternalGridInitialData
             remap, [](int *p) { amrex::The_Managed_Arena()->free(p); });
         m_remap_ptr = remap;
 
+        // A header that lists names but not the same NUMBER of them as it
+        // declares components is the ambiguous-stride case: one of the two is
+        // wrong, and guessing positionally would misalign every row after the
+        // first.  Refuse rather than fall back.  (See DebugPreGPU.md.)
+        if (!file_comp_names.empty() &&
+            static_cast<int>(file_comp_names.size()) != m_ncomp)
+        {
+            throw std::runtime_error(
+                "ExternalGridInitialData: header declares num_components " +
+                std::to_string(m_ncomp) + " but lists " +
+                std::to_string(file_comp_names.size()) +
+                " component_names; refusing to guess the payload stride.");
+        }
+
         const bool have_names =
             static_cast<int>(file_comp_names.size()) == m_ncomp;
 

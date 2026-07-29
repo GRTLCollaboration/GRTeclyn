@@ -373,7 +373,7 @@ comparison and full env-var reference.
 3. **HQ `CANDIDATES` is eval/gpu pairs** — e.g. `"46 0 39 1"` not a bare eval list.
 4. **Search turns frames off, HQ turns them on** — by design (`search_common.sh` vs `promote_common.sh`).
 5. **Promotion must use `N > L`** (or same `L` with larger `N`) to refine the grid. `L=N` only enlarges the domain at `dx=1` — no fidelity gain.
-6. **Plotfiles go to node-local scratch, never NFS** — set `amr.plot_file` / `amr.check_file` under `/tmp`, point the consumer at the same path, keep `output_path` on NFS. See [Plotfile scratch MUST be node-local](#plotfile-scratch-must-be-node-local-required).
+6. **Plotfiles go to node-local scratch, never NFS** — automatic since `core/scratch.py`; `output_path` stays on NFS. Only override it (`GRTECLYN_SCRATCH`) if `/tmp` is not node-local on your machine. See [Plotfile scratch MUST be node-local](#plotfile-scratch-must-be-node-local-required).
 
 ### ALWAYS extract frames on the fly (required)
 
@@ -551,11 +551,27 @@ own directories". Nothing in this pipeline touches them. The complete set of
 write targets is: `/tmp/<scratch>/` (transient) and the NFS run directory
 (`data/`, `small_data/`, `run.log`, `params.txt`). Nothing else.
 
-> **Note (not yet enforced in code).** `core/params.py` still defaults
-> `amr.plot_file` / `amr.check_file` to the episode directory, so on NFS-backed
-> `RUNS_DIR` the default lands on NFS. Until that default is changed, local
-> scratch is a launcher-level convention that each campaign script must apply
-> explicitly. Reference implementation: [`scripts/campaigns/rl/pump_ladder_queue.py`](scripts/campaigns/rl/pump_ladder_queue.py).
+**Enforced in code, for every stage.** `core/scratch.py` is the single mapping
+from an episode directory to its node-local transient directory, applied in
+`core/params.py::episode_path_overrides`. Search (QD, CMA-ES), HQ promotion and
+the post-load gate all write plotfiles to `/tmp/grteclyn_scratch/<campaign>_<eval>_<hash>/`
+without a launcher change; the consumer's `--data`, the scoring plotfile lookup
+and every cleanup path use the same mapping.
+
+| Variable | Effect |
+|----------|--------|
+| *(unset)* | scratch at `/tmp/grteclyn_scratch` — the default |
+| `GRTECLYN_SCRATCH=/path` | move the scratch root (e.g. another local mount) |
+| `GRTECLYN_SCRATCH=0` | keep plotfiles in the episode directory (old behaviour) |
+| `GRTECLYN_SCRATCH_FORCE_PURGE=1` | purge scratch even when the ledger is incomplete |
+
+An unwritable root falls back to the episode directory with a warning instead
+of failing a campaign, and a launcher that sets `amr.plot_file` itself (the RL
+gate scripts, the pump queues) keeps its explicit value. Purging is
+ledger-gated: only plotfiles recorded in `small_data/consume_state.json` are
+deleted, and anything kept is reported rather than silently retained.
+Reference launcher implementation, predating the central one:
+[`scripts/campaigns/rl/pump_ladder_queue.py`](scripts/campaigns/rl/pump_ladder_queue.py).
 
 #### Plotfile pruning: failure mode and fix
 

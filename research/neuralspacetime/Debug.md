@@ -42,7 +42,7 @@ campaign F (§6) is running to decide. Nothing is in `research.tex` yet.
 | "confinement saturates at `t_pump ≈ 8`" | product of the governor-contaminated campaign [§1.2, §3] |
 | anything resting on the controller reservoir | ansatz mathematically unstable, abandoned [§3] |
 | "the pump delays black hole formation" (horizons t=15.8 → 24.5) | `theta_plus`/`max_ah_r` are pointwise proxies, not surface-integrated expansion [§12] |
-| a black hole / apparent horizon forms in **any** run | no AH finder exists here [§12, §20] |
+| a black hole / apparent horizon forms in **any** run | no AH finder exists here [§12, §20]. The shell-averaged expansion (§16b) is a better instrument, still unvalidated and still not a finder |
 | "the pump moves mass from the phantom to the canonical sector" | zero transfer; 100% numerator growth from injection [§18.1] |
 | "the pump acts on / reaches the phantom sector" (pre-`19.8` runs) | a params-parsing bug routed **all five** spotlights to canonical; phantom received zero pump force in every bicomplex campaign to date [§19.8] |
 | `f_geo^evol` is unmeasured or zero **for the exotic pump runs** | it is 12.35–13.13%, trustworthy at 257³ [§17]. `research.tex` line 172 is the *canonical-only positive-energy* sector — a different sector. Do not conflate |
@@ -375,7 +375,7 @@ confirming it as the earlier trigger.
 | 18 | scoring pass recomputed a number it already had | `score_evolving_geodesic.py` | `4f31f33a` |
 | 19 | **`recipe_scalar_field_signs` parsed only its first token** | `SimulationParameters.hpp` | §19.8 |
 | 20 | superposed-target PD law (overlap strip) | `RLPumpForce.hpp` | `64c89be4` |
-| 21 | `theta_plus` proxy read the refinement edge | `RadialRecipeLevel.cpp` | `e01ec730` — **partial: stencil contamination gone, false horizon REMAINS**, §16a |
+| 21 | `theta_plus` proxy read the refinement edge | `RadialRecipeLevel.cpp` | `e01ec730` — **partial: stencil contamination gone, false horizon REMAINS**, §16a. Shell-averaged replacement now built but **not field-validated**, §16b |
 | 22 | constraint norms level-0-only, unmasked, domain-diluted | `RadialRecipeLevel.cpp` | cols 12-17 added; **analysis still open**, §4 item 0 |
 
 ### The ones with teeth
@@ -939,6 +939,45 @@ published conclusion moves. Options, in order of cost: drop the three columns;
 restrict the reduction to r < `recipe_basis_radius_max` so the footprint edge is
 not the answer; or replace it with a surface-integrated expansion on a located
 surface (the only real fix). The `e01ec730` mask is harmless and stays.
+
+### 16b. The third option is now implemented — and NOT yet field-validated
+
+Status 2026-07-29. `RadialRecipeLevel::specificPostTimeStep` no longer takes a
+pointwise minimum. It averages `theta_plus` over concentric coordinate spheres
+centred on the **lapse minimum** (the one place a horizon can form first), and
+counts a sphere only when the finest level covers ≥ 90% of its volume with
+≥ 32 cells. That is §16a's option 3, and it attacks the actual mechanism: the
+answer can no longer be "the largest radius in the footprint", because a
+partially sampled sphere is discarded rather than averaged.
+
+The three columns keep their positions (8, 9, 10 — see the column map above), so
+nothing reading `collapse_diagnostics.dat` by index moves. `min_theta_plus` is
+**NaN** when no sphere qualified: unmeasured, and it must never read as zero.
+
+*This code had been written but never connected.* The output line still named the
+three deleted pointwise variables, so the file could not compile and the binary
+on disk predated it. Reconnecting it was a rename, not a physics change.
+
+**What has been checked:** it builds, and on an Ellis–Bronnikov smoke run
+(t=1, ml=1) it reports `max_ah_r = 0` with `min_theta_plus = +0.149` — no
+trapped surface on data that has none, which is the trivially necessary
+condition and nothing more.
+
+**What has NOT been checked, and it is the one that matters:** the §16a field
+A/B. The old proxy's signature was a radius pinned at 10.2–10.5 for twenty time
+units while theta plunged with global `max|K|`. Whether the shell average breaks
+that pinning can only be seen on a run that actually collapses — i.e. re-run the
+`pcf_t010_t60` arm against this binary and join on time. **Until that A/B is
+done, §16a stands unchanged: the three columns remain unquotable as horizon
+evidence.** A new implementation is not a validated one — that is §17's seventh
+habit applied to this very section, which earned its own entry for exactly this
+mistake.
+
+One diagnostic is computed and then discarded: `n_shells_ok`, the number of
+spheres that passed the coverage test. It is the natural companion to a NaN
+(*why* was nothing measured), and appending it would not move any existing
+column. Left out deliberately — adding a column is a decision for whoever runs
+the validation.
 
 ## 17. The recurring failure mode
 

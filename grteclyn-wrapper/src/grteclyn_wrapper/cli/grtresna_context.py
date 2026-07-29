@@ -11,6 +11,7 @@ from ..grtresna.matter.models import matter_selection_base_overrides
 from ..grtresna.solver import GRTresnaConfig
 from ..search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 from ..search.optimize import ANGULAR_BASE_OVERRIDES, SearchDimension, build_search_space
+from ..search.optimize.spaces import restrict_retrograde_omega
 from ..search.solved_ftl_gate import SolvedFtlGateConfig
 from .grtresna_args import (
     grtresna_speed_kwargs,
@@ -42,6 +43,14 @@ def _grtresna_domain_from_args(args: argparse.Namespace) -> GRTresnaDomainConfig
         gridinit_ny=getattr(args, "grtresna_gridinit_ny", 64),
         gridinit_nz=getattr(args, "grtresna_gridinit_nz", 64),
     )
+
+
+def _retrograde_only(overrides: dict[str, Any]) -> bool:
+    """Mirrors the decoder's reading of ``trajectory_retrograde_only``."""
+    try:
+        return bool(int(float(overrides.get("trajectory_retrograde_only", 0))))
+    except (TypeError, ValueError):
+        return False
 
 
 def build_grtresna_search_context(
@@ -84,6 +93,14 @@ def build_grtresna_search_context(
         grtresna_shell_static=shell_static,
         grtresna_boson_allow_exotic=boson_allow_exotic,
         grtresna_boson_matched_bounds=boson_matched_bounds,
+    )
+    # A retrograde-only campaign folds positive omega back at decode, so the
+    # upper half of every omega axis is a mirror of the lower half and the
+    # optimizer is fitting a shape that does not exist.  Search the half that
+    # survives decoding.  DebugPreGPU.md PG-7.
+    search_space = restrict_retrograde_omega(
+        search_space,
+        enabled=_retrograde_only(base_overrides),
     )
     overrides = dict(base_overrides)
     if use_grtresna and matter.is_scalar and grtresna_ansatz == "ring":

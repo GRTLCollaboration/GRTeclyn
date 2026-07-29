@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -31,7 +32,12 @@ from ..gpu_pool import (
 )
 from ..scoring_pool import ScoringPool, scoring_workers_from_env
 from ..optimize import DEFAULT_SEARCH_SPACE, SearchDimension
-from ..optimize.candidates import _vector_to_overrides
+from ..optimize.config import unrecorded_shell_currents
+from ..optimize.candidates import (
+    _clip_vector,
+    _overrides_to_vector,
+    _vector_to_overrides,
+)
 from ..trajectory_log import (
     format_trajectory_line,
     infer_trajectory_status,
@@ -57,6 +63,7 @@ from ..ftl_retention import (
     compute_keep_eval_ids,
     save_ftl_champions,
 )
+from ...core.scratch import purge_orphan_scratch
 from .io import _iterations_for_target_evals, _load_trajectory_records, _prune_eval_dirs
 from ..pre_gpu import NearMissPool, attach_pre_gpu_metrics_to_record, is_graded_rejection
 from .pre_gpu_archive import (
@@ -332,12 +339,27 @@ def run_qd_search(
         res: Evaluation | None,
     ) -> tuple[dict[str, Any], Elite | None]:
         overrides = _vector_to_overrides(x, dims, base)
+        # The authoritative genome, stored next to the decoded physics instead of
+        # being re-derived from it.  ``overrides`` carries *physical* omega/v_rad,
+        # and every consumer that read those back as genome coordinates re-applied
+        # the v_max/R0 contraction -- DebugPreGPU.md PG-1.  Rejected candidates
+        # need it too: they feed the near-miss pool.
+        genome = _clip_vector(x, dims)
+        # Matter currents that arrive as decode defaults appear in no dimension
+        # and no override, so the record would otherwise show a still shell that
+        # is in fact flowing.  DebugPreGPU.md PG-2.
+        hidden_currents = unrecorded_shell_currents(
+            overrides, frozenset(d.param_key for d in dims)
+        )
         if res is None or res.preflight_rejected:
             record: dict[str, Any] = {
                 "eval": idx,
                 "preflight_rejected": True,
                 "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+                "genome": genome,
             }
+            if hidden_currents:
+                record["unsearched_currents"] = hidden_currents
             if res is not None:
                 record.update(trajectory_flags_from_evaluation(res))
             record["status"] = infer_trajectory_status(record)
@@ -363,6 +385,7 @@ def run_qd_search(
                 score=res.score,
                 descriptors=(d1, d2),
                 params=params,
+                genome=genome,
                 episode=res.episode_path,
                 tier=assessment.tier,
                 tier_name=assessment.tier_name,
@@ -382,7 +405,10 @@ def run_qd_search(
             "episode": res.episode_path,
             "components": res.components,
             "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+            "genome": genome,
         }
+        if hidden_currents:
+            record["unsearched_currents"] = hidden_currents
         record.update(flags)
         record["status"] = status
         attach_pre_gpu_metrics_to_record(record, res.metrics)
@@ -628,26 +654,45 @@ def run_qd_search(
         )
 
     _worker_rng_local = threading.local()
-    _worker_rng_seeds = list(
-        np.random.SeedSequence(seed if seed is not None else 0).spawn(
-            gpu_pool.total_slots + cpu_admission.max_concurrent + 4
-        )
-    )
+    # One child stream per worker, minted on demand.  Spawning a fixed count up
+    # front meant guessing the worker count in a second place: it guessed
+    # slots + cpu + 4 while the pipeline ran slots + cpu + scoring_workers, and
+    # the extra workers wrapped round modulo the list and drew the *same*
+    # mutation noise as workers 0..3 -- DebugPreGPU.md PG-5.  Successive
+    # spawn(1) calls yield exactly the children spawn(n) would have, so the
+    # streams every existing worker gets are unchanged.
+    _worker_seed_sequence = np.random.SeedSequence(seed if seed is not None else 0)
     _worker_rng_assign_lock = threading.Lock()
-    _worker_rng_next_idx = [0]
 
     def _get_worker_rng() -> np.random.Generator:
         rng = getattr(_worker_rng_local, "rng", None)
         if rng is None:
             with _worker_rng_assign_lock:
-                idx = _worker_rng_next_idx[0]
-                _worker_rng_next_idx[0] += 1
-                child_seed = _worker_rng_seeds[idx % len(_worker_rng_seeds)]
+                (child_seed,) = _worker_seed_sequence.spawn(1)
             _worker_rng_local.rng = np.random.default_rng(child_seed)
             rng = _worker_rng_local.rng
         return rng
 
     def _on_eval_complete(job: EvalJob[list[float]], res: Evaluation) -> None:
+        """Record one completed evaluation, then top the pipeline back up.
+
+        The refill has to survive anything the recording does.  A single NaN
+        descriptor used to raise out of here before the resubmit, and the
+        in-flight slot was gone for the rest of the campaign -- enough of them
+        and the search quietly stops without ever failing.  DebugPreGPU.md PG-8.
+        """
+        try:
+            _handle_eval_complete(job, res)
+        except Exception:  # noqa: BLE001 - a bad record must not cost a slot
+            traceback.print_exc()
+            print(f"[qd] eval {job.eval_id}: recording failed, slot refilled")
+        finally:
+            if eval_counter[0] < total_target and not stop_event.is_set():
+                with archive_lock:
+                    new_x = _sample_next_candidate(_get_worker_rng())
+                pipeline.submit(new_x)
+
+    def _handle_eval_complete(job: EvalJob[list[float]], res: Evaluation) -> None:
         record, elite = _build_record_and_elite(idx=job.eval_id, x=job.payload, res=res)
         retention_events: list[dict[str, Any]] = []
         with archive_lock:
@@ -700,11 +745,6 @@ def run_qd_search(
             ):
                 stop_event.set()
 
-        if eval_counter[0] < total_target and not stop_event.is_set():
-            with archive_lock:
-                new_x = _sample_next_candidate(_get_worker_rng())
-            pipeline.submit(new_x)
-
     # Keep a job resident at every stage (GRTresna solve, GPU evolve, score) so
     # no stage starves while another is busy. Scoring now runs off the GPU-lease
     # path, so it needs its own share of in-flight slots.
@@ -734,6 +774,10 @@ def run_qd_search(
         f"iters={iterations}, GPUs={effective_gpu_ids}, pipeline={use_pipeline}, "
         f"evals={completed_evals}->{total_target}"
     )
+    # Plotfiles live on the node's own disk now, which is the small one.  A
+    # campaign killed mid-flight leaves directories nothing will return for;
+    # reclaim them before adding a few hundred more.
+    purge_orphan_scratch()
 
     if not use_pipeline:
         # Legacy batch mode scores inline; the pipeline scoring pool is unused.
@@ -797,8 +841,10 @@ def run_qd_search(
         )
 
     if not resume:
+        # --seed-eval-dirs hands us decoded overrides, not genomes; read them
+        # back through the inverse or the speed axes arrive pre-contracted (PG-1).
         seed_vectors = [
-            [float(s.get(d.param_key, d.center)) for d in dims]
+            _overrides_to_vector(s, dims)
             for s in (seed_overrides or [])
         ]
         # Fill every pipeline stage on startup (previously only n_init≈batch,
@@ -912,12 +958,19 @@ def _run_legacy_batch_mode(
         insert_archive: bool,
     ) -> dict[str, Any]:
         overrides = _vector_to_overrides(x, dims, base)
+        genome = _clip_vector(x, dims)  # see _build_record_and_elite / PG-1
+        hidden_currents = unrecorded_shell_currents(
+            overrides, frozenset(d.param_key for d in dims)
+        )
         if res is None or res.preflight_rejected:
             record: dict[str, Any] = {
                 "eval": idx,
                 "preflight_rejected": True,
                 "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+                "genome": genome,
             }
+            if hidden_currents:
+                record["unsearched_currents"] = hidden_currents
             if res is not None:
                 record.update(trajectory_flags_from_evaluation(res))
             record["status"] = infer_trajectory_status(record)
@@ -942,6 +995,7 @@ def _run_legacy_batch_mode(
                 score=res.score,
                 descriptors=(d1, d2),
                 params=params,
+                genome=genome,
                 episode=res.episode_path,
                 tier=assessment.tier,
                 tier_name=assessment.tier_name,
@@ -961,7 +1015,10 @@ def _run_legacy_batch_mode(
             "episode": res.episode_path,
             "components": res.components,
             "overrides": {d.param_key: overrides.get(d.param_key) for d in dims},
+            "genome": genome,
         }
+        if hidden_currents:
+            record["unsearched_currents"] = hidden_currents
         record.update(flags)
         record["status"] = status
         if res is not None:
@@ -1062,8 +1119,10 @@ def _run_legacy_batch_mode(
     )
 
     if not resume:
+        # --seed-eval-dirs hands us decoded overrides, not genomes; read them
+        # back through the inverse or the speed axes arrive pre-contracted (PG-1).
         seed_vectors = [
-            [float(s.get(d.param_key, d.center)) for d in dims]
+            _overrides_to_vector(s, dims)
             for s in (seed_overrides or [])
         ]
         init_vectors = seed_vectors + [_sample_random(dims, rng) for _ in range(n_init)]
