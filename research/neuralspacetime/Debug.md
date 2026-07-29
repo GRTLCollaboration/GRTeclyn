@@ -203,6 +203,24 @@ never across configs with different ω [§18.1].
    absolute claim of the form "the constraint violation of this run is 4e-3".
    **Campaigns A–F predate the new columns and have 11, not 17.**
 
+0b. **BUG — the `theta_plus` fix treated the wrong cause** (found 2026-07-29 by
+   its own field A/B, §16a). `e01ec730` masked refinement-edge ghosts; the false
+   trapped surface at r≈10.3 is unchanged, because the minimum sits at an
+   *interior* cell at the footprint's outer radius and re-pins one cell in.
+   Theta tracks global `max|K|`, not local geometry. **Nothing published moves**
+   — collapse calls were always made on lapse/chi/max|K| — but the three theta
+   columns are not evidence of anything and must not be quoted. Cheapest real
+   fix: restrict the reduction to r < `recipe_basis_radius_max` so the answer is
+   not simply "the edge of the box I looked in". Proper fix: surface-integrated
+   expansion on a located surface, i.e. an actual horizon finder.
+
+0c. **Metric stack under-resolves collapse-epoch slices.** The geodesic scorer's
+   fidelity gate refused `pcf_t010_t60` (1/28 slices, true `min_chi` 4.889e-02
+   read as 7.744e-02 at 257³). The gate is working; the cache is too coarse.
+   **Every t≥40 arm will hit this**, so raise `GRTECLYN_METRIC_STACK_N_SPACE`
+   for endurance runs — never `--force`, which is exactly how a spurious FTL
+   shortcut would enter the record.
+
 1. **Profile-matched target.** Both the overlap strip [§19.10] and the
    bridge-feeding [§19.11] are *shape* errors: the controller aims at an
    analytic sech whose skirts do not match the real lump. Measure the actual
@@ -221,18 +239,29 @@ never across configs with different ω [§18.1].
 
 ## 5. Open scientific questions
 
-* **Does any configuration hold to t ≥ 40?** Every config so far collapses;
-  only the timing differs (t ≈ 12 → 19 → 32 → ≥30 as aim and law vary).
-  Two readings remain open: a stable window exists between aim 0.10 and 0.15,
-  **or** the 2+3 lump geometry is gravitationally unstable at this mass and no
-  pump setting saves it — in which case the lever is the *configuration* (lump
-  count, separation, exotic fraction, rotation), not the controller.
-* **Stability vs warp strength.** The arm with the strongest warp signature
-  (`pcb_match`, f_geo 0.279, local speed 1.78) ends deepest (lapse 0.28); the
-  healthiest (`pcc_t010`, lapse 0.63) carries 65% of that signature; the
-  flattest (`tw2`, 115 units diffuse) the least (0.089). Concentration buys
-  warp and costs stability. Is there an optimum between 0.08 and 0.10, or does
-  the superposed law at a reduced aim (~0.06) beat both?
+* **Does any configuration hold to t ≥ 40?** **PARTLY ANSWERED (campaign F, §6).**
+  `pcf_t012_t60` (aim 0.12) cleared t=40 with margin — lapse 0.378, chi 0.231 —
+  the first arm ever to do so, then collapsed at t=43.86. So the bar is
+  reachable, but *nothing has yet held indefinitely*: every configuration still
+  collapses and only the timing moves. **Open:** where the improvement turns
+  over. Kill time is monotonic in aim across four runs (0.06 → 26.7, 0.08 → 32,
+  0.10 → 39.6, 0.12 → 43.9), so the next rungs are **0.14 and 0.16**. If it does
+  not turn over by 0.16 the aim is not the limit and the lever is the
+  *configuration* (lump count, separation, exotic fraction, rotation).
+* **Stability vs warp strength — the assumed trade did not appear over 0.10→0.12.**
+  The arm with the strongest warp signature (`pcb_match`, f_geo 0.279, local
+  speed 1.78) ends deepest (lapse 0.28); the healthiest (`pcc_t010`, lapse 0.63)
+  carries 65% of that signature; the flattest (`tw2`, 115 units diffuse) the
+  least (0.089) — that is the concentration-buys-warp-costs-stability reading.
+  But campaign F's 0.12 arm held **more** matter than 0.10 (68.7 vs 56.1 at
+  t=20) **and** survived longer with ~2× the lapse/chi margin. Over that
+  interval both improve together, so the tension is not universal; either it
+  reappears above 0.12 or the earlier trade was confounded by the pre-fix
+  over-feeding law. The 0.14/0.16 rungs decide it.
+* **Sectors are not independently tunable.** `pcf_split_t60` (canonical 0.08,
+  exotic 0.12) died at t=29.7 — earlier than uniform aiming at *either*
+  constituent value, while holding the richest exotic sector of the four. Why a
+  mixed-aim geometry is worse than both its endpoints is unexplained.
 * **Where between `t_pump` 24 and 30 does driving turn destructive?** Needs
   rungs at 26/28; tp24 and tp30 are bit-identical to t=24 by construction.
 * **`f_geo_evol` vs pump duration** is unresolved by design: a `t_emit=0` ray
@@ -241,23 +270,82 @@ never across configs with different ω [§18.1].
 * **The §16.3-4 coherence-gate fix is unexercised** — committed, correct by
   inspection, never run on bicomplex data end-to-end [§18.7].
 
-## 6. Campaign F — IN FLIGHT (`runs/pump_confine_f`, launched 2026-07-29 00:32)
+## 6. Campaign F — COMPLETE (`runs/pump_confine_f`, 2026-07-29 00:32–02:41)
 
-All arms clone `pcc_t010` (current best), all to **t=60**, fixed binary
-(`e01ec730`), routing echo `parsed: 1 -1 -1 1 -1` verified in all four logs.
+All arms clone `pcc_t010` (previous best), all to **t=60**, binary `e01ec730`,
+routing echo `parsed: 1 -1 -1 1 -1` verified in all four logs. Every arm was
+ended by the watchdog; none reached t=60. **No arm crossed governor 0.5 at any
+time** (`governor_min = 1.0000` in all four) — no result here was bought with
+constraint violation.
 
-| arm | change vs pcc_t010 | question |
-|---|---|---|
-| `pcf_t010_t60` | `stop_time = 60` | **PRIMARY.** Does the best config survive past t≈32, where aim 0.08 died? Also the field A/B for the §20 theta fix |
-| `pcf_t012_t60` | all `well_depth` 0.12 | is the optimum above 0.10, or is the 0.15 cliff near? |
-| `pcf_split_t60` | lumps 0,3 → 0.08; 1,2,4 → 0.12 | aim high only on the sector that resists collapse |
-| `pcf_sup_a06_t60` | all 0.06 + `rl_pump_superpose_targets = 1` | was the over-feeding the law or the dose? Pass = total ≈48 (not 67) at t=13, strip still absent |
+| arm | aim | killed at | trigger | t_end | end canon | end exotic |
+|---|---|---|---|---|---|---|
+| `pcf_t012_t60` | 0.12 flat | **43.86** | `min_chi` 0.0495 | 43.2 | 32.4 | 35.7 |
+| `pcf_t010_t60` | 0.10 flat | 39.62 | `min_lapse` 0.1432 | 38.9 | 27.0 | 29.1 |
+| `pcf_split_t60` | 0.08 / 0.12 | 29.67 | `min_chi` 0.0231 | 28.8 | 22.3 | 37.0 |
+| `pcf_sup_a06_t60` | 0.06 superposed | 26.66 | `min_chi` 0.0475 | 25.9 | 20.1 | 31.4 |
+
+**`pcf_t012_t60` is the first arm in any campaign to clear the t ≥ 40 bar.**
+At t=40: total 65.0, canonical 33.1, exotic 36.0, `min_lapse` 0.378,
+`min_chi` 0.231 — not marginal, comfortably above both kill floors. Score with
+`score_confine_abs.py --endurance` (`79e965a8`; the old late window [20.16,
+27.36] was built for t=30 runs and is blind to this regime).
+
+**Aiming higher won on both axes at once.** 0.12 held *more* matter than 0.10
+(68.7 vs 56.1 total at t=20) *and* survived 4.2 time units longer, with roughly
+twice the lapse and chi margin throughout. This contradicts the
+stability-vs-warp tension assumed in §19.13: over 0.10 → 0.12 there is no
+trade, both improve. It does not establish monotonicity — 0.15 is untested
+since aim 0.08 died at t≈32 and the cliff was inferred, not measured.
+
+**Split aiming failed, and that is the informative negative.** Aiming canonical
+low (0.08) and exotic high (0.12) died at t=29.7 — *earlier than flat aiming at
+either constituent value*. The sectors are not independently tunable; the
+mixed-aim geometry is worse than either uniform one. Its exotic sector was the
+richest of the four at kill time (37.0), so the failure is geometric, not a
+matter shortage.
+
+**The superposed-target fix (`64c89be4`) hit its predicted number exactly**:
+48.3 total at t=20 against the ~67 the over-feeding law produced. The law is
+right; 0.06 is simply too low an aim to survive — it died earliest of the four.
+
+**Answer to the open question: no stable window was found, but the trend now
+points somewhere.** Every configuration still collapses; only the timing moves.
+The ordering (0.06 → 26.7, 0.08 → ~32, 0.10 → 39.6, 0.12 → 43.9) is monotonic
+in aim across four independent runs, so the next test is **0.14 and 0.16**, to
+find where the improvement turns over. If it does not turn over by 0.16 the
+limit is not the aim and the lever is the configuration (lump count/separation
+/exotic fraction), per the §19.13 decision tree.
+
+**Geodesic scores — the two short arms scored, both endurance arms were
+refused.** `sup_a06` 8.16e-02 and `split` 8.41e-02 (5/5 rays, fidelity PASS).
+The fidelity gate **refused** both survivors rather than emit a spurious
+shortcut:
+
+| arm | bad slices | worst | true `min_chi` | cached | error |
+|---|---|---|---|---|---|
+| `pcf_t010_t60` | 1 / 28 | t=38.88 | 4.889e-02 | 7.744e-02 | 2× too shallow |
+| `pcf_t012_t60` | 2 / 31 | t=43.20 | 7.227e-02 | 1.929e-01 | 2.7× too shallow |
+
+This is the gate working, not a failure — a well read 2–3× too shallow means
+rays do not feel it and arrive early, which is exactly how a fake FTL result
+would enter the record. **The pattern is structural: both refusals are in the
+collapse epoch, and every arm that survives to t≥40 will hit it**, because the
+deepest slices are precisely the ones 257³ cannot resolve. The consequence is
+that *the arms that survive longest are currently the ones we cannot score for
+FTL* — so raise `GRTECLYN_METRIC_STACK_N_SPACE` for endurance runs (§4 item 0c).
+Never `--force`. Campaign F therefore has **no FTL number for its two best
+arms**; the 8.2–8.4e-02 figures above are from the two that died early and are
+not evidence about the endurance regime.
 
 **Watchdog** (new, in `pump_confine_queue.py`): aborts on `min_lapse < 0.15`,
 `min_chi < 0.05`, NaN, or a pre-t=27 breach of `L2_Ham > 0.035` / governor <0.5.
 Offline replay kills `pcd_match_t60` at t=30.62 and `pcd_match_p0` at t=26.36,
 and leaves `pcc_t010`/`pcc_match_tw2` untouched (they sit 4–10× clear).
 Column indices are width-guarded so a layout change fails the watchdog *open*.
+**Field record: fired correctly on all four arms**, and `min_lapse` led on
+`pcf_t010_t60` (0.1432 while `min_chi` was 0.0287, still above its own floor),
+confirming it as the earlier trigger.
 
 ---
 
@@ -287,7 +375,7 @@ Column indices are width-guarded so a layout change fails the watchdog *open*.
 | 18 | scoring pass recomputed a number it already had | `score_evolving_geodesic.py` | `4f31f33a` |
 | 19 | **`recipe_scalar_field_signs` parsed only its first token** | `SimulationParameters.hpp` | §19.8 |
 | 20 | superposed-target PD law (overlap strip) | `RLPumpForce.hpp` | `64c89be4` |
-| 21 | `theta_plus` proxy read the refinement edge | `RadialRecipeLevel.cpp` | `e01ec730` |
+| 21 | `theta_plus` proxy read the refinement edge | `RadialRecipeLevel.cpp` | `e01ec730` — **partial: stencil contamination gone, false horizon REMAINS**, §16a |
 | 22 | constraint norms level-0-only, unmasked, domain-diluted | `RadialRecipeLevel.cpp` | cols 12-17 added; **analysis still open**, §4 item 0 |
 
 ### The ones with teeth
@@ -380,7 +468,9 @@ injection" [§18.1], the `pca_pwd_up` NaN (it tripled the *canonical* drive), an
 the phantom retention gains (real measurements, wrong attribution — the benefit
 was **indirect**, geometry sourced by the pumped canonical sector).
 
-**#21 theta_plus refinement edge.** See §20 below.
+**#21 theta_plus refinement edge.** See §16/§20 below — and §16a, where the
+field A/B shows the fix removed the secondary cause only. The proxy still
+reports a trapped surface at r≈10.3 with the interior at chi≈0.6.
 
 ## 8. Abandoned / retracted — do not re-derive
 
@@ -610,7 +700,7 @@ t=11.5, `NaN in K` at t≈12.3); 0.10 conserves; 0.08 holds then dies at 32;
   `lad_m0_tp4`. `hq146_m1_tp0_t30` — pump never on, reservoir ≡ 0.
 * `runs/pump_ladder_fast/fast_tp{0,4,8,16}`; `fast_tp30` valid to t≈29.
 * `runs/pump_confine_{b,c,d,e}` — see §13. **Ran the pre-fix binary**, so their
-  `theta_plus` columns carry the §20 artifact.
+  `theta_plus` columns carry the §20 artifact — as do the post-fix ones, §16a.
 
 **CONTAMINATED — do not use constraint columns (2,3,7,8)**
 * `runs/always_on_pump/hq146_m1_tp{4,8,16,30}_t30` — ledger diverged AND
@@ -808,6 +898,48 @@ derived from lapse/chi/max|K| by hand. The paper is untouched: §16.7's
 correction concerns RM data where the proxy migrates *inward*, the opposite
 signature. `pcf_t010_t60` is the field A/B.
 
+### 16a. FIELD VALIDATION: THE FIX DID NOT ACHIEVE ITS PURPOSE
+
+`pcf_t010_t60` (fixed binary) vs `pcc_t010` (pre-fix), same config, same seed,
+3000 rows joined on time. **The false-horizon signal is unchanged.**
+
+| window | `min_theta_plus` | `r_at_min` |
+|---|---|---|
+| t < 14 | differs in ~50% of rows | differs (e.g. 11.792 → 11.376) |
+| **t = 16 → 30** | **bit-identical** | **bit-identical, pinned 10.22 → 10.40** |
+
+The fix does what it was written to do — it removes stencil contamination, and
+early rows move. But at the epoch it was built for it changes *nothing*:
+
+| t | theta | r_at_min | min_lapse | min_chi |
+|---|---|---|---|---|
+| 25.64 | −0.0001 | 10.29 | 0.702 | 0.639 |
+| 27.91 | −0.0500 | 10.35 | — | 0.573 |
+| 36.00 | −0.5861 | 10.50 | — | — |
+
+Still claiming a trapped surface at r≈10.3 with the interior at chi ≈ 0.6.
+
+**Why the diagnosis was wrong.** The pinned minimum is not at a ghost cell — it
+is at an *interior* cell, at the largest radius the finest level's footprint
+reaches. Masking one layer moves it one cell and it re-pins. The §16 CAVEAT
+already said this ("the minimum over any footprint sits at the largest radius in
+that footprint by construction") but it was filed as a caveat *to* the fix
+rather than recognised as the dominant mechanism, so the fix was written for the
+secondary cause. **The radius is essentially static (10.26 → 10.50 over twenty
+time units) while theta plunges +0.11 → −0.59** — theta tracks global
+`max|K|` growth (0.049 → 0.374), not a migrating surface. A pointwise proxy with
+a `−(2/3)K` term evaluated on a bounded footprint goes negative at the footprint
+edge whenever global K grows, regardless of local geometry.
+
+**Consequence.** The proxy is **structurally unfit for collapse calls** and
+masking cannot fix it. Do not quote `min_theta_plus`, `r_at_min_theta_plus` or
+`max_ah_r` as horizon evidence in any campaign, pre- or post-fix. Collapse calls
+stay on `min_lapse` / `min_chi` / `max|K|`, as they already were — so no
+published conclusion moves. Options, in order of cost: drop the three columns;
+restrict the reduction to r < `recipe_basis_radius_max` so the footprint edge is
+not the answer; or replace it with a surface-integrated expansion on a located
+surface (the only real fix). The `e01ec730` mask is harmless and stays.
+
 ## 17. The recurring failure mode
 
 Five bugs had the same shape: **a value was derived across a fidelity boundary
@@ -819,7 +951,7 @@ and then read as physics, while the authoritative source sat unused next to it.*
 | metric cache [§15] | a 33³ resample of an AMR grid | the run's own `min_chi` in `collapse_diagnostics.dat` |
 | scoring cost [§17] | a recomputed frozen peak from the float32 cache | `ftl_timeseries.dat` col 3, measured at full AMR fidelity |
 | confined_frac [§19.1] | a ratio with a growing denominator | `total_activity`, sitting in column 2 |
-| theta_plus [§20] | a stencil across a coarse-fine interface | the interior lapse/chi in the same file |
+| theta_plus [§20] | a pointwise proxy at the edge of its own reduction footprint | the interior lapse/chi in the same file |
 
 In every case the fix was to compare against the source rather than trust the
 copy, and in every case the check was cheap enough that there was never a reason
@@ -829,7 +961,21 @@ A sixth, found 2026-07-29, is a *different* shape and worth naming separately:
 **a number built as a control-loop input was promoted to a published result**
 without anyone re-deriving what it measures (§4 item 0). It is correct for its
 job and wrong for the paper, which is why no test would ever have flagged it.
-Habit to adopt: before quoting any diagnostic, check what it was written *for*. Two further habits earned the hard way: **never validate this system on
+Habit to adopt: before quoting any diagnostic, check what it was written *for*.
+
+A seventh, found 2026-07-29 (§16a), is different again: **a fix was verified for
+the wrong property.** `e01ec730` was checked exhaustively for physics-neutrality
+— bit-identity across four diagnostic files, ULP-level accounting, a preserved
+pre-fix binary — and it passed all of it. Nobody checked whether it *worked*.
+The field A/B shows the false horizon is bit-identical over t=16–30, the exact
+window the fix existed to repair. Worse, the correct explanation was already
+written down in the same section, filed as a CAVEAT *to* the fix rather than
+recognised as the dominant cause. Habits: **"physics unchanged" is not
+"defect removed"** — every fix needs a test that fails before it and passes
+after; and **when you write a caveat that explains the symptom, stop** — you
+have probably just found the real cause and mislabelled it.
+
+Two further habits earned the hard way: **never validate this system on
 short runs** (the reservoir looked excellent at t=2 and diverges after t≈2.5;
 `pcb_match` looked healthy at t=30 and collapsed at 32), and **when a result is
 backwards, suspect the measurement** — the cache bug was caught by a physics
