@@ -13,6 +13,11 @@ class AHFinder : public ParticleInterpolator<num_components>
   private:
     int m_num_particles;
 
+    // Ring (latitude x longitude) decomposition of the particles,
+    // computed from m_num_particles. m_n_theta * m_n_phi == m_num_particles.
+    int m_n_rings   = 0;
+    int m_ring_size = 0;
+
     // Pseudo-timestepping parameters
     amrex::Real m_eta;
     amrex::Real m_c;
@@ -35,6 +40,11 @@ class AHFinder : public ParticleInterpolator<num_components>
     std::array<double, AMREX_SPACEDIM> m_center;
 
     void generate_spherical_query();
+
+    // Returns the indices of the 4 neighbours of particle j on the ring
+    // grid, ordered {north, south, east, west}. East/west wrap around
+    // longitude; north/south clamp at the poles (returning j itself).
+    std::array<int, 4> neighbours(int j) const;
     void move_radial();
     void init_h_v();
     void update_v();

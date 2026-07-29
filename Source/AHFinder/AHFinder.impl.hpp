@@ -84,14 +84,35 @@ void AHFinder<num_components>::init(
 template <int num_components>
 void AHFinder<num_components>::generate_spherical_query()
 {
-    for (int j = 0; j < m_num_particles; ++j)
-    {
-        double phi   = j * 2. * M_PI / m_num_particles;
-        double theta = j * M_PI / m_num_particles;
+    // Generate particle coordinates such that they are laid out
+    // in rings on a sphere
 
-        interp_coords_x[j] = m_center[0] + cos(phi) * sin(theta);
-        interp_coords_y[j] = m_center[1] + sin(phi) * sin(theta);
-        interp_coords_z[j] = m_center[2] + cos(theta);
+    // Aim for ~twice as many longitudes as latitudes
+    m_n_rings  = 1;
+    int target = std::max(1, (int)std::round(std::sqrt(m_num_particles / 2.0)));
+    for (int n = 1; n <= m_num_particles; ++n)
+    {
+        if (m_num_particles % n == 0 &&
+            std::abs(n - target) < std::abs(m_n_rings - target))
+        {
+            m_n_rings = n;
+        }
+    }
+    m_ring_size = m_num_particles / m_n_rings;
+
+    for (int i = 0; i < m_n_rings; ++i)
+    {
+        // Offset theta so we don't get points on the poles
+        double theta = (i + 0.5) * M_PI / m_n_rings;
+        for (int j = 0; j < m_ring_size; ++j)
+        {
+            double phi = j * 2. * M_PI / m_ring_size;
+            int idx    = i * m_ring_size + j;
+
+            interp_coords_x[idx] = m_center[0] + cos(phi) * sin(theta);
+            interp_coords_y[idx] = m_center[1] + sin(phi) * sin(theta);
+            interp_coords_z[idx] = m_center[2] + cos(theta);
+        }
     }
 
     query.setCoords(0, interp_coords_x.data())
@@ -100,6 +121,45 @@ void AHFinder<num_components>::generate_spherical_query()
         .addComp(0, interp_vals.data(), VariableType::state);
 
     this->m_query = &query;
+}
+
+template <int num_components>
+std::array<int, 4> AHFinder<num_components>::neighbours(int j) const
+{
+    // Get the 4 neighbours of a particle (north, south, east and west)
+
+    int ring_num = j / m_ring_size;
+    int ring_pos = j % m_ring_size;
+
+    int north, south, east, west;
+
+    // North/south neighbours are next ring above/below
+    // In the case we are at a pole, take the particle opposite
+    // on the same ring
+    if (ring_num > 0)
+    {
+        north = (ring_num - 1) * m_ring_size + ring_pos;
+    }
+    else
+    {
+        north = (ring_num + (m_ring_size / 2)) % m_ring_size;
+    }
+
+    if (ring_num < m_n_rings - 1)
+    {
+        south = (ring_num + 1) * m_ring_size + ring_pos;
+    }
+    else
+    {
+        south = (ring_num + (m_ring_size / 2)) % m_ring_size;
+    }
+
+    // East/west neighbours are adjacent in the same ring
+    // Modulo to wrap around
+    east = (ring_num * m_ring_size + (ring_pos + 1)) % m_ring_size;
+    west = ring_num * m_ring_size + (ring_pos - 1 + m_ring_size) % m_ring_size;
+
+    return {north, south, east, west};
 }
 
 template <int num_components> void AHFinder<num_components>::init_h_v()

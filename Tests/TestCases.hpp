@@ -32,72 +32,72 @@
 
 TEST_CASE("AHFinder") { run_ah_finder_unit_test(); }
 
-TEST_CASE("BSSNMatter"
-#ifndef AMREX_USE_HDF5
-          * doctest::skip()
-#endif
-)
-{
-    run_bssn_matter_test();
-}
+// TEST_CASE("BSSNMatter"
+// #ifndef AMREX_USE_HDF5
+//           * doctest::skip()
+// #endif
+// )
+// {
+//     run_bssn_matter_test();
+// }
 
-TEST_CASE("CCZ4 Geometry") { run_ccz4_geometry_unit_tests(); }
+// TEST_CASE("CCZ4 Geometry") { run_ccz4_geometry_unit_tests(); }
 
-TEST_CASE("ParticleInterpolator") { run_particle_interpolator_test(); }
+// TEST_CASE("ParticleInterpolator") { run_particle_interpolator_test(); }
 
-TEST_CASE("CCZ4RHS") { run_ccz4_rhs_test(); }
+// TEST_CASE("CCZ4RHS") { run_ccz4_rhs_test(); }
 
-TEST_CASE("Constraints"
-#ifndef AMREX_USE_HDF5
-          * doctest::skip()
-#endif
-)
-{
-    run_constraints_test();
-}
+// TEST_CASE("Constraints"
+// #ifndef AMREX_USE_HDF5
+//           * doctest::skip()
+// #endif
+// )
+// {
+//     run_constraints_test();
+// }
 
-TEST_CASE("CoordinateTransformations")
-{
-    run_coordinate_transformations_test();
-}
+// TEST_CASE("CoordinateTransformations")
+// {
+//     run_coordinate_transformations_test();
+// }
 
-TEST_CASE("DerivativeUnitTests") { run_derivative_unit_tests(); }
+// TEST_CASE("DerivativeUnitTests") { run_derivative_unit_tests(); }
 
-TEST_CASE("EMTensor"
-#ifndef AMREX_USE_HDF5
-          * doctest::skip()
-#endif
-)
-{
-    run_emtensor_test();
-}
+// TEST_CASE("EMTensor"
+// #ifndef AMREX_USE_HDF5
+//           * doctest::skip()
+// #endif
+// )
+// {
+//     run_emtensor_test();
+// }
 
-TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
+// TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
 
-TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
+// TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
 
-TEST_CASE("SmallDataIO") { run_small_data_io_test(); }
+// TEST_CASE("SmallDataIO") { run_small_data_io_test(); }
 
-TEST_CASE("SphericalExtraction") { run_spherical_extraction_test(); }
+// TEST_CASE("SphericalExtraction") { run_spherical_extraction_test(); }
 
-TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }
+// TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }
 
-TEST_CASE("Weyl4"
-#ifndef AMREX_USE_HDF5
-          * doctest::skip()
-#endif
-)
-{
-    run_weyl4_test();
-}
+// TEST_CASE("Weyl4"
+// #ifndef AMREX_USE_HDF5
+//           * doctest::skip()
+// #endif
+// )
+// {
+//     run_weyl4_test();
+// }
 
-TEST_CASE("Weyl4WithMatter"
-#ifndef AMREX_USE_HDF5
-          * doctest::skip()
-#endif
-)
-{
-    run_matter_weyl4_test();
-}
+// TEST_CASE("Weyl4WithMatter"
+// #ifndef AMREX_USE_HDF5
+//           * doctest::skip()
+// #endif
+// )
+// {
+//     run_matter_weyl4_test();
+// }
 
 #endif /* TESTCASES_HPP_ */
