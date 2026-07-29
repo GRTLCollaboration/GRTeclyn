@@ -1,7 +1,16 @@
 # Pump controller / constraint investigation — findings log
 
-Status as of 2026-07-28. Branch `feature/interstellar`.
-Commits: `fe5ef9f8`, `d6a0c350`, `2ddaa87a`, `6daea1a3`, `fbdbd740`.
+Status as of 2026-07-29. Branch `feature/interstellar`.
+Commits: `fe5ef9f8`, `d6a0c350`, `2ddaa87a`, `6daea1a3`, `fbdbd740`, `64c89be4`,
+`e01ec730`.
+
+**§20 (2026-07-29): the trapped-surface proxy was reading the refinement edge**
+— `theta_plus`'s derivative stencil differenced across a coarse-fine interface,
+so the reported minimum parked at a fixed radius just outside the refined
+region and went negative in runs whose interiors stayed healthy. Fixed
+(`e01ec730`), verified physics-neutral, campaign F runs on the fixed binary.
+**It removes a false-horizon signal; it does not make the proxy a horizon
+finder.** Collapse calls still rest on `min_lapse` + `min_chi` + `max|K|`.
 
 **READ §15 AND §16 FIRST.** §15: the metric cache feeding the geodesic probes
 was sampling at the coarsest AMR level and silently erasing refined geometry —
@@ -1824,8 +1833,11 @@ real horizon would; (ii) a true trapped surface at r ≈ 10 enclosing the whole
 configuration would force the interior to collapse promptly, yet `pcc_t010`
 keeps lapse 0.63 / chi 0.54 to the end. Treat central `min_lapse` + `min_chi`
 + `max|K|` as the trustworthy collapse indicators; by those only `pce_sup`,
-`pcd_match_p0` and the 0.15 arms collapsed. **TODO: exclude the finest level's
-outer ghost band from the theta_plus reduction, or evaluate it on level 0.**
+`pcd_match_p0` and the 0.15 arms collapsed. ~~TODO: exclude the finest level's
+outer ghost band from the theta_plus reduction~~ — **DONE, §19.15 (`e01ec730`);
+the diagnosis above is confirmed, and every theta column in
+`runs/pump_confine_{b,c,d,e}` was written by the pre-fix binary and keeps this
+caveat.**
 
 **FTL/geodesic scores (`ftl_timeseries.dat` peak `f_geo`, `evolving_geodesic.json`):**
 
@@ -1928,13 +1940,12 @@ a *late* indicator — add an abort on `min_lapse < 0.15`, which led `min_chi` b
 
 **Code fixes, in priority order.**
 
-1. **`theta_plus` refinement-edge artifact** (`RadialRecipeLevel.cpp:~838`).
-   The reduction runs over the finest level including its outer band, so the
-   minimum parks at a fixed r ≈ 9–10 just outside `recipe_basis_radius_max =
-   8.0` and reports a growing "horizon" in runs whose interiors stay healthy.
-   Fix: exclude cells within one stencil width of the finest level's boundary
-   (or evaluate the proxy on level 0). Until then every collapse call needs
-   manual lapse/chi corroboration, which is how §19.13 was produced.
+1. ~~**`theta_plus` refinement-edge artifact**~~ — **DONE 2026-07-29
+   (`e01ec730`), see §19.15.** Cells whose stencil reaches a coarse-fine or
+   domain ghost are now excluded from both theta reductions. Verified
+   physics-neutral; campaign F runs on the fixed binary. Collapse calls still
+   rest on lapse/chi/max|K| — the fix removes the false-negative artifact but
+   does **not** turn the proxy into a horizon finder (§19.15 caveat).
 2. **Profile-matched target.** Both the §19.10 strip and the §19.11
    bridge-feeding are shape errors: the controller aims at an analytic sech
    whose skirts do not match the real lump. Measure the actual radial profile
@@ -1959,3 +1970,142 @@ rotation), not the controller. `pcf_split` is the cheapest probe of the second
 reading, since raising the exotic fraction is what the collapse-resistance
 evidence points at. **Nothing enters `research.tex` until an arm holds to
 t ≥ 40**, per the standing rule.
+
+---
+
+## 20. The trapped-surface proxy read the refinement edge, not the geometry (`e01ec730`)
+
+**§19.14 code fix #1, done 2026-07-29. Diagnostics-only: no simulation number
+moves. It removes a false-horizon signal, it does NOT make the proxy a horizon
+finder — read the caveat before quoting any theta number.**
+
+### 20.1 The bug
+
+`theta_plus` is reduced over the finest level's valid cells
+([`RadialRecipeLevel.cpp:~838`](../../Examples/RadialRecipe/RadialRecipeLevel.cpp)),
+but its radial derivative is a centred stencil:
+
+```
+dchi_dr = (x·∂x_chi + y·∂y_chi + z·∂z_chi)/r,   ∂x_chi = (chi[i+1] − chi[i−1])/2dx
+```
+
+At a cell on the finest level's **outer boundary**, `chi[i±1]` is not simulated
+data — it is a ghost interpolated down from the coarse level. The stencil
+therefore differences across a resolution jump, and since `theta_plus` carries
+`−dchi_dr/sqrt(chi)` with no smoothing, that jump lands directly in the reported
+minimum. The reduction then takes the min over all cells, so it selects
+precisely the most contaminated cell in the domain.
+
+### 20.2 The evidence it was an artifact
+
+`pcc_t010`, the healthiest arm of campaign C, on the pre-fix binary:
+
+| t | min_theta_plus | r_at_min | max_ah_r | min_lapse | min_chi |
+|---|---|---|---|---|---|
+| 15.01 | +0.1190 | 10.26 | 0.00 | 0.852 | 0.840 |
+| 21.01 | +0.0657 | 10.24 | 0.00 | 0.770 | 0.741 |
+| 24.01 | +0.0270 | 10.29 | 0.00 | 0.728 | 0.679 |
+| 27.01 | **−0.0282** | 10.35 | 11.16 | 0.676 | 0.601 |
+| 30.00 | **−0.1161** | 10.40 | 11.92 | 0.601 | 0.499 |
+
+Three things falsify it as physics, and they are the same three §19.13 used:
+
+* **the radius does not move.** `r_at_min` sits at 10.2–10.4 for fifteen time
+  units. A forming horizon migrates; a grid feature does not.
+* **the interior is healthy.** A trapped surface at r ≈ 11.9 enclosing the whole
+  configuration forces prompt interior collapse. This run ends at lapse 0.601
+  and chi 0.499 — no collapse anywhere.
+* **the radius is where the refinement ends,** just outside
+  `recipe_basis_radius_max = 8.0`, not where the matter is.
+
+### 20.3 The fix
+
+An `iMultiFab` mask on the finest level: 1 on valid cells, 0 on ghosts, then
+`FillBoundary()` so ghosts covered by a **sibling box** recover 1 (an interior
+box face is not a resolution jump and must not be masked). Only true coarse-fine
+and domain ghosts stay 0. The proxy is evaluated only where all six stencil
+neighbours are valid; elsewhere the cell returns the sentinels it already used
+for `r <= 1e-6`. Applied to **both** reductions — the min itself and the second
+pass that locates `r_at_min_theta_plus`, which shared the same stencil.
+
+Cost of exclusion is negligible: the band is one cell at the finest `dx` =
+0.0625, and refinement tracks the well, so a real horizon forms interior to the
+finest level, never in the discarded shell.
+
+### 20.4 Verification — physics-neutral
+
+200-step clone of `pcc_t010` (`stop_time = 2.0`), new binary vs the stored run:
+
+| file | result |
+|---|---|
+| `constraint_norms.dat` | **bit-identical**, all 200 rows |
+| `energy_conditions.dat` | **bit-identical**, all 200 rows |
+| `collapse_diagnostics.dat` | every column bit-identical **except** `min_theta_plus` and `r_at_min_theta_plus` |
+| `curvature_invariants.dat` | 1 row differs by 1 ULP — see below |
+
+The theta columns move as intended: at t=2, `min_theta_plus` 0.1636 → 0.1683
+(the contaminated cell was being selected, and it read *lower* than the true
+minimum — i.e. biased toward a false horizon) and `r_at_min` 11.79 → 11.38.
+`max_ah_r` is 0.00 in both; nothing this early is near trapped.
+
+The `curvature_invariants` discrepancy (`9.9133874760e-03` vs `...759e-03`, line
+168 of 200) is **not from this change**: the pre-fix binary re-run under
+identical conditions reproduces the same 1-ULP difference against the same
+stored file. It is pre-existing GPU reduction-order nondeterminism. Recorded
+because it would otherwise look like a regression to the next reader.
+
+The old binary is preserved as
+`Examples/RadialRecipe/main3d.gnu.CUDA.ex.pre_thetafix` for exactly this kind of
+A/B.
+
+### 20.5 CAVEAT — this does not make it a horizon finder
+
+**`theta_plus` naturally decreases outward**, because its leading term is
+`2·sqrt(chi)/r`. In a near-flat region (chi ≈ 1, K ≈ 0) it is just `2/r`. So the
+minimum over any footprint sits at the **largest radius in that footprint**, by
+construction and with no pathology involved. Live campaign F runs report
+`r_at_min ≈ 109.55` at early times — the domain corner (`sqrt(3)·64 ≈ 110.85`),
+one cell in, exactly as the mask now enforces.
+
+What the fix removes is the *stencil contamination* that pushed the value
+spuriously negative at a coarse-fine interface. What it does not and cannot
+remove is that this is a pointwise radial expansion proxy evaluated on a
+reduction footprint, not a surface-integrated expansion on a located surface.
+**There is still no apparent-horizon finder in this repo.** Every rule from
+§12 and §19.13 stands unchanged:
+
+* collapse calls are made on central `min_lapse` + `min_chi` + `max|K|`
+* "collapsed" means the geometry ran away (lapse and chi → 0 together), never
+  "a horizon was proven to exist"
+* the score-side guard `HORIZON_OFFCENTER_FRACTION = 0.5`
+  (`metrics/score/horizon.py`) is calibrated for corner-origin miscentering and
+  would not have caught this; it is unchanged and still does not cover it
+
+### 20.6 Scope — which data is affected
+
+* **Campaigns B/C/D/E (`runs/pump_confine_{b,c,d,e}`) ran the pre-fix binary.**
+  Every theta column in them carries the artifact. Their collapse conclusions
+  are unaffected because §19.13 already derived them from lapse/chi/max|K| and
+  explicitly distrusted the proxy — that manual corroboration is what this fix
+  makes unnecessary going forward, not something it retroactively changes.
+* **The paper is untouched.** §16.7's trapped-surface correction concerns RM's
+  candidate-146 data, where the proxy behaves collapse-*like* (r_at_min migrates
+  inward 9.6 → 5.7). That is the opposite signature to the artifact here, whose
+  defining feature is a radius that does not move. The §16.7 correction — that
+  "corroborated" overstates a pointwise proxy and that t≈27 matches no feature
+  of the data — stands on its own and is not softened by this fix.
+* **Campaign F is the field validation.** `pcf_t010_t60` is `pcc_t010` extended
+  to t=60 on the fixed binary (verified identical params but for run name and
+  stop time), so the t ≈ 25.64 epoch — where the old binary first reported
+  theta < 0 — is a direct A/B on real collapse-adjacent geometry.
+
+### 20.7 The lesson, which is §15's again
+
+The proxy differenced across a resolution boundary and reported the result as
+geometry. That is the same shape as §15 (a metric resampled below the AMR depth)
+and §17 (a frozen peak recomputed from a lossy cache while the authoritative
+value sat in `ftl_timeseries.dat`): **a number was derived across a fidelity
+boundary and then read as physics.** The cheap check that would have caught it
+was available the whole time and is the one §19.13 eventually applied by hand —
+ask whether the interior agrees. A trapped surface at r ≈ 11.9 that leaves
+lapse at 0.601 is not a trapped surface.
