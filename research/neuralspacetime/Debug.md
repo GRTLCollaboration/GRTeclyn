@@ -143,9 +143,10 @@ never across configs with different ω [§18.1].
 
 ## 4. Code fixes, priority order
 
-0. **BUG — constraint norms are measured on the wrong grid** (found 2026-07-29,
-   NOT fixed). `constraint_norms.dat` is a *control-loop input* that has been
-   quoted as a physics result. Three compounding defects, all at
+0. **BUG — constraint norms were measured on the wrong grid** (found 2026-07-29;
+   **code fixed `7b57f2a1`+, analysis still open**). `constraint_norms.dat`
+   cols 2–3 are a *control-loop input* that had been quoted as a physics result.
+   Three compounding defects, all at
    [RadialRecipeLevel.cpp:438](../../Examples/RadialRecipe/RadialRecipeLevel.cpp#L438):
    * gated to `Level() == 0`, so the three refined levels — finest `dx=0.0625`,
      8× level 0, and where all the matter is — never contribute;
@@ -159,27 +160,48 @@ never across configs with different ω [§18.1].
    feeding the pump governor — it is fine. As a published accuracy figure it is
    not, and it was never meant to be one.
 
-   **Fix:** composite AMR norm — evaluate the constraints on every level, mask
-   coarse cells covered by finer ones (`amrex::makeFineMask`, present in this
-   AMReX), weight by each level's own `cell_vol`, accumulate. Then also
-   (a) quote the *relative* norm (cols 7–8) beside the absolute one — absolute
-   values carry units and scale with loaded matter, so they are not comparable
-   to other groups' work; (b) report the norm over the active region separately
-   from the domain mean, so the vacuum dilution is visible; (c) drop the outer
-   boundary layer, whose violation is BC, not physics; (d) **redo the Richardson
-   test** — p≈3.3 currently certifies the convergence of the level-0
-   restriction, not of the solution.
+   **DONE — six new append-only columns 12–17** (`L2_Ham_amr`, `L2_Mom_amr`,
+   `L2_Ham_amr_rel`, `L2_Mom_amr_rel`, `Linf_Ham_amr`, `L2_Ham_amr_ref`). The
+   composite evaluates the constraints on **every** level, masks coarse cells
+   covered by finer ones (`amrex::makeFineMask`), weights by each level's own
+   `cell_vol`, drops 4 level-0 cells of outer boundary (BC violation is not
+   physics), and additionally reports the **undiluted peak** `|Ham|` and the
+   norm **restricted to the refined region** (levels ≥ 1) so the vacuum dilution
+   is visible rather than hidden.
 
-   **Unexplained and blocking:** the already-recorded `L2_Ham_rel` sits at
-   **0.64–0.81** in all four campaign F arms (0.65/0.72/0.64/0.64 at t=10 →
-   0.74/0.81/0.74/0.69 at t=19), i.e. the residual is comparable to the terms
-   it is meant to cancel. On the coarsest grid this may be expected; nobody has
-   checked. It cannot go into the paper unexplained.
+   **Cols 2–3 and the governor's input are deliberately untouched.** Changing
+   them would be a *physics* change, not a readout change — `L2_Ham` feeds
+   `publish_cached_L2_Ham` → the pump governor (tanh, centre 0.035), and the
+   composite is a different magnitude, so recentring the governor would
+   invalidate every prior run's comparability. Verified: cols 1–11 **bit-identical**
+   to stored `pcc_t010` over a 200-step clone; `collapse_diagnostics`,
+   `energy_conditions`, `curvature_invariants` identical to the pre-fix binary
+   run under the same conditions. Cost is **free** — paired A/B on idle GPUs,
+   1.1653 s vs 1.1649 s per coarse step (+0.03%). The naive version was +13%;
+   all of it was recomputing level 0 twice, removed by passing the caller's
+   level-0 constraint MultiFab in. Old binary kept as
+   `main3d.gnu.CUDA.ex.pre_amrnorm`.
 
-   **Scope — rankings survive, absolutes do not.** Every run is measured the
-   same wrong way, so all within-protocol comparisons (§9, and the whole
+   **Still open — the analysis, which is the part that gates the paper:**
+   * **Redo the Richardson test.** p≈3.3 certifies the convergence of the
+     level-0 restriction, not of the solution. Needs 2–3 resolutions scored on
+     `L2_Ham_amr`.
+   * **Explain `L2_Ham_rel` ≈ 0.64–0.81.** All four campaign F arms
+     (0.65/0.72/0.64/0.64 at t=10 → 0.74/0.81/0.74/0.69 at t=19): the residual
+     is comparable to the terms it must cancel. First composite reading on a
+     `pcc_t010` clone at t≤2 gives `L2_Ham_amr_rel` ≈ 0.22–0.40, i.e. **lower**
+     but still large. Cannot go into the paper unexplained.
+   * **Quote `Linf_Ham_amr` and `L2_Ham_amr_ref` beside the mean.** The t≤2
+     clone already shows peak `|Ham|` ≈ **218×** the composite L2, and the
+     refined-region norm ~30× the domain mean — the dilution is not a rounding
+     detail. These are early-time, barely-refined figures; the honest numbers
+     need a full run on the new binary.
+
+   **Scope — rankings survive, absolutes do not.** Every run to date is measured
+   the same wrong way, so all within-protocol comparisons (§9, and the whole
    "constraints ignore the pump" argument) stand. What is not usable is any
    absolute claim of the form "the constraint violation of this run is 4e-3".
+   **Campaigns A–F predate the new columns and have 11, not 17.**
 
 1. **Profile-matched target.** Both the overlap strip [§19.10] and the
    bridge-feeding [§19.11] are *shape* errors: the controller aims at an
@@ -266,6 +288,7 @@ Column indices are width-guarded so a layout change fails the watchdog *open*.
 | 19 | **`recipe_scalar_field_signs` parsed only its first token** | `SimulationParameters.hpp` | §19.8 |
 | 20 | superposed-target PD law (overlap strip) | `RLPumpForce.hpp` | `64c89be4` |
 | 21 | `theta_plus` proxy read the refinement edge | `RadialRecipeLevel.cpp` | `e01ec730` |
+| 22 | constraint norms level-0-only, unmasked, domain-diluted | `RadialRecipeLevel.cpp` | cols 12-17 added; **analysis still open**, §4 item 0 |
 
 ### The ones with teeth
 
@@ -610,11 +633,17 @@ Their *physics* outputs remain valid up to the point the governor closed.
 
 ### Column layouts
 
-`constraint_norms.dat` (11, APPEND-ONLY):
+`constraint_norms.dat` (17, APPEND-ONLY; runs before 2026-07-29 have 11):
 ```
 1 time  2 L2_Ham  3 L2_Mom  4 min_rho_req  5 max_rho_req  6 integral_neg_rho
 7 L2_Ham_rel  8 L2_Mom_rel  9 pump_force_L2  10 governor  11 pump_fi_L2
+12 L2_Ham_amr  13 L2_Mom_amr  14 L2_Ham_amr_rel  15 L2_Mom_amr_rel
+16 Linf_Ham_amr  17 L2_Ham_amr_ref
 ```
+**Cols 2-3 are the GOVERNOR'S INPUT, not an accuracy figure. Quote 12-17.**
+Cols 12-17 are the whole-hierarchy composite (all levels, covered cells masked,
+4 level-0 cells of boundary dropped); 16 is the undiluted peak `|Ham|` and 17 is
+restricted to the refined region. See §4 item 0.
 `pump_fi_L2` is the first real measurement of the momentum force density, and
 **`f_i` is ~3.5× LARGER than `f_perp`** — the controller's momentum forcing
 dominates its energy forcing, and that is exactly the component the old code

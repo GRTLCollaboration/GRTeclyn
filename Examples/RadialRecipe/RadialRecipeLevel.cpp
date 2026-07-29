@@ -18,9 +18,11 @@
 #include "RLPumpForce.hpp"
 #include "Weyl4WithMatter.hpp"
 
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_Reduce.H>
 #include <AMReX_Utility.H>
 #include <AMReX_iMultiFab.H>
+#include <algorithm>
 #include <array>
 #include <cmath>
 
@@ -431,6 +433,198 @@ void RadialRecipeLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
+namespace
+{
+// ---------------------------------------------------------------------------
+// Composite (whole-hierarchy) constraint norms.
+//
+// The long-standing L2_Ham / L2_Mom in constraint_norms.dat are computed on
+// LEVEL 0 ONLY, over every level-0 cell -- including the cells sitting
+// underneath the refinement -- and averaged over the whole domain.  That is the
+// right number for its actual consumer: it feeds RLRuntime::publish_cached_L2_Ham
+// and hence the pump governor, where cheapness and run-to-run consistency are
+// what matter.  It is NOT an accuracy measure, for three compounding reasons:
+//
+//   1. the refined levels never contribute, so violation living where the
+//      matter actually is is invisible (finest dx is 2^max_level smaller);
+//   2. covered coarse cells are still summed, so the active region is counted
+//      at a resolution it is not evolved on, and its real residual never
+//      appears at all;
+//   3. the domain is overwhelmingly near-vacuum, so the volume-weighted mean is
+//      diluted toward zero by empty space.
+//
+// The quantities below are the standard AMR composite: evaluate the constraints
+// on every level, drop each coarse cell that has finer cells beneath it, weight
+// by that level's own cell volume, accumulate.  Reported in NEW columns --
+// cols 2/3 and the governor's input are deliberately left byte-for-byte alone,
+// so this stays a diagnostics-only change and every pre-existing run remains
+// comparable.  See research/neuralspacetime/Debug.md PART B fix item 0.
+// ---------------------------------------------------------------------------
+struct AmrConstraintNorms
+{
+    amrex::Real L2_Ham     = 0.0; // composite, covered cells + boundary dropped
+    amrex::Real L2_Mom     = 0.0;
+    amrex::Real L2_Ham_rel = 0.0; // / composite norm of the individual terms
+    amrex::Real L2_Mom_rel = 0.0;
+    amrex::Real Linf_Ham   = 0.0; // max |Ham| over the same set -- undiluted
+    amrex::Real L2_Ham_ref = 0.0; // refined region (levels >= 1) only
+};
+
+// boundary_skip counts LEVEL-0 cells to drop at the outer domain boundary
+// (their violation is boundary-condition, not physics); scaled per level.
+// cst_level0, if given, is the caller's already-filled level-0 constraint
+// MultiFab (same 8 components, same with_abs_terms).  Reusing it matters: level
+// 0 holds ~99.9% of the cells, so recomputing it here would roughly double the
+// per-step diagnostic cost for nothing.
+AmrConstraintNorms
+compute_amr_constraint_norms(amrex::Amr *parent,
+                             const SimulationParameters &params,
+                             amrex::Real time, int state_idx, int boundary_skip,
+                             const amrex::MultiFab *cst_level0 = nullptr)
+{
+    AmrConstraintNorms out;
+
+    amrex::Real sum_ham2 = 0.0, sum_mom2 = 0.0, sum_vol = 0.0;
+    amrex::Real sum_ham_abs2 = 0.0, sum_mom_abs2 = 0.0;
+    amrex::Real sum_ham2_ref = 0.0, sum_vol_ref = 0.0;
+    amrex::Real max_ham = 0.0;
+
+    const int finest = parent->finestLevel();
+    const int n0     = parent->Geom(0).Domain().length(0);
+
+    for (int lev = 0; lev <= finest; ++lev)
+    {
+        amrex::AmrLevel &level = parent->getLevel(lev);
+        const auto dx          = level.Geom().CellSizeArray();
+
+        amrex::MultiFab cst_local;
+        const amrex::MultiFab *cstp = nullptr;
+        if (lev == 0 && cst_level0 != nullptr)
+        {
+            cstp = cst_level0;
+        }
+        else
+        {
+            amrex::MultiFab &state = level.get_new_data(state_idx);
+            // Safe here: Amr calls post_timestep on level 0 only after every
+            // finer level has been advanced to the same time and averaged down.
+            amrex::AmrLevel::FillPatch(level, state, 2, time, state_idx, 0,
+                                       state.nComp());
+            cst_local.define(state.boxArray(), state.DistributionMap(), 8, 0);
+            cst_local.setVal(0.0);
+            RadialRecipeMatter::fill_active_constraints(
+                cst_local, state, params, dx[0],
+                params.recipe_params.grid_center, time,
+                /*with_abs_terms=*/true);
+            cstp = &cst_local;
+        }
+        const amrex::MultiFab &cst = *cstp;
+
+        const amrex::Real cell_vol = dx[0] * dx[1] * dx[2];
+
+        // 1 exactly where this level's cell is covered by the next finer level.
+        amrex::iMultiFab covered(cst.boxArray(), cst.DistributionMap(), 1, 0);
+        if (lev < finest)
+        {
+            covered = amrex::makeFineMask(cst,
+                                          parent->getLevel(lev + 1).boxArray(),
+                                          parent->refRatio(lev), 0, 1);
+        }
+        else
+        {
+            covered.setVal(0);
+        }
+
+        // Outer boundary layer in this level's index space. Fine levels never
+        // touch the domain edge, so in practice this only bites on level 0.
+        const int scale     = level.Geom().Domain().length(0) / n0;
+        amrex::Box interior = level.Geom().Domain();
+        interior.grow(-boundary_skip * scale);
+        const amrex::IntVect ilo = interior.smallEnd();
+        const amrex::IntVect ihi = interior.bigEnd();
+
+        amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum,
+                         amrex::ReduceOpSum, amrex::ReduceOpSum,
+                         amrex::ReduceOpSum, amrex::ReduceOpMax>
+            ops;
+        amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real,
+                          amrex::Real, amrex::Real>
+            data(ops);
+        using Tuple = typename decltype(data)::Type;
+
+        for (amrex::MFIter mfi(cst, amrex::TilingIfNotGPU()); mfi.isValid();
+             ++mfi)
+        {
+            const amrex::Box &bx = mfi.validbox();
+            const auto arr       = cst.const_array(mfi);
+            const auto cov       = covered.const_array(mfi);
+            ops.eval(
+                bx, data,
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) -> Tuple
+                {
+                    if (cov(i, j, k) != 0 || i < ilo[0] || i > ihi[0] ||
+                        j < ilo[1] || j > ihi[1] || k < ilo[2] || k > ihi[2])
+                    {
+                        return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                    }
+                    const amrex::Real ham     = arr(i, j, k, 0);
+                    const amrex::Real m1      = arr(i, j, k, 1);
+                    const amrex::Real m2      = arr(i, j, k, 2);
+                    const amrex::Real m3      = arr(i, j, k, 3);
+                    const amrex::Real ham_abs = arr(i, j, k, 4);
+                    const amrex::Real ma1     = arr(i, j, k, 5);
+                    const amrex::Real ma2     = arr(i, j, k, 6);
+                    const amrex::Real ma3     = arr(i, j, k, 7);
+                    const amrex::Real mom2    = m1 * m1 + m2 * m2 + m3 * m3;
+                    const amrex::Real mom_abs2 =
+                        ma1 * ma1 + ma2 * ma2 + ma3 * ma3;
+                    return {ham * ham * cell_vol, mom2 * cell_vol, cell_vol,
+                            ham_abs * ham_abs * cell_vol, mom_abs2 * cell_vol,
+                            std::abs(ham)};
+                });
+        }
+
+        const auto v             = data.value();
+        const amrex::Real lv_ham2 = amrex::get<0>(v);
+        const amrex::Real lv_vol  = amrex::get<2>(v);
+        sum_ham2     += lv_ham2;
+        sum_mom2     += amrex::get<1>(v);
+        sum_vol      += lv_vol;
+        sum_ham_abs2 += amrex::get<3>(v);
+        sum_mom_abs2 += amrex::get<4>(v);
+        max_ham = std::max(max_ham, amrex::get<5>(v));
+        if (lev >= 1)
+        {
+            sum_ham2_ref += lv_ham2;
+            sum_vol_ref  += lv_vol;
+        }
+    }
+
+    amrex::ParallelDescriptor::ReduceRealSum(sum_ham2);
+    amrex::ParallelDescriptor::ReduceRealSum(sum_mom2);
+    amrex::ParallelDescriptor::ReduceRealSum(sum_vol);
+    amrex::ParallelDescriptor::ReduceRealSum(sum_ham_abs2);
+    amrex::ParallelDescriptor::ReduceRealSum(sum_mom_abs2);
+    amrex::ParallelDescriptor::ReduceRealSum(sum_ham2_ref);
+    amrex::ParallelDescriptor::ReduceRealSum(sum_vol_ref);
+    amrex::ParallelDescriptor::ReduceRealMax(max_ham);
+
+    if (sum_vol > 0.0)
+    {
+        out.L2_Ham = std::sqrt(sum_ham2 / sum_vol);
+        out.L2_Mom = std::sqrt(sum_mom2 / sum_vol);
+        const amrex::Real ham_abs = std::sqrt(sum_ham_abs2 / sum_vol);
+        const amrex::Real mom_abs = std::sqrt(sum_mom_abs2 / sum_vol);
+        out.L2_Ham_rel = (ham_abs > 0.0) ? out.L2_Ham / ham_abs : 0.0;
+        out.L2_Mom_rel = (mom_abs > 0.0) ? out.L2_Mom / mom_abs : 0.0;
+    }
+    out.Linf_Ham = max_ham;
+    out.L2_Ham_ref =
+        (sum_vol_ref > 0.0) ? std::sqrt(sum_ham2_ref / sum_vol_ref) : 0.0;
+    return out;
+}
+} // namespace
+
 void RadialRecipeLevel::specificPostTimeStep()
 {
     BL_PROFILE("RadialRecipeLevel::specificPostTimeStep");
@@ -712,6 +906,12 @@ void RadialRecipeLevel::specificPostTimeStep()
             amrex::UtilCreateDirectory(out_dir, 0755, false);
         }
 
+        // Whole-hierarchy norms (cols 12-17). These are the ones to quote as
+        // an accuracy figure; cols 2-3 above are the governor's input and stay
+        // exactly as they were. 4 level-0 cells of outer boundary are dropped.
+        const AmrConstraintNorms amr_norms = compute_amr_constraint_norms(
+            parent, simParams(), time, state_index, /*boundary_skip=*/4, &cst);
+
         const std::string prefix = out_dir + "constraint_norms";
 
         SmallDataIO constraints_file(prefix, dt, time, restart_time,
@@ -724,14 +924,22 @@ void RadialRecipeLevel::specificPostTimeStep()
             constraints_file.write_header_line(
                 {"L2_Ham", "L2_Mom", "min_rho_req", "max_rho_req",
                  "integral_neg_rho", "L2_Ham_rel", "L2_Mom_rel",
-                 "pump_force_L2", "governor", "pump_fi_L2"});
+                 "pump_force_L2", "governor", "pump_fi_L2", "L2_Ham_amr",
+                 "L2_Mom_amr", "L2_Ham_amr_rel", "L2_Mom_amr_rel",
+                 "Linf_Ham_amr", "L2_Ham_amr_ref"});
         }
         constraints_file.write_time_data_line(
             {L2_Ham, L2_Mom, static_cast<double>(min_rho_req),
              static_cast<double>(max_rho_req),
              static_cast<double>(sum_neg_rho), L2_Ham_rel, L2_Mom_rel,
              static_cast<double>(pump_force_L2), governor_val,
-             static_cast<double>(pump_fi_L2)});
+             static_cast<double>(pump_fi_L2),
+             static_cast<double>(amr_norms.L2_Ham),
+             static_cast<double>(amr_norms.L2_Mom),
+             static_cast<double>(amr_norms.L2_Ham_rel),
+             static_cast<double>(amr_norms.L2_Mom_rel),
+             static_cast<double>(amr_norms.Linf_Ham),
+             static_cast<double>(amr_norms.L2_Ham_ref)});
     }
 
     if (Level() == 0)
