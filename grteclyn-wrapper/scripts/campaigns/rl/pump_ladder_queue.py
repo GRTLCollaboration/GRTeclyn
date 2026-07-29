@@ -9,7 +9,7 @@ both problems. Constraint defence comes from the Duhamel bound
 
 All five runs clone the same RM baseline params and share the cached gridinit,
 so only rl_pump_stop_time varies. tp4 doubles as a bit-identity regression
-check against the earlier runs/always_on_pump/hq146_m0_tp4_t30 -- the governor
+check against the earlier runs/pump/always_on_pump/hq146_m0_tp4_t30 -- the governor
 fix must be a no-op for mode 0.
 
 Requires binary d6a0c350 or later.
@@ -46,7 +46,7 @@ from pathlib import Path
 
 ROOT = Path("/home/jovyan/nachevsky/test/simulation/GRTeclyn")
 BASE = ROOT / "runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/params.txt"
-OUT = ROOT / "runs/pump_ladder_m0"
+OUT = ROOT / "runs/pump/pump_ladder_m0"
 EXE = ROOT / "Examples/RadialRecipe/main3d.gnu.CUDA.ex"
 WRAPPER = ROOT / "grteclyn-wrapper"
 # Call the project venv python DIRECTLY rather than via `uv run`.

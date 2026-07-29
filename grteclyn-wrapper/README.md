@@ -1055,7 +1055,7 @@ export GRTECLYN_EVOLVING_GEODESIC_MODE=hq GEODESIC_EMIT_MIN_TIME=0 \
 for k in 0 4 8 16 24 30; do
   nohup grteclyn-wrapper/.venv/bin/python -u \
     grteclyn-wrapper/scripts/campaigns/rl/score_evolving_geodesic.py \
-    runs/pump_ladder_m0/lad_m0_tp$k --ftl-l 8 \
+    runs/pump/pump_ladder_m0/lad_m0_tp$k --ftl-l 8 \
     > $S/score_tp$k.log 2>&1 &
 done
 ```

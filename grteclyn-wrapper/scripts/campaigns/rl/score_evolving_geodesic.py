@@ -17,7 +17,7 @@ any time after a campaign finishes.
 
     grteclyn-wrapper/.venv/bin/python \
         grteclyn-wrapper/scripts/campaigns/rl/score_evolving_geodesic.py \
-        runs/pump_ladder_m0/lad_m0_tp*
+        runs/pump/pump_ladder_m0/lad_m0_tp*
 
 For each run directory it writes ``small_data/evolving_geodesic.json`` and
 patches cols 13/14 of ``small_data/ftl_timeseries.dat``.

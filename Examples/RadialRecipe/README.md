@@ -67,7 +67,7 @@ whenever `--phantom` is passed.
 For `recipe_matter_model = grtresna_bicomplex_scalar` the PD trap pump routes
 each spotlight to the canonical (Phi+) or phantom (Phi−) field via
 `recipe_scalar_field_signs`. The two sectors do **not** need the same control
-authority: measured on `runs/pump_ladder_m0` over t ∈ [13, 30], one shared gain
+authority: measured on `runs/pump/pump_ladder_m0` over t ∈ [13, 30], one shared gain
 arrests the canonical `confined_frac` decay (0.100 → ~0.000 per unit time) but
 only slows the phantom one (0.217 → 0.076), because the phantom sector
 disperses ~2.2× faster to begin with.

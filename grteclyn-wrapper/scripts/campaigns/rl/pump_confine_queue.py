@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Confinement campaign A: can the pump HOLD matter instead of merely slowing it?
 
-Six arms, all cloned from the same RM baseline as runs/pump_ladder_m0 and all
+Six arms, all cloned from the same RM baseline as runs/pump/pump_ladder_m0 and all
 with the pump always on (rl_pump_stop_time = -1), so every arm is directly
 comparable to lad_m0_tp30. Only the knob named in each arm differs.
 
-WHAT THE LADDER MEASURED (runs/pump_ladder_m0, confined_frac by sector):
+WHAT THE LADDER MEASURED (runs/pump/pump_ladder_m0, confined_frac by sector):
 
   * canonical -- the pump does not leak it, the pump EJECTS it at startup.
     tp30 loses 0.143 (21%) of confined_frac_canon in t < 5.8 while the
@@ -51,8 +51,8 @@ from pathlib import Path
 ROOT = Path("/home/jovyan/nachevsky/test/simulation/GRTeclyn")
 BASE = ROOT / "runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/params.txt"
 # Overridable with --out; campaign B (corrected spotlight routing) writes to
-# runs/pump_confine_b so the broken-routing A record stays separate.
-OUT = ROOT / "runs/pump_confine_a"
+# runs/pump/pump_confine_b so the broken-routing A record stays separate.
+OUT = ROOT / "runs/pump/pump_confine_a"
 EXE = ROOT / "Examples/RadialRecipe/main3d.gnu.CUDA.ex"
 WRAPPER = ROOT / "grteclyn-wrapper"
 # Call the project venv python DIRECTLY rather than via `uv run`, which would

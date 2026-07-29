@@ -270,7 +270,7 @@ never across configs with different ω [§18.1].
 * **The §16.3-4 coherence-gate fix is unexercised** — committed, correct by
   inspection, never run on bicomplex data end-to-end [§18.7].
 
-## 6. Campaign F — COMPLETE (`runs/pump_confine_f`, 2026-07-29 00:32–02:41)
+## 6. Campaign F — COMPLETE (`runs/pump/pump_confine_f`, 2026-07-29 00:32–02:41)
 
 All arms clone `pcc_t010` (previous best), all to **t=60**, binary `e01ec730`,
 routing echo `parsed: 1 -1 -1 1 -1` verified in all four logs. Every arm was
@@ -537,7 +537,7 @@ per-lump exotic fractions were in play when they were not.
 
 ## 9. Constraints — the pump does not drive constraint growth [§4]
 
-HQ 256³ (`runs/pump_ladder_m0_v1`), mode 0:
+HQ 256³ (`runs/pump/pump_ladder_m0_v1`), mode 0:
 
 | t_pump | peak L2_Ham | mean | final | governor min |
 |---|---|---|---|---|
@@ -692,24 +692,24 @@ t=11.5, `NaN in K` at t≈12.3); 0.10 conserves; 0.08 holds then dies at 32;
 ## 14. Data provenance [§8, §9]
 
 **VALID**
-* `runs/pump_ladder_m0_v1/lad_m0_tp{0,4,8,16,24}` — HQ 256³, t=30, validated
+* `runs/pump/pump_ladder_m0_v1/lad_m0_tp{0,4,8,16,24}` — HQ 256³, t=30, validated
   [§11]. Manuscript numbers for constraints/retention/lapse. `metric_stack`
   deleted, `f_geo_evol` reset [§15].
-* `runs/pump_ladder_m0/` — 257³ rerun; the campaign the fixed pipeline produced.
-* `runs/always_on_pump/hq146_m0_tp4_t30` — bit-identity reference for
+* `runs/pump/pump_ladder_m0/` — 257³ rerun; the campaign the fixed pipeline produced.
+* `runs/pump/always_on_pump/hq146_m0_tp4_t30` — bit-identity reference for
   `lad_m0_tp4`. `hq146_m1_tp0_t30` — pump never on, reservoir ≡ 0.
-* `runs/pump_ladder_fast/fast_tp{0,4,8,16}`; `fast_tp30` valid to t≈29.
-* `runs/pump_confine_{b,c,d,e}` — see §13. **Ran the pre-fix binary**, so their
+* `runs/pump/pump_ladder_fast/fast_tp{0,4,8,16}`; `fast_tp30` valid to t≈29.
+* `runs/pump/pump_confine_{b,c,d,e}` — see §13. **Ran the pre-fix binary**, so their
   `theta_plus` columns carry the §20 artifact — as do the post-fix ones, §16a.
 
 **CONTAMINATED — do not use constraint columns (2,3,7,8)**
-* `runs/always_on_pump/hq146_m1_tp{4,8,16,30}_t30` — ledger diverged AND
+* `runs/pump/always_on_pump/hq146_m1_tp{4,8,16,30}_t30` — ledger diverged AND
   governor closed at t≈7–8; effective pump duration ~7 in all.
-* `runs/always_on_pump/hq146_m2_tp30_t30` — CRASHED, NaN in K at t=9.69.
+* `runs/pump/always_on_pump/hq146_m2_tp30_t30` — CRASHED, NaN in K at t=9.69.
 Their *physics* outputs remain valid up to the point the governor closed.
 
 **VOID / DELETED**
-* `runs/pump_confine_a` — void as a sector experiment (§19.8 routing bug); dirs
+* `runs/pump/pump_confine_a` — void as a sector experiment (§19.8 routing bug); dirs
   deleted, findings preserved here.
 * `runs/reservoir_fix_check/` — deleted (abandoned ansatz, t=2 smoke tests).
 * Pruned 2026-07-28 (141 G → 113 G): `pcb_base`, `pcb_pg4`, `pce_sup_t60`
@@ -720,6 +720,13 @@ Their *physics* outputs remain valid up to the point the governor closed.
 * Per-sector *spatial* analysis is no longer possible from stored data
   (`/tmp/grteclyn_scratch` plotfiles purged); `confinement.dat`'s 22-row moments
   are all that remain [§18.8].
+* Relocated + pruned 2026-07-29 (71 G → 220 M): every pump run moved under
+  `runs/pump/` (paths above already updated), and `metric_stack/*.npz` dropped
+  from all 20 runs that still carried one — 402 files, 70 G. `confinement.dat`,
+  `ftl_timeseries.dat`, `boundary_flux.dat`, `evolving_geodesic.json`,
+  `run.log`, `params.txt` and `data/` kept for all 30 runs. Consequence is the
+  same as the 2026-07-28 prune: the 4D geodesic re-scorer can no longer be
+  re-run on any pump arm without repeating the simulation.
 
 ### Column layouts
 

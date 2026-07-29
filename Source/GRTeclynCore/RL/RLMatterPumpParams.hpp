@@ -48,7 +48,7 @@ struct RLMatterPumpParams
     //! existing configs are bit-identical).
     //!
     //! WHY THIS EXISTS.  The two sectors need different authority, not the same
-    //! authority.  Measured on the mode-0 pump ladder (runs/pump_ladder_m0,
+    //! authority.  Measured on the mode-0 pump ladder (runs/pump/pump_ladder_m0,
     //! t in [13, 30], confined_frac decay rate per unit time):
     //!
     //!     sector      pump off   pump on    outcome
