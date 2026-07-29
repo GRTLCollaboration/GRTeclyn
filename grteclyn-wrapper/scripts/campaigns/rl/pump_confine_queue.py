@@ -320,6 +320,74 @@ ARMS_E = [
 ]
 ARMS += ARMS_E
 
+# --- campaign F -------------------------------------------------------------
+# Campaign C/D/E verdict (Debug.md 19.13): pcc_t010 (aim 0.10) is the best
+# configuration found -- healthiest geometry by 6x in min_chi, exotic sector
+# essentially conserved (-5%), and no early strip at all, because aiming
+# slightly ABOVE the matter's own amplitude stops the legacy per-site law
+# reading a neighbour's lump as excess. But pcd_match_t60 then showed that
+# pcb_match's "clean finish" at t=30 was collapse already in progress: extended
+# past its twin's stop time it died at t~32. So t=30 proves nothing and the
+# standing evidence rule is now t >= 40.
+#
+# Every arm here therefore runs to t=60, and the watchdog (see below) aborts a
+# collapsing arm early so the GPU is not spent on a dead run. All four clone
+# pcc_t010 unless noted. recipe_scalar_field_signs = 1 -1 -1 1 -1, so lumps
+# 0 and 3 are canonical and 1, 2, 4 are exotic -- and well_depth is already per
+# lump, so per-sector aiming needs no code change.
+ARMS_F = [
+    # PRIMARY. Does the best-known config survive past t~32, where aim 0.08
+    # died? This is also the field validation of the theta_plus refinement-edge
+    # fix: pcc_t010 on the old binary reported theta<0 from t=25.64 with the
+    # minimum pinned at a fixed r=10.40 while its interior stayed healthy
+    # (lapse 0.601, chi 0.499 at t=30).
+    ("pcf_t010_t60", [
+        "trajectory_lump0_well_depth = 0.10",
+        "trajectory_lump1_well_depth = 0.10",
+        "trajectory_lump2_well_depth = 0.10",
+        "trajectory_lump3_well_depth = 0.10",
+        "trajectory_lump4_well_depth = 0.10",
+        "stop_time = 60.0",
+    ]),
+    # Is the stability optimum above 0.10, or is the 0.15 cliff already near?
+    # 0.15 injects monotonically and NaNs at t~12; 0.10 conserves. Bisect up.
+    ("pcf_t012_t60", [
+        "trajectory_lump0_well_depth = 0.12",
+        "trajectory_lump1_well_depth = 0.12",
+        "trajectory_lump2_well_depth = 0.12",
+        "trajectory_lump3_well_depth = 0.12",
+        "trajectory_lump4_well_depth = 0.12",
+        "stop_time = 60.0",
+    ]),
+    # Per-sector aiming. Exotic matter is what resists collapse (pcd_match_p0
+    # lost its NEC violation entirely and then collapsed hardest of any arm),
+    # and aiming high is what conserves a sector -- but aiming high on the
+    # canonical sector is what over-fills it. So aim high only where it pays.
+    ("pcf_split_t60", [
+        "trajectory_lump0_well_depth = 0.08",
+        "trajectory_lump3_well_depth = 0.08",
+        "trajectory_lump1_well_depth = 0.12",
+        "trajectory_lump2_well_depth = 0.12",
+        "trajectory_lump4_well_depth = 0.12",
+        "stop_time = 60.0",
+    ]),
+    # The superposed law (19.11) eliminated the overlap strip and then killed
+    # its run by over-feeding the bridges between the exotic chain (67 units of
+    # mass instead of 44, collapse at t~14-19). Reduced aim is the test of
+    # whether that was the law or the dose. Pass = total ~48, not ~67, at t=13,
+    # with the exotic strip still absent at t=1.44.
+    ("pcf_sup_a06_t60", [
+        "trajectory_lump0_well_depth = 0.06",
+        "trajectory_lump1_well_depth = 0.06",
+        "trajectory_lump2_well_depth = 0.06",
+        "trajectory_lump3_well_depth = 0.06",
+        "trajectory_lump4_well_depth = 0.06",
+        "rl_pump_superpose_targets = 1",
+        "stop_time = 60.0",
+    ]),
+]
+ARMS += ARMS_F
+
 # Stripped from the baseline for every arm. amr.plot_file / amr.check_file are
 # absolute paths INTO THE BASELINE RUN DIR: if they survive the clone, this
 # campaign writes plotfiles into the baseline and its --delete consumer prunes
@@ -328,6 +396,79 @@ STRIP_ALWAYS = {
     "output_path", "plot_interval", "rl_pump_stop_time",
     "controller_reservoir_mode", "amr.plot_file", "amr.check_file",
 }
+
+
+# --- collapse watchdog ------------------------------------------------------
+# Kill criteria (Debug.md 19.6, extended in 19.14). min_lapse is the new
+# PRIMARY trigger: in both confirmed collapses (pcd_match_t60, pce_sup) it led
+# min_chi by ~1 time unit, so the old min_chi<0.05 line is a LATE indicator that
+# spends a GPU on a run already dead. Constraint criteria only apply before
+# t=27, where the tp30 baseline's own governor is still 1.0000; after that a
+# choke is expected and is not evidence about the arm.
+WATCH_MIN_LAPSE = 0.15
+WATCH_MIN_CHI = 0.05
+WATCH_L2_HAM = 0.035
+WATCH_GOVERNOR = 0.5
+WATCH_CONSTRAINT_UNTIL_T = 27.0
+
+# Column layout is positional -- these .dat files carry no header row. Indices
+# are 0-based and must track the writers in Examples/RadialRecipe/
+# RadialRecipeLevel.cpp (write_header_line calls). N_COLS is checked on every
+# read so a column-layout change fails the watchdog OPEN (no kill) instead of
+# silently reading the wrong quantity and aborting healthy runs.
+COLLAPSE_N_COLS = 15   # time min_lapse min_chi max_abs_K ... pump_work
+COLLAPSE_I_TIME, COLLAPSE_I_LAPSE, COLLAPSE_I_CHI = 0, 1, 2
+NORMS_N_COLS = 11      # time L2_Ham L2_Mom ... pump_force_L2 governor pump_fi_L2
+NORMS_I_TIME, NORMS_I_HAM, NORMS_I_GOV = 0, 1, 9
+
+
+def last_row(path: Path, n_cols: int) -> list[float] | None:
+    """Last complete row of a positional .dat file, or None if unreadable.
+
+    Returns None on a short/absent/partially-written file: the sim appends
+    while we poll, so a torn final line is normal and must not be a kill.
+    """
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return None
+    for ln in reversed(lines):
+        fields = ln.split()
+        if len(fields) != n_cols:
+            continue
+        try:
+            return [float(f) for f in fields]
+        except ValueError:
+            continue
+    return None
+
+
+def collapse_verdict(d: Path) -> str | None:
+    """Reason to abort this run now, or None to let it continue."""
+    row = last_row(d / "data/collapse_diagnostics.dat", COLLAPSE_N_COLS)
+    if row is not None:
+        t = row[COLLAPSE_I_TIME]
+        lapse, chi = row[COLLAPSE_I_LAPSE], row[COLLAPSE_I_CHI]
+        if any(v != v or v in (float("inf"), float("-inf")) for v in row):
+            return f"non-finite value in collapse_diagnostics at t={t:.2f}"
+        if lapse < WATCH_MIN_LAPSE:
+            return (f"min_lapse={lapse:.4g} < {WATCH_MIN_LAPSE} at t={t:.2f} "
+                    f"(min_chi={chi:.4g})")
+        if chi < WATCH_MIN_CHI:
+            return f"min_chi={chi:.4g} < {WATCH_MIN_CHI} at t={t:.2f}"
+
+    row = last_row(d / "data/constraint_norms.dat", NORMS_N_COLS)
+    if row is not None:
+        t = row[NORMS_I_TIME]
+        ham, gov = row[NORMS_I_HAM], row[NORMS_I_GOV]
+        if ham != ham:
+            return f"L2_Ham is NaN at t={t:.2f}"
+        if t < WATCH_CONSTRAINT_UNTIL_T:
+            if ham > WATCH_L2_HAM:
+                return f"L2_Ham={ham:.4g} > {WATCH_L2_HAM} at t={t:.2f}"
+            if gov < WATCH_GOVERNOR:
+                return f"governor={gov:.4g} < {WATCH_GOVERNOR} at t={t:.2f}"
+    return None
 
 
 def param_key(line: str) -> str | None:
@@ -585,6 +726,23 @@ def main() -> int:
 
         for gpu in list(active):
             job = active[gpu]
+
+            # Abort a run that has already collapsed rather than spending the
+            # GPU on it. The arm still drains, scores and keeps its data below
+            # -- a killed arm is a measurement, not a lost run.
+            if job["sim"].poll() is None:
+                reason = collapse_verdict(job["dir"])
+                if reason:
+                    job["kill_reason"] = reason
+                    log(f"[watchdog-KILL] {job['name']}: {reason}")
+                    try:
+                        os.killpg(os.getpgid(job["sim"].pid), signal.SIGTERM)
+                        job["sim"].wait(timeout=120)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(os.getpgid(job["sim"].pid), signal.SIGKILL)
+                    except (ProcessLookupError, PermissionError) as exc:
+                        log(f"[watchdog] {job['name']}: kill failed: {exc}")
+
             rc = job["sim"].poll()
             if rc is None:
                 continue
@@ -653,9 +811,11 @@ def main() -> int:
                     f"plotfile(s) NOT extracted, keeping {sc} -- {unextracted}")
             else:
                 shutil.rmtree(sc, ignore_errors=True)
+            killed = job.get("kill_reason")
             log(f"[done] {job['name']} rc={rc} governor_min={gov_min} "
                 f"governor_cross={gov_cross} leftover_plt={len(leftover)} "
-                f"free={free_gb(SCRATCH):.0f}GB")
+                f"free={free_gb(SCRATCH):.0f}GB"
+                + (f" watchdog={killed}" if killed else ""))
             del active[gpu]
 
     log("confinement campaign A complete")

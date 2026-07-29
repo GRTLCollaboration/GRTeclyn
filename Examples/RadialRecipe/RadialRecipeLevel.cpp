@@ -20,6 +20,7 @@
 
 #include <AMReX_Reduce.H>
 #include <AMReX_Utility.H>
+#include <AMReX_iMultiFab.H>
 #include <array>
 #include <cmath>
 
@@ -789,11 +790,26 @@ void RadialRecipeLevel::specificPostTimeStep()
         const amrex::Real cy = simParams().recipe_params.grid_center[1];
         const amrex::Real cz = simParams().recipe_params.grid_center[2];
 
+        // The dchi_dr stencil below reads i+-1 neighbours; on cells at the
+        // finest level's outer boundary those are ghosts interpolated from
+        // the coarse level, and the resulting theta_plus minimum parks at
+        // the refinement edge (fixed r just outside recipe_basis_radius_max)
+        // mimicking a growing horizon in runs whose interiors stay healthy.
+        // Mask = 1 on this level's valid cells (faces shared with a sibling
+        // box become 1 via FillBoundary), 0 on coarse-fine / domain ghosts;
+        // the proxy is only evaluated where all six neighbours are valid.
+        amrex::iMultiFab fine_mask(state_fine.boxArray(),
+                                   state_fine.DistributionMap(), 1, 1);
+        fine_mask.setVal(0);
+        fine_mask.setVal(1, 0, 1, 0);
+        fine_mask.FillBoundary(fine_geom.periodicity());
+
         for (amrex::MFIter mfi(state_fine, amrex::TilingIfNotGPU());
              mfi.isValid(); ++mfi)
         {
             const amrex::Box &bx = mfi.validbox();
             const auto arr       = state_fine.const_array(mfi);
+            const auto mask_arr  = fine_mask.const_array(mfi);
             reduce_ops.eval(
                 bx, reduce_data,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple
@@ -808,9 +824,14 @@ void RadialRecipeLevel::specificPostTimeStep()
                     const amrex::Real r2 = x*x + y*y + z*z;
                     const amrex::Real r = std::sqrt(r2);
 
+                    const bool stencil_valid =
+                        mask_arr(i - 1, j, k) != 0 && mask_arr(i + 1, j, k) != 0 &&
+                        mask_arr(i, j - 1, k) != 0 && mask_arr(i, j + 1, k) != 0 &&
+                        mask_arr(i, j, k - 1) != 0 && mask_arr(i, j, k + 1) != 0;
+
                     amrex::Real ah_radius = 0.0;
                     amrex::Real theta_plus_min_proxy = 1.0e30;
-                    if (r > 1e-6)
+                    if (r > 1e-6 && stencil_valid)
                     {
                         const amrex::Real A11 = arr(i, j, k, c_A11);
                         const amrex::Real A22 = arr(i, j, k, c_A22);
@@ -934,6 +955,7 @@ void RadialRecipeLevel::specificPostTimeStep()
         {
             const amrex::Box &bx = mfi.validbox();
             const auto arr       = state_fine.const_array(mfi);
+            const auto mask_arr  = fine_mask.const_array(mfi);
             reduce_ops_theta_loc.eval(
                 bx, reduce_data_theta_loc,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTupleThetaLoc
@@ -950,7 +972,12 @@ void RadialRecipeLevel::specificPostTimeStep()
                     const amrex::Real r2 = x * x + y * y + z * z;
                     const amrex::Real r  = std::sqrt(r2);
 
-                    if (r <= 1e-6)
+                    const bool stencil_valid =
+                        mask_arr(i - 1, j, k) != 0 && mask_arr(i + 1, j, k) != 0 &&
+                        mask_arr(i, j - 1, k) != 0 && mask_arr(i, j + 1, k) != 0 &&
+                        mask_arr(i, j, k - 1) != 0 && mask_arr(i, j, k + 1) != 0;
+
+                    if (r <= 1e-6 || !stencil_valid)
                     {
                         return {0.0, 0.0};
                     }
