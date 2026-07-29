@@ -196,35 +196,33 @@ void run_particle_interpolator_test()
             amrex::ParticleReal B_known      = pow(z, 3);
             amrex::ParticleReal B_known_dzdz = 6 * z;
 
-            INFO("Interpolated A is "
-                 << A_local[ipoint] << " at point x = " << x << " y = " << y
-                 << " z = " << z << ". The true value should be " << A_known);
-            INFO("Interpolated B is "
-                 << B_local[ipoint] << " at point x = " << x << " y = " << y
-                 << " z = " << z << ". The true value should be " << B_known);
+            CHECK_MESSAGE(
+                A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-10),
+                "Interpolated A is ", A_local[ipoint], " at point x = ", x,
+                " y = ", y, " z = ", z, ". The true value should be ", A_known);
 
-            INFO("Interpolated A dx is "
-                 << A_dx[ipoint] << " at point x = " << x << " y = " << y
-                 << " z = " << z << ". The true value should be "
-                 << A_known_dx);
+            CHECK_MESSAGE(A_dx[ipoint] ==
+                              doctest::Approx(A_known_dx).epsilon(1e-10),
+                          "Interpolated A dx is ", A_dx[ipoint],
+                          " at point x = ", x, " y = ", y, " z = ", z,
+                          ". The true value should be ", A_known_dx);
 
-            INFO("Interpolated A dxdy is "
-                 << A_dxdy[ipoint] << " at point x = " << x << " y = " << y
-                 << " z = " << z << ". The true value should be "
-                 << A_known_dxdy);
+            CHECK_MESSAGE(A_dxdy[ipoint] ==
+                              doctest::Approx(A_known_dxdy).epsilon(1e-10),
+                          "Interpolated A dxdy is ", A_dxdy[ipoint],
+                          " at point x = ", x, " y = ", y, " z = ", z,
+                          ". The true value should be ", A_known_dxdy);
 
-            INFO("Interpolated B dzdz is "
-                 << B_dzdz[ipoint] << " at point x = " << x << " y = " << y
-                 << " z = " << z << ". The true value should be "
-                 << B_known_dzdz);
+            CHECK_MESSAGE(
+                B_local[ipoint] == doctest::Approx(B_known).epsilon(1e-10),
+                "Interpolated B is ", B_local[ipoint], " at point x = ", x,
+                " y = ", y, " z = ", z, ". The true value should be ", B_known);
 
-            CHECK(A_local[ipoint] == doctest::Approx(A_known).epsilon(1e-10));
-            CHECK(A_dx[ipoint] == doctest::Approx(A_known_dx).epsilon(1e-10));
-            CHECK(A_dxdy[ipoint] ==
-                  doctest::Approx(A_known_dxdy).epsilon(1e-10));
-            CHECK(B_local[ipoint] == doctest::Approx(B_known).epsilon(1e-10));
-            CHECK(B_dzdz[ipoint] ==
-                  doctest::Approx(B_known_dzdz).epsilon(1e-10));
+            CHECK_MESSAGE(B_dzdz[ipoint] ==
+                              doctest::Approx(B_known_dzdz).epsilon(1e-10),
+                          "Interpolated B dzdz is ", B_dzdz[ipoint],
+                          " at point x = ", x, " y = ", y, " z = ", z,
+                          ". The true value should be ", B_known_dzdz);
         }
     }
     amrex::Finalize();

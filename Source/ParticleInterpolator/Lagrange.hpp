@@ -268,7 +268,8 @@ template <int N> class Lagrange
     interpolate(const amrex::Array4<amrex::Real const> *data_arr,
                 amrex::ParticleReal *val, const Derivative *derivs,
                 InterpolationQueryParticle::out_t *const *comps_arr,
-                const int *comp_counts, int n_deriv, amrex::Real const dx) const
+                const int *comp_counts, int n_deriv,
+                amrex::Real const dxi) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
@@ -291,14 +292,14 @@ template <int N> class Lagrange
                 {
                     for (int j = 0; j < N; j++)
                     {
-                        weights[dim][j] = weights_d1[dim][j] / dx;
+                        weights[dim][j] = weights_d1[dim][j] * dxi;
                     }
                 }
                 else if (deriv[dim] == 2)
                 {
                     for (int j = 0; j < N; j++)
                     {
-                        weights[dim][j] = weights_d2[dim][j] / pow(dx, 2);
+                        weights[dim][j] = weights_d2[dim][j] * pow(dxi, 2);
                     }
                 }
                 else

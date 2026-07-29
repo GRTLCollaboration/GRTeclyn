@@ -260,24 +260,28 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         const int num_particles = par_iter.numParticles();
         auto fab_array          = mfab[par_iter].const_array();
 
-        Derivative derivs[ncomp];
-        InterpolationQueryParticle::out_t *comps[ncomp];
-        int comp_counts[ncomp];
-
         // Gather comp map into arrays so it can be used on GPU
-        int num_derivs = 0;
+        int num_derivs =
+            std::distance(m_query->compsBegin(), m_query->compsEnd());
+
+        Derivative derivs[num_derivs];
+        InterpolationQueryParticle::out_t *comps[num_derivs];
+        int comp_counts[num_derivs];
+
+        int i = 0;
+
         for (auto comps_it = m_query->compsBegin();
              comps_it != m_query->compsEnd(); ++comps_it)
         {
-            derivs[num_derivs]      = comps_it->first;
-            comps[num_derivs]       = comps_it->second.data();
-            comp_counts[num_derivs] = static_cast<int>(comps_it->second.size());
-            ++num_derivs;
+            derivs[i]      = comps_it->first;
+            comps[i]       = comps_it->second.data();
+            comp_counts[i] = static_cast<int>(comps_it->second.size());
+            ++i;
         }
 
         amrex::ParallelFor(
             num_particles,
-            [=] AMREX_GPU_DEVICE(int ip)
+            [&] AMREX_GPU_DEVICE(int ip)
             {
                 auto &particle = particle_tile_data[ip];
 
@@ -292,7 +296,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
                                             derivs, comps, comp_counts,
-                                            num_derivs, 1 / dxi[0]);
+                                            num_derivs, dxi[0]);
 
                 // write results to SOA
                 for (int icomp = 0; icomp < ncomp; ++icomp)
