@@ -73,9 +73,13 @@ Never compare it against runs built before that commit.
    Produced by the old sector weight and coordinate volume. Cannot be
    recomputed — plotfiles gone. Quote the restarted campaign's proper-volume
    columns instead. Dispersal itself is not in doubt. [§16.7-4]
-5. **State the caveats where the numbers appear**: `L2_Ham`/`L2_Mom` are
-   **level-0 only**; the geodesic probe grid is **fixed at 65³/dx=0.25** while
-   sim resolution varies; `f_op` is a **2D y-midplane** probe. [§16.5, §16.6]
+5. **Constraint norms must be re-measured, not merely caveated.** `L2_Ham` /
+   `L2_Mom` are level-0-only, unmasked and domain-diluted — a control-loop
+   number, not an accuracy figure (§4 item 0). **No absolute constraint value
+   may be quoted until the composite AMR norm exists**; comparisons between
+   runs are unaffected. Two caveats that do stay caveats: the geodesic probe
+   grid is **fixed at 65³/dx=0.25** while sim resolution varies, and `f_op` is a
+   **2D y-midplane** probe. [§16.5, §16.6]
 6. **Methodological point worth including**: a null-geodesic FTL measurement is
    only as good as the metric it is integrated through, and a uniform resample
    of an AMR grid is lossy in a way that is *invisible downstream*. Any reported
@@ -86,7 +90,7 @@ Never compare it against runs built before that commit.
 
 | result | value | caveat it must carry |
 |---|---|---|
-| constraints ignore the pump | `t_pump ≤ 24` at 256³ (≤16 fast tier); mean `L2_Ham` 2.71e-3 → 3.40e-3 over 24 units = 26% spread; peak **non-monotonic** (unpumped 4.27e-3 sits between tp4 3.90e-3 and tp16 4.68e-3) | level-0 norms only [§16.5] |
+| constraints ignore the pump | `t_pump ≤ 24` at 256³ (≤16 fast tier); mean `L2_Ham` 2.71e-3 → 3.40e-3 over 24 units = 26% spread; peak **non-monotonic** (unpumped 4.27e-3 sits between tp4 3.90e-3 and tp16 4.68e-3) | quote as a **comparison only** — the norm is mis-measured (§4 item 0), so the ratios stand but the absolute values must not be printed [§16.5] |
 | Duhamel bound | satisfied, 1.05–1.73× | §4's table compares the wrong pair — bound is on the *pump-attributed* violation; the meaningful check (pumped − pump-free ≲1e-3 vs bound 3.6e-3) passes with more room [§16.6] |
 | governor never engaged | 1.0000 for every physically valid run | — |
 | control effort | measurable, O(1), not 1e-17 | — |
@@ -138,6 +142,44 @@ never across configs with different ω [§18.1].
 # PART B — OPEN WORK
 
 ## 4. Code fixes, priority order
+
+0. **BUG — constraint norms are measured on the wrong grid** (found 2026-07-29,
+   NOT fixed). `constraint_norms.dat` is a *control-loop input* that has been
+   quoted as a physics result. Three compounding defects, all at
+   [RadialRecipeLevel.cpp:438](../../Examples/RadialRecipe/RadialRecipeLevel.cpp#L438):
+   * gated to `Level() == 0`, so the three refined levels — finest `dx=0.0625`,
+     8× level 0, and where all the matter is — never contribute;
+   * **no covered-cell mask**: coarse cells underneath the refinement are still
+     summed, so the active region enters at 8×-too-coarse resolution and its
+     real residual never appears at all;
+   * normalised by the **whole** domain volume, ~99.9% of which is near-vacuum
+     (level 1 covers 0.116% of the domain), so the mean is diluted toward zero.
+
+   For its actual job — a cheap, consistent, once-per-coarse-step scalar
+   feeding the pump governor — it is fine. As a published accuracy figure it is
+   not, and it was never meant to be one.
+
+   **Fix:** composite AMR norm — evaluate the constraints on every level, mask
+   coarse cells covered by finer ones (`amrex::makeFineMask`, present in this
+   AMReX), weight by each level's own `cell_vol`, accumulate. Then also
+   (a) quote the *relative* norm (cols 7–8) beside the absolute one — absolute
+   values carry units and scale with loaded matter, so they are not comparable
+   to other groups' work; (b) report the norm over the active region separately
+   from the domain mean, so the vacuum dilution is visible; (c) drop the outer
+   boundary layer, whose violation is BC, not physics; (d) **redo the Richardson
+   test** — p≈3.3 currently certifies the convergence of the level-0
+   restriction, not of the solution.
+
+   **Unexplained and blocking:** the already-recorded `L2_Ham_rel` sits at
+   **0.64–0.81** in all four campaign F arms (0.65/0.72/0.64/0.64 at t=10 →
+   0.74/0.81/0.74/0.69 at t=19), i.e. the residual is comparable to the terms
+   it is meant to cancel. On the coarsest grid this may be expected; nobody has
+   checked. It cannot go into the paper unexplained.
+
+   **Scope — rankings survive, absolutes do not.** Every run is measured the
+   same wrong way, so all within-protocol comparisons (§9, and the whole
+   "constraints ignore the pump" argument) stand. What is not usable is any
+   absolute claim of the form "the constraint violation of this run is 4e-3".
 
 1. **Profile-matched target.** Both the overlap strip [§19.10] and the
    bridge-feeding [§19.11] are *shape* errors: the controller aims at an
@@ -588,11 +630,13 @@ never measured and got the sign wrong on.
 ### What the C++ diagnostics actually measure [§16.5]
 
 * **`constraint_norms.dat` is LEVEL 0 ONLY** (`Level()==0`, level-0 state,
-  single cell_vol). So are the pump-force norms and the governor's input.
-  Violation living on refined levels (dx 0.25→0.0625) is invisible to all of
-  them. Within-protocol comparisons (the entire §4 argument) are unaffected —
-  every run is measured the same way — but absolute numbers are the level-0
-  restriction, and Richardson p≈3.3 is the convergence of *that restriction*.
+  single cell_vol), **unmasked** (coarse cells under the refinement are still
+  summed, at 8×-too-coarse resolution) and **domain-diluted** (normalised by the
+  full volume, ~99.9% near-vacuum). So are the pump-force norms and the
+  governor's input. Within-protocol comparisons (the entire §4 argument) are
+  unaffected — every run is measured the same way — but absolute numbers are the
+  level-0 restriction, and Richardson p≈3.3 is the convergence of *that
+  restriction*. **This is a bug to fix, not a caveat to state — see §4 item 0.**
 * **`collapse_diagnostics` / `energy_conditions` / `curvature_invariants` reduce
   over the FINEST level's boxes only** — 0.01–0.3% of the domain mid-run.
   `min_chi`/`min_lapse` do match global values (refinement tracks the well), but
@@ -637,7 +681,7 @@ Every measurement pipeline was audited after the cache bug. Verdicts:
 | frozen `f_geo` (29.5%) | SOUND for candidate-146; resample caveat stands for collapsing runs |
 | `f_ff` (7.6%) | math audited clean; reads fidelity-passing stacks |
 | `f_op` | machinery exact per edge; **2D y-midplane slice only** |
-| `L2_Ham`/`L2_Mom`/governor | **LEVEL-0 ONLY**; within-protocol comparisons stand |
+| `L2_Ham`/`L2_Mom`/governor | **BUG — level-0 only, unmasked, domain-diluted** (§4 item 0); within-protocol comparisons stand, absolutes not quotable |
 | `collapse_diagnostics` | **finest-level footprint only**; `max_Pi` reads 1 of 8 matter components |
 | `energy_conditions.dat` | **BUG — μ=0**, fixed |
 | `curvature_invariants.dat` | formulas correct; finest-footprint caveat |
@@ -750,7 +794,13 @@ and then read as physics, while the authoritative source sat unused next to it.*
 
 In every case the fix was to compare against the source rather than trust the
 copy, and in every case the check was cheap enough that there was never a reason
-not to. Two further habits earned the hard way: **never validate this system on
+not to.
+
+A sixth, found 2026-07-29, is a *different* shape and worth naming separately:
+**a number built as a control-loop input was promoted to a published result**
+without anyone re-deriving what it measures (§4 item 0). It is correct for its
+job and wrong for the paper, which is why no test would ever have flagged it.
+Habit to adopt: before quoting any diagnostic, check what it was written *for*. Two further habits earned the hard way: **never validate this system on
 short runs** (the reservoir looked excellent at t=2 and diverges after t≈2.5;
 `pcb_match` looked healthy at t=30 and collapsed at 32), and **when a result is
 backwards, suspect the measurement** — the cache bug was caught by a physics
