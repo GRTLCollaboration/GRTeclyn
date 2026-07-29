@@ -24,9 +24,12 @@ constraint violation; baseline tp30 crosses at t~28.9).
 
 Usage:
     score_confine_abs.py RUN_DIR [RUN_DIR ...] [--ref RUN_DIR] [--tsv]
+                         [--endurance]
 
-    --ref   baseline for the gain columns (default: none)
-    --tsv   machine-readable one-line-per-run output
+    --ref         baseline for the gain columns (default: none)
+    --tsv         machine-readable one-line-per-run output
+    --endurance   endpoint table for t=60 arms: matter + geometry at t=40 and
+                  t=60, and whether the arm cleared the t>=40 "held" bar
 """
 
 from __future__ import annotations
@@ -41,6 +44,12 @@ C_FRAC_CANON, C_FRAC_PHAN, C_CMF, C_MINCHI = 13, 15, 16, 17
 
 LATE_T0, LATE_T1 = 20.16, 27.36   # clean late window: past onset, pre-choke
 HOLD_T0, HOLD_T1 = 1.44, 18.72    # hold phase
+ENDUR_T0, ENDUR_T1 = 40.0, 55.0   # endurance window for t=60 arms (Debug.md 19.15)
+
+# Endpoint snapshots. t=40 is the standing "held" bar: nothing counts as held
+# unless it survives that far (the pcd_match_t60 arm looked healthy at t=30 and
+# collapsed at t~32).
+SNAP_TIMES = (40.0, 60.0)
 
 
 def read_confinement(run: Path) -> list[list[float]]:
@@ -69,6 +78,31 @@ def governor_cross(run: Path) -> tuple[str, str]:
         if g < 0.5 and cross is None:
             cross = t
     return ("never" if cross is None else f"{cross:.2f}"), f"{gmin:.4f}"
+
+
+def collapse_track(run: Path) -> list[tuple[float, float, float, float]]:
+    """(time, min_lapse, min_chi, max_abs_K) rows from collapse_diagnostics.dat."""
+    f = run / "data/collapse_diagnostics.dat"
+    if not f.exists():
+        return []
+    out = []
+    for line in f.read_text().splitlines():
+        s = line.split()
+        if len(s) < 4 or s[0].startswith("#"):
+            continue
+        try:
+            out.append((float(s[0]), float(s[1]), float(s[2]), float(s[3])))
+        except ValueError:
+            continue
+    return out
+
+
+def geometry_at(track: list, t: float) -> tuple[float, float, float] | None:
+    """(min_lapse, min_chi, max_abs_K) nearest to t; None if the run never got there."""
+    if not track:
+        return None
+    r = min(track, key=lambda x: abs(x[0] - t))
+    return (r[1], r[2], r[3]) if abs(r[0] - t) < 0.75 else None
 
 
 def at(rows: list[list[float]], t: float) -> list[float] | None:
@@ -116,10 +150,30 @@ def score(run: Path) -> dict | None:
         out["late_canon"] = rate(c0[1], c1[1], l1[C_TIME] - l0[C_TIME])
         out["late_phan"] = rate(c0[2], c1[2], l1[C_TIME] - l0[C_TIME])
 
+    d0, d1 = at(rows, ENDUR_T0), at(rows, ENDUR_T1)
+    if d0 and d1:
+        n0, n1 = absolutes(d0), absolutes(d1)
+        out["endur_canon"] = rate(n0[1], n1[1], d1[C_TIME] - d0[C_TIME])
+        out["endur_phan"] = rate(n0[2], n1[2], d1[C_TIME] - d0[C_TIME])
+
     e = absolutes(rows[-1])
     out["end_total"], out["end_canon"], out["end_phan"] = e
     out["min_chi"] = min(r[C_MINCHI] for r in rows)
     out["gov_cross"], out["gov_min"] = governor_cross(run)
+
+    # Endpoint snapshots: matter + geometry at the bars that decide "held".
+    track = collapse_track(run)
+    out["t_geom"] = track[-1][0] if track else math.nan
+    out["min_lapse"] = min(r[1] for r in track) if track else math.nan
+    for t in SNAP_TIMES:
+        tag = f"t{int(t)}"
+        s = at(rows, t)
+        if s:
+            m = absolutes(s)
+            out[f"{tag}_total"], out[f"{tag}_canon"], out[f"{tag}_phan"] = m
+        g = geometry_at(track, t)
+        if g:
+            out[f"{tag}_lapse"], out[f"{tag}_chi"], out[f"{tag}_K"] = g
     return out
 
 
@@ -132,6 +186,7 @@ def fnum(v, w=7, p=3):
 def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     tsv = "--tsv" in sys.argv
+    endurance = "--endurance" in sys.argv
     ref_dir = None
     if "--ref" in sys.argv:
         ref_dir = Path(sys.argv[sys.argv.index("--ref") + 1])
@@ -151,11 +206,43 @@ def main() -> int:
 
     if tsv:
         keys = ["name", "t_end", "inj_canon", "inj_phan", "hold_canon",
-                "hold_phan", "late_canon", "late_phan", "end_total",
-                "end_canon", "end_phan", "min_chi", "gov_cross", "gov_min"]
+                "hold_phan", "late_canon", "late_phan", "endur_canon",
+                "endur_phan", "end_total", "end_canon", "end_phan", "min_chi",
+                "min_lapse", "gov_cross", "gov_min"]
+        for t in SNAP_TIMES:
+            tag = f"t{int(t)}"
+            keys += [f"{tag}_total", f"{tag}_canon", f"{tag}_phan",
+                     f"{tag}_lapse", f"{tag}_chi"]
         print("\t".join(keys))
         for s in results:
             print("\t".join(str(s.get(k, "n/a")) for k in keys))
+        return 0
+
+    if endurance:
+        hdr = (f"{'run':<16} {'t_end':>5} | {'t40:':>5} {'tot':>6} {'canon':>6} "
+               f"{'exotic':>6} {'lapse':>6} {'chi':>6} | {'t60:':>5} {'tot':>6} "
+               f"{'canon':>6} {'exotic':>6} {'lapse':>6} {'chi':>6} | {'held?':>5}")
+        print(hdr)
+        print("-" * len(hdr))
+        for s in results:
+            line = f"{s['name']:<16} {s['t_end']:>5.1f} |"
+            for t in SNAP_TIMES:
+                tag = f"t{int(t)}"
+                line += (f" {'':>5} {fnum(s.get(f'{tag}_total'), 6, 1)} "
+                         f"{fnum(s.get(f'{tag}_canon'), 6, 1)} "
+                         f"{fnum(s.get(f'{tag}_phan'), 6, 1)} "
+                         f"{fnum(s.get(f'{tag}_lapse'), 6, 3)} "
+                         f"{fnum(s.get(f'{tag}_chi'), 6, 3)} |")
+            # The bar: reached t=40 with the geometry still above the kill floors.
+            held = (s.get("t40_lapse") is not None
+                    and s.get("t40_lapse", 0) >= 0.15
+                    and s.get("t40_chi", 0) >= 0.05)
+            line += f" {'YES' if held else 'no':>5}"
+            print(line)
+        print("\nheld = reached t=40 with min_lapse >= 0.15 and min_chi >= 0.05."
+              "\ntot/canon/exotic = absolute confined activity; n/a = run never"
+              "\nreached that time. Decline over [40, 55]: use --tsv for"
+              "\nendur_canon / endur_phan.")
         return 0
 
     hdr = (f"{'run':<14} {'t_end':>5} | {'inj_c':>6} {'inj_p':>6} | "
