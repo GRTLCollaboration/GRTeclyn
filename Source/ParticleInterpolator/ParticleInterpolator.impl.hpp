@@ -252,6 +252,32 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         domain_ncell[d] = geom.Domain().length(d);
     }
 
+    // Gather comp map into managed arrays
+    const int num_derivs = static_cast<int>(
+        std::distance(m_query->compsBegin(), m_query->compsEnd()));
+
+    amrex::Gpu::ManagedVector<Derivative> derivs(num_derivs);
+    amrex::Gpu::ManagedVector<int> comp_counts(num_derivs);
+
+    // Flatten comps and generate pointers into it
+    amrex::Gpu::ManagedVector<InterpolationQueryParticle::out_t> comps_flat(
+        ncomp);
+    amrex::Gpu::ManagedVector<InterpolationQueryParticle::out_t *> comps_ptr(
+        num_derivs);
+
+    int i = 0, off = 0;
+    for (auto comps_it = m_query->compsBegin(); comps_it != m_query->compsEnd();
+         ++comps_it, ++i)
+    {
+        derivs[i]      = comps_it->first;
+        comp_counts[i] = static_cast<int>(comps_it->second.size());
+        comps_ptr[i]   = comps_flat.data() + off;
+        for (const auto &entry : comps_it->second)
+        {
+            comps_flat[off++] = entry;
+        }
+    }
+
     // loop over tiles and interpolate now
     for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
     {
@@ -260,28 +286,9 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         const int num_particles = par_iter.numParticles();
         auto fab_array          = mfab[par_iter].const_array();
 
-        // Gather comp map into arrays so it can be used on GPU
-        int num_derivs =
-            std::distance(m_query->compsBegin(), m_query->compsEnd());
-
-        Derivative derivs[num_derivs];
-        InterpolationQueryParticle::out_t *comps[num_derivs];
-        int comp_counts[num_derivs];
-
-        int i = 0;
-
-        for (auto comps_it = m_query->compsBegin();
-             comps_it != m_query->compsEnd(); ++comps_it)
-        {
-            derivs[i]      = comps_it->first;
-            comps[i]       = comps_it->second.data();
-            comp_counts[i] = static_cast<int>(comps_it->second.size());
-            ++i;
-        }
-
         amrex::ParallelFor(
             num_particles,
-            [&] AMREX_GPU_DEVICE(int ip)
+            [=] AMREX_GPU_DEVICE(int ip)
             {
                 auto &particle = particle_tile_data[ip];
 
@@ -295,7 +302,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(&fab_array, interpolated_vals,
-                                            derivs, comps, comp_counts,
+                                            derivs, comps_ptr, comp_counts,
                                             num_derivs, dxi[0]);
 
                 // write results to SOA
