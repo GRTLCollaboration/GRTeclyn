@@ -128,17 +128,7 @@ trajectory_lump4_well_depth=0.15 \
 trajectory_well_width=1.667}"
 
 # --- Evolution (stop_time must be set before EXTRA_SETS for spiral radius clamp) ---
-# 20, not 16: the evolving-geodesic probe counts a ray only if it arrives before
-# the last stored slice (no frozen-tail credit).  Flat crossing takes 14.4 and
-# the emit floor is t=4, so at stop_time=16 a t=4 launch needed a >=17% shortcut
-# just to arrive in time -- pump_v1 measured exactly that: 96 of 100 completed
-# evals scored f_geo=0 and the only nonzero values were 0.169-0.212.  MAP-Elites
-# had no gradient below the 17% cliff.  At 20 the t=4 launch arrives by 18.4
-# even flat, so f_geo is continuous from 0 and sub-17% shortcuts (e.g. the
-# 13.8% champion) score.  Pump stays on the full run; t_pump=20 sits inside the
-# HQ-validated band (tp<=24, Debug.md 9) but past the fast-tier measurement
-# (tp16) -- the tanh governor is the backstop, watch the gpu_failed rate.
-export STOP_TIME="${STOP_TIME:-20.0}"
+export STOP_TIME="${STOP_TIME:-16.0}"
 export PLOT_INTERVAL="${PLOT_INTERVAL:-320}"
 
 # Non-search-space overrides passed as --set via EXTRA_SETS (base overrides).

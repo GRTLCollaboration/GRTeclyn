@@ -48,8 +48,12 @@ def _base_metrics(**kwargs) -> EpisodeMetrics:
 
 
 def test_4d_success_zeros_frozen_and_credits_evolving(monkeypatch) -> None:
-    # Search-tier unit test: no igniter filter. A leaked RL_PUMP_STOP_TIME from
-    # a paper/HQ shell would reject t_emit=0 and zero ftl_geo_evolving.
+    # Search-tier unit test: no igniter filter. A leaked emit floor from a
+    # paper/HQ shell would reject t_emit=0 and zero ftl_geo_evolving.  Both
+    # keys must go: the floor resolver prefers GEODESIC_EMIT_MIN_TIME and only
+    # falls back to RL_PUMP_STOP_TIME, so scrubbing one leaves the other live
+    # (campaigns that pump for the full run set the former explicitly).
+    monkeypatch.delenv("GEODESIC_EMIT_MIN_TIME", raising=False)
     monkeypatch.delenv("RL_PUMP_STOP_TIME", raising=False)
     metrics = _base_metrics(
         ftl_timeseries=_frozen_timeseries(peak=0.05),

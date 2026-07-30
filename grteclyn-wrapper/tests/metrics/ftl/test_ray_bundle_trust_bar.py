@@ -96,8 +96,11 @@ def test_scorer_credits_a_captured_ray_bundle(monkeypatch) -> None:
     )
     from grteclyn_wrapper.metrics.types.episode import EpisodeMetrics
 
-    # Search-tier: a leaked RL_PUMP_STOP_TIME would reject t_emit=0 for its own
-    # reason and mask what this test is checking.
+    # Search-tier: a leaked emit floor would reject t_emit=0 for its own reason
+    # and mask what this test is checking.  Scrub both keys — the resolver
+    # prefers GEODESIC_EMIT_MIN_TIME and falls back to RL_PUMP_STOP_TIME, so
+    # dropping one leaves the other live.
+    monkeypatch.delenv("GEODESIC_EMIT_MIN_TIME", raising=False)
     monkeypatch.delenv("RL_PUMP_STOP_TIME", raising=False)
     metrics = EpisodeMetrics(
         collapse=None,
