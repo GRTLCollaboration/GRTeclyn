@@ -278,6 +278,10 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         }
     }
 
+    Derivative *derivs_data                              = derivs.data();
+    InterpolationQueryParticle::out_t *const *comps_data = comps_ptr.data();
+    const int *comp_counts_data                          = comp_counts.data();
+
     // loop over tiles and interpolate now
     for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
     {
@@ -301,9 +305,9 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
                                                 hi_reflective, domain_ncell);
 
                 amrex::ParticleReal interpolated_vals[ncomp];
-                lagrange_interp.interpolate(&fab_array, interpolated_vals,
-                                            derivs, comps_ptr, comp_counts,
-                                            num_derivs, dxi[0]);
+                lagrange_interp.interpolate(
+                    &fab_array, interpolated_vals, derivs_data, comps_data,
+                    comp_counts_data, num_derivs, dxi[0]);
 
                 // write results to SOA
                 for (int icomp = 0; icomp < ncomp; ++icomp)
