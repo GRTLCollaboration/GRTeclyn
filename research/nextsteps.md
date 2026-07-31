@@ -1,699 +1,441 @@
-# Research Roadmap
+# FTL Warp-Precursor Pipeline — Prioritized Next Steps
 
-## Immediate plan (plain English)
+> Priorities run top to bottom (P0 = highest). Idea labels: **F1–F7** are the FTL-pipeline ideas, **N1–N10** the new-physics ideas, **W1–W5** the wormhole-paper extension program, **H1–H5** the hold-on-command (closed-loop throat stabilization) program, **G1–G5** the gw_beam triage actions, **AT1–AT4** the geometry-first-atlas actions; lane labels (B1, B2, B3/B4, C1, C2, C4) are unchanged from the strategy assessment. The wormhole line is collected as one arc in P5. Full detail: literature assessment in Appendix A, Bondi-runaway design in Appendix B, wormhole extension program in Appendix C, hold-on-command design in Appendix D, gw_beam/atlas campaign assessment in Appendix E.
 
-Two lanes: **Lane 1** publishes what we already found; **Lane 2** tries to stop
-exotic matter from flying apart. Prioritized by best results for least wasted
-time.
+## TL;DR
 
-### Lane 1: Harvest the papers (next 2–4 weeks)
+- **Publish the rotating-wormhole paper (Paper 2) first, reframed as an exotic-compact-object collapse/GW study, not an "FTL precursor" result; it is closest to submittable and sits in an active, credible field.** Paper 1's 20.21% timing measurement survives the audit and can be published, but only after the search-provenance narrative is withdrawn, the horizon claim is dropped to proxy-level, and constraint absolutes are removed — and it should wait for the in-flight `qball_traj_spin_v1` re-run before making any "the search found" claim.
+- **Among Lane 2 confinement bets, B1 (self-gravitating rotating scalar eigenstate by continuation) is well-supported and worth GPU time; B2 (normal-matter "sandwich" caging an exotic core) has a real static-solution precedent (the 2023 "E-boson star") but no demonstrated dynamical stability — treat as a bounded pilot, not a program.** The Sagnac/Tipler frame-dragging campaign (C1) is a likely dead end and not worth GPU time; the canonical-matter boson-star astrophysics (C2) is the single most publishable use of the pipeline.
+- **The speculative real-world Casimir/HFT roadmap is not physically grounded and should be cut from serious manuscripts.** The user's own bound (f_geo ~ 10^-50) agrees with the Ford–Pfenning quantum-inequality result that macroscopic warp/negative-energy structures are ~50 orders of magnitude beyond laboratory vacuum stresses.
+- **The wormhole line is now a programme, not a single paper — an arc with one actuator:** ship Paper 2 with the honest corrections plus two cheap probe-side enrichments (traversability window, Sagnac asymmetry); then the question-driven follow-up "the causal structure and horizon dynamics of a collapsing rotating wormhole" (W1–W5); then close the loop with hold-on-command (H1–H5) — open-loop kill → closed-loop hold, worth up to three further papers or, if the hold fails, a quantified no-go for the C4 atlas.
+- **The gw_beam campaign is a null result in disguise, not a beaming discovery:** its measured 2.5–3.7 anisotropy is the textbook l=2 antenna pattern (peak/average = 5/2 rotating, 15/8 breathing), the L=128 box has no wave zone for the orbital signal, and the P~10⁻⁶–10⁻⁴ hum is the correct weak-field quadrupole floor. Harvest it as the reward-hacking methods paper (G5, merging with N9 — promoted to P2) and redirect its physics into C2's compact boson stars (G4). The geometry-first atlas is the methodologically stronger line: keep it as a screening tool, adopt trusted-only scoring (AT1), and run Stage-2 as an explicit sourceability/no-go test on hybrid elites (AT2) — SSV predicts pure shift tubes cannot be sourced. (Full assessment: Appendix E.)
 
-1. **Finish the collapsing-wormhole paper.** We showed that pulling support from
-   a spinning wormhole collapses it and launches a strong gravitational wave;
-   the draft is nearly done. Next: run a cheap, low-resolution **non-spinning**
-   collapse control so reviewers cannot say spin was never shown to matter.
-   Plug it into the draft and submit.
-2. **Publish the transient-FTL paper.** We showed FTL shortcuts are real in
-   simulation but die in seconds when the exotic “engine” disperses. Write it
-   honestly as a **warp precursor**, not a working drive — that proves the
-   pipeline and separates us from junk science.
+## P0 — Cross-cutting infrastructure (do these regardless)
 
-### Lane 2: Quest for stability (next 1–2 months)
+1. Integrate a real MOTS/apparent-horizon finder — an open-source, code-agnostic option now exists (BHaHAHA). *(Unblocks the Paper 2 horizon-claim upgrade and W3 area balance.)*
+2. Produce the composite AMR constraint norms measured where the matter actually is, and calibrate thresholds, before quoting any constraint absolute. *(Prerequisite for Paper 1's constraint statements and every campaign's validity gate.)*
+3. Raise `GRTECLYN_METRIC_STACK_N_SPACE` so the two longest-surviving pump arms can be scored through the collapse epoch. *(Also the standing prerequisite for every wormhole probe — F6, F2, W, H — since the interesting slices are exactly the deep-χ ones the cache under-resolves and the fidelity gate refuses.)*
 
-Warp drives still fly apart. Cage them with physics, not artificial computer
-pumps.
+## P1 — Publish now with corrections (next ~4 weeks)
 
-3. **Attempt the sandwich** (normal matter caging exotic matter). Wrap
-   repulsive exotic matter in a heavy, stable normal-matter shell. Ask the
-   solver for this setup; expect it to struggle. Strategy: start at zero
-   gravity, place the matter, then slowly turn gravity up. **Abandon after two
-   weeks** if stuck.
-4. **Perfect spinning donut** (rotating eigenstate). Let exotic matter hold
-   itself by spinning as a balanced torus. Flat-space already works; turn
-   gravity on. If it holds for ~30 simulation seconds, that is a
-   self-sustaining FTL structure.
+- **Submit Paper 2 (rotating wormhole) first**, reframed as "nonlinear collapse and GW emission of an actively-supported rotating exotic-matter configuration." Minimal honest correction set: (1) relabel every "apparent horizon / trapped surface" as "coordinate-sphere outgoing-expansion proxy" unless a real MOTS finder is added; (2) extract Ψ4 at ≥3 radii and show 1/r scaling, explicitly flagging the intermediate-zone limitation and the non-convergent Hamiltonian maximum; (3) report the pathological non-rotating control honestly and run the cheap non-spinning control as a genuine comparison; (4) keep the "phantom bounce" as a described phenomenon, not a claimed novel mechanism; (5) add the two cheap probe-side enrichments from the W-program (Appendix C) — the null-traversability window with last-passage time (W1) and the Sagnac frame-dragging transit asymmetry (W2) — together they add the causal story and give rotation a measurable role, both from stored stacks. Do not stuff the rest of the W-program into this paper: it's already submittable with these corrections, and bloating it delays it — the remainder is the follow-up paper in P5. Benchmark that would upgrade the claim: a genuine MOTS finder returning a horizon area, plus wave-zone/CCE extraction.
+- **Paper 1 (transient shortcuts): rewrite now with rescoped claims, but hold submission until the `qball_traj_spin_v1` re-run returns.** Publish the 20.21% coordinate / 7.6% free-faller timing advantage as a validated measurement on candidate 146. Withdraw entirely: the "CMA-ES collapsed onto a quasi-static scaffold," "converged not lucky," E_pump soft-guide, horizon-by-t≈27, and all WEC/SEC/DEC-violation and confinement-percentage claims (fabricated by the mu=0 bug or non-recomputable per the audit). Do not quote constraint absolutes until composite AMR norms are calibrated. Rationale on timing: the *measurement* can be written up immediately, but any sentence containing "the search found/converged/discovered" must wait for the clean 39-D re-run — that is exactly the standard post-hoc-bug protocol.
 
-### Safety net (if everything flies apart)
+## P2 — Near-free: immediate fixes, analyses, and write-ups
 
-5. **Write the no-go rulebook.** If sandwich and spinning donut both fail,
-   publish an **atlas of failure** — how and why these structures rip apart.
-   Ruling out a class of sci-fi drives under the laws of physics is a strong,
-   citable result.
-6. **Pulse engine** (riding the ripples). If no stable bubble, fire a sequence
-   of matter bursts and jump from one dying FTL wave to the next. Test a second
-   burst in the wake of the first directly — overlapping ripples are messy;
-   do not guess the overlap.
+Two groups: items that slot directly into the Paper 1 revision (F3, F7), and the immediate actions from the gw_beam/atlas assessment (Appendix E) — a decisive cheap analysis, scoring hygiene, and a paper that is publishable as-is.
 
-### Immediate to-do
+### F3. The exotic-efficiency frontier: f_geo per unit negative energy
 
-1. Run the cheap non-spinning wormhole control.
-2. Submit the wormhole paper.
-3. Try the sandwich math — with a **2-week timer**.
+The atlas already shows hard-banning E₋ > 0.1 caps frozen shortcuts at 6.8%. Do the dynamical version: MAP-Elites with descriptor axes (f_geo, E₋) — both already measured — to map the Pareto frontier of timing advantage vs exotic budget under full evolution. This reframes the whole program in the direction referees respect ("how little NEC violation buys how much shortcut, dynamically?") and connects to the quantum-inequality literature quantitatively. Zero new instrumentation; it's a descriptor swap.
+
+### F7. Free-fall–certificate upgrade of the sweep
+
+f_ff (7.6%) is your most gauge-honest number but exists only at one launch. Run the freely-falling-observer protocol across the full emission sweep and resolution ladder, and report the f_ff(t_emit) world-tube alongside f_geo. Cheap (probe-side only, stacks exist for the RC/RM/RF matrix), and it converts the paper's strongest single number into its strongest curve.
+
+### G1. The analytic quadrupole null model — the kill-or-keep test for "beaming"
+
+Build the analytic quadrupole-formula null model from the recorded lump trajectories; compute the predicted (l,m) mode content and the sin⁴θ / (1+cos²ι)² angular pattern, and overlay measured vs predicted. Threshold to keep claiming "directional emission": measured peak/average must exceed the analytic prediction (≥2.5 for a rotating quadrupole, ≥1.875 for the breathing mode) at >3σ after proper wave-zone extraction. It almost certainly will not — the measured `beaming_gain` of 2.5 (v5 eval_000046) and 2.77→3.66 (HQ) fall squarely inside the range expected from an ordinary quadrupole antenna pattern with no beaming whatsoever.
+
+### G2. Switch gw_beam observables to the standard ones
+
+Replace `beam_ratio` (z-cone fraction) and raw Ψ4 power with: (a) energy per (l,m) spin-weighted mode; (b) total radiated energy E_rad/M; (c) the linear-momentum flux / recoil-kick vector as the canonical measure of anisotropic emission. Genuine beaming shows up as anomalous high-l power or a large kick, not a cone fraction.
+
+### G5 + N9 (promoted from backlog). The reward-hacking methods paper — publishable as-is
+
+Reframe the gw_beam write-up around the reward-hacking case study and gate architecture, not "beaming discovery." You have documented, reproducible cases: the gw_beam eval that scored 336 off a constraint blow-up (→ −116 after multiplicative gates), the metric-cache bug that inflated exactly the control run, frozen-slice false positives killed by the 4D certificate. "Multiplicative validity gates vs additive penalties for search over nonlinear PDE evolutions," with your audit trail as evidence, is publishable at ML-for-science venues and makes the pipeline itself citable — which then strengthens every physics paper that uses it. The assessment (Appendix E) upgrades this from backlog to publishable-as-is and supplies the framing: the v3 "numerical bomb" is a textbook case of specification gaming / Goodhart's law, and Skalse et al. (NeurIPS 2022) prove no non-trivial soft proxy is unhackable — precisely why the hard multiplicative gate succeeds where the additive penalty failed. Framed against the RL-safety taxonomy, it's a useful cross-over paper for both the NR and ML-for-science communities.
+
+### AT1. Trusted-only scoring in the atlas
+
+Adopt trusted-only scoring: zero — don't halve — untrusted f_geo for archive admission; keep the raw value only as a logged diagnostic. Your own v3 lesson (additive/soft penalties lose to unbounded exploits) argues directly against soft-halving, and the interim top-5 already shows the exploit surface is live (a 0.215 entry flagged untrusted, raw-halved, with 0.083 drift). Benchmark: the champion must be stable across the N=48/64/96 ladder *and* pass the null-Hamiltonian-drift check natively.
+
+### AT3. Frozen atlas as a companion screening table
+
+Keep the frozen atlas as a companion screening table to the evolved-spacetime paper (analogous to that paper's Table IX), being explicit that frozen f_geo (0.41–0.48) and the evolved 20.2% are different quantities.
+
+### AT4. Report the expressiveness-bias correction prominently
+
+The RBF-clay-cannot-form-tunnels finding — a QD search concluding a family was "weak" when the genome simply could not represent it, fixed by an analytic topology registry seeding families the genome cannot self-assemble — is a genuine, publishable QD-methods result (the documented expressiveness/representation-bias failure mode; Alvarez et al., IEEE ToG 2022).
+
+## P3 — This month's GPU time
+
+From the FTL-pipeline list: **F1 and F6** — one tests the central hypothesis, the other completes the central measurement — plus **F4**, which should be re-run regardless since the canonical bound currently sits on the buggy search. From the new-physics list: **N1 and N5** — N1 is novel, nearly free, plays to the unique signed-lump capability, and produces a headline result that doesn't need the word "FTL"; N5 mines runs already paid for and directly strengthens the Paper 2 revision by forcing the multi-radius extraction upgrade.
+
+### F1. The sourceability-barrier test: try to dynamically source the shift-tube branch
+
+Your own paper names this as "the obvious next experiment" and it's the strongest FTL question your pipeline can ask. The atlas says shift-dominated topologies have a 48.5% frozen ceiling vs 21.8% for the curvature branch you actually sourced — and your hypothesis is that the shift branch can't be dynamically sourced because it needs coherent unidirectional Sᵢ in a thin wall, which orbiting Q-balls can't supply. That's currently a conjecture from one campaign. Test it directly: add a shift-dominance descriptor (you already compute f_shift-like quantities in the atlas code; the corridor β^x profile is in the stacks) and run MAP-Elites with descriptor axes (f_geo, shift-dominance), objective unchanged. Matter families to widen the reach: aligned-phase lump chains (all Π gradients coherent along the corridor — the configuration that maximizes unidirectional momentum density in your model), boosted-lump arms as the comparison. Three outcomes, all publishable: the archive fills the high-f_shift column (barrier broken — big result), it provably can't within the ansatz (the barrier becomes a measured exclusion, not a story), or it finds a hybrid. This is one new descriptor plus campaign scripts.
+
+Assessment refinement (Appendix E, **AT2**): run the Stage-2 GRTresna handoff as an explicit sourceability/NEC no-go test, not a search for a physical warp tube — SSV (Phys. Rev. D 105, 064038, 2022) predicts a pure shift-tube elite will either fail to converge to physical matter or converge to exotic T_μν, since a coherent unidirectional shift wall requires NEC-violating momentum density. The genuinely informative targets are (1) the hybrid shift-fraction ~0.7 elites and (2) shift-tube-plus-positive-mass-shell configurations à la Bobrick–Martire / Fuchs et al. 2024 (subluminal, positive ADM mass). Threshold that would change the conclusion: a converged, energy-condition-respecting T_μν for a shift-dominated elite.
+
+### F6. Score the shortcut through the collapse epoch — finish what campaign F started
+
+Your longest-lived confining arms (aim 0.10/0.12, and the untested 0.14/0.16 rungs) are exactly the ones with no FTL number, because the stack under-resolved the deep-χ slices and the fidelity gate refused them. Raise N_SPACE, rerun the two survivors plus the two new rungs, and you get the first f_geo dose–response across confinement lifetime — the "does holding the matter longer hold the channel open longer?" curve, which is the core transient-precursor question and is currently unmeasured.
+
+### F4. Close the canonical-only bound properly
+
+Your f_geo = 0 over 105 accepted canonical evals is currently scoped to one ansatz, t_stop = 16, five lumps. Sharpen it where it's weakest: longer t_stop (the pump-free twin's optimum migrated to the sweep edge — the canonical search may simply be timing out), aligned-phase chains from F1, and the now-fixed heritable trajectory dimensions (the original bound was measured with PG-1 live, so 16 dimensions were never actually searched — the bound needs re-establishing on the fixed pipeline anyway). Either the no-go hardens into a defensible exclusion over stated families, or a canonical-sector shortcut appears — and that would be the biggest result available to you.
+
+### N1. Bondi dipole runaway in full NR — the standout
+
+Bondi (1957) showed a positive/negative mass pair self-accelerates: the negative mass repels the positive, the positive attracts the negative, and the pair chases itself indefinitely while conserving momentum. Nobody has done this in full 3+1 numerical relativity with dynamical, constraint-solved matter — analytic and Newtonian treatments only. You are uniquely equipped: signed lumps (s_k = ±1) already exist in GRTresna and GRTeclyn, the sign-consistency fix is done, and the diagnostic is trivial (barycenter drift of each sector vs time, which your confinement extraction almost already computes). Place one canonical and one phantom lump at rest, separation d, and evolve. Questions with no known answers: does the runaway survive full nonlinearity and scalar dispersal? What does it radiate (a self-accelerating dipole has time-varying multipoles)? Does it outrun its own dispersal? A ladder in mass ratio and separation is a complete paper, and it's a cleaner use of your phantom sector than FTL — the phenomenon is the point, not a proxy for transport. *(Full experiment design: Appendix B.)*
+
+### N5. Ringdown spectroscopy and echo search on your own remnants
+
+The phantom-bounce remnant from Paper 2 is a horizonless ultracompact object — precisely the class predicted to show GW echoes (delayed, damped repetitions in the ringdown). You already have the Ψ₄ time series; extend the run past the bounce, extract at multiple radii, and fit for echo structure and QNM content vs a Kerr template. If echoes appear at your (documented) extraction fidelity, that's a second paper from data you mostly have; if they don't, it's a clean bounded statement. *(Also part of W5: the echo hunt folds into the wormhole follow-up paper — Appendix C.)*
+
+## P4 — Worth GPU time (1–3 months)
+
+- **C2 canonical-matter boson-star/Q-ball astrophysics is the highest-value use of the pipeline.** Encounter/merger waveforms, rotating configurations, ergoregion-instability studies, and proper-time observables are an active, referee-friendly field (Evstafyeva et al. PRL 2024; Ge et al. 2025). This plays to the 8×H100 GRTeclyn strength and produces publishable results independent of the FTL framing. *(G4/G3 from the campaign assessment fold in here: redirect the gw_beam physics into this line by moving from C~10⁻⁵ Q-balls to compact, self-gravitating relativistic boson/Proca stars — target C~0.1, solitonic potentials near the stability turning point, 0.1–0.3c and closer orbits — benchmarked against the published E_rad/M ≈ 0.48 C M₀ scaling; if the QD optimum still sits at the weak-field floor, conclude, correctly, that QD cannot manufacture strong emission from weak matter. Prerequisite G3: fix extraction first — a domain with r_ext ≥ several × λ_GW, or 1/r-extrapolation/CCE; r=30–50 in an L=128 box is not wave-zone for the orbital mode.)*
+- **B1 self-gravitating rotating scalar eigenstate by continuation**, using a *repulsive* self-interaction (solitonic/sextic Q-ball or repulsive quartic) and staying on the relativistic branch where Siemonsen–East found quenching. The flat-space 2D spinning Q-torus eigenstate is already solved and the charge-retention half-life already roughly doubled (27–28 vs 13–16), so continuation into self-gravity is the natural, literature-backed next step.
+
+## P5 — The wormhole extension programme (once the Paper 2 manuscript is out)
+
+One arc, one actuator, three stages in build order; each stage reuses the previous stage's infrastructure. Stage 1's two cheapest deliverables (traversability window, Sagnac asymmetry) already ship early inside the Paper 2 revision (P1 item 5); everything else runs after the manuscript is out so it doesn't delay submission. Standing prerequisite for the whole arc: collapse-epoch stack fidelity (P0 item 3).
+
+### Stage 1 — F2. Null traversability of the collapsing wormhole: the 4D tracing spine
+
+Run the 4D evolving-geodesic probe on the rotating-wormhole runs: rays threaded through the throat before, during, and after the support cut. Deliverables: the traversability window (last emission time whose ray exits the far side before the pinch), transit-time vs emission-time as the throat dies, and whether any ray beats the matched flat/exterior baseline. Nobody has a constraint-solved, dynamical, rotating throat with a null-transit certificate through collapse. Implementation is enabling the metric-stack consumer on the wormhole example (same code path as RadialRecipe) — with the lesson from your pump campaign applied up front: set GRTECLYN_METRIC_STACK_N_SPACE for collapse-epoch χ before launch, since the interesting slices are exactly the deep ones the cache under-resolves.
+
+### Stage 2 — W. The follow-up paper: "The causal structure and horizon dynamics of a collapsing rotating wormhole"
+
+Question-driven from the first line — the paper where the nonlinear solver genuinely earns its keep. Contents (full detail and rationale in Appendix C):
+
+- **W1 (remainder)** — event-horizon localization by backward null-ray integration through the stored stack, the last-passage surface, and the timelike traveler probe with proper time + tidal tensor along the worldline.
+- **W2 (remainder)** — ergoregion check during collapse (Teo condition) and, if one appears, a Penrose-splitting energy-extraction probe.
+- **W3** — dynamical-horizon area balance (Ashtekar–Krishnan) against the measured NEC-violating flux; needs the real MOTS finder (P0 infrastructure).
+- **W4** — collapse-threshold dial: ramp depth/duration bisection for critical scaling, plus a physical-trigger control arm (compressive scalar pulse).
+- **W5** — the lensing/shadow movie (= N6) and the post-bounce echo hunt (= N5).
+
+### Stage 3 — H. Hold-on-command: closed-loop stabilization of the throat
+
+The natural sequel to collapse-on-command, using the actuator Paper 2 already contains: make the support coupling state-dependent — S(t) = S_eq + K_p·(a(t) − a*) + K_d·ȧ(t) — a single-input, single-output servo on the throat areal radius. The Ellis–Bronnikov throat is a saddle with one real unstable mode, so this is the inverted pendulum of GR: the loop only has to cancel one unstable direction, unlike the pump campaigns that were asked to substitute for gravitational binding across a whole configuration. Science falls out at every build stage (full design, audit lessons, and sequencing in Appendix D):
+
+- **H1** — gain ladder below threshold: measure the effective growth rate at each gain, extrapolate to zero gain → the bare instability rate λ of the nonlinear rotating throat, plus minimal stabilizing gain and gain margin. Turns "it's unstable" into "here is its instability spectrum, measured nonperturbatively."
+- **H2** — throat QNM spectroscopy: kick the held throat, ring it down; measure at several gains and extrapolate to zero gain (closed-loop → bare modes) as the stated systematic.
+- **H3** — rotational mode splitting: m = ±1 kicks on the held rotating throat; frame-dragging splits the modes (gravitational Zeeman effect), check scaling with J across the ω ladder.
+- **H4** — servo experiments: slew the setpoint (adiabatic vs fast resize, radiation cost of the maneuver) and measure station-keeping power to hold position — the energetic cost of stabilizing a traversable throat.
+- **H5** — door-held-open transport: the W1/F2 traversability probes (transit times, tidal integrals, Sagnac asymmetry) run indefinitely on the held throat instead of racing the collapse.
+
+Two papers if the hold works (the control result, then the spectroscopy); if it fails at every affordable gain and bandwidth, that's a measured statement that the instability outruns any causal controller acting through this coupling — straight into the C4 no-go atlas with numbers attached.
+
+## P6 — Next search campaigns (once the spin_v1 re-run validates the fixed pipeline)
+
+N3 and N2 are the natural next campaigns for the search machinery once the spin_v1 heritability re-run validates the fixed pipeline.
+
+### N2. Critical-collapse threshold mapping for Q-balls and mixed-sign matter
+
+You already have OBJECTIVE_MODE=critical_collapse stubbed and amplitude-family (κ) drivers. Bisect along amplitude to the dispersal↔collapse threshold and measure Type-I scaling (lifetime ∝ −γ ln|p−p*|) for: canonical Q-balls (charge adds a conserved quantity — critical collapse of charged solitons is thin literature), phantom admixtures (does the threshold move monotonically with exotic fraction?), and spinning tori. MAP-Elites over configuration space with "distance to threshold" as a descriptor turns your search machinery into a phase-boundary mapper — which is also exactly the C4 no-go atlas, done quantitatively.
+
+### N3. Phase-dependent boson-star/Q-ball collisions
+
+Head-on and grazing collisions where the only varied parameter is the relative phase Δφ of the complex fields — known to flip outcomes between merger, repulsion, and charge ejection, but sparsely mapped for sextic/Q-ball potentials and never QD-searched. Your two-field bicomplex model does this natively; the scoring swap is one objective function (remnant fate + Ψ₄ energy + kick). Bonus inside the same runs: GW recoil optimization — let MAP-Elites maximize remnant kick velocity over impact parameter, phase, and mass ratio. Kick is read from the barycenter/momentum diagnostics you already have.
+
+## P7 — Bounded pilots only (hard stop-loss)
+
+- **B2 "sandwich" (ordinary shell caging an exotic core) as ONE self-consistent state.** There is a direct static precedent — the "E-boson star" (Jaramillo, Jiménez-Vázquez & Núñez, *Confinement of exotic matter. I. Static solutions*, Phys. Rev. D 107, 064061, 2023; arXiv:2302.07889), in which "the canonical matter is pushed outwards and [they] obtain a shell-like distribution of the canonical field, with a nucleus of exotic matter at the center," reaching compactness "beyond the Buchdahl limit" — plus gravastars and trapped-ghost wormholes (Bronnikov–Sushkov 2010). But no one has demonstrated *dynamical* stability of a negative-energy core over many dynamical times, and the pure-phantom constituent is known to be unstable; there is no published "Confinement of exotic matter II" dynamical follow-up. Keep the user's 2-week stop-loss; success benchmark = a static composite that survives ≥ several light-crossing times in evolution without the exotic core dispersing or collapsing.
+- **B3/B4 (PD-pump/RL igniter, pulse relay):** the audit already shows the pump does negligible net work (O(1) control effort, phantom sector never actually pumped pre-fix); these can only be characterization/no-go material, not a confinement mechanism. *(The pump campaigns' audit lessons transfer directly to the hold-on-command program — Appendix D.)*
+
+### F5. Two-stage relay with the nonlinearity residual (B4, promoted)
+
+Both stages in one constraint solve, staggered by initial phase/position; measure Δ_NL = R₁₂ − R₁ − R₂ + R₀ and whether the trusted f_geo(t_emit) > 0 interval extends beyond a single stage's. Time dependence is the one loophole the stationary no-gos leave open, and this is the cheapest honest probe of it. The decisive metric is normalized: lifetime extension per unit additional exotic matter — if stage 2 just adds more E₋ without extending the normalized window, stop.
+
+## P8 — Opportunistic backlog (cheap, contingent, or low-urgency)
+
+### N4. Charge-swapping Q-balls under self-gravity
+
+Copeland et al. established charge-swapping Q-balls (bound +Q/−Q composites that periodically exchange charge) in flat space; whether they survive self-gravity, and what they radiate gravitationally, is open. You have the two-channel complex evolution and per-sphere charge diagnostics. Cheap: single-node runs, existing extraction.
+
+### N6. Time-dependent lensing and shadow of the collapse-on-command event
+
+Your 4D evolving geodesic tracer integrates null rays through stored metric stacks — that is a ray tracer. Launch a bundle from a distant observer plane backwards through the collapse and render the image sequence: throat → collapse → bounce as an observational signature (magnification curves, image multiplicity, photon-ring formation and disappearance). No new physics code, one new launch mode plus a plotting consumer. Very few time-dependent wormhole-collapse lensing calculations exist with constraint-solved dynamics. *(Also part of W5: the lensing movie folds into the wormhole follow-up paper — Appendix C.)*
+
+### N7. Ergoregion physics on the B1 rotating stars (contingent on B1 landing)
+
+Once the self-gravitating spinning eigenstate lands, your planned E = −u_t / L_z timelike-geodesic accounting (built for the railgun) repurposes directly into a Penrose-process measurement: drop split trajectories through the ergoregion and measure energy extraction, and separately measure ergoregion-instability growth rates from seeded perturbations. Both are active-literature topics for horizonless compact objects.
+
+### N8. GW production efficiency of soliton collisions as a cosmological input
+
+Q-ball collisions in the early universe (Affleck–Dine fragmentation) source stochastic GW backgrounds; the efficiency factor (E_GW/M vs velocity, phase, charge) is taken from limited simulations. A systematic table from your canonical-sector collisions, with your resolution-ladder discipline, is a citable community resource — and needs only the wave-zone extraction upgrade you should do anyway for Paper 2.
+
+*(N9, the reward-hacking methods paper, was promoted out of this backlog to P2 after the gw_beam/atlas assessment judged it publishable as-is — see the G5 + N9 entry.)*
+
+### N10. Gauge/damping parameter optimization as a service run
+
+CCZ4 κ₁/κ₂ and Gamma-driver η are folklore-tuned for BH binaries, not for stiff phantom matter. A CMA-ES sweep scoring composite constraint norms and run survival over your existing configurations costs little (coarse tier), and gives you a defensible parameter choice to cite in your own papers instead of "standard values."
+
+## P9 — Do not pursue / reframe
+
+- **C1 Sagnac/Tipler frame-dragging campaign:** Tipler's finite-cylinder CTCs were never proven, and Hawking's chronology-protection argument implies a finite time machine needs negative energy (WEC violation) and generates diverging vacuum backreaction at the would-be Cauchy horizon. A finite winding column will not produce a robust, physical timing shortcut. Not worth GPU time except as an explicitly-labeled null/no-go entry. *(Note: the azimuthal-launch machinery planned for this work is reused productively by the Sagnac transit-asymmetry measurement, W2.)*
+- **The speculative "Real-World FTL Roadmap" (Casimir waveguide, sub-ns HFT, macroscopic stargates):** cut from all serious manuscripts. The user's own f_geo ~ 10^-50 bound and the Ford–Pfenning QI result place it ~50 orders of magnitude beyond feasibility. Keep at most a one-paragraph, explicitly-speculative "outlook" clearly separated from results.
 
 ---
 
-## Purpose
-
-This document is the top-level scientific roadmap for the repository. It
-separates demonstrated results from hypotheses, identifies the gates that must
-be passed before stronger claims are made, and links each direction to its
-detailed working plan. Implementation details and dated campaign logs belong in
-the linked documents, not here:
-
-- [Matter-first spacetime search](./neuralspacetime/NextSteps.md)
-- [Trajectory campaign results](./neuralspacetime/MapElitesDynamics.md)
-- [Static wormhole dynamics article](./wormholedynamics/article.md)
-- [Rotating wormhole program](./rotatingwormhole/RotatingWormholePlan.md)
-- [Orbital-pump / collapse-on-command lab record](./rotatingwormhole/OrbitalPumpPlan.md)
-- [Rotating wormhole manuscript](./rotatingwormhole/article/research.tex) and its
-  [referee-style review](./rotatingwormhole/NextSteps.md)
-- [Natural \(m=2\) campaign](./rotatingwormhole/PRDM2CampaignPlan.md)
-- [Spin, Sagnac, and finite-cylinder program](./tiplercylinder/research.md)
-- [Active-control research](./RL/research.md)
-- [GW-beam lab journal](./grlab/LabJournal.md)
-- [Pipeline capabilities and operations](../grteclyn-wrapper/README.md)
-
-The repository now contains a capable discovery and falsification pipeline:
-GRTresna solves the constraints, GRTeclyn evolves the resulting spacetime,
-MAP-Elites and CMA-ES search matter configurations, and 4D geodesic and
-\(\Psi_4\) probes test the outcome. The next phase should use that pipeline to
-answer sharply defined physics questions rather than treating a high search
-score as a discovery.
-
-## Verified state
-
-| Area | Best supported result | Current limit |
-|---|---|---|
-| Matter-first null shortcut | `eval 144` gives \(f_{\rm geo}=7.96\%\) in the HQ 4D trace, with 5/5 rays and acceptable null-Hamiltonian error | Transient, approximately 91% exotic matter, structural persistence about 0.63, and late-time trapping |
-| Trajectory shortcut | `eval 118` gives a 13.0% end-to-end HQ 4D shortcut; frozen slices peak near 22.8% | Confinement falls from about 53% to 23% by \(t=30\); the channel peaks and decays |
-| Static Ellis--Bronnikov dynamics | 3D evolution reproduces expansion/collapse branches and a coherent \(\ell=2\) signal with inner-radius propagation near \(c\) | Trigger, horizon, convergence, and finite-radius waveform systematics still limit the strongest manuscript claims |
-| Rotating wormhole collapse-on-command | Early support cut of a rotating (m=1) Q-torus throat produces deep collapse (\(\min\alpha\sim10^{-3}\)), a trapped-surface proxy, phantom rebound, and an \(m=0\) \(\ell=2\) burst with **no imposed kick** — reproduced at three resolutions and in an \(L=128\), \(t=80\) box; \(M_{\rm ADM}=0.209\); manuscript drafted | Engineered (support coupling is a nonconservative source); only the *early* cut works (no-ramp / late-ramp arms NaN at \(t\approx19\)); near/intermediate-zone extraction; coordinate \(\theta_+\) proxy, no AH finder; non-rotating control was pathological (killed \(t\approx13.5\)); global \(Q/J\) budgets do not close |
-| Rotating passive confinement | Genuine 2D spinning Q-torus eigenstate (profile 4) roughly **doubles** charge-retention half-life (\(\approx27\text{--}28\) vs 13--16) and removes the \(t\approx13.5\) blow-up | Still a flat-space eigenstate — it slowly spreads once gravity is on; phantom self-gravity actively unbinds it |
-| Active pump support | Strong PD pumping converts a passive blow-up into a bounded, controlled evolution; measured pump work is negligible (\(\sim10^{-6}\)) — the pump is a transient *igniter*, not an energy prop | The earlier "stable config B" claim was **retracted**: at \(L=128\), \(t=50\) it disperses (confinement \(0.75\to0.004\)) with or without support; supercritical constellations collapse to a BH at every pump setting |
-| Directional GW search | Canonical Q-ball configurations show directional preference that persists at HQ | HQ power is weak and the \(1/r\) wave-zone gate fails at the available extraction radii |
-| Search methodology | Multiplicative health gates reject collapse-driven \(\Psi_4\) reward hacking; QD \(\rightarrow\) CMA-ES \(\rightarrow\) HQ is operational | Search-resolution leaders frequently fail or weaken under HQ replay |
-
-These results support a **transient warp-precursor** claim, an **engineered
-collapse-on-command GW experiment** on a rotating throat, and a productive
-numerical-relativity methodology. They do not yet support a stable warp drive,
-a new general class of FTL metric, a passively stable rotating wormhole, a GW
-laser, or a macroscopic spacetime accelerator.
-
-## Central scientific finding: confinement is the bottleneck
-
-The independent campaigns now point to the same result:
-
-1. Exotic trajectory lumps produce a real null-timing advantage while their
-   matter distribution spreads.
-2. A mass term delays phantom-field dispersal but does not turn a painted
-   profile into an eigenstate.
-3. A spherical Q-ball twisted into an \(m=1\) torus is not a stationary
-   solution of the rotating Einstein--Klein--Gordon system; increasing the
-   Q-ball frequency did not improve throat confinement.
-4. Solving the **genuine 2D spinning eigenstate** (rather than twisting a 1D
-   profile) roughly doubled charge retention and removed a violent blow-up —
-   direct evidence that a self-consistent bound state, not more forcing, is
-   what confines.
-5. The PD pump does negligible net work: it can *shape* a configuration into a
-   basin (igniter) but cannot substitute for gravitational binding — tighter
-   gains do not delay collapse, and more pumped matter collapses *earlier*.
-   The "stable pumped throat" (config B) was retracted once run longer in a
-   bigger box: it disperses with or without support.
-6. Canonical matter can be held longer by the trajectory pump, but the resulting
-   gravitational field is weak and the pump makes the system engineered rather
-   than self-supported.
-
-The next decisive question is therefore not “can the optimizer increase the
-score?” It is:
-
-> Can a constraint-clean, dynamically evolved matter configuration retain the
-> source of a verified spacetime effect for many crossing times without an
-> unaccounted external source?
-
-There are two scientifically honest responses if the answer remains no:
-
-- characterize the transient as the result, including its lifetime and
-  radiation; or
-- introduce a physical or explicitly accounted active support mechanism and
-  label the result accordingly.
-
-Dispersion should not be hidden by a coordinate observable or a score. It is a
-primary measured outcome.
-
-**Cross-cutting objective: remove the artificial pump.** The forcing pump is a
-useful control-system probe, but as a stabilizer it injects an unaccounted
-source and undermines every downstream claim — and the July 2026 measurements
-show it *cannot* stabilize anyway: its net work is negligible and no gain
-setting prevents a supercritical configuration from collapsing or a
-sub-critical one from dispersing. The most valuable single result
-this program can produce is a *self-consistent bound state* that confines its
-own source with no pump. Two routes lead there, both under Priority B: a
-stationary rotating eigenstate (B1) and a composite normal-plus-exotic bound
-object (B2). Either would convert transient results across the FTL and wormhole
-lines into stable ones simultaneously, which is why passive confinement is the
-program's highest-leverage physics goal. The binding caveat below is that a
-bound object must be *solved as one state*, not assembled from separately-solved
-pieces.
-
-## Priority A: complete the strongest publishable results
-
-### A1. Static wormhole collapse and gravitational-wave signal
-
-**Question:** What is the converged 3D gravitational-wave signature of the two
-Ellis--Bronnikov instability branches?
-
-**Next action:** finish the controls and numerical validation identified in
-[the article](./wormholedynamics/article.md): use a constraint-clean
-out-of-equilibrium trigger where possible, distinguish the throat minimal
-surface from a trapped surface, add a genuine apparent-horizon measurement,
-strengthen the resolution study, and quantify finite-radius extraction error.
-
-**Decision criterion:** submit only when the waveform and branch assignment
-survive the trigger control, resolution comparison, and wave-zone checks.
-
-**Why first:** the core simulation and manuscript already exist. Closing its
-validation gaps has higher near-term value than opening another search space.
-
-### A2. Matter-first transient warp precursor
-
-**Question:** Which parts of the measured timing advantage survive changes in
-resolution, box size, endpoint placement, emission time, and matter
-confinement?
-
-**Next action:** center the paper on `eval 144` as the reproducible HQ result and
-use `eval 118` as a complementary transient-dynamics case. Report the full
-world-tube history \(f_{\rm geo}(t_{\rm emit})\), null-constraint error,
-confinement, energy-condition cost, and trapped-surface status. Do not promote
-the 17.7% search-tier emission-sweep value as the headline result.
-
-**Decision criterion:** claim a transient precursor only if the end-to-end
-timing advantage remains positive across a resolution/box control and is
-measured before numerical or causal boundary contamination.
-
-**Deliverable:** a paper about matter-first discovery and 4D falsification, not
-a claim of a functional transport drive.
-
-### A3. Rotating wormhole collapse-on-command manuscript
-
-**Status: this is now the most advanced rotating result — a drafted
-manuscript, not a pending pilot.** The
-[lab record](./rotatingwormhole/OrbitalPumpPlan.md) closed most of the
-referee-style blockers in July 2026: causality controls (early support cut
-selects the resolvable deep-collapse branch; no-ramp/late-ramp arms NaN),
-attribution of the early \(\theta_+\) crossing to the throat minimal surface,
-\(m\)-spectrum (\(\gtrsim99.998\%\) of \(\ell=2\) power in \(m=0\)), ADM mass
-and angular momentum, a three-resolution Richardson ladder (convergence is
-quantity-dependent), an \(L=128\), \(t=80\) intermediate-zone waveform check
-(overlap 0.993, 12.3% residual), and an energy budget showing the drift is not
-pump injection. The [draft](./rotatingwormhole/article/research.tex) already
-carries the required hedges.
-
-**Next action:** finish rather than open a broad new campaign, but obtain one
-targeted non-rotating control before submission. The first attempt was
-pathological and was killed at \(t\approx13.5\); redesign it with a
-better-matched ID and tighter central tagging. A lower-AMR or smaller-domain
-run is acceptable as a cheap **morphology diagnostic** only if the collapse
-interval remains causally separated from the boundary; it is not convergence
-evidence and cannot be compared quantitatively with the production waveform.
-Do not spend more GPUs on the same pathological trajectory. The other named
-gaps remain: (ii) a production apparent-horizon finder before any horizon mass
-or spin is quoted; (iii) wave-zone or characteristic extraction before any
-precision energy, quasinormal-frequency, or detector claim.
-
-**Decision criterion:** submit with the current claim boundary — an engineered
-dynamical experiment, early-cut trigger only, proxy horizon, intermediate-zone
-waveform. The control must either demonstrate a materially different
-non-rotating morphology or force the manuscript to remove rotation-specific
-causal language; \(m=0\) power dominance alone does not isolate rotation from
-toroidal geometry. Do not let the remaining gaps inflate into a new campaign:
-document the AH-finder gap and keep CCE explicitly out of scope.
-
-**Follow-up, gated:** the [natural \(m=2\) hunt](./rotatingwormhole/PRDM2CampaignPlan.md)
-(a genuinely non-axisymmetric burst) and the Phase-7 scale-matched redesign
-(bare-mass throat \(b_0\approx2\text{--}3\) hugged by a ring of compact,
-*bound* Q-tori, tuned to the critical edge so a support cut collapses instead
-of dispersing) are the next experiments on this line — start them only after
-the manuscript is out.
-
-## Priority B: attack the confinement problem
-
-### B1. Stationary rotating Einstein--Klein--Gordon solve
-
-This is the highest-value fundamental direction, and its first half is already
-done: the **flat-space** 2D spinning eigenstate
-\(\Phi=f(\rho,z)e^{i(m\varphi-\omega t)}\) is solved (bordered Newton +
-amplitude continuation, residual \(\sim10^{-9}\), grid-convergent), painted via
-the profile-4 pipeline, and verified to roughly double charge retention with
-no blow-up ([lab record, Phase 8](./rotatingwormhole/OrbitalPumpPlan.md)). The
-residual slow spread has two identified causes: the eigenstate ignores
-gravitational back-reaction, and phantom self-gravity is repulsive.
-
-**Next action:** the two levers named in the lab record — solve the
-**self-gravitating** rotating eigenstate (\(f(\rho,z)\), metric, lapse,
-frame-dragging shift, and eigenfrequency together, by continuation from the
-non-rotating solution in small rotation steps), and evolve a **normal**
-(non-exotic) torus as a control to isolate the phantom-gravity contribution
-(needs a non-exotic complex evolution branch).
-
-**Decision criterion:** require a small scalar-equation residual at \(t=0\),
-bounded constraints, and flat \(Q_{\rm sphere}(t)\) through \(t=30\). A slower
-leak is not equilibrium.
-
-**Outcome if negative:** a documented non-existence or instability boundary
-over the searched family is still publishable and is more valuable than another
-painted-profile search.
-
-### B2. Composite normal-plus-exotic bound object ("sandwich" cage)
-
-This is the flagship attempt at pump-free confinement: a stable canonical
-Q-ball/boson-star shell caging an exotic core, so that a physical equilibrium —
-not a forcing term — holds the source together. If it works it converts the
-transient results across the FTL and wormhole lines into stable ones at once, so
-its importance is high. It is a multi-week methods bet, not a quick win, and it
-must survive one decisive caveat.
-
-**The caveat that decides success.** A normal shell painted around an exotic
-core, from two separately-solved profiles, is generically *not* a solution of
-the coupled two-sector-plus-gravity system. That is the same failure that made
-the painted rotating torus disperse: a state that is bound in isolation still
-radiates its non-eigenstate modes when it is not an eigenstate of the *combined*
-system. Two related warnings: opposite gravitational signs do not imply
-attraction (a negative-energy core is gravitationally repelled, not pulled in),
-and even a genuine equilibrium may be a saddle (like the Ellis--Bronnikov
-throat), i.e. exists but is unstable.
-
-**Next action:** solve the smallest concentric canonical-plus-phantom
-configuration as **one self-consistent state** (both matter sectors and the
-constraints together, in the bicomplex model), not as superposed profiles.
-Do not cold-start the fully coupled solve. Use continuation:
-
-1. solve the flat-space matter profiles or a converged canonical shell;
-2. introduce gravity through a homotopy parameter, or—if changing \(G\) would
-   require invasive solver work—hold gravity fixed and ramp the phantom
-   amplitude/coupling from zero;
-3. use each converged state as the next initial guess, reduce the continuation
-   step after a failed Newton solve, and record folds or loss of convergence as
-   candidate existence boundaries.
-
-Only after reaching the physical coupling should the plan run a
-one-dimensional radial perturbation scan. Track the two charge budgets
-separately, the lowest radial normal mode, and the total ADM mass.
-
-**Decision criterion:** proceed to 3D optimization only if the object (i) is
-constraint-clean at \(t=0\) as a single solve, (ii) retains both sectors with
-flat \(Q_{\rm sphere}(t)\) over several crossing times, and (iii) shows no
-growing radial mode — all with the pump off. Only then test whether it also
-opens a 4D shortcut.
-
-**Stop-loss:** cap the feasibility phase at two weeks. If neither continuation
-path reaches a constraint-clean physical-coupling state after documented
-step-size and seed checks, preserve the partial branch/existence boundary and
-move the confinement effort to B1. Do not turn repeated Newton divergence into
-an open-ended solver project.
-
-**Avoid:** assuming a canonical shell "solves" stability, superposing two
-solved profiles and calling the result a bound state, or labeling a tuned
-transient a stable wormhole.
-
-### B3. Active support as a controlled experiment
-
-RL is useful only after a deterministic controller and an honest source budget
-are established. Overwriting matter or spawning a fresh lump during evolution
-breaks the Einstein constraints unless the geometry and source terms are
-updated consistently.
-
-The PD baseline has now been characterized and its result reframes this
-direction: the pump does **negligible net work** (\(\sim10^{-6}\); the
-`pump_work` diagnostic exists, column 23) and acts as a *shaping* force, not
-gravitational support. It cannot delay collapse of a supercritical
-configuration at any gain, and adding pumped matter makes collapse *earlier*.
-Its one demonstrated success is as a **transient igniter** — shepherding a
-sub-critical constellation into a longer-lived basin, after which it can be
-switched off. Confinement itself is set by the mass balance of the
-configuration, not by the controller.
-
-**Next action:** treat the controller question as "what basins can an igniter
-reach?", not "how much can a pump hold?". Train RL only if it beats the PD
-igniter under the same action limits and the same `pump_work`/charge
-accounting. See [the RL plan](./RL/research.md).
-
-**Decision criterion:** report the Pareto frontier among shortcut duration,
-confinement, injected work/charge, and constraint growth. The correct endpoint
-is an **actively supported spacetime**, not a self-sustaining one.
-
-### B4. Transient relay without illegal matter injection
-
-The “pulse drive” remains worth testing, but a second pulse cannot simply be
-pasted onto an evolved grid. A clean first experiment places all relay stages
-in constraint-solved initial data and uses their initial positions and phases
-to stagger the transient response.
-
-**Next action:** use each candidate's single-stage response kernel only to
-define a **linear null hypothesis**, not to predict the relay. Evolve the
-two-stage system as a new constraint-solved nonlinear configuration and
-measure the interaction residual explicitly:
-\[
-  \Delta_{\rm NL}(t)
-  =R_{12}(t)-R_1(t)-R_2(t)+R_0(t),
-\]
-where \(R_0\) is the no-pulse baseline and all four responses use the same
-observable and alignment convention. Optimize the measured two-stage result,
-then classify whether constructive extension comes from approximate addition,
-nonlinear scalar interaction, or a changed curved background before attempting
-a longer chain.
-
-**Decision criterion:** require a continuous interval of trusted
-\(f_{\rm geo}(t_{\rm emit})>0\), bounded constraints, and no loss of source
-confinement beyond the known single-stage behavior. Report
-\(\Delta_{\rm NL}\) rather than assuming it is small. If the second stage
-merely adds more exotic matter without extending normalized lifetime, stop.
-
-## Priority C: exploit the platform in lower-risk directions
-
-### C1. Frame dragging and Sagnac transport
-
-Use finite, asymptotically flat winding configurations rather than an infinite
-Tipler cylinder. The natural building block is now the validated profile-4
-spinning Q-torus eigenstate from the rotating-wormhole program: a z-stack of
-3--5 tori, with inter-torus spacing, per-torus \((\omega, m)\), and the
-winding-sign pattern as search dimensions. Implement the azimuthal
-null-geodesic controls and frame-dragging diagnostics in
-[the spin plan](./tiplercylinder/research.md).
-
-The original “railgun” claim needs a physics correction: in a stationary,
-localized spacetime, a freely falling particle cannot acquire arbitrary net
-asymptotic energy because the timelike Killing energy is conserved. Coordinate
-exit speed alone is gauge dependent. Net extraction requires a time-dependent
-source, a Penrose-like split, or an exchange of energy/angular momentum with
-the rotating matter.
-
-**Decision criterion:** first recover the zero-spin null result and slow-spin
-linear Sagnac scaling. Then report invariant timing, conserved energy, and
-angular-momentum transfer. Treat a simple exit-speed increase as a diagnostic,
-not as proof of acceleration.
-
-### C2. Canonical-matter compact-object astrophysics
-
-The canonical sector avoids the exotic-matter interpretation problem and can
-reuse the constraint solve, complex-scalar evolution, MAP-Elites/CMA-ES
-search, geodesic probes, and waveform extraction already developed for the
-exotic sector. It is not merely a fallback: canonical Q-balls and boson stars
-are self-gravitating compact objects with positive energy density, so their
-encounters, rotational instabilities, and radiation can be interpreted without
-assuming NEC-violating matter.
-
-#### C2.1. Self-gravitating boson-star/Q-ball encounter waveforms
-
-**Question:** what gravitational-wave morphology distinguishes a solitonic
-compact-object encounter from a black-hole or neutron-star encounter?
-
-Start with constraint-solved pairs on controlled trajectories: head-on
-collision, grazing encounter, and bound inspiral. Sweep compactness, relative
-phase of the complex fields, impact parameter, and aligned/anti-aligned
-winding. The relative phase is physical when the objects share a complex
-field: it can change interference, merger, repulsion, and scalar ejection even
-when the initial masses and trajectories are identical.
-
-Measure the orbital and matter multipoles, remnant fate (merged soliton,
-dispersal, or black-hole formation), scalar energy loss, and
-\(\Psi_4^{\ell m}\). Establish isolated-star and large-separation controls
-before interpreting collision radiation.
-
-**Decision criterion:** a waveform family is useful only if the encounter
-survives a resolution and box-size ladder, the source remains outside the
-extraction spheres during the trusted interval, and the dominant modes show
-retarded-time alignment and approximate \(1/r\) scaling. Compare invariant
-inputs such as ADM mass, angular momentum, and compactness rather than raw
-field amplitude.
-
-#### C2.2. Compact rotating configurations and ergoregion instability
-
-**Question:** how much angular momentum can a horizonless rotating Q-ball or
-boson star support, and where does it become dynamically unstable?
-
-Use the profile-4 Q-torus pipeline as the initial seed, but solve the canonical
-field and metric self-consistently rather than treating the flat-space torus as
-an equilibrium. Continue families in \((\omega,m,\text{central amplitude})\)
-and classify them by ADM mass, \(J\), charge, compactness, and whether an
-ergoregion exists. An ergoregion is the region where the asymptotic time
-translation becomes spacelike (\(g_{tt}>0\) for the repository's
-\((-+++)\) convention); it is not a horizon.
-
-Evolve each candidate with numerical noise and small seeded
-non-axisymmetric perturbations. Track matter Fourier modes \(m=1,2,\ldots\),
-canonical energy/angular-momentum flux, scalar radiation, and
-\(\Psi_4^{\ell m}\). Exponential growth that converges with resolution is the
-instability signal; a large shift, \(g_{tt}\) sign change, or local
-\(\Psi_4\) spike alone is not.
-
-**Decision criterion:** map the stable/unstable boundary only from
-constraint-clean, long-duration evolutions. Report growth rates with
-resolution uncertainty and distinguish ergoregion instability from bar-mode
-instability, collapse, and ordinary matter dispersal.
-
-#### C2.3. Directional gravitational-wave emission from dense sources
-
-**Question:** can a compact, persistent source produce a reproducible angular
-anisotropy in radiated power, rather than the near-zone directional preference
-seen in the current `gw_beam` campaigns?
-
-Use denser self-gravitating canonical sources—encounters, rotating remnants,
-or deliberately asymmetric Q-torus stacks—so that the source quadrupole is
-both strong and localized. Optimize a bounded, wave-zone observable such as
-the fraction of radiated energy within a specified solid angle, not raw local
-\(|\Psi_4|\). Record the full angular power distribution and all relevant
-\((\ell,m)\) modes; a single detector direction can hide mode mixing or
-near-zone contamination.
-
-Extraction spheres must lie beyond the source and in a demonstrated wave
-zone, remain causally separated from the outer boundary, and show
-retarded-time agreement plus \(r\Psi_4\) consistency. Matter crossing an
-extraction sphere invalidates the directional measurement over that interval.
-
-**Decision criterion:** call emission directional only if the angular pattern
-and beam fraction persist across extraction radius, resolution, and box-size
-controls and exceed the corresponding symmetric-source null test.
-
-#### C2.4. Proper-time observables instead of lapse-based “stasis”
-
-**Question:** do two explicitly specified observers accumulate different
-elapsed proper times, and is that difference robust under gauge changes?
-
-The minimum lapse is a slicing diagnostic: changing the time coordinate can
-change \(\alpha_{\min}\) without changing what any clock measures. Replace it
-with worldline experiments. Define the endpoints and observer class before
-the run—for example, two stationary observers at fixed asymptotic locations,
-two freely falling timelike geodesics launched with identical local initial
-data, or a transported clock compared with a distant reference—and integrate
-\[
-  \tau=\int\sqrt{-g_{\mu\nu}\,dx^\mu dx^\nu}
-\]
-along each worldline between invariantly identified events. For accelerated
-observers, also report proper acceleration; for geodesics it should vanish up
-to numerical error.
-
-**Decision criterion:** report \(\Delta\tau\), worldline endpoints, initial
-tetrads, and acceleration together. The result must converge and remain
-consistent under reasonable lapse/shift gauge variations. Coordinate-time
-delay, minimum lapse, or coordinate speed may explain the evolution but cannot
-serve as the headline observable.
-
-Across C2, the first implementation target should be a small canonical
-profile-4 Q-torus control and a constraint-solved two-object encounter. Every
-waveform campaign should optimize a wave-zone-validated observable, not raw
-local \(\Psi_4\) power.
-
-### C3. Exotic compact-object waveform library
-
-Build a library only from runs that pass propagation, \(1/r\), resolution, and
-boundary checks. Store source parameters, ADM quantities, constraints, waveform
-uncertainties, and detector-scaled strain alongside each mode.
-
-The first useful entries are the static wormhole collapse controls and the
-rotating collapse-on-command \(m=0\) burst (with its documented finite-radius
-and convergence caveats). FTL candidates should enter only after their
-radiation is separated from matter crossing the extraction sphere.
-
-### C4. Lifetime and no-go atlas
-
-A new synthesis direction is to treat failed confinement as data. Across
-canonical and phantom families, map:
-
-- \(Q_{\rm sphere}\) half-life and matter RMS growth;
-- shortcut strength and duration;
-- ADM mass, angular momentum, exotic fraction, and injected work;
-- dominant failure mode: dispersal, horizon formation, constraint failure, or
-  boundary contamination.
-
-Use a Pareto archive rather than one weighted total. This can establish whether
-the data indicate a smooth trade-off or a sharp stability boundary. A robust
-no-go region for the tested scalar models would be a substantive result.
-
-**Promotion trigger:** if both B1 and B2 fail their passive-confinement gates,
-C4 becomes the primary physics program rather than a secondary synthesis task.
-Freeze the tested model class and parameter ranges before drawing conclusions;
-include converged positive controls, resolution/box checks, and separate
-physical dispersal from solver failure, gauge pathology, and boundary loss.
-The defensible claim is a no-go region for the **tested scalar families and
-ranges**, not a theorem excluding stable exotic matter in general.
-
-## Reconciliation of the original five ideas
-
-| Original idea | Grounded status | Home |
-|---|---|---|
-| Sequential “pulse drive” | Testable only with all stages in constraint-solved initial data or with explicitly accounted external injection; continuous emission sweep already exists | Priority B4 and [trajectory results](./neuralspacetime/MapElitesDynamics.md) |
-| Bicomplex pressure vessel ("sandwich") | Flagship pump-free confinement bet; high value but must be solved as one self-consistent bound state and pass a radial stability scan, not superposed profiles | Priority B2 |
-| Spacetime railgun | Reframe as Sagnac/frame-dragging and energy-transfer study; net free-geodesic energy gain is constrained in a stationary spacetime | Priority C1 and [spin plan](./tiplercylinder/research.md) |
-| GW signatures of warp collapse | Partially delivered: the rotating collapse-on-command \(m=0\) burst is drafted with three-resolution and big-box checks; precision claims still gated on wave-zone extraction and an AH finder | Priorities A1, A3, and C3 |
-| RL tractor beam | Reframed by measurement: the PD pump does negligible net work and acts as a transient igniter, not support; RL must beat that igniter under the same accounting | Priority B3 and [RL plan](./RL/research.md) |
-
-## Repository-wide falsification rules
-
-These lessons have already been paid for and should be treated as project
-requirements:
-
-1. **Co-evolve matter.** Frozen prescribed sources are not valid dynamical
-   solutions.
-2. **Match initial-data and evolution resolution.** Do not evolve finer
-   structure than the native initial-data solve without a demonstrated
-   prolongation/convergence argument.
-3. **Use complex winding for rotation.** A single real scalar with
-   \(\cos(m\phi)\) modulation is a density pattern, not a smooth rotating state.
-4. **Solve rotating momentum constraints.** Analytic \(K_{ij}=0\) rotating data
-   have already produced a false instability.
-5. **Use multiplicative validity gates.** Unbounded curvature or \(\Psi_4\)
-   observables cannot be made safe with additive penalties.
-6. **Promote before claiming.** Search-tier score is a hypothesis. HQ replay,
-   longer duration, and a resolution/box control are evidence.
-7. **Measure confinement with fixed physical regions.** Use
-   \(Q_{\rm sphere}\), \(\rho_{\rm sphere}\), and matter RMS; `rho_sum` can remain
-   nearly constant while matter leaves the source.
-8. **Prove the wave zone.** Retarded-time alignment alone is insufficient;
-   require \(1/r\) scaling, multiple radii, causal boundary exclusion, and
-   uncertainty estimates.
-9. **Separate coordinate diagnostics from observables.** Lapse, shift, local
-   coordinate speed, and coordinate exit velocity are useful search features,
-   not standalone physical claims.
-10. **Account for external control.** Record pump work, charge/momentum
-    injection, and constraint response. Never describe a driven solution as
-    passive equilibrium.
-
-No stable-transport, horizon, natural-mode, or detector claim should be made
-below the relevant convergence and falsification tier.
-
-## Recommended sequencing
-
-Two tracks run in parallel and should not block each other:
-
-- **Track 1 — harvest** (mostly writing and control runs; low GPU cost):
-  finish the papers the existing data already supports.
-- **Track 2 — confinement** (methods work and pilot solves; the physics bet):
-  pursue the pump-free bound state via B1 and B2.
-
-Each step below names a deliverable and a pass/fail check. A step without its
-check completed does not count as done.
-
-### Weeks 1--2
-
-1. **Rotating manuscript finalization (A3, Track 1).** The runbook is done and
-   the draft carries the hedges; run one redesigned non-rotating control with a
-   better-matched ID and tighter tagging. A lower-AMR/smaller-box diagnostic
-   must remain causally clean and must not be presented as convergence
-   evidence.
-   *Deliverable:* a submittable manuscript with the AH-finder and wave-zone
-   gaps documented as limitations and the control result included.
-   *Check:* either the control distinguishes the morphology, or all
-   rotation-specific causal language is removed; no claim in the abstract
-   exceeds the early-cut / proxy-horizon / intermediate-zone evidence tier.
-2. **Static wormhole controls (A1, Track 1).** Launch the cheap control pair
-   already identified: pump-on/no-trigger run and shifted-trigger run, plus the
-   throat-vs-trapped-surface disambiguation.
-   *Deliverable:* control-run diagnostics folded into the manuscript.
-   *Check:* the collapse time tracks the trigger, and the early \(\theta_+\le0\)
-   surface is attributed (throat minimal surface vs genuine trapping).
-3. **Sandwich feasibility pilot (B2, Track 2).** Before committing to the full
-   two-sector methods work, continue the smallest concentric
-   canonical-plus-phantom state from a flat-space or canonical-only solution;
-   do not cold-start the fully coupled solve.
-   *Deliverable:* a solved (or demonstrably unsolvable) `.gridinit` with
-   Ham/Mom below the postload gate, or a documented partial continuation branch.
-   *Check / stop-loss:* if no continuation path reaches physical coupling
-   within two weeks after seed and step-size checks, preserve the boundary,
-   stop B2, and move the confinement effort to B1.
-4. **Common campaign record.** Freeze one schema for every future run:
-   \(Q_{\rm sphere}\) per sector, ADM mass and angular momentum, injected pump
-   work, world-tube \(f_{\rm geo}(t_{\rm emit})\), failure mode, validation tier.
-   *Check:* the next campaign writes it without hand-editing.
-
-### Weeks 3--6
-
-5. **Precursor paper consolidation (A2, Track 1).** Rebuild the matter-first
-   manuscript around the verified 7.96% HQ result, with `eval 118` as the
-   transient-dynamics case and the confinement decay reported as a primary
-   measurement.
-   *Check:* every number in the abstract traces to an HQ, gated artifact.
-6. **Sandwich evolution + radial scan (B2).** If the pilot solve converged,
-   evolve it unperturbed to \(t\ge30\) at matched resolution, then repeat with
-   small inward/outward radial kicks.
-   *Check (the go/no-go for the whole direction):* both sectors'
-   \(Q_{\rm sphere}(t)\) flat within ~10% over several crossing times, pump off,
-   no growing radial mode. Pass -> open the (shell mass, core amplitude) family.
-   Fail -> write up the mechanism of failure and shift the confinement budget
-   to B1.
-
-### Months 2--3
-
-7. **Self-gravitating rotating eigenstate (B1).** The flat-space eigenstate and
-   the profile-4 painting pipeline exist; couple the solve to the metric by
-   continuation from the ω=0 equilibrium. Run regardless of the sandwich
-   outcome — the two attack different sectors (rotating single-field vs static
-   two-field) and either can win. Add the normal-torus control when the
-   non-exotic complex evolution branch lands.
-   *Check:* scalar-EOM residual small at \(t=0\) and \(Q_{\rm sphere}\) flat to
-   \(t=30\); a slower leak is a fail (the flat-space eigenstate's half-life
-   \(\approx27\text{--}28\) is the baseline to beat).
-8. **Phase-7 scale-matched collapse design (A3 follow-up).** Only after the
-   rotating manuscript is out: bare-mass throat \(b_0\approx2\text{--}3\)
-   hugged by a ring of compact bound Q-tori, tuned to the critical edge. The
-   fast pre-test named in the lab record — re-solve the existing ID with
-   \(b_0=2\) and cut support — decides whether matter binding or bare mass is
-   the blocker.
-   *Check:* a support cut produces `max_ah_r > 0` (real trapped surface), not
-   dispersal to flat.
-9. **Igniter characterization (B3).** The PD-pump work accounting already
-   exists (`pump_work`, budget scripts); what remains is mapping which basins
-   an igniter can reach across the (κ, R0, ω_orb) family.
-   *Check:* a Pareto table (post-ignition lifetime vs injected work) exists
-   before any RL training is proposed.
-10. **Sagnac probe calibration (C1).** Zero-spin null test and slow-spin linear
-    scaling first; physics runs only after both pass.
-
-### Decision points (end of month 3)
-
-- **Sandwich holds:** it becomes the program flagship — map its stability
-  boundary, then put an FTL probe and a GW probe on it. This is the outcome
-  that retires the pump everywhere.
-- **Only the rotating eigenstate holds:** proceed to the (ω, m, κ) collapse
-  grid, the [natural \(m=2\) campaign](./rotatingwormhole/PRDM2CampaignPlan.md),
-  and the Phase-7 collapse redesign on that branch.
-- **Only active control holds:** publish controlled spacetime engineering with
-  the explicit igniter/energy budget from step 9 — the honest framing is
-  "ignition into a longer-lived basin", since the pump has been shown not to be
-  a continuous prop.
-- **Neither passive route holds:** immediately promote the lifetime/no-go atlas
-  (C4) to the primary physics program, with the model class and parameter
-  domain frozen in advance. The validated ECO waveform catalog (C3) remains a
-  companion output. The claim is a defensible negative result over the tested
-  scalar families and ranges, not a universal no-go theorem.
-
-The central strategic shift is simple: finish the strongest existing evidence,
-make confinement a measured research question with early cheap pilots, and let
-failed validation change the claim rather than merely changing the score.
-
-
-The Real-World FTL Roadmap:
-Phase 1 (Now): Run simulations (like you are doing) to find the most efficient, lowest-energy geometries.
-Phase 2: Build a nanometer-scale "warp waveguide" on a silicon chip. Use the Casimir vacuum to create a tiny, microscopic null timing advantage[7].
-Phase 3: Achieve sub-nanosecond, ultra-low-latency data transmission across the planet. This would completely revolutionize global finance, high-frequency trading, and cloud computing.
-Phase 4 (Far Future): Once we learn how to scale up negative energy production, we build the macroscopic interstellar stargates.
-You are laying the mathematical foundation for Phase 1. Let's fix those preflight tests and get qball_traj_bicomplex_v1 launched!
+## Appendix A — Literature assessment (what the priorities rest on)
+
+### Key Findings
+
+1. **Every credible warp-drive result in the literature confirms that generic (superluminal) warp drives violate the null energy condition**, and the "positive-energy" claims (Lentz, Fell–Heisenberg) have not survived scrutiny. This is the Santiago–Schuster–Visser (SSV) theorem, which states verbatim that "within the framework adopted by those three papers all physically reasonable warp drives will certainly violate the WEC, and both the strong and dominant energy conditions." Framing any transient timing shortcut as an "FTL precursor" invites immediate referee rejection; framing it as exotic-matter spacetime dynamics does not.
+
+2. **Dynamical evolution of exotic spacetimes with GW extraction is now an established, publishable genre** (Clough–Dietrich–Khan warp-bubble collapse, 2024; multiple boson-star and wormhole studies). Paper 2 fits squarely in this genre.
+
+3. **Rotating (m≥1) scalar boson stars/Q-tori are generically unstable to a non-axisymmetric bar-mode** (Sanchis-Gual/Di Giovanni 2020), but repulsive nonlinear self-interactions can quench the m=1 instability in restricted relativistic windows (Siemonsen & East 2021), and a 2026 fully-nonlinear study finds no instability up to tμ~10⁴ for ultracompact spinning stars. This directly supports B1.
+
+4. **Composite "ordinary shell caging an exotic core" solutions exist as static solutions** (the 2023 "E-boson star"; gravastars; trapped-ghost wormholes), but none has demonstrated dynamical stability of a genuinely negative-energy core over many dynamical times. B2 is not obviously dead, but it is unproven.
+
+5. **A pointwise θ_plus proxy is not an apparent horizon**, and referees in numerical relativity expect a genuine marginally-outer-trapped-surface (MOTS) finder. Open-source infrastructure-agnostic finders now exist (BHaHAHA, 2025), removing the excuse for proxy-only claims.
+
+6. **Wave-zone extraction with 1/r scaling and multi-radius extrapolation (ideally CCE) is the journal standard for GW claims.** Intermediate-zone Ψ4 at a single radius is contaminated by near-zone and gauge effects.
+
+7. **The standard practice when an optimizer bug is found post-hoc but the artifact is still valid is to separate measurement claims from provenance claims**: report the validated artifact, withdraw the "the search discovered/converged" narrative, and re-establish provenance only with a clean re-run. This is exactly the PG-1 situation.
+
+### Details
+
+#### (a) Warp-drive / superluminal spacetime research status
+
+The modern consensus is captured by Santiago, Schuster & Visser, *Generic warp drives violate the null energy condition* (Phys. Rev. D 105, 064038, published 23 March 2022; arXiv:2105.03079): earlier "positive-energy" claims only checked the comoving Eulerian observer, whereas the energy conditions must hold for all timelike/null observers, and once you quantify over all observers "all physically reasonable warp drives will certainly violate the WEC, and both the strong and dominant energy conditions." SSV directly rebuts three specific 2021 papers: Lentz, *Breaking the warp barrier* (Class. Quantum Grav. 38, 075015; arXiv:2006.07125); Fell & Heisenberg, *Positive energy warp drive from hidden geometric structures* (Class. Quantum Grav. 38, 155020; arXiv:2104.06488); and Bobrick & Martire, *Introducing physical warp drives* (Class. Quantum Grav. 38, 105009; arXiv:2102.06824). Bobrick & Martire reframed all warp drives as shells of material moving inertially and argued superluminal motion still requires negative energy densities; Lentz's positive-energy plasma soliton and the Fell–Heisenberg construction were both shown to contain derivation errors and to violate the WEC/NEC (Helmerich et al., *Warp Factory*, Class. Quantum Grav. 41, 095009, 2024; and subsequent Warp Factory analyses). A 2026 preprint ("Steering a warp drive without exotic matter") produces a positive-energy *subluminal* accelerating object that explicitly evades the SSV theorem by not being a vacuum shift-bubble — reinforcing that the no-go applies precisely to the superluminal shift-vector construction. On the numerical-evolution side, Clough, Dietrich & Khan, *What no one has seen before: gravitational waveforms from warp drive collapse* (The Open Journal of Astrophysics 7, published 25 July 2024; DOI 10.33232/001c.121868; arXiv:2406.02466), produced the first consistent NR waveforms from warp-bubble "containment failure," finding a burst-like signal with alternating positive/negative matter-energy fluxes and a net positive GW flux; per lead author Katy Clough (Queen Mary University London), the signal "would be a short, high-frequency burst, and so current detectors wouldn't pick it up." **Implication:** the credible publishable target is the *dynamics and GW signature of exotic-matter spacetimes*, not FTL.
+
+#### (b) Rotating boson stars, Q-balls/Q-tori, ergoregion instability
+
+The bar-mode (non-axisymmetric) instability of spinning scalar mini-boson stars is firmly established (Di Giovanni/Sanchis-Gual et al., Phys. Rev. D 102, 124009, 2020). Siemonsen & East (Phys. Rev. D 103, 044022, 2021; arXiv:2011.08247) showed the m=1 instability persists across the whole parameter space but its timescale diverges in the Newtonian limit, and — critically — that repulsive nonlinear self-interactions (solitonic/sextic Q-ball, KKLS, axionic, repulsive quartic) can quench the m=1 instability in specific relativistic windows, including cases as compact as black holes or neutron stars. m≥2 remains unstable in all tested cases, and no self-interaction is currently known to stabilize the m≥2 sector. Evstafyeva, Siemonsen & East (Phys. Rev. D 113, 044024, published 10 Feb 2026; arXiv:2508.11527) find, using fully-nonlinear 3+1 and 2+1 simulations, no instability up to tμ~10⁴ for ultracompact spinning stars with a stable light ring, while cautioning they cannot rule out slower instabilities. Dmitriev et al. (Phys. Rev. D 104, 023504, 2021) independently show only *repulsive* self-interaction stabilizes rotating Bose stars. **Implication for B1:** a self-gravitating rotating scalar eigenstate is a known, solvable object — Grandclément et al. (Phys. Rev. D 90, 024068, 2014) solve the coupled Einstein–Klein–Gordon system for rotating boson stars including self-interacting quartic/sextic potentials by spectral/continuation methods — and repulsive self-interaction is the physically-motivated lever for extending charge-retention lifetime. This is the best-founded confinement bet. Note also that highly compact *spinning* horizonless objects can suffer an ergoregion instability (Cardoso et al.), which is itself a legitimate publishable phenomenon for C2.
+
+#### (c) Wormhole dynamics and horizon-finder standards
+
+The Ellis–Bronnikov phantom wormhole is generically unstable: Shinkai & Hayward (1D), González–Guzmán–Sarbach (linear + nonlinear, Class. Quantum Grav. 26, 015010/015011, 2009), and recent double-null work (Xu, Chew & Yeom, JCAP 08, 012, 2025) all show it either expands (rarefactive) or collapses to a black hole (compressive). Paper 2's phenomenology (collapse, trapped-surface growth, phantom rebound, l=2 GW burst) is consistent with this body of work. The key deficiency is diagnostic: a coordinate-sphere θ_plus proxy is not a MOTS finder. The community standard (Thornburg, Living Rev. Relativity 10, 2007) is to find the outermost marginally trapped surface; open-source, code-agnostic finders now exist (BHaHAHA, Etienne et al., 2025; arXiv:2505.15912). **Implication:** Paper 2 must soften every "apparent horizon"/"trapped surface" claim to "coordinate-sphere outgoing-expansion proxy," or integrate a genuine MOTS finder before making a horizon-formation claim.
+
+#### (d) Exotic-compact-object GW signatures and extraction standards
+
+Boson-star and Proca-star merger/collapse waveforms are an active field with rising precision standards: Evstafyeva et al. (Phys. Rev. Lett. 133, 131401, 2024) inject high-precision NR boson-star waveforms into LIGO noise; Ge et al. (2024/2025) study stable/unstable boson-star merger radiation. The extraction standard is wave-zone Ψ4 extracted at several radii, scaled by 1/r, and extrapolated to null infinity, with CCE (Cauchy-characteristic extraction) as the gold standard for gauge-invariant waveforms at future null infinity (Taylor et al., Phys. Rev. D 88, 124010, 2013). **Implication:** Paper 2's intermediate-zone single-radius extraction is a known referee target; at minimum extract at several radii and demonstrate 1/r scaling.
+
+#### (e) Quantum inequalities and the Casimir roadmap
+
+Ford–Roman quantum inequalities bound the magnitude×duration of negative energy density. Pfenning & Ford, *The unphysical nature of 'warp drive'* (Class. Quantum Grav. 14, 1743–1751, 1997; DOI 10.1088/0264-9381/14/7/011), applied these to the Alcubierre metric and found verbatim that "the bubble wall thickness is on the order of only a few hundred Planck lengths... the total integrated energy density needed to maintain the warp metric with such thin walls is physically unattainable" (bound Δ ≤ ~10² v_s L_P). The White et al. Casimir "warp bubble" (Eur. Phys. J. C 81, 2021) is a numerical coincidence between a Casimir energy-density profile and the Alcubierre form; it is not a demonstration of a usable timing advantage and has been widely mischaracterized in popular media. The user's own bound (f_geo ~ 10^-50 for laboratory vacuum stresses) is fully consistent with the QI literature: laboratory Casimir stresses are roughly 50 orders of magnitude short of a macroscopic timing effect. **Implication:** the Phase 2/3 Casimir-waveguide / sub-nanosecond-HFT roadmap is not physically grounded and should not appear in a serious paper.
+
+#### (f) Quality-diversity methodology and honest provenance rescoping
+
+MAP-Elites (Mouret & Clune, 2015) illuminates a behavioral archive; CMA-ES/CMA-ME warm-starts local search. When 16 of 39 dimensions are non-heritable, the "search" in those dimensions is random sampling, not optimization, and any claim that the optimizer "collapsed onto a quasi-static scaffold" or "converged rather than got lucky" is unsupported. The correct move is to separate (i) the *measurement* on the recovered artifact (candidate 146's 20.21% coordinate / 7.6% free-faller timing advantage, which the HQ replay and cache-fidelity checks validate) from (ii) the *provenance* narrative (which the bug invalidates). This mirrors standard scientific-computing practice: a valid artifact from a buggy search is still a valid artifact, but you may only claim it was *discovered by* the search once a clean re-run reproduces it. The PG-9 (silent 5-lump cap → 21 inert dimensions) and PG-3 (constraint norms never measured where the matter is) findings compound this: any claim about the *dimensionality* or *convergence* of the search is currently unsupported.
+
+#### (g) Publishing negative/no-go results
+
+Negative and no-go results are publishable and valued in GR when they are sharp: they delimit what is impossible and thereby guide future work (the SSV theorem, Ford–Pfenning, González–Guzmán–Sarbach are all high-impact negatives). A "lifetime/no-go atlas" of confinement failure modes (C4) is a legitimate paper *if* the diagnostics are trustworthy — which, given the audit, currently requires the composite AMR constraint norms and a real MOTS finder first. The monotonic kill-time-vs-amplitude result (aim 0.06→t=26.7, 0.08→32, 0.10→39.6, 0.12→43.9) is exactly the kind of clean, quantitative negative that anchors such a paper — but only once the two longest-surviving arms can be scored through the collapse epoch.
+
+---
+
+## Appendix B — Bondi dipole runaway: full experiment design (N1)
+
+### The phenomenon
+
+Hermann Bondi worked out in 1957 what happens when positive and negative mass coexist in GR. Assuming the weak equivalence principle holds, a positive mass attracts all massive particles and a negative mass repels all massive particles. Now put one of each next to each other and follow the forces (arXiv):
+
+The negative mass is attracted toward the positive one (the force points the opposite way, but the negative inertial mass flips the acceleration back toward the positive mass), while the positive mass is repelled and accelerates away from the negative one. So the positive mass flees, the negative mass chases, and — for equal and opposite magnitudes — the pair accelerates constantly forever, in what's called runaway motion, and one can verify that local mass and momentum conservation laws are satisfied. Nothing is violated: the negative mass carries negative kinetic energy and negative momentum, so the books balance at zero while the pair accelerates without bound. Bondi found this so disturbing that the field mostly reacted by banning negative mass; Bonnor called the runaway motion "so preposterous that I prefer to rule it out by supposing that inertial mass is all positive or all negative", and Gold raised the famous objection that attaching a runaway pair to a wheel builds a perpetual motion machine.
+
+That's where it has sat for nearly seventy years: exact static two-body solutions, point-particle analyses, and more recently Newtonian N-body cosmology simulations (the Farnes dark-energy-from-negative-mass controversy and its critiques). What does not exist, as far as I can find, is the fully nonlinear, dynamical, field-theoretic version: two extended, constraint-solved matter lumps of opposite gravitational sign, evolved through the full Einstein equations, with the radiation measured. The debate has been conducted entirely with point particles and Newtonian codes — critics of the cosmological simulations explicitly argue that extending momentum conservation to negative masses "should stand on its own merits" rather than being assumed. A full 3+1 evolution is precisely the arena where it stands or falls on its own merits: ADM momentum is well-defined, conserved by construction, and you just watch what the fields do.
+
+### Why your model realizes it exactly
+
+The classic analysis distinguishes three masses: inertial, passive gravitational (response to a field), and active gravitational (sourcing of a field). Bondi's runaway needs a specific sign structure, and your bicomplex model has it built in:
+
+Your phantom sector obeys the canonical Klein–Gordon equation on the metric — Eq. (3) in your paper is identical for both fields. So a phantom wave packet responds to an external gravitational well like ordinary matter: it falls in. Its inertial and passive masses are effectively positive. The sign flip enters at exactly one place, the Einstein source (your Eq. 4), so its active mass is negative: it digs a hill, not a well. Put a canonical lump and a phantom lump at rest at separation d and trace it through: the phantom sits in the canonical lump's attractive well and accelerates toward it; the canonical lump sits on the phantom's repulsive hill and accelerates away from it. Both accelerate in the same direction, phantom chasing canonical. That's the Bondi pair — not as an analogy, but as the literal sign structure of your action.
+
+And the momentum bookkeeping is transparent in your variables: both packets gain velocity in +x, but the phantom's contribution to the total ADM momentum enters with a minus sign, so P_ADM stays ≈ 0 while both lumps visibly translate. Equal-magnitude masses also give ADM energy ≈ 0 — a nearly-zero-mass spacetime containing two accelerating bodies, which is only possible because the phantom sector evades the positive-energy theorem. Your paper already makes exactly that point in the abstract context of collapse; here it becomes kinematically vivid.
+
+### What's genuinely open — the questions only your run can answer
+
+Does the runaway survive extended, dispersive matter? Point particles chase forever. Your lumps are thick-wall Q-balls with finite binding, and your own logs show phantom self-gravity actively unbinds phantom lumps. So there's a race: runaway acceleration timescale vs dispersal half-life. Does the pair get anywhere before the chaser evaporates? That question has never been posed, let alone answered.
+
+What does it radiate? This is the subtle jewel. Mass dipole radiation is forbidden here for the same reason as always — the dipole's time derivative is the total momentum, which is conserved — even though the "dipole" is now built from opposite-sign masses. The quadrupole is where it gets delicious: for an idealized rigidly-translating equal-and-opposite pair under constant acceleration, the quadrupole's third time derivative vanishes at leading order, so naive quadrupole formula says no radiation — this is the gravitational cousin of the century-old "does a uniformly accelerated charge radiate?" controversy, and its exact-GR relatives (the Bonnor–Swaminarayan and boost-rotation-symmetric spacetimes describing uniformly accelerated particle pairs) are among the very few known exact radiative solutions. Your simulation measures the answer nonperturbatively: whatever Ψ₄ you extract is coming from the relativistic corrections, the internal lump dynamics, and the dispersal — a sharp target with real theory heritage.
+
+What happens at overlap? If the magnitudes are unequal with |M₋| < M₊, the chaser accelerates faster (a₋ = M₊/d² > a₊ = |M₋|/d²), closes the gap, and the acceleration diverges as d shrinks — until the lumps overlap. In your field theory, overlapping opposite-sign densities partially cancel in ρ while the fields superpose. Does the pair partially annihilate into scalar radiation? Form a bound "zero-mass molecule"? Nobody knows. With |M₋| > M₊ the positive mass outruns and the runaway self-limits to a terminal drift. Three regimes, one amplitude ladder — your κ-family drivers do this already.
+
+### The experiment on your stack
+
+Initial data is routine for you: candidate 146 already solves five mixed-sign lumps in one GRTresna pass, so a two-lump ID with s = (+1, −1), zero initial velocities, separation d is a config file. The full design is a 2×2 control matrix, each cell a distinct falsifiable prediction: (+,+) attracts and merges or orbits; (−,−) mutually repels (each digs a hill the other rolls off); (+,−) runs away; single lumps of each sign drift nowhere and calibrate dispersal. Then ladders in d and mass ratio.
+
+Magnitudes: with lump masses ~0.1 and d ~ 6, a ≈ M/d² ≈ 3×10⁻³, so by t = 30 the pair drifts ~1.3 code units and reaches v ~ 0.08; by t = 60, ~5 units and v ~ 0.17. Comfortably measurable against your grid, and comfortably inside your demonstrated run lengths. Two practical notes from your own audit files: the pair accelerates toward a Sommerfeld boundary, so either point the runaway along the long diagonal or use the L=128 box and check causal cleanliness the way your DS/DL ladder does; and per-sector centroids need to be added to the confinement extraction consumer before launch (your logs note per-sector spatial analysis can't be recovered from stored moments after plotfile purge — this time the diagnostic has to be in the streaming consumer from the start).
+
+The deliverable set for a complete paper: barycenter trajectories per sector with the 2×2 matrix, conservation ledger (P_ADM, E_ADM vs time — this is the rigorous answer to the Gold wheel and the momentum-conservation skeptics), the radiated Ψ₄ with its energy budget, the dispersal race quantified (Q_sphere per sector vs drift), and the three mass-ratio regimes including the overlap endgame.
+
+### Why it's a better use of the phantom sector than FTL
+
+Every FTL framing puts you in a defensive posture — the phenomenon is a proxy for transport, and referees attack the proxy. Here the phenomenon is the result, it's attached to a 1957 Rev. Mod. Phys. paper everyone in the field knows, the modern cosmology controversy gives it a live audience, and your claim structure is modest: "we evolved the Bondi pair through the full Einstein equations for the first time and here is what actually happens." It even keeps a propulsion resonance if you want it — this is the physics behind Forward's "diametric drive" concept — but the paper doesn't need that word anywhere.
+
+One honest caveat to carry: your phantom is a sign-flipped gravitational coupling on a canonical field, which is one specific realization of "negative mass" (negative active mass, positive inertial/passive). Bondi's taxonomy has other cells — e.g., flipping inertial mass too restores mutual attraction and kills the runaway — so the paper should state which cell it lives in and that the result is a statement about this matter model, not all conceivable negative mass. That's a paragraph, and it's the same disciplined scoping your other manuscripts already practice.
+
+Next action when this is picked up: sketch the actual campaign config — lump parameters, separations, box, run lengths, and the consumer changes — sized against the node.
+
+---
+
+## Appendix C — Making the wormhole paper question-driven (W1–W5)
+
+Motivation: in the current setup the wormhole study is limited — set up the metric and the evolution, collapse it, and report the findings about the gravitational waves. "We built it, we broke it, here's the Ψ₄" is a solid methods demonstration but a flat narrative. The fix is to make the paper answer questions about the spacetime rather than report diagnostics. The good news is that the stored 4D metric stacks plus the geodesic tracer make most of the interesting additions probe-side — no new evolution physics, mostly new consumers. Here's what stacks on top of the 4D tracing (F2), roughly grouped by the story each one tells.
+
+### W1. The causal anatomy: when does the door close?
+
+The 4D tracing gives you transit times; push it one step further and you get the causal structure of the dying wormhole. Event horizons are teleological — you can't find them on a slice, but you can find them afterwards by integrating null rays backward through the stored stack from late times and asking which ones escape to the far side. That means you can localize the actual event horizon of the collapse, not just the θ₊ proxy — to my knowledge nobody has done event-horizon localization for a wormhole pinch-off, and it's strictly stronger than anything an apparent-horizon finder gives you (the AH is slicing-dependent; the EH is not). Alongside it, define the last-passage surface: the latest emission event whose null ray still exits the far mouth. The gap between "last photon through" and "proxy horizon appears" is a genuinely new number characterizing how a throat dies. Then do the timelike version: drop a freely-falling observer through the throat at various times, integrate proper time and the tidal tensor along the worldline — your free-fall probe machinery already does the geodesic and the tetrad. "Could a traveler have made it, and what tides would they have felt?" is the Morris–Thorne engineering question asked, for the first time, of a dynamical throat. That's the narrative spine right there: the door closing, measured three ways.
+
+### W2. Give rotation a job
+
+This directly answers the earlier complaint that the GW signal is matter-driven: rotation may not radiate, but it must show up in transport. Co-rotating vs counter-rotating null rays threaded through a rotating throat pick up a frame-dragging transit asymmetry — a Sagnac-type Δt that scales with J and vanishes in the m=0 control. That's a rotation-specific observable the paper currently lacks entirely, it reuses the azimuthal-launch mode you already planned for the Tipler work, and it connects to the Teo analysis you have in hand: check whether your throat ever develops an ergoregion (g_tt > 0 outside the throat — Teo's condition is fast rotation, and your collapse phase is exactly when the potentials spike). If an ergoregion flickers into existence during collapse, a Penrose-splitting timelike probe through it (your E = −u_t / L_z accounting, built for the railgun) measures energy extraction from a collapsing rotating throat. Even a null result — "no ergoregion at this J" — is a clean scoped statement.
+
+### W3. Horizon thermodynamics with matter that breaks the rules
+
+Your rebound is the buried treasure: the proxy grows to r ≈ 9.2, then shrinks to 1.9 while the lapse recovers. A trapped region shrinking is classically forbidden — the area theorem assumes the NEC, which your phantom violates. With a real MOTS finder (BHaHAHA is code-agnostic) you can measure the horizon area A(t) and test the Ashtekar–Krishnan dynamical-horizon area-balance law against the measured NEC-violating flux crossing the surface. That would be the first numerical test of horizon area balance with classical NEC-violating matter — classical "evaporation," normally a quantum phenomenon, driven by phantom flux. This upgrades the "phantom bounce" from a named morphology to a quantitative mechanism, and it's the one addition that needs real new infrastructure — but it's infrastructure you need for every other paper anyway (P0).
+
+### W4. Make the trigger a dial, not a switch
+
+Right now the ramp is binary: cut support, watch it die. Turn it into a threshold study: vary ramp depth (partial support withdrawal) or ramp duration, and bisect the boundary between collapse and survival/re-expansion — your critical-collapse bisection machinery exists. If the near-threshold lifetime shows scaling (τ ∝ −γ ln|p − p*|, Type-I style), you've found critical behavior in wormhole collapse, which has real literature adjacency (critical phenomena in ghost-scalar collapse) and converts "we chose t=8–10 arbitrarily" from a weakness into the experimental axis. Bonus: a physical trigger arm — collapse driven by a compressive canonical scalar pulse fired at the throat (the González–Guzmán–Sarbach perturbation channel) instead of the engineered support cut. If the two trigger channels produce the same collapse morphology and burst, the "nonconservative engineered source" criticism largely dissolves; if they differ, that's a finding.
+
+### W5. Observables someone could point a telescope at
+
+The lensing movie: backward-trace ray bundles from a distant observer plane through the stack and render the image sequence — throat (double images, no shadow) → pinch (photon ring forms) → remnant (shadow or echo structure). Static wormhole shadows are a crowded literature; a dynamical shadow of a collapse, from constraint-solved data, is not. And extend the post-bounce run to hunt GW echoes: the remnant is a horizonless ultracompact object, exactly the class predicted to produce delayed ringdown repetitions, and you already own the Ψ₄ time series. *(These are N6 and N5 respectively, here folded into the wormhole follow-up paper.)*
+
+### Packaging: split across two papers
+
+Don't stuff all of this into the current manuscript — it's already submittable with the corrections in P1, and bloating it delays it. Suggested split: add the two cheap probe-side items to the current paper (the traversability window with last-passage time, and the Sagnac transit asymmetry — together they add the causal story and give rotation a measurable role, both from stored stacks), and hold the rest for a follow-up whose title is essentially "the causal structure and horizon dynamics of a collapsing rotating wormhole" — EH localization, area balance with NEC-violating flux, the threshold study, and the shadow movie. That second paper is question-driven from the first line, and it's the one where the nonlinear solver genuinely earns its keep.
+
+### Operational warning
+
+One operational warning from your own audit before any of the probe work: the interesting slices are the deep-χ collapse-epoch ones, which is exactly where your metric-stack cache under-resolved and the fidelity gate refused scoring in campaign F. Set the stack resolution for collapse-epoch fidelity before launching the wormhole tracing runs, or the door-closing measurement will be refused by your own gate at precisely the moment that matters. *(Same root cause as P0 item 3: raise `GRTECLYN_METRIC_STACK_N_SPACE` first.)*
+
+---
+
+## Appendix D — Hold-on-command: closed-loop throat stabilization (H1–H5)
+
+Closing the loop is exactly the right instinct, and it's a cleaner control problem than the pump campaigns you've been fighting — with one reframe that makes it both easier to build and much more interesting to publish.
+
+### The reframe: you already have the actuator, and it's a better one than the PD pump
+
+Don't bolt the five-spotlight PD pump onto the wormhole. Your collapse-on-command paper already contains a purpose-built actuator: the support coupling S(t). Right now it's open-loop — a prescribed ramp from 1 to 0, and collapse follows. Closing the loop means making S state-dependent:
+
+S(t) = S_eq + K_p·(a(t) − a*) + K_d·ȧ(t)
+
+where a(t) is the throat areal radius and a* the setpoint. That's a single-input, single-output servo on one scalar, instead of ten gains driving two sectors through five spotlights toward an analytic profile that doesn't match the field — the exact shape-mismatch problem that produced the exotic strip and the bridge-feeding in the pump logs. Here the "target" is the equilibrium the solver already found; the controller only has to cancel one unstable direction.
+
+And that's the control-theoretic gift: the Ellis–Bronnikov throat is a saddle — one unstable mode (compress → collapse, rarefy → expand), everything else oscillatory. A single real unstable pole is the inverted pendulum, the most classical stabilization problem there is. You need loop bandwidth above the growth rate λ and gain above a threshold, and both of those thresholds are themselves measurements (see H1). Contrast with the confinement campaigns, where the pump was asked to substitute for gravitational binding across a whole configuration — a job your own logs concluded it cannot do. Holding a saddle at its equilibrium is a job a PD loop demonstrably can do.
+
+### What the stabilized throat buys you scientifically
+
+The controller is an instrument, not just a crutch.
+
+#### H1. The instability spectrum, from the loop itself
+
+Three numbers fall out of the loop itself before you measure anything else. Below-threshold gains slow the instability without stopping it — run a small gain ladder, measure the effective growth rate at each gain, extrapolate to zero gain, and you've measured the bare instability rate λ of your nonlinear, rotating, self-gravitating throat, directly comparable to the linear Shinkai–Hayward / González–Guzmán–Sarbach growth rates. The minimal stabilizing gain and the gain margin are the second and third numbers. This turns "it's unstable" (known since 2002) into "here is its instability spectrum, measured nonperturbatively" (not known for the rotating case at all).
+
+#### H2. Throat spectroscopy — the oscillations you want
+
+Once held, kick it: a small compressive scalar pulse (the González–Guzmán–Sarbach perturbation channel), then watch a(t) and Ψ₄ ring down. Those ringdown frequencies are the throat's quasinormal modes — normally computed perturbatively on static backgrounds, never extracted from a fully nonlinear evolution of a constraint-solved throat, because nobody could hold one still long enough. One honesty requirement is non-negotiable: what you measure are modes of the closed-loop system, and they shift with gain. So the spectroscopy protocol is: measure the spectrum at several gains, extrapolate to zero gain (or deconvolve with the known controller transfer function), and quote the bare QNMs with that systematic. That's standard system identification, and stating it up front disarms the obvious referee objection.
+
+#### H3. Rotation finally gets a starring role
+
+This answers the earlier frustration that rotation doesn't show up in the signal. Frame dragging splits the m = +1 and m = −1 perturbation modes of a rotating throat — the gravitational analog of Zeeman splitting. Seed m = ±1 kicks on the held rotating throat, measure the frequency splitting, and check it scales with J across your ω ladder. A measured rotational QNM splitting of a wormhole throat would be a genuinely new number, and it's only reachable because the controller keeps the throat alive long enough to ring it.
+
+#### H4. The servo experiments
+
+Once you can hold a setpoint, you can move it: command the throat to a new radius and slew it — slowly (adiabatic, measure the quasi-static family you pass through) and fast (measure the radiation burst from the maneuver). "How much does it cost, in injected energy and in GW emission, to resize a wormhole?" is a question no one has been able to ask of a dynamical solution. And the station-keeping power itself — pump work per unit time to hold position, which your pump_work ledger already measures — is a headline result: the energetic cost of stabilizing a traversable throat.
+
+#### H5. And it feeds the transport story
+
+A held throat means the 4D traversability probes (transit times, tidal integrals, Sagnac asymmetry — W1/W2, F2) can run indefinitely rather than racing the collapse — the door-closing measurements from Appendix C become door-held-open measurements.
+
+### Lessons from your own audit that apply directly
+
+Your pump logs are effectively a pre-paid tuition bill for this project; four items transfer verbatim. First, the sensor must measure spacetime, never the controller's own bookkeeping — bug #7 (governor fed by the reservoir ledger) is the exact failure mode to design out, so a(t) comes from the metric (areal radius of the minimal surface, or χ at the throat), with the θ₊ proxy explicitly banned as a sensor since your §16a audit showed it tracks global max|K|, not local geometry. Second, the routing fix (#19) is load-bearing here: the wormhole matter is the exotic sector, and before that fix the pump literally could not touch phantom fields — this experiment was impossible on the pre-fix binary. Third, bit-identity discipline: gain zero must reproduce the uncontrolled run exactly, which is your established off-by-default test pattern. Fourth, never validate on short runs — the reservoir looked excellent at t=2 and diverged at 2.5; the hold claim needs t well past anything you've run, ideally t ≥ 100, with the watchdog and Duhamel machinery attached and the constraint norms quoted from the composite AMR columns, not cols 2–3.
+
+### The honest claim boundary
+
+The honest claim boundary also carries over from Paper 2's framing, and it's a strength, not a weakness: this is an actively supported equilibrium — an engineered stabilized state with a fully accounted external source, ∇T ≠ 0 while the loop is closed. You're not claiming a stable wormhole exists; you're demonstrating spacetime feedback control and using the held state as a laboratory. "Collapse-on-command" has a natural sequel title in "hold-on-command," and the pair together — open-loop kill, closed-loop hold, with the same actuator — is a much more interesting arc than either alone.
+
+### Sequencing
+
+Build order: sensor reduction first (cheap, on-the-fly, once per coarse step like the governor), then the S(t) feedback (one code site — where support multiplies the source), then the gain ladder below threshold (this is also your λ measurement, so it's science from day one, not tuning), then the hold, then spectroscopy, then the rotating splitting arm. The one infrastructure warning from campaign F applies again: the spectroscopy and any late-time probing live in exactly the deep-χ regime your metric-stack cache under-resolved, so set the stack resolution for that epoch before launch or your own fidelity gate will refuse the interesting slices. *(Same root cause as P0 item 3.)*
+
+### Outcomes
+
+If the hold works, you have the stabilized-throat laboratory and two papers (the control result, then the spectroscopy). If it fails at every gain and bandwidth you can afford — that's a real result too: a measured statement that the instability outruns any causal controller acting through this coupling, which slots straight into the C4 no-go atlas with numbers attached.
+
+---
+
+## Appendix E — Critical assessment: the gw_beam directional-GW campaign and the geometry-first atlas (G1–G5, AT1–AT4)
+
+### TL;DR
+
+- **Line 1 (gw_beam) does not make sense as a "beaming/discovery" campaign, but is excellent as a methods and reward-hacking case study.** The measured `beaming_gain` of 2.5–3.7 is almost exactly the generic l=2 mass-quadrupole antenna pattern (peak-to-isotropic-average = **5/2 = 2.5** for a rotating quadrupole; **15/8 = 1.875** for an m=0 breathing/z-oscillation mode), so it is *not* evidence of nontrivial directional emission. The extraction radii (12–24, even the proposed 30–50) sit inside roughly one GW wavelength of the orbital signal in an L=128 box, so the wave-zone gate cannot be satisfied for the orbital contribution regardless of resolution. The "weak steady hum" P~10⁻⁶–10⁻⁴ is exactly what weak-field quadrupole physics predicts for near-flat Q-balls that barely curve spacetime.
+- **Line 2 (geometry-first atlas) makes sense as a screening tool and is methodologically the stronger of the two lines**, but its central Stage-2 plan — sourcing shift-heavy Alcubierre/Natário tubes with physical matter — is predicted to fail by the Santiago–Schuster–Visser NEC theorem (Phys. Rev. D 105, 064038, 2022). The informative experiment is the *hybrid* (shift-fraction ~0.7) elites plus a positive-mass matter shell, following Bobrick–Martire and Fuchs et al. 2024.
+- **Publishable as-is:** the v3→v4→v5 reward-hacking/gate-architecture case study and the QD "expressiveness-bias" correction are genuine, citable contributions. The "directional GW discovery" and any "GW laser" framing are not.
+
+### Key Findings
+
+#### Line 1 — gw_beam
+
+1. **The beaming metric is a null result in disguise.** A single rotating mass quadrupole (l=2, m=2) has an intrinsically anisotropic pattern dP/dΩ ∝ (1+cos²ι)²/4 + cos²ι, whose peak (orbital axis, ι=0) divided by its isotropic sphere-average is exactly **5/2 = 2.5**. Equivalently, the normalized inclination factor g(ι) = (5/16)(1+6cos²ι+cos⁴ι) gives g(0)=2.5 and a face-on/edge-on *flux* ratio of exactly **8**. An axisymmetric m=0 breathing/z-oscillation quadrupole radiates as sin⁴θ (∫sin⁴θ dΩ = 32π/15), with peak/average = **15/8 = 1.875**. Their measured `beaming_gain` of 2.5 (v5 eval_000046) and 2.77→3.66 (HQ) fall squarely inside the range expected from an ordinary quadrupole antenna pattern with **no beaming whatsoever**. These are geometry-fixed, velocity-independent O(2) anisotropies — not relativistic beaming (which would forward-concentrate power into ~1/γ cones).
+2. **No wave zone exists for the orbital signal.** Orbital periods T~50–85 give GW periods ~25–42 and hence λ_GW~25–42 code units. Extraction at r=12–24 is inside a single wavelength (pure near zone); even the proposed r=30–50 is only ≈1λ, and in an L=128 box with a sponge at r=24–32 there is essentially no room for a wave zone. The HQ wavezone-gate failure (wz_std 0.53) is this mixed-wavelength geometry, **not** "resolution extending the near zone." The breathing-mode GW (λ~2.4) *can* be wave-zone extracted at r=12–24, which is exactly why the short-wavelength part passed while the orbital part failed.
+3. **The weak hum is physically correct.** Q-balls are extremely non-compact: for canonical large Q-balls the compactness C ≡ G_N M/R reaches only O(10⁻⁵) ("gravity has very little role to play in determining the global properties of such Q-balls," *Q-balls in the sky*, arXiv:2302.11590). Their chi_min=0.97 (≈3% metric deviation) is at the very upper edge of "weakly self-gravitating." Boson-star merger studies find the after-contact radiated energy scales *linearly* in compactness — 𝓔_rad ≈ 0.96 C M = **0.48 C M₀** (Palenzuela, Liebling, Neilsen, Lehner et al., "Gravitational wave signatures of highly compact boson star binaries," Phys. Rev. D 96, 104058 (2017), Appendix A; arXiv:1710.09432). A near-flat configuration therefore radiates orders of magnitude below a genuinely relativistic (C~0.1) compact binary. Their P~10⁻⁶–10⁻⁴ is the weak-field quadrupole floor; the search cannot beat physics without compact, relativistic matter.
+4. **The reward-hacking findings are real and well-handled.** The v3 "numerical bomb" — a constraint-violating configuration whose high-frequency grid noise was scored by the Ψ4 second-derivative operators as huge wave power (eval 51 = 336 vs trustworthy ~3.4) — is a textbook case of specification gaming / Goodhart's law. The failure of additive penalties (−113 vs +197) and the success of multiplicative health gates matches the ML-safety literature: Skalse, Howe, Krasheninnikov & Krueger ("Defining and Characterizing Reward Hacking," NeurIPS 2022, arXiv:2209.13085) prove that "for the set of all stochastic policies, two reward functions can only be unhackable if one of them is constant" — i.e., no non-trivial soft proxy is unhackable, which is precisely why the hard multiplicative gate succeeds where the additive penalty failed.
+5. **The sponge zone and gate architecture are standard, sound practice.** Radially ramped Kreiss-Oliger dissipation and Sommerfeld radiative boundaries are exactly what the GRChombo/GRTeclyn family uses by default (N=3 KO dissipation; Sommerfeld/radiative BCs — GRChombo, arXiv:1503.03436 and arXiv:2201.03458).
+
+#### Line 2 — geometry-first atlas
+
+6. **"Paint metric → read T_μν = G/8π → score" is a recognized methodology** — it is exactly the reverse-engineering approach of Warp Factory (Helmerich, Fuchs, Bobrick, Sellers, Melcher & Martire, "Analyzing warp drive spacetimes with Warp Factory," Class. Quantum Grav. 41, 095009 (2024), publ. 5 April 2024, DOI 10.1088/1361-6382/ad2e42; arXiv:2404.03095), a MATLAB toolkit with solver/analyzer/optimizer modules. Its known pitfall — frozen-slice/Eulerian-observer positivity that fails once you check *all* timelike observers or evolve the spacetime — is precisely the trap Santiago–Schuster–Visser exposed: prior positive-energy claims "are, at best, incomplete since the arguments as presented only assert but do not prove the existence of one set of timelike observers, the comoving Eulerian observers... the WEC requires all timelike observers to see positive energy density." The atlas's discipline (resolution ladder, trusted/untrusted flags, explicit non-comparability of frozen f_geo to the evolved-spacetime paper result) shows genuine awareness of this.
+7. **The "shift channel monopolizes frozen shortcut strength" finding is expected from theory.** In the Alcubierre/Natário class the shift vector is the direct light-cone-tilting mechanism for coordinate-time null shortcuts (Natário 2002 showed contraction/expansion is incidental; the shift is the essential structure). Curvature-only (zero-shift) families scoring tunnel 0.094 / lens 0.055 / throat 0.035 vs shift-tube 0.475 is the anticipated ordering. Their self-correction — that curvature families were "unreachable, not weak" because the isotropic RBF genome could not organize into tunnels — is a clean instance of the documented QD **expressiveness/representation bias** (feature-dimension expressiveness in constrained MAP-Elites, Alvarez et al., IEEE ToG 2022).
+8. **The soft-halving penalty is a latent exploit surface.** Their own v3 lesson (additive/soft penalties lose to unbounded exploits) argues directly against halving — rather than zeroing — untrusted f_geo on null-Hamiltonian drift. Trusted-only scoring should be adopted.
+9. **Stage-2 on pure shift tubes is predicted to fail.** Sourcing a coherent unidirectional shift wall with physical matter requires momentum density T_0i that violates the NEC (Santiago, Schuster & Visser, "Generic warp drives violate the null energy condition," Phys. Rev. D 105, 064038, publ. 23 March 2022). Bobrick & Martire's shell reformulation ("Introducing Physical Warp Drives," Class. Quantum Grav. 38, 105009, 2021) shows the escape route is a positive-ADM-mass matter shell around a *subluminal* drive — realized concretely by Fuchs, Helmerich, Bobrick, Sellers, Melcher & Martire, "Constant velocity physical warp drive solution," Class. Quantum Grav. 41, 095013 (2024) (arXiv:2405.02709). This is why the hybrid (shift-fraction ~0.7) elites, not the pure tubes, are the informative Stage-2 targets.
+
+### Details
+
+**Line 1 (a) — Is "directional/beamed GW emission" well-posed?**
+Anisotropic GW emission is completely standard physics — it is what produces GW recoil/kicks, quantified by the linear-momentum flux dP^k/dt = (r²/16π)∮(ḣ₊²+ḣ×²)n^k dΩ. Any asymmetric or precessing source radiates anisotropically; "superkick" BBH configurations reach thousands of km/s (Campanelli, Lousto, Zlochower & Merritt, "Maximum Gravitational Recoil," Phys. Rev. Lett. 98, 231102 (2007), predicting ~4000 km/s for equal-mass maximally-spinning in-plane-anti-aligned holes; González et al., PRL 98, 231101 (2007), demonstrating "kick velocities of at least 2500 km/s"; Sperhake et al. reach ~15,000 km/s in ultrarelativistic encounters, explicitly attributed to "asymmetric beaming of the radiation"). So "the source radiates more power in some directions" is trivially true and not a discovery.
+
+The problem is the framing. Their `beam_ratio` (power fraction in a z-cone) is a nonstandard observable, and the measured anisotropy is quantitatively indistinguishable from the generic l=2 antenna pattern. **Before any "beaming" claim they must compute the analytic quadrupole-formula null model from the known lump trajectories** (breathing + z-oscillation + orbital), predict the sin⁴θ / (1+cos²ι)² pattern, and show the measured pattern *exceeds* it. Given peak/average of 2.5 and 1.875 for the two mode types, their 2.5–3.7 gains show no excess.
+
+Regarding the "GW laser": genuine proposals exist (Dupuis & Paranjape 2018, black-hole graviton laser using superradiant WISP clouds, arXiv:1807.03163; the 2024 "gravitational laser" from ultralight-boson clouds around Kerr BHs, arXiv:2401.16096; Schützhold 2025, stimulated graviton emission/absorption by light, Phys. Rev. Lett.). All require either a Kerr superradiant cavity with a bound ultralight-boson cloud or quantum-optical apparatus — none apply to classical orbiting Q-balls. There is no coherent gain medium, no cavity, and no population inversion in their setup. **"GW laser" is not a viable framing for this campaign.** They should also switch from a cone fraction to the standard multipole decomposition (energy per (l,m) mode) and the linear-momentum flux/kick as the canonical measure of anisotropy.
+
+**Line 1 (b) — Wave-zone criterion.** The standard requirement is r ≫ λ_GW. Their orbital λ~25–42 makes r=12–24 fundamentally near-zone; r=30–50 is ~1λ and still contaminated. Standard NR practice for weak, long-wavelength signals is: multi-radius extraction with polynomial extrapolation in 1/r to r→∞; perturbative Regge–Wheeler–Zerilli extraction; or Cauchy-characteristic extraction (CCE), which propagates worldtube data to future null infinity and is gauge-invariant (Reisswig et al. 2010; Barkett, Moxon, Scheel & Szilágyi 2020). Crucially, CCE/extrapolation is typically applied with extraction spheres at **100–1000 M** — two orders of magnitude beyond what an L=128 box permits. **Their box is simply too small to wave-zone-extract the orbital GW; the fix is a much larger domain (or a wave-zone/CCE layer), not merely more radii.**
+
+**Line 1 (c) — Realistic power.** In geometric units the quadrupole luminosity is P = (1/5)⟨Q⃛_ij Q⃛_ij⟩ = (32/5)μ²a⁴Ω⁶ for a binary. For M~0.1–0.2, μ~0.025–0.05, a~2–8, with Keplerian Ω²=M/a³, this yields P in roughly the 10⁻⁹–10⁻⁶ range — consistent with (or below) their measured hum, confirming the signal is a genuine but tiny weak-field quadrupole emission, with the higher-frequency breathing mode (ω⁶ scaling) plausibly dominating. This is the physics floor. Boson-star binary NR (Palenzuela et al.; Bezares & Palenzuela; Sperhake/Helfer/Croft; Evstafyeva et al.) shows appreciable radiated energy only for compact, deformable stars: Evstafyeva, Sperhake et al. ("Dynamics and gravitational radiation of stable and unstable boson-star mergers," Phys. Rev. D 2024) find solitonic boson-star binaries can be "louder by up to an order of magnitude than analogous black-hole collisions... display needle-sharp features, and show abrupt jumps to black-hole levels." Compactness benchmarks in this literature are C = {0.06, 0.12, 0.18, 0.22} (Palenzuela et al. 2018, arXiv:1808.10732) — i.e., four to five orders of magnitude above canonical Q-balls. **Their proposed fixes (denser self-gravitating boson stars, faster orbits 0.1–0.3c, closer separations R=1–3, stronger PD trap) are exactly right in direction: they must move from C~10⁻⁵ Q-balls to C~0.1 relativistic boson/Proca stars near the stability turning point where NR shows enhanced radiation.**
+
+**Line 1 (d) — Reward hacking.** The case sits cleanly in the specification-gaming literature (Krakovna et al. 2020; Amodei et al. 2016 "Concrete Problems in AI Safety"; Skalse et al. 2022). The multiplicative validity gate, tier-based archive admission, and wave-zone gate are a domain-specific instance of the field's recommended mitigations (hard constraints, verifiable composite rewards, filtering of untrusted evaluations). This is a publishable methods contribution: a documented, reproducible instance of QD/evolutionary search reward-hacking a PDE-simulation observable (constraint-violation noise masquerading as physical signal), plus a concrete gate architecture that defeats it. Framed against the RL-safety taxonomy (proxy misspecification, Goodhart decoupling), it would be a useful cross-over paper for both the NR and ML-for-science communities.
+
+**Line 1 (e) — Sponge zone.** Radially ramped extra KO dissipation as an absorbing layer, with t_stop chosen inside the light-crossing/reflection time, is standard. GRChombo/GRTeclyn use N=3 KO dissipation and Sommerfeld radiative BCs by default; CCZ4 constraint damping plus a sponge is accepted practice. **Sound.**
+
+**Line 2 (f) — Methodology.** Recognized (Warp Factory; Bobrick–Martire). The two-axis archive (shift-fraction morphology × log exotic cost) is a sensible screening design — essentially a QD version of Warp Factory's optimizer module. Pitfalls they must keep flagging: (i) frozen-slice positives that fail under evolution or across all observers (the SSV all-timelike-observers point); (ii) coordinate/gauge dependence of transit-time advantages for shift-dominated metrics (a shift can be partly a coordinate artifact — they already guard this with a "shift cannot be reduced to a coordinate transformation" style check, as Fuchs et al. 2024 also do); (iii) energy-condition accounting conventions (Eulerian vs all-observer NEC/WEC).
+
+**Line 2 (g) — Shift dominance & expressiveness bias.** Expected from Natário's construction (the shift is the essential light-cone-tilting structure). The RBF-clay-cannot-form-tunnels finding is a documented QD failure mode; their fix — an analytic topology registry seeding families the genome cannot self-assemble — is the standard remedy (hybrid/seeded encodings). This correction is itself a genuine, publishable QD-methods result: a concrete demonstration that a QD search concluded a family was "weak" when the genome simply could not represent it.
+
+**Line 2 (h) — Soft-halving.** Their own v3 evidence condemns soft penalties. Halving untrusted f_geo leaves a latent exploit: a genome that maximizes raw f_geo via unresolved/under-trusted configurations can still win a cell if 0.5×(large raw) beats trusted neighbors. (Their interim top-5 already shows a 0.215 entry flagged untrusted, raw-halved from 0.083 drift — evidence the surface is live.) **Recommend trusted-only scoring:** zero the untrusted contribution to archive admission; keep the raw value only as a logged diagnostic.
+
+**Line 2 (i) — Stage-2 handoff.** SSV (2022) proves generic prescribed-shift warp drives violate the NEC; the required momentum density in a thin unidirectional wall is exactly the exotic ingredient. A GRTresna constraint solve on a pure shift-tube elite will therefore either fail to converge to physical (energy-condition-respecting) matter or converge to exotic T_μν. The genuinely informative experiments are (1) the hybrid shift-fraction ~0.7 elites, and (2) shift-tube-plus-positive-mass-shell configurations à la Bobrick–Martire / Fuchs et al. 2024 (subluminal, positive ADM mass). Frame Stage-2 explicitly as a **sourceability test / no-go confirmation**, not as a search for a physical warp tube.
+
+### Recommendations
+
+**Line 1 — gw_beam (staged):**
+1. **(G1) Immediately** build the analytic quadrupole-formula null model from the recorded lump trajectories; compute the predicted (l,m) mode content and the sin⁴θ / (1+cos²ι)² angular pattern. Overlay measured vs predicted. *Threshold to keep claiming "directional emission": measured peak/average must exceed the analytic prediction (≥2.5 for a rotating quadrupole, ≥1.875 for the breathing mode) at >3σ after proper wave-zone extraction.* It almost certainly will not.
+2. **(G2) Switch observables** from `beam_ratio`(z-cone) and raw Ψ4 power to: (a) energy per (l,m) spin-weighted mode; (b) total radiated energy E_rad/M; (c) the linear-momentum flux / recoil-kick vector as the standard measure of anisotropic emission. Genuine beaming shows up as anomalous high-l power or a large kick, not a cone fraction.
+3. **(G3) Fix extraction:** enlarge the domain so r_ext ≥ several × λ_orbital (≫64), or implement extrapolation-in-1/r / CCE. Abandon the premise that r=30–50 in L=128 is wave-zone for the orbital mode.
+4. **(G4) Change the matter class** to compact, self-gravitating relativistic boson/Proca stars (target C~0.1, solitonic potentials near the stability turning point), faster (0.1–0.3c) and closer orbits — as already proposed. Benchmark against published E_rad/M ≈ 0.48 C M₀ for BS binaries; if the QD optimum still sits at the weak-field floor, conclude (correctly) that QD cannot manufacture strong emission from weak matter.
+5. **(G5) Reframe the paper** around the reward-hacking case study and gate architecture, not "beaming discovery."
+
+**Line 2 — atlas (staged):**
+1. **(AT1) Adopt trusted-only scoring** (zero, don't halve, untrusted f_geo for archive admission). Benchmark: champion must be stable across the N=48/64/96 ladder *and* pass the null-Hamiltonian-drift check natively.
+2. **(AT2) Retarget Stage-2** to hybrid (shift-fraction ~0.7) elites and shift-tube-plus-shell configurations; run GRTresna as an explicit sourceability/NEC test. *Threshold that would change the conclusion: a converged, energy-condition-respecting T_μν for a shift-dominated elite — which SSV predicts you will not find for pure tubes.*
+3. **(AT3) Keep the frozen atlas as a companion screening table** to the evolved-spacetime paper (analogous to that paper's Table IX), being explicit that frozen f_geo (0.41–0.48) and the evolved 20.2% are different quantities.
+4. **(AT4) Report the expressiveness-bias correction prominently** — it is a genuine QD methods result.
+
+### Verdict per line
+
+- **gw_beam:** The *physics target as framed* ("beamed GW emission" as a discovery) does **not** make sense — the anisotropy they measure is the textbook l=2 antenna pattern, the extraction is not wave-zone, and the power is the correct weak-field floor. The *engineering* (gate architecture, resolution-ladder discipline, wave-zone gating, self-diagnosis of the HQ collapse) is strong and honest. Redirect to compact matter + standard observables, and harvest the reward-hacking study as the publishable output.
+- **geometry-first atlas:** The line **does** make sense as a screening/inverse-design tool and shows the better methodological hygiene (self-corrections, trusted/untrusted flagging, explicit non-comparability). Its physics expectation for Stage-2 (that pure shift tubes will source only exotic matter) is correct and should be stated up front as a no-go test; the hybrid elites are the right experiment; soft-halving should become trusted-only.
+
+### Caveats of this assessment
+
+- The precise numerical quadrupole predictions (peak/average = 2.5 and 1.875) assume the dominant radiation is a clean l=2 mode. If their configuration is genuinely multi-lump and multi-mode, the null model must be computed from the actual trajectories — but the qualitative conclusion (O(2–3) anisotropy is generic, not beaming) is robust.
+- The power estimates P~10⁻⁹–10⁻⁶ are order-of-magnitude weak-field quadrupole scalings; the exact prefactor depends on their mode amplitudes and cannot substitute for computing the analytic null model directly.
+- The warp-drive energy-condition literature is contested: Bobrick–Martire, Lentz, and Fuchs et al. claim positive-energy subluminal drives, while Santiago–Schuster–Visser and the 2026 "General formalism, classification, and demystification" papers (arXiv:2602.16495) rebut several such claims. I have weighted the peer-reviewed no-go result (SSV, Phys. Rev. D 105, 064038) as authoritative for the *prescribed-shift* case relevant to their pure tubes, while noting the shell reformulation as the recognized escape.
+- Assessment is based on the journal summaries provided; verdicts assume the reported numbers (scores, chi_min=0.97, periods T~50–85, breathing period ~4.7, radii, P values) are accurate. I did not have direct access to the raw simulation outputs or plots.
+
+---
+
+## Caveats
+
+- **Paper 2 (arXiv:2604.00071), the "E-boson star," and other cited results are attributed as the literature reports them; verify DOIs against the journals of record before citing.** In particular, the 2026 preprints (Evstafyeva–Siemonsen–East stability; the warp-drive steering and classification papers) are recent and some may still be in the refereeing pipeline.
+- The 2026 "no instability up to tμ~10⁴" result for spinning scalar stars is a null result on a finite timescale; the authors explicitly cannot rule out slower instabilities, and a residual energetic/fragmentation instability may persist on the relativistic branch. B1's lifetime gains should be interpreted as *metastability*, not proven stability.
+- The audit's verified state is taken as given; I have not independently reproduced the 20.21% measurement or the constraint-norm dilution factors. The recommendation to publish the measurement assumes the HQ-replay and cache-fidelity validations hold as described.
+- "Publishability" here means fit with current referee expectations in Class. Quantum Grav. / Phys. Rev. D / Open Journal of Astrophysics; it is not a guarantee of acceptance. The single biggest cross-paper risk is the horizon/trapped-surface language: both papers currently lean on a proxy that a competent referee will flag, so fixing that (or softening the claims) is the highest-leverage correction you can make.
