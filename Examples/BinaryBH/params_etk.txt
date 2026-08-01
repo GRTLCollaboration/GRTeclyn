@@ -97,11 +97,15 @@ regrid_threshold = 0.014
 # Max and min box sizes
 max_grid_size = 64
 block_factor = 16
-grid_buffer_size = 32
 
 # Tag buffer size
 amr.n_error_buf = 3 3 3
-#amr.n_proper = 32
+
+# These should do the same thing, but note that
+# AMReX buffer = amr.n_proper × amr.blocking_factor / amr.ref_ratio
+amr.n_proper = 2
+grid_buffer_size = 2
+
 num_ghosts = 4
 # center = 8 8 8 # defaults to center of the grid
 

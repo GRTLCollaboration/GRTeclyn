@@ -101,7 +101,12 @@ block_factor = 32
 
 # Tag buffer size
 amr.n_error_buf = 4 4 4
-# amr.n_proper = 8
+
+# These should do the same thing, but note that
+# AMReX buffer = amr.n_proper × amr.blocking_factor / amr.ref_ratio
+amr.n_proper = 3
+grid_buffer_size = 2
+
 num_ghosts = 4
 # center = 8 8 8 # defaults to center of the grid
 
