@@ -76,12 +76,6 @@ void BinaryBHLevel::initData()
 
     two_punctures_initial_data.solve(); // only solves first time
 
-    // hack to modify const parameters before we refactor parameters
-    // auto sim_params = simParams();
-    // two_punctures_initial_data.set_bh_params(sim_params.bh1_params,
-    //                                          sim_params.bh2_params);
-    // get_gramr_ptr()->set_simulation_parameters(sim_params);
-
     amrex::MultiFab &state_new = get_new_data(state_index);
 #ifdef AMREX_USE_GPU
     amrex::MFInfo mf_info;
@@ -359,6 +353,8 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
+    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
+
     // Fine-to-coarse interpolation has already run in
     // GRAMRLevel::post_timestep(), so restore the algebraic CCZ4 constraints
     // before puncture tracking or Weyl extraction uses the synchronized state.
@@ -403,14 +399,12 @@ void BinaryBHLevel::specificPostTimeStep()
 
             WeylExtraction my_extraction(simParams().extraction_params, m_dt,
                                          m_time, first_step, restart_time);
-            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator,
-                                        "Weyl4");
+            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
         }
     }
 
 #if 0
 //xxxxx specificPostTimeStep
-    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
     if (m_p.calculate_constraint_norms)
     {

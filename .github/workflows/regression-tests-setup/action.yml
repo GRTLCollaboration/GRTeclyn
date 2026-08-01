@@ -4,15 +4,27 @@ inputs:
   gcc_version:
     required: true
     type: string
+  use_twopunctures:
+    required: false
+    type: boolean
+    default: false
 
 runs:
   using: "composite"
   steps:
   - name: Checkout AMReX
-    uses: actions/checkout@v4
+    uses: actions/checkout@v7
     with:
       repository: AMReX-Codes/amrex
       path: amrex
+
+  - name: Checkout TwoPunctures
+    if: ${{ inputs.use_twopunctures == 'true' }}
+    uses: actions/checkout@v7
+    with:
+      repository: GRTLCollaboration/TwoPunctures
+      path: TwoPunctures
+      ref: enhancement/grteclyn_support # temporary branch until support is merged into main
 
   - name: Update package manager database
     id: update-database
@@ -34,6 +46,7 @@ runs:
     run: >
       sudo apt-get -y --no-install-recommends install
       libopenmpi-dev cpp-${{ inputs.gcc_version }} ccache
+      ${{ (inputs.use_twopunctures == 'true' && ' libgsl-dev') || '' }}
 
   - name: Set Compilers
     shell: bash
@@ -49,7 +62,7 @@ runs:
       /usr/bin/cpp cpp /usr/bin/cpp-${{ inputs.gcc_version }} 1000
 
   - name: Set Up Cache
-    uses: actions/cache@v4
+    uses: actions/cache@v6
     with:
       path: ~/.cache/ccache
       key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}

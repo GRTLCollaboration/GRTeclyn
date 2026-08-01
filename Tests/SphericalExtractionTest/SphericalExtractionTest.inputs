@@ -1,7 +1,7 @@
 #################################################
 # AMReX parameters
 
-amrex.the_arena_init_size = 0
+amrex.the_arena_init_size = 0 # we run out of memomero otherwise since be default 3/4 of the system’s device memory is allocated
 
 #################################################
 # Filesystem parameters

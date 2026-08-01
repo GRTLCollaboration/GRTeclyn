@@ -39,7 +39,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     // from GRChombo here, as we need to add more features to the varibles used
     struct vars_t
     {
-        int var{};
+        int comp{};
         VariableType type{};
         Derivative deriv;
 

@@ -21,7 +21,7 @@ amr.plot_file = BinaryBHPlt_
 # amr.restart = BinaryBHChk_00030
 # amr.file_name_digits = 5
 amr.derive_plot_vars = constraints
-amr.plot_vars = NONE
+amr.plot_vars = ALL
 
 checkpoint_interval = 20
 plot_interval = 5
@@ -64,7 +64,7 @@ two_punctures.momentum_minus = 0.0 -0.09 0.0
 two_punctures.spin_plus      = 0.0 0.0 0.0
 two_punctures.spin_minus     = 0.0 0.0 0.0
 
-# two_punctures.use_spectral_interpolation = true
+two_punctures.use_spectral_interpolation = true
 # two_punctures.initial_lapse = "twopunctures-averaged"
 # two_punctures.initial_lapse_psi_exponent = -2.0
 
@@ -72,7 +72,7 @@ two_punctures.num_points_A   = 64
 two_punctures.num_points_B   = 64
 two_punctures.num_points_phi = 48
 
-two_punctures.solver_tol    = 1.0e-10
+two_punctures.solver_tol    = 1.0e-11
 two_punctures.solver_maxit  = 250
 two_punctures.epsilon       = 1.0e-6
 # two_punctures.tiny          = 0.0

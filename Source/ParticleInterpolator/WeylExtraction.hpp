@@ -42,8 +42,7 @@ class WeylExtraction : public SphericalExtraction<2>
     }
 
     //! Execute the query
-    void execute_query(ParticleInterpolator<2> *a_interpolator,
-                       const std::string &name_derived = "")
+    void execute_query(ParticleInterpolator<2> *a_interpolator)
     {
         // extract the values of the Weyl scalars on the spheres
         this->extract(a_interpolator);
@@ -55,12 +54,12 @@ class WeylExtraction : public SphericalExtraction<2>
 
         // now calculate and write the requested spherical harmonic modes
         std::vector<std::pair<std::vector<double>, std::vector<double>>>
-            mode_integrals(this->m_num_modes);
+            mode_integrals(m_num_modes);
 
         // note that this is normalised by multiplying by radius
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         auto normalised_Weyl4_complex =
-            [](std::vector<double> &Weyl4_reim_parts, double r,
-               double /*theta unused*/, double /*phi unused*/)
+            [](std::vector<double> Weyl4_reim_parts, double r, double, double)
         {
             // here the std::vector<double> passed will just have
             // the real and imaginary parts of the Weyl4 scalar as its
@@ -68,6 +67,7 @@ class WeylExtraction : public SphericalExtraction<2>
             return std::make_pair(r * Weyl4_reim_parts[0],
                                   r * Weyl4_reim_parts[1]);
         };
+        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         // add the modes that will be integrated
         for (int imode = 0; imode < this->m_num_modes; ++imode)

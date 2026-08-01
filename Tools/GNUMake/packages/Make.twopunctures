@@ -1,19 +1,42 @@
 CPPFLAGS += -DUSE_TWOPUNCTURES
 
-ifdef GRTECLYN_HOME
-  TWOPUNCTURES_HOME ?= $(realpath $(GRTECLYN_HOME)/../TwoPunctures)
+# We need to link with GSL for TwoPunctures
+ifndef GSL_HOME
+  ifdef GSL_DIR
+    GSL_HOME = $(GSL_DIR)
+  endif
 endif
 
 LIBRARIES += -lgsl -lgslcblas
 
+ifdef GSL_HOME
+  GSL_ABSPATH = $(abspath $(GSL_HOME))
+  INCLUDE_LOCATIONS += $(GSL_ABSPATH)/include
+  LIBRARY_LOCATIONS += $(GSL_ABSPATH)/lib
+  LDFLAGS += -Xlinker -rpath -Xlinker $(GSL_ABSPATH)/lib
+endif
+
+ifdef GRTECLYN_HOME
+  TWOPUNCTURES_HOME ?= $(realpath $(GRTECLYN_HOME)/../TwoPunctures)
+endif
+
 ifdef TWOPUNCTURES_HOME
   TWOPUNCTURES_SOURCE = $(TWOPUNCTURES_HOME)/Source
 else
-  $(error TWOPUNCTURES_HOME is not set. Please set it to the location of the
+  $(error TWOPUNCTURES_HOME is not set. Please set it to the location of the \
     TwoPunctures code.)
+endif
+
+ifeq (,$(wildcard $(TWOPUNCTURES_SOURCE)/TwoPunctures.hpp))
+  $(error TwoPunctures.hpp not found in $(TWOPUNCTURES_SOURCE). Please check \
+    that TWOPUNCTURES_HOME is set correctly)
 endif
 
 include $(TWOPUNCTURES_SOURCE)/Make.package
 
 VPATH_LOCATIONS += $(TWOPUNCTURES_SOURCE)
 INCLUDE_LOCATIONS += $(TWOPUNCTURES_SOURCE)
+
+# This will be appended to the stem of the executable name to indicate
+# that it was built with TwoPunctures support.
+USERSuffix += .TwoPunctures

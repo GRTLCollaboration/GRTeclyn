@@ -133,7 +133,7 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_vars(
 {
     for (const auto &var : a_vars)
     {
-        add_var(var.var, var.type, var.deriv, var.parities, var.derived_name);
+        add_var(var.comp, var.type, var.deriv, var.parities, var.derived_name);
     }
 }
 
@@ -216,12 +216,12 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
 
         if (var.type == VariableType::derived)
         {
-            AMREX_ALWAYS_ASSERT(static_cast<std::size_t>(var.var) <
+            AMREX_ALWAYS_ASSERT(static_cast<std::size_t>(var.comp) <
                                 var.parities.size());
-            parity = var.parities[var.var];
+            parity = var.parities[var.comp];
         }
 
-        query.addComp(var.var, m_interp_data[ivar].data(), var.type, parity,
+        query.addComp(var.comp, m_interp_data[ivar].data(), var.type, parity,
                       var.deriv);
     }
 
@@ -325,6 +325,7 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_var_integrand(
     const IntegrationMethod &a_method_u, const IntegrationMethod &a_method_v,
     const bool a_broadcast_integral)
 {
+
     AMREX_ASSERT(a_var >= 0 && a_var < m_vars.size());
     integrand_t var_integrand =
         [var = a_var](std::vector<double> &data, double /*unused*/,
@@ -394,16 +395,15 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::integrate()
     {
         if (m_broadcast_integrals[iintegral])
         {
-            amrex::Vector<double> broadcast_Vector;
-            if (amrex::ParallelDescriptor::MyProc() == 0)
+            auto &integral = m_integrals[iintegral].get();
+
+            if (amrex::ParallelDescriptor::MyProc() != 0)
             {
-                // xxxxx    broadcast_Vector = m_integrals[iintegral].get();
-                // xxxxx broadcast(broadcast_Vector, 0);
-                if (amrex::ParallelDescriptor::MyProc() != 0)
-                {
-                    // xxxxx m_integrals[iintegral].get() = broadcast_Vector;
-                }
+                integral.resize(m_params.num_surfaces);
             }
+
+            amrex::ParallelDescriptor::Bcast(
+                integral.data(), static_cast<int>(integral.size()), 0);
         }
     }
 }
@@ -469,13 +469,13 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
                 }
                 if (var.type == VariableType::state)
                 {
-                    components[ivar] += StateVariables::names[var.var];
+                    components[ivar] += StateVariables::names[var.comp];
                 }
                 else
                 {
                     auto *derive_rec =
                         amrex::AmrLevel::get_derive_lst().get(var.derived_name);
-                    components[ivar] += derive_rec->variableName(var.var);
+                    components[ivar] += derive_rec->variableName(var.comp);
                 }
             }
 
