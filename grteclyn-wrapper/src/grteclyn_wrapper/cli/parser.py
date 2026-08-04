@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..core.config import default_runs_dir
 from ..initial_data.seeds import list_seeds
+from ..objective_modes import OBJECTIVE_MODES, QD_OBJECTIVE_MODES
 from .args import parse_override
 from .grtresna_args import (
     add_grtresna_matter_selection_args,
@@ -90,7 +91,7 @@ def build_parser() -> argparse.ArgumentParser:
     reproduce_parser = subparsers.add_parser("reproduce", help="Run one episode from the template plus overrides.")
     reproduce_parser.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "f_geo_max", "critical_collapse", "spacetime_shear", "gw_beam"],
+        choices=list(OBJECTIVE_MODES),
         default="weighted",
         help="Scoring scalarization for the final score.json.",
     )
@@ -243,7 +244,7 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
     opt.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "f_geo_max", "critical_collapse", "spacetime_shear", "gw_beam"],
+        choices=list(OBJECTIVE_MODES),
         default="weighted",
         help="Scoring scalarization: weighted legacy score, FTL-first ordering, "
         "robust_ftl (FTL-first tilted toward persistent/healthy/low-exotic), "
@@ -556,7 +557,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "f_geo_max", "critical_collapse", "gw_beam", "spacetime_shear", "geometry_first"],
+        choices=list(QD_OBJECTIVE_MODES),
         default="weighted",
         help="Scoring scalarization used as elite quality. robust_ftl tilts "
         "ftl_first toward persistent/healthy/low-exotic geometries; "

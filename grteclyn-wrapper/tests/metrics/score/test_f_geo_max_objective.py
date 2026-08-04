@@ -69,6 +69,54 @@ def test_shaping_gives_gradient_at_zero_f_geo() -> None:
     assert bending > flat
 
 
+def test_objective_mode_whitelists_are_single_sourced() -> None:
+    # A mode missing from any parser's --objective-mode whitelist crashes that
+    # entry point at argparse time.  For the plotfile consumer the pipeline
+    # swallows the crash, which silently disables the metric-stack cache: the
+    # evolving trace falls back to the last ~5 surviving plotfiles, a window
+    # too short for a full ray crossing, and every evolving f_geo reads 0.
+    # (This is exactly how f_geo_max shipped broken.)  So: no parser may hold
+    # its own literal copy of the mode list -- everyone imports the canonical
+    # tuples from grteclyn_wrapper.objective_modes.
+    import inspect
+
+    import grteclyn_wrapper.cli.parser as cli_parser
+    import grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.driver as consumer_driver
+    from grteclyn_wrapper.metrics.score import objectives
+    from grteclyn_wrapper.objective_modes import OBJECTIVE_MODES, QD_OBJECTIVE_MODES
+
+    assert "f_geo_max" in OBJECTIVE_MODES
+
+    from pathlib import Path
+
+    for module in (cli_parser, consumer_driver):
+        src = Path(module.__file__).read_text(encoding="utf-8")
+        assert 'choices=["weighted"' not in src, (
+            f"{module.__name__} holds a private copy of the objective-mode "
+            "whitelist; import OBJECTIVE_MODES / QD_OBJECTIVE_MODES instead"
+        )
+        assert "OBJECTIVE_MODES" in src
+
+    # The whitelist is only honest if compute_total actually dispatches every
+    # advertised mode ("weighted" is the default fall-through).
+    dispatch_src = inspect.getsource(objectives.compute_total)
+    for mode in OBJECTIVE_MODES:
+        if mode == "weighted":
+            continue
+        assert f'"{mode}"' in dispatch_src, (
+            f"objective mode {mode!r} is advertised but not dispatched in "
+            "compute_total"
+        )
+
+    # The main parser must accept every canonical mode end-to-end.
+    parser = cli_parser.build_parser()
+    for mode in QD_OBJECTIVE_MODES:
+        args = parser.parse_args(
+            ["qd", "--objective-mode", mode, "--iterations", "1"]
+        )
+        assert args.objective_mode == mode
+
+
 def test_f_geo_max_runs_end_to_end() -> None:
     with TemporaryDirectory() as tmp:
         root = Path(tmp) / "ep"

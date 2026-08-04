@@ -9,6 +9,8 @@ from pathlib import Path
 
 import yt
 
+from grteclyn_wrapper.objective_modes import QD_OBJECTIVE_MODES
+
 from .config import _default_data_dir, _default_frames_out_dir, _frames_auto_zlim_enabled
 from .extraction.central import CENTRAL_TIMESERIES_HEADER
 from .extraction.confinement import CONFINEMENT_TIMESERIES_HEADER
@@ -205,7 +207,7 @@ def main() -> None:
     parser.add_argument(
         "--objective-mode",
         default="weighted",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "gw_beam"],
+        choices=list(QD_OBJECTIVE_MODES),
         help="Objective mode for incremental scoring (matches final score_episode).",
     )
     parser.add_argument(
