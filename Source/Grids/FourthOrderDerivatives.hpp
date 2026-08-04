@@ -24,18 +24,16 @@ class FourthOrderDerivatives
     amrex::Real m_one_over_dx;
     amrex::Real m_one_over_dx2;
 
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real *
-    get_var_ptr(
-        const int ivar, const amrex::Real *state_ptr_xyz,
-        const amrex::GpuArray<int, AMREX_SPACEDIM + 1> strides) const noexcept
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE static const amrex::Real *
+    get_var_ptr(const int ivar, const amrex::Real *state_ptr_xyz,
+                const amrex::GpuArray<int, AMREX_SPACEDIM + 1> strides) noexcept
     {
         return state_ptr_xyz + ivar * strides[3];
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE
-        AMREX_FORCE_INLINE amrex::GpuArray<int, AMREX_SPACEDIM + 1>
-        get_strides(
-            const amrex::Array4<const amrex::Real> &state) const noexcept
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        amrex::GpuArray<int, AMREX_SPACEDIM + 1> static get_strides(
+            const amrex::Array4<const amrex::Real> &state) noexcept
     {
 
         int j_stride = static_cast<int>(state.stride.a[0]);
@@ -278,10 +276,43 @@ class FourthOrderDerivatives
         return d2;
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Sym34Rank4
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Sym34Rank4
     d2_tensor(int ix, int iy, int iz,
               const amrex::Array4<const amrex::Real> &state,
               const int ivar_0) const
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        Tensor::Sym34Rank4 d2;
+        const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
+        auto strides              = get_strides(state);
+
+        int ivar{0};
+        FOR (icomp)
+            FOR (jcomp)
+            {
+                const auto *var_ptr = get_var_ptr(ivar, state_ptr_xyz, strides);
+
+                d2(icomp, jcomp, 0, 0) = diff2(var_ptr, strides[0]);
+                d2(icomp, jcomp, 1, 1) = diff2(var_ptr, strides[1]);
+                d2(icomp, jcomp, 2, 2) = diff2(var_ptr, strides[2]);
+
+                d2(icomp, jcomp, 0, 1) =
+                    mixed_diff2(var_ptr, strides[0], strides[1]);
+                d2(icomp, jcomp, 0, 2) =
+                    mixed_diff2(var_ptr, strides[0], strides[2]);
+                d2(icomp, jcomp, 1, 2) =
+                    mixed_diff2(var_ptr, strides[1], strides[2]);
+
+                ++ivar;
+            }
+
+        return d2;
+    }
+
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Sym34Rank4
+    d2_sym_tensor(int ix, int iy, int iz,
+                  const amrex::Array4<const amrex::Real> &state,
+                  const int ivar_0) const
     {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         Tensor::Sym12Sym34Rank4 d2;
@@ -361,6 +392,7 @@ class FourthOrderDerivatives
         return advec;
     }
 
+    // NOLINTBEGIN(readability-convert-member-functions-to-static)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     advec_scalar(int ix, int iy, int iz,
                  const amrex::Array4<const amrex::Real> &state,
@@ -375,6 +407,7 @@ class FourthOrderDerivatives
                  const Tensor::Rank1 &shift_vector, const int ivar0) const
     {
         Tensor::Rank1 advec_vector{};
+
         FOR (icomp)
         {
             int ivar = ivar0 + icomp;
@@ -413,6 +446,7 @@ class FourthOrderDerivatives
         }
         return advec_tensor;
     }
+    // NOLINTEND(readability-convert-member-functions-to-static)
 
     // gets the derivative of a consecutive series of vars in a state
     template <int num_diff_vars>
@@ -471,20 +505,22 @@ class FourthOrderDerivatives
         return diss;
     }
 
+    // NOLINTBEGIN(readability-convert-member-functions-to-static)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     add_dissipation(int ix, int iy, int iz,
                     const amrex::CellData<amrex::Real> &rhs_cell_data,
                     const amrex::Array4<const amrex::Real> &state,
                     const double sigma_coeff, int num_vars = NUM_VARS) const
+
     {
+        amrex::Real diss = 0.0;
         for (int ivar = 0; ivar < num_vars; ++ivar)
         {
-            amrex::Real diss =
-                calculate_dissipation(ix, iy, iz, state, sigma_coeff, ivar);
+            diss = calculate_dissipation(ix, iy, iz, state, sigma_coeff, ivar);
             rhs_cell_data[ivar] += diss;
         }
     }
-
+    // NOLINTEND(readability-convert-member-functions-to-static)
     // NOLINTEND(bugprone-easily-swappable-parameters)
 };
 

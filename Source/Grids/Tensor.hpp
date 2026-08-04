@@ -215,6 +215,20 @@ AMREX_GPU_HOST_DEVICE struct GeneralRank<3, DIM1, DIM2, DIM3>
         return m_tensor(idx1, idx2, idx3);
     }
 
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2, int idx3,
+                                                  int idx4)
+        requires(DIM3 == NUM_SYM_IDXS)
+    {
+        return m_tensor(idx1, idx2, sym_var_idx(idx3, idx4));
+    }
+
+    AMREX_GPU_HOST_DEVICE const amrex::Real &
+    operator()(int idx1, int idx2, int idx3, int idx4) const
+        requires(DIM3 == NUM_SYM_IDXS)
+    {
+        return m_tensor(idx1, idx2, sym_var_idx(idx3, idx4));
+    }
+
     AMREX_GPU_HOST_DEVICE GeneralRank<3, DIM1, DIM2, DIM3> &
     operator=(const amrex::Real a_value)
     {
@@ -297,6 +311,7 @@ using Sym12Rank2      = GeneralRank<1, NUM_SYM_IDXS>;
 using Sym12Sym34Rank4 = GeneralRank<2, NUM_SYM_IDXS, NUM_SYM_IDXS>;
 using Sym12Rank3      = GeneralRank<2, NUM_SYM_IDXS, AMREX_SPACEDIM>;
 using Sym23Rank3      = GeneralRank<2, AMREX_SPACEDIM, NUM_SYM_IDXS>;
+using Sym34Rank4 = GeneralRank<3, AMREX_SPACEDIM, AMREX_SPACEDIM, NUM_SYM_IDXS>;
 
 // These are for 4D tensors
 using SpacetimeRank4 =

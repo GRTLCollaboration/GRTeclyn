@@ -121,7 +121,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     auto d1_Gamma = m_deriv.d1_vector(ix, iy, iz, state, c_Gamma1);
 
     // hij derivatives
-    auto d2_h = m_deriv.d2_tensor(ix, iy, iz, state, c_h11);
+    auto d2_h = m_deriv.d2_sym_tensor(ix, iy, iz, state, c_h11);
 
     // chi derivatives
     auto d1_chi = m_deriv.d1_scalar(ix, iy, iz, state, c_chi);

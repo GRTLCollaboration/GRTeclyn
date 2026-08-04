@@ -125,7 +125,11 @@ void run_derivative_unit_tests()
                           doctest::Approx(2. * x).epsilon(test_threshold));
 
                     INFO("diff2 tensor (fourth order) at " << iv);
-                    CHECK(cell_data[c_d2_t33] ==
+                    CHECK(cell_data[c_d2_t31] == doctest::Approx(2. * (z - 0.5))
+                                                     .epsilon(test_threshold));
+
+                    INFO("diff2 symmetric tensor (fourth order) at " << iv);
+                    CHECK(cell_data[c_d2_sym_t33] ==
                           doctest::Approx(2. * x).epsilon(test_threshold));
 
                     INFO("mixed diff2 (fourth order) at " << iv);
