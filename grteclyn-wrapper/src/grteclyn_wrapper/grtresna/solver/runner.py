@@ -157,9 +157,16 @@ def solve(
     write_grtresna_params(cfg, params_path)
 
     run_env = dict(os.environ)
-    if cfg.mpi_ranks <= 1 and ".MPI." not in exe.name:
+    if cfg.mpi_ranks <= 1:
+        # One rank never needs a launcher.  An MPI-built executable started
+        # directly enters MPI singleton mode, which is why the old ".MPI." name
+        # test is gone: on a node whose PRRTE is unusable (mpirun segfaults at
+        # DVM start-up) the only GRTresna binary present is the MPI one, and
+        # routing it through mpirun turned every candidate into a bogus
+        # grtresna_failed rejection.  Verified against an 8-rank solve of the
+        # same params: Ham 0.63% / Mom 0.65% singleton vs 0.93% / 0.74% MPI.
         cmd_parts = [str(exe), str(params_path)]
-        launch_desc = "serial"
+        launch_desc = "singleton" if ".MPI." in exe.name else "serial"
     else:
         mpirun_path, run_env = _resolve_mpirun(cfg)
         cmd_parts = [mpirun_path]

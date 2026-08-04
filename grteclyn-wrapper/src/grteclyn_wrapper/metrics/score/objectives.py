@@ -35,6 +35,8 @@ def compute_total(
         return _robust_ftl_total(components, notes, exotic_penalty_weight=exotic_penalty_weight)
     if objective_mode == "general_ftl":
         return _general_ftl_total(components, notes, exotic_penalty_weight=exotic_penalty_weight)
+    if objective_mode == "f_geo_max":
+        return _f_geo_max_total(components, notes)
     if objective_mode == "critical_collapse":
         return _critical_collapse_total(components, notes, splash_mode=splash_mode)
     if objective_mode == "gw_beam":
@@ -249,6 +251,41 @@ def _general_ftl_total(
         "objective_mode=general_ftl: gauge-invariant shortcut + curvature reward; "
         "graded horizon penalty; warp-motor shaping disabled; "
         f"pump_energy_weight={_pump_energy_weight():.1f}"
+    )
+    return total
+
+
+def _f_geo_max_total(
+    components: dict[str, float],
+    notes: list[str],
+) -> float:
+    # Pure evolving-shortcut hunt.  The evolving-geodesic f_geo is the only
+    # first-order reward (1% shortcut = 100 points) and exotic matter is free
+    # fuel: there is deliberately NO exotic_penalty term, so this mode ignores
+    # SCORE_EXOTIC_PENALTY_WEIGHT entirely.  Everything else is second-order
+    # shaping so MAP-Elites keeps a gradient in the f_geo = 0 region — the
+    # frozen-probe shortcut says the geometry is bending the right way before
+    # a live ray has landed, persistence/health say the lumps have not
+    # dissolved.  The graded horizon penalty and the pump-energy tax stay on
+    # so a collapsing or pump-inflated configuration cannot fake a shortcut.
+    health_gate = components.get("nontriviality_gate", 0.0)
+    total = (
+        10000.0 * components.get("ftl_geo_evolving", 0.0)
+        + 100.0 * components.get("operational_ftl_geodesic", 0.0)
+        + 60.0 * components.get("ftl_persistence", 0.0)
+        + 40.0 * components.get("curvature_activity", 0.0)
+        + health_gate * (
+            30.0 * components.get("survival", 0.0)
+            + 10.0 * components.get("stability", 0.0)
+            + 5.0 * components.get("constraint_health", 0.0)
+        )
+        + _pump_energy_weight() * components.get("pump_energy_penalty", 0.0)
+        + 200.0 * components.get("horizon_penalty", 0.0)
+    )
+    notes.append(
+        "objective_mode=f_geo_max: evolving-geodesic shortcut is the only "
+        "first-order reward (1% = 100 pts); exotic penalty disabled by "
+        f"construction; pump_energy_weight={_pump_energy_weight():.1f}"
     )
     return total
 

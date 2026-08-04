@@ -90,7 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     reproduce_parser = subparsers.add_parser("reproduce", help="Run one episode from the template plus overrides.")
     reproduce_parser.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "spacetime_shear", "gw_beam"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "f_geo_max", "critical_collapse", "spacetime_shear", "gw_beam"],
         default="weighted",
         help="Scoring scalarization for the final score.json.",
     )
@@ -243,7 +243,7 @@ def build_parser() -> argparse.ArgumentParser:
     opt.add_argument("--gpu-ids", nargs="+", type=int, default=None, help="GPU indices for parallel eval (e.g. 0 1 2 3 4 5 6 7).")
     opt.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "spacetime_shear", "gw_beam"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "f_geo_max", "critical_collapse", "spacetime_shear", "gw_beam"],
         default="weighted",
         help="Scoring scalarization: weighted legacy score, FTL-first ordering, "
         "robust_ftl (FTL-first tilted toward persistent/healthy/low-exotic), "
@@ -556,12 +556,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     qd.add_argument(
         "--objective-mode",
-        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "critical_collapse", "gw_beam", "spacetime_shear", "geometry_first"],
+        choices=["weighted", "ftl_first", "robust_ftl", "general_ftl", "f_geo_max", "critical_collapse", "gw_beam", "spacetime_shear", "geometry_first"],
         default="weighted",
         help="Scoring scalarization used as elite quality. robust_ftl tilts "
         "ftl_first toward persistent/healthy/low-exotic geometries; "
-        "general_ftl rewards gauge-invariant shortcuts only; gw_beam "
-        "rewards strong directional gravitational-wave emission; "
+        "general_ftl rewards gauge-invariant shortcuts only; f_geo_max "
+        "maximises the evolving-geodesic shortcut with no exotic penalty; "
+        "gw_beam rewards strong directional gravitational-wave emission; "
         "spacetime_shear rewards curvature/shear while avoiding collapse; "
         "geometry_first scores by geometry mismatch to a target motif "
         "(requires --motif-json, skips GRTeclyn evolution).",
