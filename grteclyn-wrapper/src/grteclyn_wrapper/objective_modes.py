@@ -24,6 +24,7 @@ OBJECTIVE_MODES: tuple[str, ...] = (
     "robust_ftl",
     "general_ftl",
     "f_geo_max",
+    "f_geo_depth",
     "critical_collapse",
     "gw_beam",
     "spacetime_shear",

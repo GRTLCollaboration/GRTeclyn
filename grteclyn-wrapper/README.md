@@ -31,7 +31,7 @@ env) is configured with a gitignored [`.env`](#site-paths-env) — see below.
 | **Plotfile consumer** — streaming `small_data/` + PNG `frames/` + HDF5 deletion | `scripts/lib/`, `src/.../visualisation/` | `consume_plotfiles` sidecar; **required** for every production run |
 | **Ψ₄ / GW extraction** — in-code C++ `WeylExtraction` (spherical-harmonic modes) | `Examples/RotatingWormholeCollapse/`, `src/.../visualisation/process_wave/` | **Primary: in-code GRTeclyn `SphericalExtraction`** → `data/Weyl4_mode_2{0,1,2}.dat`, dense (every coarse step), multi-radius, decoupled from plotfiles. Python `process_wave` sidecar still extracts a coarse cross-check + drives frames |
 | **Search algorithms** — MAP-Elites (QD) archive, CMA-ES hill-climb | `src/.../search/qd_search/`, `src/.../search/optimize/` | Shared pre-evolution gates; warm-start from any trajectory |
-| **Objectives** — `ftl_first`, `robust_ftl`, `general_ftl`, `critical_collapse`, `gw_beam`, `spacetime_shear` | `src/.../metrics/score/objectives.py` | See [Campaigns](#campaigns) for which objective each campaign uses |
+| **Objectives** — `ftl_first`, `robust_ftl`, `general_ftl`, `f_geo_max`, `f_geo_depth`, `critical_collapse`, `gw_beam`, `spacetime_shear` | `src/.../metrics/score/objectives.py` | See [Campaigns](#campaigns) for which objective each campaign uses |
 | **Descriptors** — `ftl_lifetime`, `speed_horizon`, `wave_focusing`, `spacetime_shear`, `gw_beam` | `src/.../search/qd_search/descriptors.py` | Behavior axes for the MAP-Elites archive |
 | **4D null-geodesic probe** — gauge-invariant FTL shortcut measurement | `src/.../metrics/probes/ftl/` | `search` (cheap) and `hq` (full verify) profiles; continuous emission sweep |
 | **Falsification tiers** — T0 constructed → T6 analytic | `scripts/search/validate_tiers.py` | Offline ladder; no rerun needed |
@@ -84,6 +84,8 @@ shortcuts survive refinement.
 | **`qball_trajectory` (spiral)** | `scripts/campaigns/qball_trajectory/run.sh` | `general_ftl` | `ftl_lifetime` | complex scalar Q-ball, 5 per-lump orbits (39-D) | FTL from compact solitons on retrograde spiral orbits |
 | **`qball_trajectory` (Lentz)** | `scripts/campaigns/qball_trajectory/run_lentz.sh` | `general_ftl` | `ftl_lifetime` | canonical Q-ball only, v_max=0.5c | Pure positive-energy FTL (no phantom matter) |
 | **`qball_trajectory` (shear)** | `scripts/campaigns/qball_trajectory/run_shear.sh` | `spacetime_shear` | `spacetime_shear` | canonical Q-ball | Extreme non-collapsing frame-dragging shear |
+| **`qball_trajectory` (f_geo)** | `scripts/campaigns/qball_trajectory/run_fgeo.sh` | `f_geo_max` | `ftl_lifetime` | complex scalar Q-ball, 39-D, phantom free | Evolving-geodesic shortcut × matter retention (`qball_traj_fgeo_v1`: 400 evals, best depth 38.3%) |
+| **`qball_trajectory` (depth)** | `scripts/campaigns/qball_trajectory/run_fgeo_depth.sh` | `f_geo_depth` | `ftl_lifetime` | complex scalar Q-ball, 39-D, phantom free | Pure DEPTH hunt: raw uncapped evolving f_geo, no survival/stability shaping; stop_time 32, emission sweep to t=18 |
 | **`gw_beam`** | `scripts/campaigns/gw_beam/run.sh` | `gw_beam` | `gw_beam` | canonical Q-ball trajectory | Directional gravitational-wave emission (Z-axis beaming) |
 | **`splash` (critical collapse)** | `scripts/campaigns/splash/run.sh` | `critical_collapse` | `wave_focusing` | canonical bosonic shell | Gravitational-wave focusing / critical collapse |
 | **`boson_star`** | `scripts/campaigns/boson_star/run.sh` | `ftl_first` | `ftl_lifetime` | complex scalar / U(1), 7-D | Single centered Gaussian boson star |
@@ -96,9 +98,19 @@ shortcuts survive refinement.
 | `ftl_first` | FTL shortcut, health secondary | geodesic + operational FTL dominate; shaping gradients cut to ~40%; trapped-surface veto |
 | `robust_ftl` | Persistent, low-exotic FTL | persistence boosted (300→500), exotic hardened (40→70), coordinate signals trimmed |
 | `general_ftl` | Gauge-invariant shortcut + curvature | geodesic + curvature_activity; graded horizon penalty; warp-motor shaping disabled |
+| `f_geo_max` | Evolving shortcut × matter retention | 10000×`ftl_geo_evolving` (= geodesic depth × structural persistence); no exotic penalty; pump tax + graded horizon stay on |
+| `f_geo_depth` | **Raw shortcut depth, go-deep** | 10000×`ftl_geo_depth` (uncapped raw evolving f_geo, 1% = 100 pts, NOT survival-multiplied); no survival/stability/confinement/exotic terms; pump tax + graded horizon (−200 max) only |
 | `critical_collapse` | GW focusing / collapse | geometric splash (χ-well + Ψ₄ wave + K-crunch) primary; ρ/focus/lapse secondary; FTL ignored |
 | `gw_beam` | Directional GW power + Z-beaming | `(1000×quality + 100×peak + health) × gw_health_multiplier + penalties`; collapse → multiplier 0 |
 | `spacetime_shear` | Max curvature, avoid horizon | 1000×curvature_activity + confinement; horizon veto (−500); FTL-agnostic |
+
+**Depth scaling is uncapped (2026-08-05).** `_geo_magnitude` (1.0 at 20%
+path saving) and the operational arrival-time components (`operational_ftl`,
+`ftl_persistence`) used to saturate via `min(..., 1.0)`; the caps are
+removed, so every mode now pays linearly for depth beyond target. (The old
+cap silently turned `qball_traj_fgeo_v1` into a matter-retention contest
+above 20% depth.) Artifact-guard compressions -- precursor / shift-drive log
+scales, solved-FTL locality gates -- are deliberately still bounded.
 
 ---
 
@@ -156,21 +168,8 @@ Rules:
 - If `.env` is missing, `GRTECLYN_ROOT` is auto-detected from the wrapper layout;
   `GRTRESNA_ENV` is **not** guessed — set it in `.env` for GRTresna MPI work.
 
-Quick check:
-
-```bash
-cd grteclyn-wrapper
-source scripts/lib/env.sh
-echo "GRTECLYN_ROOT=$GRTECLYN_ROOT"
-echo "GRTRESNA_ROOT=$GRTRESNA_ROOT"
-echo "GRTRESNA_ENV=${GRTRESNA_ENV:-unset}"
-
-uv run python -c "
-from grteclyn_wrapper.core.site_paths import grteclyn_root, grtresna_env
-print(grteclyn_root())
-print(grtresna_env())
-"
-```
+Quick check: `source scripts/lib/env.sh && echo $GRTECLYN_ROOT`, or from
+Python `from grteclyn_wrapper.core.site_paths import grteclyn_root`.
 
 ### Stage 0 — MAP-Elites (QD)
 
@@ -205,57 +204,22 @@ QD_NAME=general_ftl_wormhole_v21 QD_RESUME=1 \
   bash scripts/campaigns/qd/run.sh
 ```
 
-**Q-ball trajectory spiral** (compact solitons on retrograde orbits, 39-D):
+**Campaign-family one-liners** (defaults live inside each launcher; same
+override env vars as `run.sh` -- `QD_NAME`, `QD_TARGET_EVALS`, `GPU_IDS`,
+`QD_RESUME=1`, ...):
 
 ```bash
-QD_NAME=qball_traj_spiral_v3 QD_TARGET_EVALS=400 \
-GPU_IDS="0 1 2 3 4 5 6 7" \
-  bash scripts/campaigns/qball_trajectory/run.sh
-```
-
-**Lentz** (pure canonical matter, v_max=0.5c):
-
-```bash
-QD_NAME=qball_traj_lentz_v1 QD_TARGET_EVALS=200 \
-  bash scripts/campaigns/qball_trajectory/run_lentz.sh
-```
-
-**Spacetime shear** (extreme non-collapsing curvature):
-
-```bash
-QD_NAME=qball_traj_shear_v1 QD_TARGET_EVALS=200 \
-  bash scripts/campaigns/qball_trajectory/run_shear.sh
-```
-
-**GW beam** (directional gravitational-wave emission, canonical Q-balls):
-
-```bash
-QD_NAME=gw_beam_v1 QD_TARGET_EVALS=200 \
-GPU_IDS="0 1 2 3" \
-  bash scripts/campaigns/gw_beam/run.sh
-```
-
-**Splash** (critical collapse / GW focusing, canonical bosonic shell):
-
-```bash
-QD_NAME=spacetime_splash_v13 QD_TARGET_EVALS=100 \
-GPU_IDS="0 1 2 3 4 5 6 7" \
-  bash scripts/campaigns/splash/run.sh
-```
-
-**Boson star** (complex scalar / U(1), 7-D):
-
-```bash
-QD_NAME=boson_star_v1 QD_TARGET_EVALS=80 \
+bash scripts/campaigns/qball_trajectory/run.sh            # spiral: 39-D per-lump orbits, general_ftl
+bash scripts/campaigns/qball_trajectory/run_lentz.sh      # Lentz: canonical matter only, v_max=0.5c
+bash scripts/campaigns/qball_trajectory/run_shear.sh      # spacetime shear
+bash scripts/campaigns/qball_trajectory/run_fgeo.sh       # f_geo_max: shortcut x retention (qball_traj_fgeo_v1)
+bash scripts/campaigns/qball_trajectory/run_fgeo_depth.sh # f_geo_depth: raw uncapped depth, seeds from fgeo_v1 elites
+bash scripts/campaigns/gw_beam/run.sh                     # directional GW emission (GPU_IDS="0 1 2 3")
+bash scripts/campaigns/splash/run.sh                      # critical collapse / GW focusing
 GRTRESNA_MATTER_SECTOR=boson_star GRTRESNA_MATTER_COUPLING=canonical \
-GPU_IDS="0 1 2 3" \
-  bash scripts/campaigns/boson_star/run.sh
-```
+  bash scripts/campaigns/boson_star/run.sh                # boson star, 7-D
 
-**Bosonic shell + FTL (RL chassis)** (~18-D, exotic wedge ON):
-
-```bash
-uv sync   # h5py>=3.10 required for GRTresna Chombo→gridinit bridge
+# Bosonic shell + FTL (RL chassis), ~18-D, exotic wedge ON:
 QD_NAME=boson_shell_ftl_rl_v1 QD_TARGET_EVALS=200 QD_ITERATIONS=30 \
 STOP_TIME=16.0 PLOT_INTERVAL=320 GRTECLYN_FRAMES=1 \
 GPU_IDS="0 1 2 3 4 5 6 7" MAX_CONCURRENT_GRTRESNA=5 BATCH_SIZE=8 \
@@ -391,96 +355,14 @@ metrics in flight and delete processed plotfiles immediately.
 
 #### Plotfile scratch MUST be node-local (required)
 
-Plotfiles are write-once, read-once, delete-immediately transients. They must
-never be written to NFS. `amr.plot_file` and `amr.check_file` are independent
-of `output_path`, so route the heavy data to node-local NVMe (`/tmp`, the
-overlay mount) and keep only `.dat` diagnostics and `small_data/` results on
-the shared filesystem.
-
-##### Topology — what lives on which filesystem
-
-Bulk data never crosses the network. The 3.2 GB plotfile is born, read, and
-destroyed inside the node; only the ~1.4 MB of extracted numbers it distils
-down to is written to NFS. Figures are measured on the mode-0 pump ladder
-(2026-07-28, 6 × 256³ ml=3, t=30, `plot_interval=144`).
-
-```
-┌─ ONE RUN — replicated ×6, one per GPU, all sharing this node ────────────────┐
-│                                                                              │
-│   GRTeclyn sim (GPU N)                                                       │
-│        │                                                                     │
-│        │  plotfile, 3.2 GB every ~288 s                                      │
-│        ▼                                                                     │
-│   ╔═══════════════════════════════════════════╗                              │
-│   ║  NODE-LOCAL NVMe  (overlay, 1.8 TB)       ║   never leaves the node      │
-│   ║  /tmp/grteclyn_scratch/<run>/             ║                              │
-│   ║      RadialRecipePlt*   ≤3 resident       ║   steady state 8.8 GB/run    │
-│   ║      _cache/            pinned lib caches ║   53 GB for all six          │
-│   ╚═══════════════════╤═══════════════════════╝                              │
-│        ▲              │  read back 3.2 GB, extract in 15.7 s                 │
-│        │  GC          ▼  (18× headroom against the 288 s cadence)            │
-│        └───── consume_plotfiles (sidecar, one per run)                       │
-│                       │                                                      │
-│        ┌──────────────┘  distilled: ~1.4 MB per plotfile                     │
-│        │                                                                     │
-│        │      ┌─ .dat diagnostics, KB/s, written by the sim itself           │
-│        ▼      ▼                                                              │
-│   ╔══════════════════════════════════════════════════════════╗               │
-│   ║  NFS  <output_path>/                                     ║               │
-│   ║    data/*.dat                    772 KB   ← sim          ║               │
-│   ║    small_data/metric_stack/       11 MB   ← consumer     ║               │
-│   ║    small_data/{confinement,ftl_timeseries,…}.dat  12 KB  ║               │
-│   ║    small_data/consume_state.json          ← the ledger   ║               │
-│   ║    run.log, params.txt           676 KB                  ║               │
-│   ╚══════════════════════════════════════════════════════════╝               │
-│                                            ~12 MB per run, growing slowly    │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-The write set is exactly these two boxes. Nothing else on the machine is
-touched — see *Keep every write inside your own space* below.
-
-##### What the move bought
-
-| | plotfiles on NFS (before) | plotfiles node-local (after) |
-|---|---|---|
-| NFS traffic | ~130 MB/s aggregate | KB/s |
-| max concurrent HQ runs | **2** | **6** (GPU-bound, not I/O-bound) |
-| consumer state | blocked in `D`, backlog grew | 15.7 s/file, lag ≤ 1 plotfile |
-| plotfiles resident | unbounded accumulation | flat at `keep_last` = 3 |
-
-##### Plotfile lifecycle
-
-Extraction is the only path that deletes anything, and it deletes only what it
-has already recorded in `consume_state.json`. A file that fails extraction is
-never marked and never collected — it is retried instead.
-
-```mermaid
-flowchart TD
-    A["sim writes RadialRecipePltNNNNN<br/>to node-local scratch"] --> B{"_is_plotfile_ready?<br/>Header + Level_0/Cell_D_00000 exist<br/>and mtime stable ≥ 30 s"}
-    B -- "not yet" --> W["skip this pass"]
-    W --> B
-    B -- "ready" --> C["extract: yt.load →<br/>small_data metrics + optional PNG frames"]
-    C -- "FileNotFoundError / OSError" --> R["retry ×3, 10 s backoff"]
-    R --> C
-    C -- "still failing" --> F["NOT marked in consume_state.json<br/>file retained, retried next watch pass"]
-    F --> B
-    C -- "ok" --> M["append to small_data/*.dat + metric_stack<br/>mark entry in consume_state.json"]
-    M --> G{"outside the newest<br/>keep_last = 3?"}
-    G -- "no" --> K["protected — log says 'kept'"]
-    K --> G
-    G -- "yes" --> D["gc: deleted previously-processed …<br/>3.2 GB reclaimed"]
-```
-
-Two consequences worth internalising:
-
-* `[ok] … kept` means *protected at that instant*, not *retained permanently*.
-  The same file is collected later once three newer ones exist.
-* Because deletion is gated on the ledger, **any extraction not enabled during
-  the run is unrecoverable.** Decide on `--areal-radius`, `--shell-fields`,
-  frames, and scoring passes *before* launch.
-
-Params:
+Plotfiles are write-once, read-once, delete-immediately transients -- never
+write them to NFS. `amr.plot_file` / `amr.check_file` are independent of
+`output_path`: route the heavy data to node-local NVMe and keep only `.dat`
+diagnostics and `small_data/` on the shared filesystem. A 256-cubed ml=3
+plotfile is ~3.2 GB every ~288 s per run; on NFS that capped concurrency at
+2 runs (consumers stalled in `D` state). Node-local scratch drops NFS traffic
+from ~130 MB/s to KB/s and lets every GPU on the node run concurrently
+(extraction 15.7 s vs 288 s cadence -- 18x headroom; measured 2026-07-28).
 
 ```
 output_path    = "<NFS>/runs/<campaign>/<run>"       # .dat + small_data
@@ -490,186 +372,67 @@ amr.check_file = "/tmp/<scratch>/<run>/RadialRecipeChk"
 
 Consumer: `--data /tmp/<scratch>/<run>` (local) `--out <NFS>/.../small_data`.
 
-**Why this is mandatory.** A 256³ ml=3 plotfile is ~3.2 GB, written *and*
-read back every ~288 s per run — ~22 MB/s per run plus heavy metadata churn.
-On NFS that is what capped concurrency at 2 runs; consumers went to `D` state
-in NFS I/O and stalled, backlogs grew, and plotfiles accumulated. Moving the
-transients to local NVMe drops NFS traffic from ~130 MB/s to KB/s and lets
-**6 concurrent HQ runs** share one node (the ceiling is GPU count, not I/O —
-an 8-GPU node runs 8). Measured on the mode-0 pump ladder (2026-07-28): 6 ×
-256³ t=30 runs, local scratch 8.8 GB per run; extraction 15.7 s against a 288 s
-plotfile cadence (18× headroom).
-
-**NFS per-run cost is set by `GRTECLYN_METRIC_STACK_N_SPACE`, and it is not
-small.** `small_data/metric_stack` dominates the run directory, and its size
-scales as `n_space³`. At the default `n_space = 33` a slice is ~1.4 MB (~30 MB
-per completed t=30 run), but every HQ campaign pins `n_space = 257` to match
-the finest AMR level — which is **~190–280 MB per slice, 4.2–6.2 GB per
-completed 22-slice run**, ~200× the default. Budget ~5 GB of NFS per HQ run
-(the six-rung ladder holds ~34 GB). The cache is what post-hoc rescoring reads
-after plotfiles are purged, so delete it only once no further scoring pass —
-e.g. an emission sweep at a later `t_emit` — is wanted.
-
-**Cloning a baseline `params.txt`: `amr.plot_file` / `amr.check_file` are
-absolute paths into the source run directory.** Strip and re-emit them, or the
-clone writes plotfiles into the baseline and a `--delete` consumer prunes the
-baseline's own data. Verify with a dry run that each of `output_path`,
-`amr.plot_file`, `amr.check_file` occurs exactly once.
-
-**Scratch is transient — purge only what was extracted.** Anything deleted
-from local scratch is gone for good (on NFS it would have survived a stalled
-consumer). Purge a run's scratch only when every resident plotfile appears in
-`small_data/consume_state.json`; otherwise keep it and log the discrepancy.
-Allow a drain window of **600 s** after the simulation exits before tearing the
-consumer down — shorter windows (120–180 s) truncated confinement data in three
-runs of the fast ladder.
-
-**Sizing.** Local scratch steady state is
-`n_runs × (keep_last + jobs) × plotfile_size` — six runs × (3 kept + 1
-in flight) × ~2.9 GB ≈ 70 GB, against 1.1 TB free on the overlay. Check
-`df -h /tmp` before launching; if `checkpoint_interval > 0`, remember
-checkpoints are **not** pruned by the consumer and must be budgeted separately
-(the pump ladder runs with `checkpoint_interval = -1`). Budget NFS separately
-at ~5 GB per HQ run for `metric_stack` (see above) — that is the number that
-actually accumulates, since scratch is reclaimed and NFS is not.
-
-**Keep every write inside your own space.** Call the project venv python
-directly (`grteclyn-wrapper/.venv/bin/python -m ...`) rather than `uv run`,
-which writes to `~/.cache/uv`, and pin library caches into scratch:
-
-```python
-env["XDG_CACHE_HOME"]      = f"{SCRATCH}/_cache"
-env["UV_CACHE_DIR"]        = f"{SCRATCH}/_cache/uv"
-env["MPLCONFIGDIR"]        = f"{SCRATCH}/_cache/mpl"
-env["TMPDIR"]              = f"{SCRATCH}/_cache/tmp"
-env["PYTHONPYCACHEPREFIX"] = f"{SCRATCH}/_cache/pyc"
-```
-
-On the shared cluster `~/.local/bin` and `~/.local/lib` are owned by
-`nobody:nogroup` and are **not writable** — admin policy is "write only to your
-own directories". Nothing in this pipeline touches them. The complete set of
-write targets is: `/tmp/<scratch>/` (transient) and the NFS run directory
-(`data/`, `small_data/`, `run.log`, `params.txt`). Nothing else.
-
-**Enforced in code, for every stage.** `core/scratch.py` is the single mapping
-from an episode directory to its node-local transient directory, applied in
-`core/params.py::episode_path_overrides`. Search (QD, CMA-ES), HQ promotion and
-the post-load gate all write plotfiles to `/tmp/grteclyn_scratch/<campaign>_<eval>_<hash>/`
-without a launcher change; the consumer's `--data`, the scoring plotfile lookup
-and every cleanup path use the same mapping.
+Enforced in code for every stage: `core/scratch.py` maps episode dir to
+`/tmp/grteclyn_scratch/<campaign>_<eval>_<hash>/`, applied in
+`core/params.py::episode_path_overrides`; the consumer's `--data`, the
+scoring plotfile lookup and every cleanup path use the same mapping. An
+unwritable root falls back to the episode dir with a warning; launchers that
+set `amr.plot_file` themselves keep their explicit value.
 
 | Variable | Effect |
 |----------|--------|
-| *(unset)* | scratch at `/tmp/grteclyn_scratch` — the default |
-| `GRTECLYN_SCRATCH=/path` | move the scratch root (e.g. another local mount) |
+| *(unset)* | scratch at `/tmp/grteclyn_scratch` -- the default |
+| `GRTECLYN_SCRATCH=/path` | move the scratch root |
 | `GRTECLYN_SCRATCH=0` | keep plotfiles in the episode directory (old behaviour) |
 | `GRTECLYN_SCRATCH_FORCE_PURGE=1` | purge scratch even when the ledger is incomplete |
 
-An unwritable root falls back to the episode directory with a warning instead
-of failing a campaign, and a launcher that sets `amr.plot_file` itself (the RL
-gate scripts, the pump queues) keeps its explicit value. Purging is
-ledger-gated: only plotfiles recorded in `small_data/consume_state.json` are
-deleted, and anything kept is reported rather than silently retained.
-Reference launcher implementation, predating the central one:
-[`scripts/campaigns/rl/pump_ladder_queue.py`](scripts/campaigns/rl/pump_ladder_queue.py).
+Rules that keep this safe:
 
-#### Plotfile pruning: failure mode and fix
+* **Deletion is ledger-gated.** Only plotfiles recorded in
+  `small_data/consume_state.json` are GC'd; a file that fails extraction is
+  retried, never collected. `[ok] ... kept` means *protected right now*, not
+  retained permanently. Consequence: **any extraction not enabled during the
+  run is unrecoverable** -- decide `--areal-radius`, `--shell-fields`, frames
+  and scoring passes before launch.
+* **NEVER run external plotfile-deletion loops** alongside the consumer. An
+  ad-hoc `while true; do ... rm -rf ...; done` loop once raced the consumer
+  and destroyed complete, unprocessed plotfiles (2026-07). The consumer's own
+  `--delete --keep-last N` is the only safe deletion path; if disk pressure
+  is a concern, raise `plot_interval` or reduce extraction cost (`-j 1`,
+  disable frames).
+* **Purge scratch only when every resident plotfile appears in
+  `consume_state.json`**, and allow a **600 s drain window** after the sim
+  exits -- shorter windows truncated confinement data.
+* **Cloning a baseline `params.txt`:** `amr.plot_file` / `amr.check_file` are
+  absolute paths into the source run -- strip and re-emit them, or the clone
+  writes into (and a `--delete` consumer prunes) the baseline. Verify each of
+  the three path keys occurs exactly once.
+* **Sizing.** Local steady state = `n_runs x (keep_last + jobs) x
+  plotfile_size` (six 256-cubed runs = ~70 GB); check `df -h /tmp` first;
+  checkpoints are **not** pruned by the consumer. NFS cost is set by
+  `GRTECLYN_METRIC_STACK_N_SPACE` (scales as `n_space` cubed): default 33 is
+  ~30 MB per t=30 run, HQ's 257 is **~4.2-6.2 GB per run**. The metric stack
+  is what post-hoc rescoring reads after plotfiles are purged -- delete it
+  only when no further scoring pass (e.g. a later-`t_emit` emission sweep) is
+  wanted.
+* **Keep every write inside your own space.** Call
+  `grteclyn-wrapper/.venv/bin/python -m ...` directly (not `uv run`, which
+  writes `~/.cache/uv`) and pin `XDG_CACHE_HOME`, `UV_CACHE_DIR`,
+  `MPLCONFIGDIR`, `TMPDIR`, `PYTHONPYCACHEPREFIX` into `$SCRATCH/_cache/`.
+  On the shared cluster the complete write set is `/tmp/<scratch>/`
+  (transient) and the NFS run directory -- nothing else.
 
-`--keep-last N` protects the newest `N` plotfiles; it does not delete a
-plotfile until extraction succeeds. A log entry such as
-`[ok] RadialRecipePlt00000 ... kept` means that the file was protected at that
-moment, not that it will be retained permanently. Once it falls outside the
-newest `N`, the consumer logs
-`[gc] deleted previously-processed RadialRecipePlt00000`.
-
-Three bugs previously caused HQ plotfile data loss or accumulation:
-
-1. **Metrics-only deletion disabled.** Metrics-only runs (`GRTECLYN_FRAMES=0`)
-   silently disabled deletion. Deletion is now independent of frame rendering.
-   Set `GRTECLYN_KEEP_PLOTFILES=1` only when retaining HDF5 dumps is intentional.
-2. **Watch mode backlog stall.** Watch mode queued the entire backlog before
-   running GC. Extraction can take minutes per multi-GB AMR dump, so old
-   processed files remained while new files accumulated. Watch mode now
-   processes at most one worker-sized batch per pass and runs GC before starting
-   the next extraction batch.
-3. **External cleanup loop race condition (2026-07).** An ad-hoc background
-   shell loop (`while true; do ... xargs rm -rf ...; sleep 120; done`) created
-   during debugging to enforce plotfile counts raced with the consumer. The loop
-   deleted complete, unprocessed plotfiles every 2 minutes — including files the
-   consumer had just confirmed as ready and was actively extracting. Symptoms:
-   - Every plotfile after the first fails with `ENOENT` on
-     `Level_0/Cell_D_00000` or `Header`, even though `_is_plotfile_ready`
-     passed moments earlier.
-   - Plotfile directories survive as empty skeletons (dir exists, `Level_0/`
-     exists, but `Cell_D_00000` and `Header` are gone).
-   - Exactly `keep_last` plotfiles survive at any time (the loop's retention
-     count), while the consumer `state` shows far fewer processed entries.
-   - No error messages from the consumer itself — it simply reports "failed to
-     process" on every plotfile it tries.
-
-   **Root cause:** the loop was a plain `bash` process with no identifiable
-   name (`watchdog`, `monitor`, etc.), so `pkill -f` commands targeting named
-   scripts missed it. It survived multiple process cleanups across session
-   restarts.
-
-   **Fix:** killed the orphaned loop process (found via `head -n 10` on
-   terminal state files), then relaunched all runs from scratch. The consumer's
-   own `--delete --keep-last N` is sufficient — it only deletes plotfiles
-   *after* successful extraction and marks them in `consume_state.json`.
-
-   **Prevention:** never run external plotfile deletion loops alongside the
-   consumer. If disk pressure is a concern, increase `plot_interval` or reduce
-   extraction cost (`-j 1`, disable frames). The consumer's built-in GC is the
-   only safe deletion path.
-
-**NFS close-to-open latency (secondary issue).** On NFS, a plotfile's metadata
-(`Header`, directory entries) can appear before the data blocks
-(`Level_0/Cell_D_00000`) are readable. The consumer mitigates this with:
-- `--stable-seconds 30` (default, increased from 5) — waits 30s after
-  `Header` mtime before attempting extraction.
-- `_is_plotfile_ready` checks both `Header` existence and
-  `Level_0/Cell_D_00000` existence before declaring a plotfile ready.
-- `_load_plotfile_with_retry` in `worker.py` retries `yt.load()` up to 3
-  times with 10s backoff on `FileNotFoundError`/`OSError`.
-- Failed plotfiles are not marked in `state` — the consumer retries them on
-  the next watch pass automatically.
-
-Production cadence must also let extraction keep up with evolution. The eval
-118 validation campaign uses `plot_interval=144` instead of `24`; this retains
-roughly 1.4--1.9 simulation-time-unit sampling while avoiding a plotfile every
-few wall-clock seconds. A live run normally has `keep_last + jobs` files at
-most (three protected files plus files currently being processed).
-
-Verify pruning with:
+Verify pruning:
 
 ```bash
 ps aux | grep consume_plotfiles | grep -- '--delete --keep-last 3'
 grep -h '\[gc\] deleted' ../runs/grtresna_promote/e118_*/run.log | tail
 ```
 
-If the count keeps growing beyond `keep_last + jobs`, check whether consumer
-workers are blocked in NFS I/O (`D` state), then increase `plot_interval` or
-reduce extraction cost. Never delete an unprocessed plotfile merely to force
-the count down; that loses the corresponding Psi4/FTL sample.
-
-**Diagnosing plotfile deletion by an unknown process:** if plotfiles vanish
-despite only one consumer running and `consume_state.json` showing fewer
-processed entries than expected, an external process is deleting them. To
-identify it:
-
-```bash
-# 1. Check for orphaned loops in terminal state files
-head -n 10 ~/.cursor/projects/*/terminals/*.txt | grep -A5 "rm -rf\|xargs\|while true"
-
-# 2. Watch a specific plotfile's Cell_D for 2 minutes
-for i in $(seq 1 40); do
-  [ -f <run>/RadialRecipePlt00XXX/Level_0/Cell_D_00000 ] && echo "$(date +%T) Y" || echo "$(date +%T) GONE"
-  sleep 3
-done
-
-# 3. Strace the consumer for unlink syscalls (if consumer is suspect)
-timeout 30 strace -f -e trace=unlinkat,rmdir -p <consumer_pid> 2>&1 | grep Plt
-```
+A live run holds at most `keep_last + jobs` plotfiles. If the count keeps
+growing, consumers are blocked in NFS I/O (`D` state) -- raise
+`plot_interval` or cut extraction cost. Never delete an unprocessed plotfile
+to force the count down; that loses the corresponding Psi4/FTL sample.
 
 ### Smoke test (all stages)
 
@@ -701,24 +464,6 @@ GRTresna (sibling repo, ../GRTresna)        GRTeclyn (this repo, .)
                                                   consume_plotfiles
                                                         ▼
                                              small_data/ + frames/ + score
-```
-
-### GRTresna → wrapper → GRTeclyn data flow
-
-```text
-Search / CLI overrides
-        │
-        ▼
-  GRTresnaConfig  ──►  params.txt  ──►  GRTresna (MPI)  ──►  InitialDataFinal.3d.hdf5
-        │                                                        │
-        ▼                                                        ▼
-  io/conversion  ──►  initial_data.gridinit  (+ optional .matter.json)
-        │                                                        │
-        ▼                                                        ▼
-  post-load gate (short GPU load, L2_Ham/Mom check)  ──►  GRTeclyn ExternalGridInitialData evolution
-                                                                 │
-                                                                 ▼
-                                                       consume_plotfiles → score
 ```
 
 ### Per-eval loop (every CMA-ES member and QD candidate)
@@ -813,15 +558,12 @@ The gate also runs automatically inside `solve_torus.py` (prints
 
 ### Rotating Q-torus wormhole — genuine stationary eigenstate support + collapse
 
-The rotating-wormhole support was originally a spherical Q-ball twisted by
-`(sinθ)^m`, which is **not** a stationary state and drains its Noether charge
-(half-life t≈13–16). The fix is a **genuine 2D spinning Q-ball eigenstate**
+The wormhole support is a genuine 2D spinning Q-ball eigenstate
 `Φ = f(ρ,z)e^{i(mφ−ωt)}`, solved by `grtresna/profiles/qball_torus.py`
-(bordered Newton + amplitude continuation; pins the peak, lets ω float, so it
-cannot collapse to the vacuum), painted into GRTresna as `profile == 4`. Result:
-charge half-life ≈ doubled and no t≈13.5 dynamical blow-up (journal:
-[`../research/rotatingwormhole/OrbitalPumpPlan.md`](../research/rotatingwormhole/OrbitalPumpPlan.md)
-Phase 8).
+(bordered Newton + amplitude continuation) and painted into GRTresna as
+`profile == 4`. (The old `(sinθ)^m`-twisted sphere was not stationary and
+drained its Noether charge, half-life t~13-16.) Journal:
+[`OrbitalPumpPlan.md`](../research/rotatingwormhole/OrbitalPumpPlan.md) Phase 8.
 
 **Solve an isolated torus ID** (throat-free flat background; validates the
 eigenstate on its own). `EXOTIC=1` matches the phantom evolution matter;
@@ -880,37 +622,16 @@ Couplings/ω/exotic/mass **must** match between the `solve_torus` ID and the
 
 #### GW / Ψ₄ extraction is now C++-side (upgrade)
 
-**Upgrade (2026-07):** Ψ₄ is now extracted **in-code on the C++ side** using
-GRTeclyn's own `WeylExtraction` (`SphericalExtraction`), instead of being
-reconstructed in Python by post-processing the `Weyl4_Re/Im` grid fields dumped
-into plotfiles. `SupportedWormholeLevel::specificPostTimeStep` interpolates the
-`Weyl4` derived variable onto the extraction spheres and writes the
-spherical-harmonic mode time series directly to `output/data/`:
-
-- `Weyl4_mode_20.dat`, `Weyl4_mode_21.dat`, `Weyl4_mode_22.dat` — the l=2,
-  m=0/1/2 modes, one appended row per **coarse step** (dt≈0.01), one Re/Im
-  column pair **per extraction radius**.
-
-Why this is better than the old Python route:
-
-| | Old (Python `process_wave` sidecar) | New (in-code C++ `WeylExtraction`) |
-|---|---|---|
-| Sampling cadence | tied to `plot_interval` (≈ every 2 code units → ~13 points) | every coarse step (dt≈0.01 → thousands of points) |
-| Decoupled from frames/plotfiles | no (finer Ψ₄ ⇒ plotfile/frame flood) | **yes** (Ψ₄ cadence independent of `--plot-interval`) |
-| Angular decomposition | grid-sampled shells, approximate | proper `num_points_phi/theta` Gauss quadrature (collaboration code) |
-| Multi-radius | supported | supported (`--extraction-radii`) |
-
-The Python `process_wave` sidecar still runs (coarse Ψ₄ cross-check +
-confinement + frame rendering), but the **`Weyl4_mode_*.dat` files are the
-trusted GW signal** for wave analysis (1/r fall-off, propagation speed between
-shells, QNM fits).
-
-Relevant flags (see `wormhole_case.py --help`):
+Since 2026-07, Ψ₄ is extracted in-code by GRTeclyn's `WeylExtraction`
+(`SphericalExtraction`): `Weyl4_mode_2{0,1,2}.dat` in `output/data/`, one row
+per coarse step (dt~0.01), one Re/Im column pair per extraction radius --
+dense, multi-radius, independent of `--plot-interval` (which now controls
+only frame/movie cadence). The Python `process_wave` sidecar still runs
+(coarse cross-check + confinement + frames). For physics plots use
+`small_data/psi4_mode_l2m0.dat` -- see the trust note under
+[Visualization](#visualization).
 
 ```bash
-# t=40 so the burst propagates out; three detector shells for a radial ladder;
-# dense in-code Psi4 is automatic (every step) and independent of --plot-interval
-# (which now controls only the frame/movie cadence).
 bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --gridinit "$G" --full-box \
   --omega 0.25067 --m 1 --dx 0.5 --box-size 64 --max-level 3 --stop-time 40 \
   --mass 0.5 --lambda 170 --mu6 14450 --sponge \
@@ -921,14 +642,13 @@ bash grteclyn-wrapper/scripts/wormhole/run/wormhole_case.sh --gridinit "$G" --fu
 
 | Flag | Effect |
 |------|--------|
-| `--extraction-radii R [R ...]` | Weyl4 shell radii (default `12 24`). Shells at/behind the sponge (`≥ L/2−2`) are auto-dropped. Feeds both the in-code extraction and the sidecar. |
-| `--write-extraction-surfaces` | also dump the raw per-step Weyl4 surfaces (off by default — thousands of files; the compact `Weyl4_mode_*.dat` is always written). |
-| `--plot-interval N` | frame/movie cadence only (Ψ₄ is now independent). Use a moderate value (e.g. 100) for smooth movies without a plotfile flood. |
+| `--extraction-radii R [R ...]` | Weyl4 shell radii (default `12 24`); shells at/behind the sponge (>= L/2-2) auto-dropped |
+| `--write-extraction-surfaces` | also dump raw per-step surfaces (off by default -- thousands of files) |
+| `--plot-interval N` | frame/movie cadence only (Ψ₄ independent) |
 
-Implementation note: the wormhole `Main` now builds a `BHAMR<1>` container
-(instead of a bare `GRAMR`) purely to reuse its set-up `m_weyl_interpolator`;
-puncture tracking stays disabled. This required a rebuild — see
-[Build the RotatingWormholeCollapse binary](#build-the-rotatingwormholecollapse-binary-mpi--cuda).
+Implementation note: the wormhole `Main` builds a `BHAMR<1>` purely to reuse
+its `m_weyl_interpolator` (puncture tracking stays disabled) -- requires the
+MPI+CUDA rebuild below.
 
 ### One-off GRTresna solve
 
@@ -949,23 +669,12 @@ Deep bridge docs: [`src/grteclyn_wrapper/grtresna/README.md`](src/grteclyn_wrapp
 
 ### Self-gravitating boson star
 
-The wrapper ships an ODE solver for genuine self-gravitating boson stars
-(gravity provides the binding, not an artificial pump well). After a four-bug
-fix, a single stable-branch star stays mostly confined through a full coarse
-evolution. Full handoff: [`SELFGRAV_HANDOFF.md`](SELFGRAV_HANDOFF.md).
-
-| t | old broken seed | fixed (stable star + pump) |
-|---|-----------------|----------------------------|
-| 0 | 0.96 | 0.74 (broad seed settling) |
-| 6.4 | 0.74 | **0.97** |
-| 9.6 | 0.64 | **0.97** |
-| 12.8 | 0.61 | **0.97** |
-| 16.0 | **0.58** (dispersed) | **0.90** |
-
-**Caveats (read before trusting):** the "confined fraction" is generous; RMS
-radius tightens to ~2.1 by t≈9.6 then spreads back to ~4.2 by t=16 (slow leak /
-breathing). High resolution (`max_level=3`) still develops NaNs around t≈6–9 —
-a separate numerical-relativity stability issue, not the seed/pump physics.
+ODE solver for genuine self-gravitating boson stars (gravity provides the
+binding, not an artificial pump well): `grtresna/profiles/boson_star_ode.py`.
+After a four-bug fix a single stable-branch star holds confinement ~0.90 at
+t=16 (was 0.58, dispersed); `max_level=3` still develops NaNs at t~6-9 -- an
+open numerical-stability issue, not seed/pump physics. Full handoff:
+[`SELFGRAV_HANDOFF.md`](SELFGRAV_HANDOFF.md).
 
 ---
 
@@ -1078,11 +787,8 @@ Rules baked into the script (do not work around them):
 * **It does not recompute frozen per-slice `f_geo`.** The consumer already
   measured it per plotfile at full AMR fidelity into `ftl_timeseries.dat`
   col 3; the scorer reuses the peak over `geo_trustworthy` rows and records
-  the provenance in the report notes. The old behaviour — rebuilding a
-  `StaticMetricField` per cached slice — cost two full-grid 4×4 inversions
-  plus three full-grid gradients per slice and was the entire runtime at
-  257³ (>60 min/run, 90–110 GB RSS). The corrected pass runs **~3 min/run at
-  ~25 GB** (fidelity check ~2 min, 15-ray 4D trace ~1 min).
+  provenance in the notes (the old per-slice rebuild cost >60 min/run at
+  90-110 GB RSS; the corrected pass is ~3 min/run at ~25 GB).
 * **Results are written before they are printed**, so a dead parent shell
   (broken stdout pipe) can no longer discard a finished trace.
 * A single launch at `t_emit=0` arrives at t≈12–13 and therefore **cannot
@@ -1107,48 +813,18 @@ Rules baked into the script (do not work around them):
 
 The total is then assembled by the chosen [objective mode](#objective-modes).
 
-### Score components by tier (`ftl_first`)
+### Score components and survival
 
-| Tier | Component | Weight | Meaning |
-|------|-----------|-------:|---------|
-| **Validated FTL** | `operational_ftl_geodesic` | 1000 | gauge-invariant geodesic shortcut (reliability-gated) |
-| | `ftl_geo_evolving` | 1000 | 4D evolving-metric geodesic shortcut |
-| | `operational_ftl` | 400 | evolved coordinate-time shortcut vs flat baseline (Dijkstra) |
-| | `ftl_persistence` | 300 | shortcut sustained across last retained plotfiles |
-| | `operational_ftl_solved` | 50 | constraint-solved t=0 shortcut |
-| **Shaping gradients** | `channel_progress` | 100 | `path_closeness × √(ftl_precursor × shift_drive)` |
-| | `ftl_precursor` | 30 | local cone-tilt past `c=1` + superluminal area (graded) |
-| | `shift_drive` | 20 | frame-drag motor (`max_shift`) |
-| **Health/survival** (gated by `nontriviality_gate`) | `survival` | 70 | `numerical_survival × structural_persistence` |
-| | `energy_condition` | 40 | evolved NEC/WEC/SEC/DEC |
-| | `instability_penalty` | 15 | geometric drift penalty |
-| | `stability` | 10 | bounded stability reward |
-| | `comoving_stability` | 8 | co-moving-frame drift |
-| | `constraint_health` | 6 | evolved Ham/Mom constraint quality |
-| **Penalties** | `exotic_penalty` | 40×weight | NEC-violating matter (graded 0..−1.6) |
-| | `stationary_artifact_penalty` | 8 | shift-free geometry demotion |
-| | `horizon_penalty` | 500 | trapped-surface veto (non-traversable) |
-
-`structural_persistence = density_retention × morphological_coherence` (3D
-connected-component count of matter activity). It also gates the Tier-2 shaping
-rewards — a structure that dissipates or fragments cannot bank "promising
-precursor" credit.
-
-`SUPERLUMINAL_MARGIN = 0.05` de-saturates the superluminal-fraction descriptor:
-only cells genuinely past `c=1.05` count, separating cone-tilted lobes from the
-broad shift background.
-
-### Survival = numerical_survival × structural_persistence
-
-`numerical_survival` alone (did the integrator reach `stop_time`?) perversely
-rewards junk — empty space is the easiest thing to march to the end. It is
-gated by **structural persistence**, itself the product of two failure modes:
-
-- **Density retention** — fraction of peak matter energy density still present
-  at `stop_time`. A dissipating config sees its peak ρ collapse toward 0.
-- **Morphological coherence** — whether surviving matter is still one connected
-  structure or has fragmented. Measured in 3D on a level-0 covering grid;
-  returns `~1/k` for `k` comparable pieces.
+Exact per-component weights live in `metrics/score/objectives.py` (validated
+FTL terms 1000x/400x/300x dominate; shaping gradients ~20-100x; health terms
+gated by `nontriviality_gate`; penalties: exotic 40x graded 0..-1.6,
+stationary 8x, horizon 500x). `survival = numerical_survival x
+structural_persistence`, where structural persistence = density retention x
+morphological coherence x confined mass fraction -- reaching `stop_time`
+alone earns nothing (empty space marches to the end trivially), and a
+dissipating or fragmenting structure cannot bank shaping credit.
+`SUPERLUMINAL_MARGIN = 0.05` de-saturates the superluminal-fraction
+descriptor (only cells genuinely past c=1.05 count).
 
 ### Public API
 
@@ -1161,268 +837,23 @@ from grteclyn_wrapper.metrics.score import Score, DEFAULT_WEIGHTS
 
 ## Main results
 
-Full per-eval tables, frames, and movies live in three lab journals:
-[`research/neuralspacetime/MapElites.md`](../research/neuralspacetime/MapElites.md)
-(FTL search — SH, shell, wormhole),
-[`research/neuralspacetime/MapElitesDynamics.md`](../research/neuralspacetime/MapElitesDynamics.md)
-(trajectory FTL campaigns), and
-[`research/grlab/LabJournal.md`](../research/grlab/LabJournal.md) (GW beam +
-splash). Headline numbers below, in roughly chronological order.
+Run-by-run results live outside this README:
 
-### Top 3 findings (critical summary)
+| Where | What |
+|-------|------|
+| [`MapElites.md`](../research/neuralspacetime/MapElites.md) | FTL search lab journal (SH, shell, wormhole) |
+| [`MapElitesDynamics.md`](../research/neuralspacetime/MapElitesDynamics.md) | Trajectory FTL campaign lab journal |
+| [`grlab/LabJournal.md`](../research/grlab/LabJournal.md) | GW beam + splash lab journal |
+| [`results/`](../results/) | Git-friendly campaign extracts, e.g. [`qball-trajectory-evolving-geodesic-shortcut-search/CAMPAIGN_RESULTS.md`](../results/qball-trajectory-evolving-geodesic-shortcut-search/CAMPAIGN_RESULTS.md) |
+| [`NextSteps.md`](NextSteps.md) | Critical review of the claims' validity + hardening plan |
 
-Across all campaigns — FTL search, wormhole, trajectory, GW beam, splash,
-self-grav — the three findings that matter most. A critical review of these
-claims' validity (baseline gauge-dependence, missing probe controls, pump
-consistency) and the plan to harden them is in [`NextSteps.md`](NextSteps.md):
-
-**1. Genuine gauge-invariant FTL shortcuts exist in GR with exotic matter — but they are transient, not stable warp bubbles.**
-
-The trajectory campaigns produced the strongest evidence: **eval 122**
-(`trajectory_5lump_v1`) survived to t=30 at 256³ HQ with a confirmed **9.4%
-end-to-end 4D geodesic shortcut** (frozen peak **21%**). **Eval 118**
-(`qball_traj_spiral_v2`) peaked at **~23%** mid-run. These are gauge-invariant
-(null rays traced through the full evolving metric, not frozen slices), with
-5/5 rays reaching their targets, geodesic drift < 0.002, and shift vectors that
-*decay* (the opposite of gauge runaway). This is not a coordinate artifact.
-
-The critical caveat: **in every case the matter disperses and the channel
-fades.** Eval 118 confinement falls 53%→23% (rms radius 7.6→18.6); the channel
-peaks at t≈19 then decays. Eval 122's FTL window lasts ~16.6 code units (55% of
-evolution) before closing. The wormhole HQ (eval 046) opens a real throat mid-run
-(peak 7.57%) but a **horizon forms at t≈21** and kills it. No campaign found a
-configuration that holds a shortcut open while keeping matter confined. The
-honest summary: GR permits transient superluminal shortcuts with exotic matter,
-but sustaining them requires a confinement mechanism (self-grav boson star, RL
-pump) that this work has not yet solved.
-
-**2. The validation pipeline successfully separates physical shortcuts from gauge artifacts — without it, multiple false positives would have been published as FTL.**
-
-The single most important methodological result. Several high-scoring
-candidates turned out to be artifacts:
-
-| Candidate | Apparent signal | What it actually was | Caught by |
-|-----------|----------------|----------------------|-----------|
-| `trajectory_5lump_v1` eval 008 | 24.62% f_geo (Stage 0 leader) | Low-res artifact → 0% at HQ | HQ resolution ladder |
-| SH eval 151 | 2.26c max speed | Gauge collapse (geodesics untrusted from t=3.2) | Geodesic trust flag |
-| SH eval 101 | f_geo = 0.753 | Single untrusted timestep (shift runaway to 1.01) | Timestep trust + shift monitoring |
-| GW beam v3 eval 51 | Score 336 | Numerical bomb: Ham crash → Ψ₄ noise scored as GW | Health multiplier + Ψ₄ truncation |
-| Wormhole v22 | operational_ftl = 0 | Real 19% shortcut invisible to coordinate Dijkstra | 4D evolving geodesic vs frozen slice |
-
-The last row is the key insight: a stationary wormhole (β≈0) reads subluminal on
-coordinate Dijkstra (`operational_ftl = 0`) because lapse drops below 1, but the
-4D null-geodesic tracer measures a real ~19% proper-distance shortcut through
-the throat. The pipeline decoupled gauge-dependent coordinate speed from
-gauge-invariant traversability. Without the 4D evolving probe + dispersion gate +
-geodesic trust flag + HQ ladder, the project would have reported both false
-positives (eval 008, 151, 101) and false negatives (the wormhole throat).
-
-**3. Search design — ansatz and matter sector — is the dominant lever; optimizer tuning is secondary.**
-
-The search infrastructure (MAP-Elites, CMA-ES, GRTresna-in-the-loop) is mature,
-but what determined success was *what* was searched:
-
-| Comparison | Result | Implication |
-|-----------|--------|-------------|
-| Trajectory ansatz vs SH | 54% FTL hit rate vs 1.3% (**40×**) | Per-lump independent orbits give the optimizer geometric freedom SH lacks |
-| Real scalar vs boson shell | 32/92 FTL vs 0/94 (**zero**) | Complex U(1) boson shells do not open geodesic shortcuts under matched conditions |
-| Self-grav boson star | Still disperses at high res (NaN @ t≈6–9) | Confinement is the unsolved bottleneck, not the search |
-
-The GW beam campaign confirmed this from the opposite direction: even with a
-working search and hard gates, the best directional GW emission was a **weak
-steady hum** (~30% beam ratio at P ~ 10⁻⁵–10⁻⁴), not a laser. The search found
-what the physics permits — coherent multi-lump clusters with breathing
-quadrupoles — and no amount of optimizer tuning changes that. Future work should
-invest in the matter model (self-grav confinement, RL pump actuation) rather
-than further search-space refinement.
-
----
-
-### FTL search — spherical-harmonic `scalar_sh_ftl_v22` (200 evals, general_ftl)
-
-First genuine geodesic FTL: **eval 189** (score 470.6). Source:
-[MapElites.md §SH campaign](../research/neuralspacetime/MapElites.md#sh-campaign-results-scalar_sh_ftl_v22-200-evals-2025-06-24).
-
-| Property | Value |
-|----------|-------|
-| `f_geo_peak` | 3.1% @ t=9.6 (rises dynamically from 0) |
-| `ftl_geo_evolving` | 0.101 |
-| `ftl_lifetime` | 1.0 (present at every timestep) |
-| `max_speed` | 1.33c → 1.21c (shift *decays* 0.36→0.04 — healthy gauge) |
-| geodesic trust | 5/5 rays, drift <0.002, all timesteps trusted |
-| exotic_fraction | 0.51 (3/5 lumps exotic) |
-
-Two false positives discarded: eval 151 (2.26c = gauge collapse artifact,
-geodesics untrusted from t=3.2) and eval 101 (f_geo=0.75 from one untrusted
-timestep, shift runaway to 1.01). Pipeline funnel: 200 sampled → 74 GRTresna
-rejected → 23 postload rejected → **73 gpu_ok (36%)**.
-
-### `general_ftl` wormhole — `general_ftl_wormhole_v21` (200 evals, 15-D pinned)
-
-Stationary, non-translating wormholes in a 15-D pinned subspace. Source:
-[MapElites.md §v22 final results](../research/neuralspacetime/MapElites.md#v22-final-results-top-3--ftl-champions).
-
-| Eval | Score | `ftl_geo_evolving` | `f_geo_peak` | `op_ftl` | Survival | Role |
-|------|------:|-------------------:|-------------:|---------:|---------:|------|
-| **063** | **165.6** | **19.3%** | 4.2% | 0 | 0.94 | score + 4D record holder |
-| **191** | 161.9 | 18.5% | 3.8% | 0 | **1.00** | champion (survival, f_op_peak) |
-| **174** | 157.4 | 18.5% | 3.8% | 0 | 1.00 | stable variant |
-
-**Scoring paradox resolved:** `operational_ftl = 0` while `ftl_geo_evolving ≈ 19%`.
-In a stationary wormhole (β≈0), lapse-dominated coordinate speed reads subluminal
-(Dijkstra → 0), but proper-distance contraction through the throat gives a real
-~19% 4D null-geodesic shortcut. The pipeline decouples coordinate gauge artifacts
-from physical traversable shortcuts.
-
-**CMA-ES refinement** (eval 063 → eval 046): score 165.6 → **179.8** (+14.2),
-`ftl_geo_evolving` 19.3% → **20.3%**, survival → 1.00. Basin-tightening, not a new
-mechanism. Source:
-[MapElites.md §v22 CMA-ES](../research/neuralspacetime/MapElites.md#v22-cma-es-wormhole-refinement-general_ftl_wormhole_cmaes_v1-2026-06-18).
-
-**HQ promotion** (eval 046, 256³, t=30): throat opens mid-run, peak **7.57%** 4D
-@ t≈15.6, then **horizon kills** at t≈21 (score cliff to −546). A mid-run FTL
-demonstrator, not a t=30 survivor. Source:
-[MapElites.md §HQ eval 046](../research/neuralspacetime/MapElites.md#hq-eval-046-final-results-t30).
-
-### Trajectory FTL — `qball_traj_spiral_v2` (200/200 evals, general_ftl)
-
-Best search candidate **eval 118** — a breathing, retrograde, mostly-exotic
-Q-ball shell. Source:
-[MapElitesDynamics.md §spiral v2](../research/neuralspacetime/MapElitesDynamics.md#qball_traj_spiral_v2--dispersion-gated-spiral-qd-complete-2026-07-01-200200-evals).
-
-| | QD (128³, t=16) | HQ (256³, t=16) | HQ (256³, t=30) |
-|--|----------------:|----------------:|----------------:|
-| **Score** | **603.39** | 511.89 | **224.20** |
-| `operational_ftl` | 0.347 | 0.346 | 0.099 (dispersal-gated) |
-| `ftl_geo_evolving` | 0.306 | 0.225 | 0.150 |
-| 4D `f_geo_evol` | peak 17.7% (t_emit≈12) | 13.0% | **13.0%** |
-| frozen `f_geo` peak | — | 22.1% @ t≈15.1 | **22.8% @ t≈19.2** |
-| `max_local_speed` | 1.47 c | 1.46 c | — |
-| confinement | ~53% @ t=0 | ~35% | **23%** (rms 7.6→18.6) |
-
-**Verdict:** A real, gauge-invariant geodesic shortcut (~13% end-to-end, peaking
-~23% mid-run). Numerics survive to t=30. But **matter disperses** — confinement
-falls 53%→23% and the channel peaks near t≈19 then fades. A transient shortcut
-from a dissolving "motor," not a stable warp bubble.
-
-### HQ validation — `trajectory_5lump_v1` (5 elites at 256³, t=30)
-
-Source:
-[MapElitesDynamics.md §HQ validation](../research/neuralspacetime/MapElitesDynamics.md#hq-validation-results-trajectory_5lump_v1-only).
-
-| Eval | Stage 0 score | Stage 0 f_geo | HQ f_geo_evol | HQ f_geo_peak | HQ status | Verdict |
-|------|--------------:|--------------:|--------------:|--------------:|-----------|---------|
-| 122 | 1237.6 | 8.51% | **9.40%** | **20.97%** | survived t=30 | **CONFIRMED** |
-| 115 | 1367.9 | 10.63% | 12.5% | 20.3% | crashed t=21 | confirmed (transient) |
-| 050 | 1039.5 | 10.82% | 7.4% | 20.3% | crashed t=19 | confirmed (transient) |
-| 111 | 1389.6 | 17.37% | 8.6% | 19.8% | crashed t=8.6 | confirmed (short) |
-| 008 | 1166.8 | 24.62% | 0.0% | — | survived t=30 | **FALSE POSITIVE** |
-
-All genuinely FTL configs converge to **~20% peak f_geo** at HQ (resolution
-ceiling). Eval 008's 24.62% Stage 0 signal was entirely a low-res artifact. Eval
-122 is the only eval that both survived to t=30 AND confirmed FTL.
-
-### SH vs trajectory ansatz (Stage 0 head-to-head)
-
-Source:
-[MapElitesDynamics.md §SH vs trajectory](../research/neuralspacetime/MapElitesDynamics.md#campaign-comparison-scalar_sh_ftl_v22-vs-trajectory_5lump_v1-2026-06-25).
-
-| Metric | **SH v22** (202 evals) | **Trajectory v1** (130 evals) | Factor |
-|--------|----------------------:|---------------------------:|--------|
-| Best stable score | 470.6 | **1367.9** | 2.9× |
-| Best stable f_geo_peak | 2.12% | **10.63%** | 5.0× |
-| Best HQ-confirmed f_geo_evol | — | **9.40%** | — |
-| FTL hit rate (per GPU eval) | 1.3% | **54%** | ~40× |
-
-The trajectory ansatz (per-lump independent orbits) decisively outperforms the
-spherical-harmonic ansatz for FTL discovery.
-
-### Paired shell — boson vs scalar (200+200 evals, general_ftl)
-
-Source:
-[MapElites.md §paired shell](../research/neuralspacetime/MapElites.md#paired-shell-ftl-comparison-boson-vs-scalar-2026-06-23).
-
-| Metric | **Boson** | **Scalar** |
-|--------|----------:|-----------:|
-| `gpu_ok` | 94 (47%) | 92 (46%) |
-| `f_geo_peak > 0` | **0 / 94** | **33 / 92** |
-| `ftl_geo_evolving > 0` | **0 / 94** | **32 / 92** |
-| Best score | 21.6 (eval 100, no FTL) | **869.3** (eval 166, persist 0.76) |
-
-**Verdict:** Boson static exotic shell **never opens a geodesic shortcut** (0/94);
-real scalar exotic shell does (32/92). Boson arm **rejected** for FTL RL;
-scalar eval 166/126 promoted for RL chassis Gate 2.
-
-### Wormhole / shell HQ leaderboard (`qd_20260605T155951Z`, t=50)
-
-Source: [MapElites.md §campaign log](../research/neuralspacetime/MapElites.md#campaign-log--runs-analysis).
-
-| Rank | eval | HQ score | `op_ftl` | `channel` | `shift` | Role |
-|------|------|--------:|---------:|----------:|--------:|------|
-| 1 | **106** | **1423** | **1.000** | 0.423 | 0.179 | HQ winner |
-| 2 | **117** | **1346** | 0.920 | 0.436 | 0.190 | Channel backup |
-| 3 | **011** | **1274** | 0.885 | 0.302 | 0.091 | Search leader |
-| 4 | **094** | **1089** | 0.658 | 0.454 | 0.206 | Best channel/shift |
-
-Resolution ladder (eval 057, `op_ftl`=1.0 holds across all):
-
-| Run | L | N | t | max c | Notes |
-|-----|--:|--:|--:|------:|-------|
-| `val16hq2` | 128 | 128 | 16 | 1.192 | best t=16 HQ |
-| `val30hq` | 128 | 128 | 30 | 1.276 | peak c |
-| `val100hq` | 128 | 128 | 100 | 1.205 | long GPU-only |
-| `val256hq` | 256 | 256 | 100 | 1.196 | 2× domain; ~3× tighter Ham/Mom |
-
-### GW laser search — `gw_beam_qd100_v4` (100/100 evals, gw_beam objective)
-
-Canonical Q-balls on trajectory orbits, scored for directional Ψ₄ emission
-(Z-axis beaming). Source:
-[LabJournal.md §gw_beam v4](../research/grlab/LabJournal.md#2026-07-03-gw_beam_qd100_v4-complete-eval-61--88-analysis).
-
-Hard gates held: 77/100 collapse modes crushed to ~−116; 22 healthy survivors;
-5 archive elites.
-
-| | eval 88 (best score) | eval 61 (best beam) |
-|--|----------------------|---------------------|
-| Score | **3.09** | 2.82 |
-| mean Ψ₄ power | 4.5×10⁻⁴ | **6.4×10⁻⁴** |
-| beam_ratio | 14% | **~30%** (to 40% late) |
-| max ‖Ham‖₂ | 0.08 | 0.14 |
-
-**Verdict:** Neither run is a strong GW emitter — both produce a weak steady hum
-(P ~ 10⁻⁵–10⁻⁴), not a merger chirp or beamed burst. The t=0 Ψ₄ spike is an
-initial/near-zone transient. The ~30% Z-beaming (eval 61) comes from a coherent,
-fast, compact multi-lump cluster + breathing quadrupole, not a clean radiative-
-zone binary.
-
-**Reward-hacking closure (v3 → v4):** v3's optimizer built a **numerical bomb**
-instead of a GW laser — crash the Hamiltonian → grid fills with high-frequency
-noise → second-derivative Ψ₄ reports "infinite wave power" (eval 51 @ **336**
-vs trustworthy eval 7 @ 3.4). Permanently closed in v4 by three hard gates:
-Ψ₄ time-series truncation at the spike, archive admission requiring
-`tier ≥ CONSTRUCTED`, and a multiplicative `gw_health_multiplier` (→0 on
-collapse). Source:
-[LabJournal.md §v3→v4](../research/grlab/LabJournal.md#2026-07-03-gw_beam_qd100_v3--v4-collapse-mode-reward-hacking).
-
-### Splash campaign — `spacetime_splash` (critical_collapse objective)
-
-Canonical bosonic shell, scored for gravitational-wave focusing / critical
-collapse. Uses `critical_collapse` objective (geometric splash: χ-well + Ψ₄ wave
-+ K-crunch primary; ρ/focus/lapse secondary). Source:
-[MapElites.md §handoff to RL](../research/neuralspacetime/MapElites.md#handoff-to-rl).
-
-Interim pump proof: splash boson **`spacetime_splash_v14_moving/eval_000010`**
-held as the pump-actuation reference until RL Gate 2 passes on the scalar FTL
-chassis. The splash campaign validated the `critical_collapse` scorer and the
-`SPLASH_MODE` early-termination (stop once matter disperses after peak, typically
-t≈10–12), and feeds the RL handoff path.
-
-### Self-gravitating boson star (single-star smoke)
-
-See [Self-gravitating boson star](#self-gravitating-boson-star) above. After the
-four-bug fix, confinement holds ~0.90 at t=16 (was 0.58). Not yet committed;
-high-res instability remains open. Source:
-[`SELFGRAV_HANDOFF.md`](SELFGRAV_HANDOFF.md).
+Three takeaways that shape current work: (1) genuine gauge-invariant FTL
+shortcuts exist with exotic matter but are transient -- no configuration yet
+holds a shortcut open while keeping matter confined; (2) the validation
+pipeline (4D evolving probe, trust flags, HQ resolution ladder) is what
+separates physical shortcuts from gauge artifacts -- several would-be headline
+results were artifacts; (3) ansatz and matter sector dominate outcomes,
+optimizer tuning is secondary.
 
 ---
 
@@ -1494,9 +925,6 @@ uv run python grteclyn-wrapper/scripts/campaigns/hq/replay_eval.py \
   --evolving-geodesic --objective-mode general_ftl \
   --gridinit runs/grtresna_promote/e118_dl_L160_N320_t30_hq_eval000118/initial_data.gridinit
 
-# Or via the eval-118 validation launcher:
-EVOLUTION_MPI_RANKS=2 GPU_ID=4,5 FORCE=1 \
-  # eval-118 validation is NO-GO; archived under scripts/campaigns/promote/_archive/eval118/
 ```
 
 | Flag / env | Effect |
@@ -1627,17 +1055,12 @@ Mass/distance configs for the GW panels are baked into `plot_diagnostic.sh`
 (`30:10`, `1000:0.002`, `1000:1`); override the first with env `MASS_MSUN` /
 `DISTANCE_MPC`. LIGO panel quantity via `LIGO_QUANTITY=asd|hchar`.
 
-> **Which Ψ₄ is trusted?** `plot_diagnostic.sh` uses the **Python post-hoc
-> spherical-harmonic extraction** in `small_data/psi4_mode_l2m0.dat` (produced by
-> `consume_plotfiles` during the run). That signal is validated: the `m=0`
-> imaginary part is ~1e-5 (≈0, as required) and it is free of high-frequency
-> gauge contamination. **Do NOT** feed `data/Weyl4_mode_2{0,1,2}.dat` (the dense
-> in-code C++ extraction) into `plot_extracted_psi4.py` for physics plots —
-> that extraction currently carries an `O(1)` spurious `m=0` imaginary part and a
-> ~1.8 M⁻¹ junk oscillation. This is **expected**: the GRTL collaboration lists
-> *Weyl scalar / CCE extraction* as 🔧 **In progress** in GRTeclyn's port status, so
-> the in-code C++ Ψ₄ path is incomplete upstream. Use the Python extraction until
-> it is marked ✅ Ported. It is retained only for debugging.
+> **Which Ψ₄ is trusted?** Use the Python post-hoc extraction
+> `small_data/psi4_mode_l2m0.dat` (validated: `m=0` imaginary part ~1e-5, no
+> gauge contamination). Do **NOT** feed the dense in-code C++
+> `data/Weyl4_mode_2*.dat` into physics plots -- upstream Weyl/CCE extraction
+> is still In-progress and carries an O(1) spurious `m=0` imaginary part; it
+> is retained for debugging only.
 
 Full module reference: [`src/grteclyn_wrapper/visualisation/README.md`](src/grteclyn_wrapper/visualisation/README.md).
 
@@ -1728,21 +1151,12 @@ nvidia-smi   # expect 0 MiB, no running processes
 
 ### Research manuscript (TikZ / tectonic)
 
-The neuralspacetime article (`research.tex`, TikZ + pgfplots figures) is compiled
-on this machine with **tectonic**:
-
 ```bash
-cd ../research/neuralspacetime/article
-tectonic --keep-logs research.tex
-# → research.pdf
+cd ../research/neuralspacetime/article && tectonic --keep-logs research.tex   # -> research.pdf
 ```
 
-On first run tectonic downloads the TeX support files (fonts, `.tfm`/`.pfb`) it
-needs and caches them, so the initial compile requires network access.
-
-Source: [`../research/neuralspacetime/article/research.tex`](../research/neuralspacetime/article/research.tex) ·
-PDF: [`../research/neuralspacetime/article/research.pdf`](../research/neuralspacetime/article/research.pdf) ·
-campaign journal: [`../research/neuralspacetime/MapElitesDynamics.md`](../research/neuralspacetime/MapElitesDynamics.md).
+First run downloads TeX support files (needs network access once). Source:
+[`article/research.tex`](../research/neuralspacetime/article/research.tex).
 
 ### Related docs
 

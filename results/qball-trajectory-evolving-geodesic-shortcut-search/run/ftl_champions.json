@@ -1,0 +1,44 @@
+{
+  "f_geo_evol": {
+    "eval": 370,
+    "value": 0.3831814516716485,
+    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000370",
+    "score": 607.1893216104194,
+    "t_at_peak": null
+  },
+  "ftl_geo_evolving": {
+    "eval": 322,
+    "value": 0.25022202502458873,
+    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000322",
+    "score": 2541.5686894106675,
+    "t_at_peak": null
+  },
+  "f_op_peak": {
+    "eval": 141,
+    "value": 0.4493169691633523,
+    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000141",
+    "score": 26.270911179082027,
+    "t_at_peak": 26.0000000000013
+  },
+  "max_local_speed": {
+    "eval": 179,
+    "value": 3.1316294278670975,
+    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000179",
+    "score": 2397.5197390854846,
+    "t_at_peak": 26.0000000000013
+  },
+  "superluminal_fraction": {
+    "eval": 2,
+    "value": 1.0,
+    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000002",
+    "score": 141.15203906413024,
+    "t_at_peak": 15.9999999999997
+  },
+  "ftl_lifetime_fraction": {
+    "eval": 1,
+    "value": 1.0,
+    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000001",
+    "score": 77.57745431110246,
+    "t_at_peak": null
+  }
+}
