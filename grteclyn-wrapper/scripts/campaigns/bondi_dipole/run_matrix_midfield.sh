@@ -1,55 +1,44 @@
 #!/usr/bin/env bash
-# Bondi dipole runaway in full NR -- the 2x2 control matrix (N1, Appendix B).
+# Bondi dipole runaway -- MID-FIELD matrix: the rung between the two ladders.
 #
-# WEAK-FIELD LADDER: the strong-field matrix (bondi_dipole_v1) collapsed by
-# t~25-30 -- the FTL-bred lumps are too heavy at d=6.  This rung: ~10x lighter
-# lumps (core amp 0.075->0.0375 via lambda 640->2560, mu 85333->1365333, which
-# keeps omega_min=0.316), deeper binding (omega 0.8->0.55: 45% vs 20%), width
-# 1.2, separation 8, t=100.  Expected: no collapse, drift ~1.5-2 units for the
-# (+,-) pair vs near-static singles.
+# Post-mortem of weakfield v2 (bondi_dipole_weakfield_v2, 2026-08-05): the
+# corrected seed knobs (bs_phi_c=0.0375, bs_profile_width=2.0) did NOT cure
+# dispersal.  The single_p calibration cell -- one lump, nothing to overlap
+# with -- breathed in to rms 4.65 by t=8, then dispersed on v1's exact curve
+# (rms 7.46 by t=20 vs v1's 8.7 by t=19).  So overlap and seed shape were
+# never the root cause: at core amp 0.0375 the lump is simply too light for
+# self-gravity to confine it once the pump is off.  (The strong-field ladder,
+# core amp 0.075, had the opposite failure: collapse to min_chi=0.009 by
+# t~25-30.)
 #
-# Bondi (1957): a positive/negative-mass pair self-accelerates -- the phantom
-# lump falls toward the canonical lump's well while the canonical lump rolls
-# off the phantom's hill, so both accelerate the SAME way, phantom chasing
-# canonical, with P_ADM ~ 0.  Never evolved in full 3+1 NR with dynamical,
-# constraint-solved matter.  The bicomplex model realizes the required sign
-# structure exactly: both sectors obey the same Klein-Gordon equation
-# (positive inertial/passive mass); the sign flip sits only in the Einstein
-# source (negative active mass).
+# This rung sits at the geometric mean of the two failed amplitudes:
+#   lambda = 1280, mu = 341333  (keeps lambda^2/mu = 4.8 -> omega_min = 0.316)
+#   core amp sqrt(3*lambda/4mu) = 0.053   (strong 0.075 / weak 0.0375)
+#   omega = 0.55 unchanged (45% binding), width 2.0 unchanged.
+# single_p runs FIRST as the live calibration:
+#   PASS: rms_radius_canon roughly flat to t=100 AND min_chi stays above ~0.3
+#         -> the matrix proceeds to the pair cells on its own.
+#   FAIL disperse: rms climbs like v1/v2 -> next rung up (lambda 960?).
+#   FAIL collapse: min_chi dives toward 0 -> next rung down.
+#   Stop with scripts/campaigns/stop_campaign.sh either way.
 #
-# The matrix (each cell a falsifiable prediction):
-#   pair_pm  (+,-) : runs away along +x (phantom at -3 chases canonical at +3)
-#   pair_pp  (+,+) : attracts -- merges or orbits, no net drift
-#   pair_mm  (-,-) : mutually repels (each digs a hill the other rolls off)
-#   single_p / single_m : drift nowhere; calibrate per-sector dispersal rates
-#
-# Setup per Appendix B: two lumps AT REST on the x axis at separation d=6
-# (R0=3, phase0=0 vs pi), evolution pump DISABLED from t=0
-# (rl_pump_stop_time=0 -- well_depth stays nonzero only as the GRTresna seed
-# amplitude), no breathing / z-motion / boosts.  Pure self-gravity.
-#
-# Diagnostic: per-sector barycentres, streamed live to sector_barycenters.dat
-# (GRTECLYN_SECTOR_BARYCENTERS=1).  The aggregate barycentre cancels for the
-# mixed pair, and plotfiles are purged after consumption -- this cannot be
-# recovered post hoc.  Psi4 stays on: what an accelerating dipole radiates is
-# one of the open questions.
-#
-# Seed scaffolding: the git-tracked v1 champion eval (stable, never pruned);
-# every physics knob that matters is overridden below.  Sequential on ONE GPU
-# so the depth campaign keeps three slots clean.
+# Frames: plot every 40 steps (0.4 time units, ~250 frames per run) for
+# smooth movies.  Physics, matrix cells, and diagnostics otherwise identical
+# to the weak-field matrices -- see run_matrix_weakfield.sh for the Bondi
+# (1957) background.
 #
 # Usage:
-#   bash scripts/campaigns/bondi_dipole/run_matrix.sh
-# Overrides: BONDI_GPU (default 0), BONDI_STOP_TIME (default 60),
-#            BONDI_RUNS_DIR, BONDI_SEP (default 6).
+#   bash scripts/campaigns/bondi_dipole/run_matrix_midfield.sh
+# Overrides: BONDI_GPU (default 1), BONDI_STOP_TIME (default 100),
+#            BONDI_RUNS_DIR, BONDI_SEP (default 8).
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd -- "${WRAPPER_DIR}/.." && pwd)"
 
 SOURCE_EVAL="${REPO_ROOT}/results/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
-RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_weakfield_v1}"
-GPU="${BONDI_GPU:-0}"
+RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_midfield_v1}"
+GPU="${BONDI_GPU:-1}"
 STOP_TIME="${BONDI_STOP_TIME:-100}"
 SEP="${BONDI_SEP:-8}"
 R0="$(python3 -c "print(${SEP}/2)")"
@@ -73,9 +62,11 @@ GRTRESNA_RANKS=1
 # radial speed, no breathing, no z-motion, no initial-data boost, and the
 # trajectory pump is off for the whole evolution (t >= 0).
 common_overrides=(
-  --extra-override grtresna_scalar_lambda=2560
-  --extra-override grtresna_scalar_mu=1365333
+  --extra-override grtresna_scalar_lambda=1280
+  --extra-override grtresna_scalar_mu=341333
   --extra-override grtresna_bs_omega=0.55
+  --extra-override grtresna_bs_phi_c=0.053
+  --extra-override grtresna_bs_profile_width=2.0
   --extra-override trajectory_well_width=1.2
   --extra-override rl_pump_stop_time=0
   --extra-override grtresna_boost_lumps=0
@@ -99,17 +90,18 @@ common_overrides=(
 )
 
 # name | num_lumps | lump0_exotic | lump1_exotic (ignored for singles)
+# single_p runs FIRST: it is the live calibration for this binding rung.
 matrix=(
+  "single_p 1 0 0"
   "pair_pm  2 0 1"
   "pair_pp  2 0 0"
   "pair_mm  2 1 1"
-  "single_p 1 0 0"
   "single_m 1 1 0"
 )
 
 for spec in "${matrix[@]}"; do
   read -r name num_lumps exotic0 exotic1 <<<"${spec}"
-  out_name="bondi_wf_${name}"
+  out_name="bondi_mf_${name}"
   if [[ -d "${RUNS_DIR}/${out_name}" ]]; then
     echo "[bondi] ${out_name} already exists -- skipping"
     continue
@@ -123,7 +115,7 @@ for spec in "${matrix[@]}"; do
     --gpu "${GPU}" \
     --n-full 128 --l-full 64 \
     --max-level 1 --regrid-threshold 0.02 \
-    --stop-time "${STOP_TIME}" --plot-interval 160 \
+    --stop-time "${STOP_TIME}" --plot-interval 40 \
     --ftl-L 8.0 \
     --grtresna-ranks "${GRTRESNA_RANKS}" \
     --grtresna-iterations 50 \

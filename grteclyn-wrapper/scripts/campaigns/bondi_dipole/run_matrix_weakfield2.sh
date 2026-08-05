@@ -1,55 +1,42 @@
 #!/usr/bin/env bash
-# Bondi dipole runaway in full NR -- the 2x2 control matrix (N1, Appendix B).
+# Bondi dipole runaway -- weak-field matrix v2: CORRECTED SEEDS, DENSE FRAMES.
 #
-# WEAK-FIELD LADDER: the strong-field matrix (bondi_dipole_v1) collapsed by
-# t~25-30 -- the FTL-bred lumps are too heavy at d=6.  This rung: ~10x lighter
-# lumps (core amp 0.075->0.0375 via lambda 640->2560, mu 85333->1365333, which
-# keeps omega_min=0.316), deeper binding (omega 0.8->0.55: 45% vs 20%), width
-# 1.2, separation 8, t=100.  Expected: no collapse, drift ~1.5-2 units for the
-# (+,-) pair vs near-static singles.
+# Post-mortem of v1 (bondi_dipole_weakfield_v1, 2026-08-05): every lump
+# dispersed (rms 5 -> 30 by t~50) because the GRTresna seed knobs were never
+# overridden and fell back to defaults:
+#   grtresna_bs_profile_width = 8.0  -- as wide as the whole pair separation,
+#     so the two "lumps" overlapped from t=0;
+#   grtresna_bs_phi_c = 0.08         -- 2.1x the Q-ball plateau amplitude
+#     sqrt(3*lambda/4mu) = 0.0375 for lambda=2560, mu=1365333.
+# (trajectory_well_width only shapes the PUMP wells, and the pump is off.)
 #
-# Bondi (1957): a positive/negative-mass pair self-accelerates -- the phantom
-# lump falls toward the canonical lump's well while the canonical lump rolls
-# off the phantom's hill, so both accelerate the SAME way, phantom chasing
-# canonical, with P_ADM ~ 0.  Never evolved in full 3+1 NR with dynamical,
-# constraint-solved matter.  The bicomplex model realizes the required sign
-# structure exactly: both sectors obey the same Klein-Gordon equation
-# (positive inertial/passive mass); the sign flip sits only in the Einstein
-# source (negative active mass).
+# v2 seeds what the soliton actually wants:
+#   grtresna_bs_phi_c         = 0.0375  (thin-wall plateau)
+#   grtresna_bs_profile_width = 2.0     (natural bound-state width is 1.20;
+#     2.0 keeps ~8 finest cells across the core and ~4.6x the charge of a
+#     width-1.2 blob; sep/width = 4 so the pair starts cleanly separated)
+# and runs single_p FIRST as a live calibration: if the lone lump still
+# disperses, stop the matrix (scripts/campaigns/stop_campaign.sh) and pick a
+# binding rung between the two ladders instead of burning the pair cells.
 #
-# The matrix (each cell a falsifiable prediction):
-#   pair_pm  (+,-) : runs away along +x (phantom at -3 chases canonical at +3)
-#   pair_pp  (+,+) : attracts -- merges or orbits, no net drift
-#   pair_mm  (-,-) : mutually repels (each digs a hill the other rolls off)
-#   single_p / single_m : drift nowhere; calibrate per-sector dispersal rates
+# Frames: plot every 40 steps (0.4 time units, ~250 frames per run) so the
+# movies are smooth -- v1's 160-step cadence gave only 64 frames per run.
 #
-# Setup per Appendix B: two lumps AT REST on the x axis at separation d=6
-# (R0=3, phase0=0 vs pi), evolution pump DISABLED from t=0
-# (rl_pump_stop_time=0 -- well_depth stays nonzero only as the GRTresna seed
-# amplitude), no breathing / z-motion / boosts.  Pure self-gravity.
-#
-# Diagnostic: per-sector barycentres, streamed live to sector_barycenters.dat
-# (GRTECLYN_SECTOR_BARYCENTERS=1).  The aggregate barycentre cancels for the
-# mixed pair, and plotfiles are purged after consumption -- this cannot be
-# recovered post hoc.  Psi4 stays on: what an accelerating dipole radiates is
-# one of the open questions.
-#
-# Seed scaffolding: the git-tracked v1 champion eval (stable, never pruned);
-# every physics knob that matters is overridden below.  Sequential on ONE GPU
-# so the depth campaign keeps three slots clean.
+# Physics, matrix cells, and diagnostics otherwise identical to v1 -- see
+# run_matrix_weakfield.sh header for the Bondi (1957) background.
 #
 # Usage:
-#   bash scripts/campaigns/bondi_dipole/run_matrix.sh
-# Overrides: BONDI_GPU (default 0), BONDI_STOP_TIME (default 60),
-#            BONDI_RUNS_DIR, BONDI_SEP (default 6).
+#   bash scripts/campaigns/bondi_dipole/run_matrix_weakfield2.sh
+# Overrides: BONDI_GPU (default 1), BONDI_STOP_TIME (default 100),
+#            BONDI_RUNS_DIR, BONDI_SEP (default 8).
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd -- "${WRAPPER_DIR}/.." && pwd)"
 
 SOURCE_EVAL="${REPO_ROOT}/results/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
-RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_weakfield_v1}"
-GPU="${BONDI_GPU:-0}"
+RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_weakfield_v2}"
+GPU="${BONDI_GPU:-1}"
 STOP_TIME="${BONDI_STOP_TIME:-100}"
 SEP="${BONDI_SEP:-8}"
 R0="$(python3 -c "print(${SEP}/2)")"
@@ -76,6 +63,8 @@ common_overrides=(
   --extra-override grtresna_scalar_lambda=2560
   --extra-override grtresna_scalar_mu=1365333
   --extra-override grtresna_bs_omega=0.55
+  --extra-override grtresna_bs_phi_c=0.0375
+  --extra-override grtresna_bs_profile_width=2.0
   --extra-override trajectory_well_width=1.2
   --extra-override rl_pump_stop_time=0
   --extra-override grtresna_boost_lumps=0
@@ -99,17 +88,18 @@ common_overrides=(
 )
 
 # name | num_lumps | lump0_exotic | lump1_exotic (ignored for singles)
+# single_p runs FIRST: it is the live calibration for the corrected seed.
 matrix=(
+  "single_p 1 0 0"
   "pair_pm  2 0 1"
   "pair_pp  2 0 0"
   "pair_mm  2 1 1"
-  "single_p 1 0 0"
   "single_m 1 1 0"
 )
 
 for spec in "${matrix[@]}"; do
   read -r name num_lumps exotic0 exotic1 <<<"${spec}"
-  out_name="bondi_wf_${name}"
+  out_name="bondi_wf2_${name}"
   if [[ -d "${RUNS_DIR}/${out_name}" ]]; then
     echo "[bondi] ${out_name} already exists -- skipping"
     continue
@@ -123,7 +113,7 @@ for spec in "${matrix[@]}"; do
     --gpu "${GPU}" \
     --n-full 128 --l-full 64 \
     --max-level 1 --regrid-threshold 0.02 \
-    --stop-time "${STOP_TIME}" --plot-interval 160 \
+    --stop-time "${STOP_TIME}" --plot-interval 40 \
     --ftl-L 8.0 \
     --grtresna-ranks "${GRTRESNA_RANKS}" \
     --grtresna-iterations 50 \
