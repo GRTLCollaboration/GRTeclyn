@@ -202,8 +202,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                ccz4rhs.apply_gauge(ix, iy, iz, rhs_arrays[box_no],
-                                    const_soln_arrays[box_no]);
+                ccz4rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                            const_soln_arrays[box_no]);
 
                 ccz4rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
                                           const_soln_arrays[box_no]);

@@ -111,29 +111,52 @@ void run_ccz4_rhs_test()
         // Do the current and old CCZ4RHS calculation in the same loop
 
         amrex::ParallelFor(
+            box, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+            { old_ccz4_rhs.compute(ix, iy, iz, old_out_array, in_c_array); });
+
+        // The RHS is split into three different kernels
+
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+        amrex::ParallelFor(box,
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                           {
+                               current_ccz4_rhs.compute_chi_and_h_ij(
+                                   ix, iy, iz, current_out_array, in_c_array);
+                           });
+
+        amrex::ParallelFor(
             box,
             [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
             {
-                old_ccz4_rhs.compute(ix, iy, iz, old_out_array, in_c_array);
-
-                // The RHS is split into four different calculations
-                current_ccz4_rhs.compute_chi_and_h_ij(
-                    ix, iy, iz, current_out_array, in_c_array);
                 current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma<
                     formulation, use_covariantZ4>(ix, iy, iz, current_out_array,
                                                   in_c_array);
-                current_ccz4_rhs.apply_gauge(ix, iy, iz, current_out_array,
-                                             in_c_array);
-                current_ccz4_rhs.apply_dissipation(
-                    ix, iy, iz, current_out_array, in_c_array);
-
-                for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
-                {
-                    diff_array(ix, iy, iz, ivar) =
-                        std::fabs(current_out_array(ix, iy, iz, ivar) -
-                                  old_out_array(ix, iy, iz, ivar));
-                }
             });
+
+        amrex::ParallelFor(box,
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                           {
+                               current_ccz4_rhs.calculate_gauge_rhs(
+                                   ix, iy, iz, current_out_array, in_c_array);
+                               current_ccz4_rhs.apply_dissipation(
+                                   ix, iy, iz, current_out_array, in_c_array);
+                           });
+
+        // GPU barrier
+        amrex::Gpu::streamSynchronize();
+
+        amrex::ParallelFor(box,
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                           {
+                               for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
+                               {
+                                   diff_array(ix, iy, iz, ivar) = std::fabs(
+                                       current_out_array(ix, iy, iz, ivar) -
+                                       old_out_array(ix, iy, iz, ivar));
+                               }
+                           });
+
+        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         // GPU barrier
         amrex::Gpu::streamSynchronize();
@@ -146,6 +169,7 @@ void run_ccz4_rhs_test()
         const int cout_precision = 17;
         for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
         {
+            // NOLINTNEXTLINE(bugprone-chained-comparison)
             diff_fab.maxIndex<amrex::RunOn::Device>(box, max_diff,
                                                     max_diff_index, ivar);
 

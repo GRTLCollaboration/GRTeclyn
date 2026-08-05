@@ -41,7 +41,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
     this->template compute_A_ij_and_Theta_and_Gamma<formulation,
                                                     use_covariant_Z4>(
         ix, iy, iz, rhs_state, state);
-    this->apply_gauge(ix, iy, iz, rhs_state, state);
+    this->calculate_gauge_rhs(ix, iy, iz, rhs_state, state);
 
     // add RHS matter terms from EM Tensor
     // Only calculate derivatives as needed
