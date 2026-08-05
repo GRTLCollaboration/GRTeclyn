@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Bondi dipole runaway in full NR -- the 2x2 control matrix (N1, Appendix B).
 #
+# WEAK-FIELD LADDER: the strong-field matrix (bondi_dipole_v1) collapsed by
+# t~25-30 -- the FTL-bred lumps are too heavy at d=6.  This rung: ~10x lighter
+# lumps (core amp 0.075->0.0375 via lambda 640->2560, mu 85333->1365333, which
+# keeps omega_min=0.316), deeper binding (omega 0.8->0.55: 45% vs 20%), width
+# 1.2, separation 8, t=100.  Expected: no collapse, drift ~1.5-2 units for the
+# (+,-) pair vs near-static singles.
+#
 # Bondi (1957): a positive/negative-mass pair self-accelerates -- the phantom
 # lump falls toward the canonical lump's well while the canonical lump rolls
 # off the phantom's hill, so both accelerate the SAME way, phantom chasing
@@ -41,19 +48,14 @@ WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd -- "${WRAPPER_DIR}/.." && pwd)"
 
 SOURCE_EVAL="${REPO_ROOT}/results/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
-RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_v1}"
+RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_weakfield_v1}"
 GPU="${BONDI_GPU:-0}"
-STOP_TIME="${BONDI_STOP_TIME:-60}"
-SEP="${BONDI_SEP:-6}"
+STOP_TIME="${BONDI_STOP_TIME:-100}"
+SEP="${BONDI_SEP:-8}"
 R0="$(python3 -c "print(${SEP}/2)")"
 PI="3.141592653589793"
 
 mkdir -p "${RUNS_DIR}"
-
-# Stop handle for scripts/campaigns/stop_campaign.sh ($! at launch is the dead
-# setsid parent -- only the launcher itself knows its true pid).
-source "${SCRIPT_DIR}/../lib/launcher_common.sh"
-campaign_register_launcher "${RUNS_DIR}"
 
 # Live per-sector centroid stream + radiation extraction.
 export GRTECLYN_SECTOR_BARYCENTERS=1
@@ -67,6 +69,10 @@ GRTRESNA_RANKS=1
 # radial speed, no breathing, no z-motion, no initial-data boost, and the
 # trajectory pump is off for the whole evolution (t >= 0).
 common_overrides=(
+  --extra-override grtresna_scalar_lambda=2560
+  --extra-override grtresna_scalar_mu=1365333
+  --extra-override grtresna_bs_omega=0.55
+  --extra-override trajectory_well_width=1.2
   --extra-override rl_pump_stop_time=0
   --extra-override grtresna_boost_lumps=0
   --extra-override trajectory_A_breath=0
@@ -99,7 +105,7 @@ matrix=(
 
 for spec in "${matrix[@]}"; do
   read -r name num_lumps exotic0 exotic1 <<<"${spec}"
-  out_name="bondi_${name}"
+  out_name="bondi_wf_${name}"
   if [[ -d "${RUNS_DIR}/${out_name}" ]]; then
     echo "[bondi] ${out_name} already exists -- skipping"
     continue
@@ -112,7 +118,7 @@ for spec in "${matrix[@]}"; do
     --runs-dir "${RUNS_DIR}" \
     --gpu "${GPU}" \
     --n-full 128 --l-full 64 \
-    --max-level 1 --regrid-threshold 0.1 \
+    --max-level 1 --regrid-threshold 0.02 \
     --stop-time "${STOP_TIME}" --plot-interval 160 \
     --ftl-L 8.0 \
     --grtresna-ranks "${GRTRESNA_RANKS}" \

@@ -339,6 +339,54 @@ comparison and full env-var reference.
 5. **Promotion must use `N > L`** (or same `L` with larger `N`) to refine the grid. `L=N` only enlarges the domain at `dx=1` — no fidelity gain.
 6. **Plotfiles go to node-local scratch, never NFS** — automatic since `core/scratch.py`; `output_path` stays on NFS. Only override it (`GRTECLYN_SCRATCH`) if `/tmp` is not node-local on your machine. See [Plotfile scratch MUST be node-local](#plotfile-scratch-must-be-node-local-required).
 
+### Stopping detached campaigns — kill the orchestrator first
+
+Campaign launchers run detached (`setsid nohup bash launcher.sh ... &`) so they
+survive shell teardown. Stopping one naively **does not work**, for three
+reasons found the hard way (2026-08-05, `bondi_dipole_v1` post-mortem):
+
+1. **The `$!` you captured at launch is the wrong PID.** It is the short-lived
+   `setsid` parent; the real launcher is its forked child in a *new session*.
+   Killing the recorded pid (or its process group) hits nothing.
+2. **Killing workers by path pattern silently *advances* the campaign.** The
+   orchestrator's argv is just `bash launcher.sh` and per-run drivers use
+   `--runs-dir X --name Y` (never the `X/Y` path you grep for). So a pattern
+   kill takes out the simulation + consumer, the orchestrator sees a
+   "finished" step, and launches the next run — which looks exactly like the
+   campaign refusing to die.
+3. **GRTresna solvers detach into their own session/pgid** — even a correct
+   group-kill of the launcher leaves a solver running to its timeout.
+
+The fix is a **global tool** — one implementation for every campaign type
+(QD/MAP-Elites, CMA-ES, HQ replays, Bondi matrices, one-off ladders):
+
+```bash
+# Preview what would be killed (touches nothing):
+bash scripts/campaigns/stop_campaign.sh --dry-run <runs_dir | campaign_name>
+# Stop for real, with verification and escalation:
+bash scripts/campaigns/stop_campaign.sh <runs_dir | campaign_name> [...]
+```
+
+It works in the only order that does: (1) freeze the queue — kill the
+orchestrators and their shell ancestors first, found via
+`<runs_dir>/launcher.pid`, driver argv (`--name <campaign>`,
+`--runs-dir <dir>`), and a parent-walk; (2) sweep every worker class by runs
+dir and scratch path; (3) **verify with pgrep and escalate to SIGKILL** until
+nothing survives. A stop without the verification step is a guess.
+
+Launcher-side contract: every campaign launcher registers its true PID by
+calling the shared helper (one line, after the runs dir is known):
+
+```bash
+source "${SCRIPT_DIR}/../lib/launcher_common.sh"
+campaign_register_launcher "${RUNS_DIR}"
+```
+
+The stop tool's process discovery covers unregistered launchers too, but the
+pid file is the fast, unambiguous path — add the call to any new launcher.
+There are deliberately no per-campaign stop scripts: one tool, one way to
+stop, for every campaign.
+
 ### ALWAYS extract frames on the fly (required)
 
 Every GPU evolution run — QD, CMA-ES, HQ promotion, replay — **MUST** stream

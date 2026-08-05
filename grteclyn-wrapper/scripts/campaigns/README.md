@@ -36,6 +36,50 @@ HQ is **intentionally different**: higher resolution and longer time stress-test
 
 ---
 
+## Stopping a campaign — one tool, one way
+
+```bash
+# Preview what would be killed (touches nothing):
+bash scripts/campaigns/stop_campaign.sh --dry-run <runs_dir | campaign_name>
+# Stop for real, with verification and escalation:
+bash scripts/campaigns/stop_campaign.sh <runs_dir | campaign_name> [...]
+```
+
+Works for **every** campaign type (QD, CMA-ES, HQ replays, Bondi matrices,
+one-off ladders). Names resolve under `runs/grtresna_qd/<name>` then
+`runs/<name>`. There are deliberately **no per-campaign stop scripts**.
+
+Do NOT stop a campaign by hand with the pid captured at launch or by
+pattern-killing workers. Three failure modes, all hit in practice
+(2026-08-05, `bondi_dipole_v1` post-mortem — full details in the
+`stop_campaign.sh` header):
+
+1. `$!` after `setsid nohup ... &` is the **dead setsid parent**, not the
+   session-leader launcher — killing it (or its group) hits nothing.
+2. Killing workers (evolution binary, consumer) looks like a **finished step**
+   to the orchestrator, which then launches the next eval — the campaign
+   appears to refuse to die.
+3. GRTresna solvers detach into their **own session/pgid** and survive
+   group-kills of the launcher.
+
+The tool therefore freezes the queue first (orchestrators + their shell
+ancestors, found via `launcher.pid`, driver argv and a parent-walk), then
+sweeps workers by runs dir and scratch path, then **verifies with pgrep and
+escalates to SIGKILL** until nothing survives.
+
+**Launcher contract** — every launcher registers its true PID once the runs
+dir is known (one line; `exec` into a generic runner preserves it):
+
+```bash
+source "${SCRIPT_DIR}/../lib/launcher_common.sh"
+campaign_register_launcher "${RUNS_DIR}"
+```
+
+Discovery covers unregistered launchers too, but the pid file is the fast,
+unambiguous path. Add the call to any new launcher.
+
+---
+
 ## Plotfile scratch is node-local — mandatory for every stage
 
 **Plotfiles must never be written to NFS.** They are write-once, read-once,
@@ -231,6 +275,7 @@ Monitor incremental score: `tail -f runs/grtresna_promote/*/small_data/score_tim
 | File | Used by |
 |------|---------|
 | `lib/bootstrap.sh` | QD + CMA-ES path setup |
+| `lib/launcher_common.sh` | every launcher — writes `launcher.pid` for `stop_campaign.sh` |
 | `lib/search_common.sh` | QD + CMA-ES grid, gates, 4D search profile, pytest preflight |
 | `lib/general_ftl_pins.sh` | v20 wormhole / ring / spin `--pin-dimension` bundles |
 | `lib/pipeline_monitor.sh` | Optional `PIPELINE_MONITOR=1` GPU/pipeline sampling |

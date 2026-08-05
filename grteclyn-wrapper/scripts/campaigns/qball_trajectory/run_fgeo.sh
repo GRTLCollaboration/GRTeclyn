@@ -47,4 +47,9 @@ export SEED_EVAL_DIRS
 export GPU_IDS="${GPU_IDS:-0 1 2 3}"
 export RANKS="${RANKS:-1}"
 
+# Stop handle for scripts/campaigns/stop_campaign.sh.  exec preserves the PID,
+# so registering here records the pid run.sh will actually run under.
+source "${SCRIPT_DIR}/../lib/launcher_common.sh"
+campaign_register_launcher "$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/grtresna_qd/${QD_NAME}"
+
 exec bash "${SCRIPT_DIR}/run.sh"
