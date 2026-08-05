@@ -81,9 +81,10 @@ void run_ah_finder_unit_test()
                               << n_local << " LOCAL particles \n";
         }
 
-        AHFinder<1> finder(num_particles, sim_params.center);
+        AHFinder<21> finder(num_particles, sim_params.center);
 
         finder.init(&gr_amr, sim_params.boundary_params, verbosity);
+        finder.find();
     }
 
     amrex::Finalize();
