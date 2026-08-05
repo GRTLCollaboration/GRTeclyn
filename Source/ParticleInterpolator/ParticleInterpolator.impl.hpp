@@ -290,6 +290,42 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         const int num_particles = par_iter.numParticles();
         auto fab_array          = mfab[par_iter].const_array();
 
+        // Gather comp map into arrays so it can be used on GPU
+        int num_derivs =
+            std::distance(m_query->compsBegin(), m_query->compsEnd());
+
+        Derivative derivs[num_derivs];
+        InterpolationQueryParticle::out_t *comps[num_derivs];
+        int comp_counts[num_derivs];
+
+        int i = 0;
+
+        for (auto comps_it = m_query->compsBegin();
+             comps_it != m_query->compsEnd(); ++comps_it)
+        {
+            derivs[i]      = comps_it->first;
+            comps[i]       = comps_it->second.data();
+            comp_counts[i] = static_cast<int>(comps_it->second.size());
+            ++i;
+        }
+
+        amrex::GpuArray<bool, AMREX_SPACEDIM> need_d1{};
+        amrex::GpuArray<bool, AMREX_SPACEDIM> need_d2{};
+        for (int di = 0; di < num_derivs; ++di)
+        {
+            for (int dim = 0; dim < AMREX_SPACEDIM; ++dim)
+            {
+                if (derivs[di][dim] == 1)
+                {
+                    need_d1[dim] = true;
+                }
+                else if (derivs[di][dim] == 2)
+                {
+                    need_d2[dim] = true;
+                }
+            }
+        }
+
         amrex::ParallelFor(
             num_particles,
             [=] AMREX_GPU_DEVICE(int ip)
@@ -300,9 +336,9 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
                 // 4th-order Lagrange (5-point stencil)
                 Lagrange<s_interp_order + 1>
                     lagrange_interp; // 4th order interpolation
-                lagrange_interp.compute_weights(particle, problem_domain_lo,
-                                                dxi, is_nodal, lo_reflective,
-                                                hi_reflective, domain_ncell);
+                lagrange_interp.compute_weights(
+                    particle, problem_domain_lo, dxi, is_nodal, lo_reflective,
+                    hi_reflective, domain_ncell, need_d1, need_d2);
 
                 amrex::ParticleReal interpolated_vals[ncomp];
                 lagrange_interp.interpolate(

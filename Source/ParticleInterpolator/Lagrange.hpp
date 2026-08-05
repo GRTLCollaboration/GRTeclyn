@@ -221,7 +221,9 @@ template <int N> class Lagrange
                     const amrex::IntVect &is_nodal,
                     amrex::GpuArray<bool, AMREX_SPACEDIM> const lo_reflective,
                     amrex::GpuArray<bool, AMREX_SPACEDIM> const hi_reflective,
-                    amrex::GpuArray<int, AMREX_SPACEDIM> const domain_ncell)
+                    amrex::GpuArray<int, AMREX_SPACEDIM> const domain_ncell,
+                    amrex::GpuArray<bool, AMREX_SPACEDIM> const need_d1,
+                    amrex::GpuArray<bool, AMREX_SPACEDIM> const need_d2)
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Compute the grid index of the position
@@ -238,27 +240,45 @@ template <int N> class Lagrange
 
         build_stencil(xpos, i0, weights_local[0], lo_reflective[0],
                       hi_reflective[0], domain_ncell[1], 0);
-        build_stencil(xpos, i0, weights_d1[0], lo_reflective[0],
-                      hi_reflective[0], domain_ncell[0], 1);
-        build_stencil(xpos, i0, weights_d2[0], lo_reflective[0],
-                      hi_reflective[0], domain_ncell[0], 2);
+        if (need_d1[0])
+        {
+            build_stencil(xpos, i0, weights_d1[0], lo_reflective[0],
+                          hi_reflective[0], domain_ncell[0], 1);
+        }
+        if (need_d2[0])
+        {
+            build_stencil(xpos, i0, weights_d2[0], lo_reflective[0],
+                          hi_reflective[0], domain_ncell[0], 2);
+        }
 #if AMREX_SPACEDIM >= 2
         build_stencil(ypos, j0, weights_local[1], lo_reflective[1],
                       hi_reflective[1], domain_ncell[1], 0);
-        build_stencil(ypos, j0, weights_d1[1], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1], 1);
-        build_stencil(ypos, j0, weights_d2[1], lo_reflective[1],
-                      hi_reflective[1], domain_ncell[1], 2);
+        if (need_d1[1])
+        {
+            build_stencil(ypos, j0, weights_d1[1], lo_reflective[1],
+                          hi_reflective[1], domain_ncell[1], 1);
+        }
+        if (need_d2[1])
+        {
+            build_stencil(ypos, j0, weights_d2[1], lo_reflective[1],
+                          hi_reflective[1], domain_ncell[1], 2);
+        }
 
 #endif
 
 #if AMREX_SPACEDIM == 3
         build_stencil(zpos, k0, weights_local[2], lo_reflective[2],
                       hi_reflective[2], domain_ncell[2], 0);
-        build_stencil(zpos, k0, weights_d1[2], lo_reflective[2],
-                      hi_reflective[2], domain_ncell[2], 1);
-        build_stencil(zpos, k0, weights_d2[2], lo_reflective[2],
-                      hi_reflective[2], domain_ncell[2], 2);
+        if (need_d1[2])
+        {
+            build_stencil(zpos, k0, weights_d1[2], lo_reflective[2],
+                          hi_reflective[2], domain_ncell[2], 1);
+        }
+        if (need_d2[2])
+        {
+            build_stencil(zpos, k0, weights_d2[2], lo_reflective[2],
+                          hi_reflective[2], domain_ncell[2], 2);
+        }
 #endif
     }
 
