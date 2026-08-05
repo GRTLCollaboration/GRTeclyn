@@ -49,10 +49,16 @@ template <class gauge_t = MovingPunctureGauge,
 class CCZ4RHS
 {
   public:
-    enum
+    enum formulations : int
     {
-        USE_CCZ4,
-        USE_BSSN
+        USE_CCZ4 = 0,
+        USE_BSSN = 1
+    };
+
+    enum covariantZ4 : int
+    {
+        YES,
+        NO
     };
 
     using params_t = CCZ4_params_t<typename gauge_t::params_t>;
