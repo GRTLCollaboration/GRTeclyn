@@ -55,6 +55,8 @@ void AHFinder<num_components>::init(
 
     theta_new = inf_norm(interp_vals);
 
+    h_derivs();
+
     this->move_radial();
 
     while (theta_new > m_tol)
@@ -124,25 +126,27 @@ void AHFinder<num_components>::generate_spherical_query()
 }
 
 template <int num_components>
-std::array<int, 4> AHFinder<num_components>::neighbours(int j) const
+amrex::GpuArray<int, 4> AHFinder<num_components>::neighbours(int j) const
 {
-    // Get the 4 neighbours of a particle (north, south, east and west)
-
+    // Get the 4 neighbours of a particle (north, south, east and west).
+    // If we are at the top/bottom ring, we can take the north/south
+    // neighbour respectively as the opposite point on the same ring
     int ring_num = j / m_ring_size;
     int ring_pos = j % m_ring_size;
 
+    int opposite_point =
+        ring_num * m_ring_size + (ring_pos + m_ring_size / 2) % m_ring_size;
+
     int north, south, east, west;
 
-    // North/south neighbours are next ring above/below
-    // In the case we are at a pole, take the particle opposite
-    // on the same ring
+    // North/south neighbours are next ring above/below.
     if (ring_num > 0)
     {
         north = (ring_num - 1) * m_ring_size + ring_pos;
     }
     else
     {
-        north = (ring_num + (m_ring_size / 2)) % m_ring_size;
+        north = opposite_point;
     }
 
     if (ring_num < m_n_rings - 1)
@@ -151,12 +155,12 @@ std::array<int, 4> AHFinder<num_components>::neighbours(int j) const
     }
     else
     {
-        south = (ring_num + (m_ring_size / 2)) % m_ring_size;
+        south = opposite_point;
     }
 
     // East/west neighbours are adjacent in the same ring
     // Modulo to wrap around
-    east = (ring_num * m_ring_size + (ring_pos + 1)) % m_ring_size;
+    east = ring_num * m_ring_size + (ring_pos + 1) % m_ring_size;
     west = ring_num * m_ring_size + (ring_pos - 1 + m_ring_size) % m_ring_size;
 
     return {north, south, east, west};
@@ -301,6 +305,86 @@ double AHFinder<num_components>::inf_norm(std::vector<double> arr)
     }
 
     return max_el;
+}
+
+template <int num_components> void AHFinder<num_components>::h_derivs()
+{
+    // Calculate dh/dx, dh/dy, dh/dz for all particles.
+    // First compute dh/d_theta and dh/d_phi and convert to cartesian
+    for (int lev = 0; lev <= this->m_gramr_ptr->finestLevel(); ++lev)
+    {
+
+        if (this->NumberOfParticlesAtLevel(lev) == 0)
+            continue;
+
+        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
+        {
+            // Get AoS data for particles at this level
+            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
+            auto &soa             = particle_tile.GetStructOfArrays();
+            auto &aos             = particle_tile.GetArrayOfStructs();
+            ParticleType *pstruct = aos().dataPtr();
+
+            double *h_ptr = soa.GetRealData(m_h_idx).dataPtr();
+
+            // Map from id (constant) to idx in particle array
+            // (changes on redistribute)
+            amrex::Gpu::DeviceVector<int> id_to_idx(m_num_particles);
+            int *id_to_idx_ptr = id_to_idx.dataPtr();
+
+            amrex::ParallelFor(m_num_particles, [=] AMREX_GPU_DEVICE(int ip)
+                               { id_to_idx_ptr[pstruct[ip].id()] = ip; });
+            amrex::Gpu::streamSynchronize();
+
+            const double d_theta = M_PI / m_n_rings;
+            const double d_phi   = 2.0 * M_PI / m_ring_size;
+
+            amrex::ParallelFor(
+                m_num_particles,
+                [=] AMREX_GPU_DEVICE(int ip)
+                {
+                    int id            = pstruct[ip].id();
+                    int self_ring_num = id / m_ring_size;
+                    int self_ring_pos = id % m_ring_size;
+                    double theta = (self_ring_num + 0.5) * M_PI / m_n_rings;
+                    double phi   = self_ring_pos * 2.0 * M_PI / m_ring_size;
+
+                    amrex::GpuArray<int, 4> neighbour_ids =
+                        this->neighbours(id);
+
+                    int north_idx = id_to_idx_ptr[neighbour_ids[0]];
+                    int south_idx = id_to_idx_ptr[neighbour_ids[1]];
+                    int east_idx  = id_to_idx_ptr[neighbour_ids[2]];
+                    int west_idx  = id_to_idx_ptr[neighbour_ids[3]];
+
+                    // Derivatives in polar coordinates
+                    amrex::Real dh_dtheta =
+                        (h_ptr[south_idx] - h_ptr[north_idx]) / (2.0 * d_theta);
+                    amrex::Real dh_dphi =
+                        (h_ptr[east_idx] - h_ptr[west_idx]) / (2.0 * d_phi);
+
+                    // Convert to cartesian with sphere Jacobian
+                    double r         = h_ptr[ip];
+                    double sin_theta = sin(theta);
+                    double cos_theta = cos(theta);
+                    double sin_phi   = sin(phi);
+                    double cos_phi   = cos(phi);
+
+                    amrex::Real dhdx = dh_dtheta * cos_theta * cos_phi / r -
+                                       dh_dphi * sin_phi / (r * sin_theta);
+                    amrex::Real dhdy = dh_dtheta * cos_theta * sin_phi / r +
+                                       dh_dphi * cos_phi / (r * sin_theta);
+                    amrex::Real dhdz = -dh_dtheta * sin_theta / r;
+                });
+        }
+
+        amrex::Gpu::streamSynchronize();
+
+        // Update query
+        query.setCoords(0, interp_coords_x.data())
+            .setCoords(1, interp_coords_y.data())
+            .setCoords(2, interp_coords_z.data());
+    }
 }
 
 #endif /* AHFINDER_IMPL_HPP_ */

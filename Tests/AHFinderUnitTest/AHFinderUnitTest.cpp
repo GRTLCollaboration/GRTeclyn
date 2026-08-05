@@ -60,7 +60,7 @@ void run_ah_finder_unit_test()
         gr_amr.init(0., sim_params.stop_time);
 
         // Read from params
-        const int num_particles = 10;
+        const int num_particles = 64;
         bool verbosity          = sim_params.verbosity;
 
         // Number of processes and local processes

@@ -44,10 +44,11 @@ class AHFinder : public ParticleInterpolator<num_components>
     // Returns the indices of the 4 neighbours of particle j on the ring
     // grid, ordered {north, south, east, west}. East/west wrap around
     // longitude; north/south clamp at the poles (returning j itself).
-    std::array<int, 4> neighbours(int j) const;
+    amrex::GpuArray<int, 4> neighbours(int j) const;
     void move_radial();
     void init_h_v();
     void update_v();
+    void h_derivs();
     double inf_norm(std::vector<double>);
 
   public:
