@@ -10,6 +10,7 @@ import numpy as np
 from .extraction.areal import _extract_areal_radius_min
 from .extraction.central import _extract_central_timeseries_line
 from .extraction.confinement import _extract_confinement_line
+from .extraction.sector_barycenters import _extract_sector_barycenters_line
 from .extraction.ftl import _extract_ftl_timeseries_line
 from .extraction.psi4 import _extract_mode_amps_l2m0, _extract_mode_amps_l2_all
 from .extraction.shell import _extract_shell_field_stats, _format_shell_stats_line
@@ -259,6 +260,15 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
             result["confinement_line"] = _extract_confinement_line(
                 p,
                 t=t,
+                well_width=float(args_dict.get("confinement_well_width", 1.5)),
+                verbose=args_dict.get("verbose", False),
+            )
+
+        if args_dict.get("sector_barycenters"):
+            result["sector_barycenters_line"] = _extract_sector_barycenters_line(
+                p,
+                t=t,
+                matter_model=str(args_dict.get("matter_model") or ""),
                 well_width=float(args_dict.get("confinement_well_width", 1.5)),
                 verbose=args_dict.get("verbose", False),
             )

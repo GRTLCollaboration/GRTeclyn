@@ -14,6 +14,7 @@ from grteclyn_wrapper.objective_modes import QD_OBJECTIVE_MODES
 from .config import _default_data_dir, _default_frames_out_dir, _frames_auto_zlim_enabled
 from .extraction.central import CENTRAL_TIMESERIES_HEADER
 from .extraction.confinement import CONFINEMENT_TIMESERIES_HEADER
+from .extraction.sector_barycenters import SECTOR_BARYCENTERS_HEADER
 from .extraction.ftl import FTL_TIMESERIES_HEADER
 from .extraction.shell import _shell_stats_header
 from .fields import _canonical_field_name
@@ -152,6 +153,19 @@ def main() -> None:
         help="Lump scale for confinement R_conf = 4*well_width (default 1.5).",
     )
     parser.add_argument(
+        "--sector-barycenters",
+        action="store_true",
+        help="Per-plotfile canonical/phantom sector centroids to "
+        "sector_barycenters.dat -- the Bondi-dipole runaway diagnostic "
+        "(the aggregate barycentre cancels for a mixed-sign pair).",
+    )
+    parser.add_argument(
+        "--matter-model",
+        default="",
+        help="Authoritative recipe_matter_model tag for the sector split "
+        "(field-sniffing cannot classify runs whose canonical sector is zero).",
+    )
+    parser.add_argument(
         "--central-timeseries",
         action="store_true",
         help="Per-plotfile central ball rho/lapse/scalar activity to central_timeseries.dat.",
@@ -287,6 +301,7 @@ def main() -> None:
     boundary_flux_out_path = out_dir / "boundary_flux.dat"
     ftl_out_path = out_dir / "ftl_timeseries.dat"
     confinement_out_path = out_dir / "confinement.dat"
+    sector_barycenters_out_path = out_dir / "sector_barycenters.dat"
     central_out_path = out_dir / "central_timeseries.dat"
     central_radial_out_path = out_dir / "central_radial_profile.dat"
     score_ts_path = out_dir / "score_timeseries.jsonl"
@@ -323,6 +338,8 @@ def main() -> None:
             _truncate_if_exists(ftl_out_path)
         if args.confinement_timeseries:
             _truncate_if_exists(confinement_out_path)
+        if args.sector_barycenters:
+            _truncate_if_exists(sector_barycenters_out_path)
         if args.central_timeseries:
             _truncate_if_exists(central_out_path)
         if args.central_radial_profile:
@@ -555,6 +572,12 @@ def main() -> None:
                                     header=CONFINEMENT_TIMESERIES_HEADER,
                                     line=res["confinement_line"],
                                 )
+                            if res.get("sector_barycenters_line"):
+                                _append_line(
+                                    sector_barycenters_out_path,
+                                    header=SECTOR_BARYCENTERS_HEADER,
+                                    line=res["sector_barycenters_line"],
+                                )
                             _handle_central_outputs(res)
 
                             state[res["key"]] = True
@@ -610,6 +633,12 @@ def main() -> None:
                             confinement_out_path,
                             header=CONFINEMENT_TIMESERIES_HEADER,
                             line=res["confinement_line"],
+                        )
+                    if res.get("sector_barycenters_line"):
+                        _append_line(
+                            sector_barycenters_out_path,
+                            header=SECTOR_BARYCENTERS_HEADER,
+                            line=res["sector_barycenters_line"],
                         )
                     _handle_central_outputs(res)
 

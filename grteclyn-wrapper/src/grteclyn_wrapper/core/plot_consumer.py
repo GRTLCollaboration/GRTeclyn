@@ -135,6 +135,19 @@ def _strip_param_value(value: str) -> str:
     return value
 
 
+def _read_str_param(params_path: Path, key: str, default: str) -> str:
+    try:
+        for line in params_path.read_text(encoding="utf-8").splitlines():
+            if "=" not in line:
+                continue
+            lhs, rhs = line.split("=", 1)
+            if lhs.strip() == key:
+                return _strip_param_value(rhs).split()[0]
+    except (FileNotFoundError, IndexError):
+        pass
+    return default
+
+
 def _read_float_param(params_path: Path, key: str, default: float) -> float:
     try:
         for line in params_path.read_text(encoding="utf-8").splitlines():
@@ -304,6 +317,11 @@ def build_consume_command(
         command.extend(
             ["--confinement-timeseries", "--confinement-well-width", f"{well_width:g}"]
         )
+    if _env_flag("GRTECLYN_SECTOR_BARYCENTERS"):
+        command.append("--sector-barycenters")
+        matter_model = _read_str_param(episode.params_path, "recipe_matter_model", "")
+        if matter_model:
+            command.extend(["--matter-model", matter_model])
     central_enabled = _central_timeseries_enabled(central_timeseries)
     splash_incremental = (
         _incremental_score_enabled(incremental_score)
