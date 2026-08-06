@@ -224,7 +224,8 @@ rm -rf ./select_gpu
 
 ---
 
-## Zenith (Under testing ...)
+## Zenith
+
 The modules used
 ```
 module purge

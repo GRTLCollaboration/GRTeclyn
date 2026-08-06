@@ -73,24 +73,13 @@ Unless your code was already up-to-date with the main branch, you may now have c
 
 ## Step 4: Tidy and comment the code
 
-All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the coding conventions in [[Coding conventions| Coding conventions]]. In particular you will need to ensure code is formatted using Clang Format. 
+All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the [**coding conventions**](coding_conventions.md). In particular you will need to ensure code is formatted using Clang Format. 
 
 ## Step 5: Create or amend the documentation
 
 You should also draft documentation for the wiki for any major new features that need explaining, or update the existing docs for any changes.
 
-You can view the docs locally in your browser by installing mkdocs:
-
-```pip install mkdocs```
-
-and then running
-
-```mkdocs serve```
-
-in the folder in which the index `mkdocs.yml` lives (the base folder).
-
-It should say something like `Serving on http://127.0.0.1:8000/`, and you can then open this address in your browser to view the docs as they will appear online once you push them.
-
+See [**Updating the documentation**](updating_docs.md) for more info on how to do this.
 
 ## Step 6: Create a pull request (PR)
 
