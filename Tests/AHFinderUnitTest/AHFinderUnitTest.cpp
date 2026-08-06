@@ -81,7 +81,10 @@ void run_ah_finder_unit_test()
                               << n_local << " LOCAL particles \n";
         }
 
-        AHFinder<21> finder(num_particles, sim_params.center);
+        // Search for the individual horizon around puncture A.
+        double guess_radius = 0.5 * sim_params.bh1_params.mass;
+        AHFinder<21> finder(num_particles, sim_params.bh1_params.center,
+                            guess_radius);
 
         finder.init(&gr_amr, sim_params.boundary_params, verbosity);
         finder.find();

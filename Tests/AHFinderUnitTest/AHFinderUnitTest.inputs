@@ -8,13 +8,27 @@ checkpoint_interval = -1
 plot_interval = -1
 
 #################################################
+# Initial Data parameters (BinaryBH example, see Examples/BinaryBH)
+
+# provide 'offset' or 'center'
+massA = 0.5
+massB = 0.5
+
+offsetA = -1.0 0.0 0.0
+offsetB =  1.0 0.0 0.0
+
+momentumA = 0.0 0.0 0.0
+momentumB = 0.0 0.0 0.0
+
+#################################################
 # Grid parameters
 
-N_full = 32
-L_full = 16
+N_full = 64
+L_full = 8
 
+# We only need the first timestep's data, so never regrid
 max_level = 1
-regrid_interval = 1 1
+regrid_interval = 0 0
 num_ghosts = 3
 
 #################################################
@@ -26,6 +40,9 @@ isPeriodic = 0 0 0
 # (see BoundaryConditions.hpp for details)
 hi_boundary = 1 1 1
 lo_boundary = 1 1 2
+
+nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 #################################################
 # Evolution parameters

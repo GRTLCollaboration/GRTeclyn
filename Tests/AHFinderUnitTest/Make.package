@@ -1,4 +1,5 @@
 GRTECLYN_CEXE_headers += AHFinderLevel.hpp \
-                         AHFinderUnitTest.hpp
+                         AHFinderUnitTest.hpp \
+                         SimulationParameters.hpp
 
 GRTECLYN_CEXE_sources += AHFinderUnitTest.cpp
