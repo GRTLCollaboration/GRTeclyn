@@ -21,8 +21,8 @@
 #
 # Launch-time verification (t=0 row of sector_barycenters.dat):
 #   single_p / pair cells: total_canon ~= 15.92, rms_canon ~= 5.05
-#   cells with a phantom lump: total_phantom ~= 15.8, rms_phantom ~= 5.1
-#   (phantom slightly puffed; both far from the flat-seed 34.65/36.30 numbers)
+#   cells with a phantom lump: total_phantom ~= 20.99, rms_phantom ~= 5.43
+#   (phantom puffier than canonical; both far from flat-seed 34.65/36.30)
 #
 # Usage:
 #   bash scripts/campaigns/bondi_dipole/run_matrix_selfgrav.sh
@@ -85,12 +85,15 @@ common_overrides=(
 )
 
 # name | num_lumps | lump0_exotic | lump1_exotic (ignored for singles)
+# single_m runs SECOND (before any pair): the dressed-phantom + exotic
+# constraint-solve combination has never been evolved on GPU -- it is the
+# riskiest untested seam, so it must gate the pair cells.
 matrix=(
   "single_p 1 0 0"
+  "single_m 1 1 0"
   "pair_pm  2 0 1"
   "pair_pp  2 0 0"
   "pair_mm  2 1 1"
-  "single_m 1 1 0"
 )
 
 for spec in "${matrix[@]}"; do

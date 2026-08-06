@@ -26,7 +26,8 @@
 # Usage:
 #   bash scripts/campaigns/bondi_dipole/run_single_selfgrav.sh
 # Overrides: BONDI_GPU (default 1), BONDI_STOP_TIME (default 40),
-#            BONDI_RUNS_DIR, BONDI_SEP (default 8).
+#            BONDI_RUNS_DIR, BONDI_SEP (default 8), BONDI_EXOTIC=1 (lone
+#            phantom star single_m -- reads the PHANTOM columns downstream).
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
@@ -37,6 +38,7 @@ RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_selfgrav_v1}"
 GPU="${BONDI_GPU:-1}"
 STOP_TIME="${BONDI_STOP_TIME:-40}"
 SEP="${BONDI_SEP:-8}"
+EXOTIC="${BONDI_EXOTIC:-0}"
 R0="$(python3 -c "print(${SEP}/2)")"
 
 mkdir -p "${RUNS_DIR}"
@@ -54,6 +56,7 @@ export GRTECLYN_PSI4=1
 GRTRESNA_RANKS=1
 
 out_name="bondi_sg_single_p"
+if [[ "${EXOTIC}" == "1" ]]; then out_name="bondi_sg_single_m"; fi
 if [[ -d "${RUNS_DIR}/${out_name}" ]]; then
   echo "[bondi] ${out_name} already exists -- delete it or set BONDI_RUNS_DIR"
   exit 1
@@ -98,6 +101,6 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --extra-override trajectory_lump0_v_rad=0 \
   --extra-override trajectory_lump0_omega_rot=0 \
   --extra-override trajectory_lump0_well_depth=0.15 \
-  --extra-override trajectory_lump0_exotic=0
+  --extra-override trajectory_lump0_exotic="${EXOTIC}"
 
 echo "[bondi] dressed-star calibration complete: ${RUNS_DIR}/${out_name}"

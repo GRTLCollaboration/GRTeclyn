@@ -257,12 +257,12 @@ Options, in order of preference:
 | matrix scripts (strong → mid) | `grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_matrix.sh`, `run_matrix_weakfield.sh`, `run_matrix_weakfield2.sh`, `run_matrix_midfield.sh` |
 | exact-amplitude fix (2026-08-06) | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/config.py` (`grtresna_qball_exact_amplitude`), tests in `tests/grtresna/test_qball_bicomplex_campaign.py` |
 | stop tool (the only sanctioned way) | `grteclyn-wrapper/scripts/campaigns/stop_campaign.sh` |
-| run dirs | `runs/bondi_dipole_v1`, `runs/bondi_dipole_weakfield_v1`, `runs/bondi_dipole_weakfield_v2`, `runs/bondi_dipole_midfield_v1` |
-| launch logs | `runs/bondi_wf2_launch.log`, `runs/bondi_midfield_launch.log` |
+| run dirs | ~~`runs/bondi_dipole_v1`, `runs/bondi_dipole_weakfield_v1`, `runs/bondi_dipole_weakfield_v2`, `runs/bondi_dipole_midfield_v1`~~ (deleted in the 2026-08-06 cleanup, §8.8 — flat-seed era, superseded) |
+| launch logs | ~~`runs/bondi_wf2_launch.log`, `runs/bondi_midfield_launch.log`~~ (deleted, §8.8) |
 | trajectory stream | `<run>/small_data/sector_barycenters.dat` (cols: t, total_canon, bary_xyz_canon, rms_canon, total_phant, bary_xyz_phant, rms_phant) |
 | grip / collapse monitor | `<run>/small_data/confinement.dat`, min_chi = col 18 |
-| v2 intermediate movies | `runs/bondi_dipole_weakfield_v2/bondi_wf2_single_p/movies/` (19 views, t=0–13) |
-| v1 pair movie (overlap-hypothesis source) | `runs/bondi_dipole_weakfield_v1/bondi_wf_pair_pm/movies/movie_scalar_activity_z_t0-32.mp4` |
+| v2 intermediate movies | ~~`runs/bondi_dipole_weakfield_v2/bondi_wf2_single_p/movies/`~~ (deleted, §8.8) |
+| v1 pair movie (overlap-hypothesis source) | ~~`runs/bondi_dipole_weakfield_v1/bondi_wf_pair_pm/movies/movie_scalar_activity_z_t0-32.mp4`~~ (deleted, §8.8) |
 
 ## 7. Root cause (2026-08-06) — the amplitude clamp, not the profile
 
@@ -360,7 +360,8 @@ profile-enum collision 4↔4) — kept out of this journal; ask for the
 
 ### 8.1 The §7.3 gate run — verified seed, same blow-off
 
-`bondi_ex_single_p` (runs/bondi_dipole_exact_v1, weak rung, ω=0.55,
+`bondi_ex_single_p` (runs/bondi_dipole_exact_v1 — deleted in the §8.8
+cleanup; weak rung, ω=0.55,
 `grtresna_qball_exact_amplitude=1`, stop 40, GPU 1):
 
 - **Seed verified end-to-end**: `lump0_amp = 0.03928682593468194` (the ODE
@@ -445,7 +446,8 @@ by t=100. Still far above the barycentre stream's resolution.
 
 ### 8.5 Running now + revised road forward
 
-- `bondi_sg_single_p` (runs/bondi_dipole_selfgrav_v1, GPU 1, stop 40,
+- `bondi_sg_single_p` (runs/bondi_dipole_selfgrav_v1 — deleted in the
+  §8.8 cleanup, superseded by identical v2; GPU 1, stop 40,
   `run_single_selfgrav.sh`): ultraweak rung, `grtresna_bs_selfgrav=1`,
   ω=0.55. Seed verified at launch: solved eigenvalue 0.5500068,
   lump0_amp = 0.0196947, 3-column (lapse) table. Expected t=0 fingerprint
@@ -463,7 +465,8 @@ by t=100. Still far above the barycentre stream's resolution.
 
 ### 8.6 Dressed-star calibration v1 verdict (2026-08-06, evening)
 
-`bondi_sg_single_p` (runs/bondi_dipole_selfgrav_v1) ran to t=40. Verdict:
+`bondi_sg_single_p` (runs/bondi_dipole_selfgrav_v1, since deleted —
+v2 reproduces it exactly) ran to t=40. Verdict:
 **bound breather, dirty launch — the first lump that did NOT disperse.**
 
 - Seed verified digit-perfect: t=0 total 15.924 / rms 5.045 vs predicted
@@ -485,6 +488,117 @@ by t=100. Still far above the barycentre stream's resolution.
   massless-wave boundaries and keeps washing over the star (plus possible
   gauge drift). If it persists in the clean run, options: sponge layer, or
   accept and keep pair runs ≤ t≈60.
-- v2 (tight solve, runs/bondi_dipole_selfgrav_v2) launched; if the breath
+- v2 (tight solve, now at runs/bondi/single_p) launched; if the breath
   shrinks and chi stabilises → five-cell matrix
   (`run_matrix_selfgrav.sh`, runs/bondi_dipole_selfgrav_matrix_v1).
+
+### 8.7 Clean-solve v2, first phantom star, pair_pm launch (2026-08-06, night)
+
+Three runs in flight on GPUs 1/2/3 (sharing the node with the depth
+campaign; user authorised spreading across GPUs).
+
+**v2 canonical (GPU 1, now at runs/bondi/single_p/bondi_sg_single_p).**
+Tight solve delivered: Ham 0.0031% / Mom 0.018% (v1: 0.64%). t=0
+fingerprint 15.924 / 5.045 — identical to v1 to the last digit. Evolution
+tracks v1 point-for-point (t=20 crest peak 0.0247 = v1's cycle-2/3 crest;
+rms bath climbing the same ramp; chi 0.951 at t=20 → 0.905 at t=32, same
+drift).
+**Verdict on the breath: it is resolution-intrinsic** (discretisation of
+the continuum star on N=128/L=64), NOT residual-driven — a clean solve
+reproduces it exactly. The ±8% breath is cosmetic; the launch ring is
+gone. Resolution notch is the lever if we ever want a quieter core.
+
+**single_m — the first phantom star ever solved AND evolved (GPU 2,
+now at runs/bondi/single_m/bondi_sg_single_m).** The never-tested
+seam (exotic + dressed constraint solve) works end-to-end:
+
+- Solve residuals Ham 0.089% / Mom 0.052% (within the 0.1% gate; a bit
+  above the canonical star's — the repulsive-gravity branch is stiffer).
+- Exotic table emitted (`qball_profile_exotic.dat`, self-grav header,
+  gravity_sign=−1); painted star matches it: t=0 phantom fingerprint
+  **20.989 / 5.427** vs predicted 20.99 / 5.43; canonical columns exactly 0.
+- **Mirror-image metric signature confirmed**: chi sits at 1.0005 — just
+  ABOVE 1 (canonical star: below 1). Repulsive gravity stretches the
+  slice where attractive gravity compresses it. ψ<1, α>1 as solved.
+- Early evolution calmer than the canonical twin: rms_phant 5.427 → 5.677
+  through t=20 (canonical: → 6.55 — its bath grows ~4× slower), peak
+  breath ~3% around 0.030 (canonical: ~8%), and — striking — **chi is
+  pinned at 1.0008 with NO drift through t=20** while the canonical
+  star's chi slid 0.99 → 0.95 over the same window. The repulsive sector
+  appears insensitive to the radiation bath. The puffier phantom star
+  (|ADM|=0.077) is the most stable object of the campaign so far.
+
+**pair_pm — the runaway cell — launched (GPU 3, stop 60,
+now at runs/bondi/pair_pm/bondi_sg_pair_pm,
+`run_pair_selfgrav.sh` with BONDI_S0=0 BONDI_S1=1).** Canonical star at
+x=+4, phantom at x=−4 (grid centre 32 → columns read 36 / 28), both at
+rest, sep 8. New script generalises the single launcher to two lumps with
+per-sector flags; pair_pp / pair_mm reuse it when GPUs free. Stop 60 (not
+100): the radiation bath cannot exit the massless-wave boundaries and chi
+drifted 0.99 → 0.86 by t=40 in the singles — beyond t≈60 the bath would
+start to poison the drift measurement.
+
+Predicted signature (§1 physics, now with dressed masses M₊=+0.0640,
+M₋=−0.0770): the phantom repels the canonical star (pushes it +x), the
+canonical attracts the phantom (pulls it +x) → **both barycentres drift
++x together**, the classic runaway. Because |M₋| > |M₊| by ~20% the
+sectors are NOT mirror images — expect imperfect momentum cancellation
+and a slightly asymmetric drift. Watch sector_barycenters cols 3 (canon
+x) and 8 (phantom x); naive estimate a ≈ M/sep² ≈ 1e-3 → mm-scale by
+t≈40–60, at the edge of visibility over the breath noise.
+
+### 8.8 Final verdicts: the runaway is real; run-dir cleanup (2026-08-06, late night)
+
+**pair_pm — RUNAWAY CONFIRMED.** Solve residuals Ham 0.083% / Mom 0.074%
+(both inside the 0.1% gate). Dual t=0 fingerprint clean: canon
+15.889 / 5.045, phantom 21.027 / 5.427 — both stars born correctly in one
+box. The drift (sector_barycenters cols 3 / 8, starts 36 / 28):
+
+| t | xC (canon) | xP (phantom) | sep |
+|---|---|---|---|
+| 0 | 36.00 | 28.00 | 8.00 |
+| 20 | 36.14 | 28.30 | 7.84 |
+| 40 | 37.39 | 30.52 | 6.87 |
+| 60 | 39.35 | 37.57 | 1.78 |
+
+**Both barycentres moved +x**, exactly the §1 prediction: the phantom's
+repulsive gravity pushes the canonical star away (+x) while the canonical
+star's attraction pulls the phantom after it (+x). The motion is
+self-accelerating — as the gap closes the force grows — so the naive
+mm-scale estimate (constant sep 8) was a vast underestimate: displacement
+is 3.3 / 9.6 length units by t=60. And because |M₋| > |M₊| (~20%) the
+phantom accelerates harder than the canonical star it chases: this is not
+a constant-separation runaway but a **chase that closes**, sep 8 → 1.8,
+near-contact at t=60. Core diagnostics reflect the coalescence, not decay:
+peak 0.0408 → 0.0548, confined_frac 0.30 → 0.63, chi_min 0.98 → 0.44
+(concentration + trapped bath). Stopping at t=60 was the right call.
+
+**v2 canonical, final (t=40)**: crests 0.0226–0.0231, chi 0.989 → 0.905,
+rms bath 5.05 → 12.25 — tracks v1 to the end; §8.7 verdicts stand
+(breath resolution-intrinsic, launch ring gone).
+
+**single_m phantom, final (t=40)**: rms 5.43 → 6.25 (canonical bath grew
+~4× faster), peak ~0.030 with ~3% breath, **chi_min pinned 1.0009–1.0010
+for the entire run** — zero drift. The phantom star stays the most stable
+object of the campaign.
+
+**Run-directory cleanup + reorganisation (user request).** Everything
+superseded was deleted (~6 GB freed) and the keepers moved under a single
+`runs/bondi/` parent:
+
+| run | new path |
+|---|---|
+| canonical single (v2, tight solve) | `runs/bondi/single_p/bondi_sg_single_p` |
+| phantom single | `runs/bondi/single_m/bondi_sg_single_m` |
+| runaway pair | `runs/bondi/pair_pm/bondi_sg_pair_pm` |
+
+Launch logs live alongside as `runs/bondi/<name>.launch.log`. Deleted:
+`bondi_dipole_v1`, `_weakfield_v1`, `_weakfield_v2`, `_midfield_v1`,
+`_exact_v1`, `_selfgrav_v1` and their stray launch logs (path references
+in §§6–8.6 above are historical). New cells land inside `runs/bondi/`.
+
+**Controls launched next: pair_pp (GPU 1) and pair_mm (GPU 2)**, stop 60,
+`run_pair_selfgrav.sh` with BONDI_RUNS_DIR in the new layout. Expected:
+pp = mutual attraction, sep shrinks, pair centre stays put; mm = mutual
+repulsion, sep grows, centre stays put. Co-drift in either control would
+flag a numerical artifact; none expected.
