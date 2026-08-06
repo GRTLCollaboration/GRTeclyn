@@ -171,6 +171,11 @@ def _boosted_lump_fields(
     if amp == 0.0:
         return zero, zero.copy(), zero.copy(), zero.copy()
 
+    # Per-lump U(1) phase velocity (mixed-frequency selfgrav pairs); falls
+    # back to the global omega.  Must match GRTresna's lump{k}_bs_omega so the
+    # repaint and the constraint solve agree on the momentum.
+    omega = float(lump.get("bs_omega", 0.0)) or omega
+
     width = float(lump.get("width", 5.0))
     center = np.asarray(lump.get("center", (0.0, 0.0, 0.0)), dtype=np.float64)
     velocity = np.asarray(lump.get("velocity", (0.0, 0.0, 0.0)), dtype=np.float64)

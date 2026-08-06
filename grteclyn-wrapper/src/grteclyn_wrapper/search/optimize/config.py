@@ -514,12 +514,17 @@ def _expand_trajectory_boson_lumps_from_overrides(
             "exotic": exotic,
         }
         if (use_ode or use_selfgrav) and lam > 0.0 and mu > 0.0:
+            # Per-lump star frequency (trajectory_lump{k}_bs_omega): lets a
+            # mixed pair match |ADM| across sectors -- the equal-mass Bondi
+            # cell runs the phantom star at a slightly higher omega than the
+            # canonical one.  0 => the global grtresna_bs_omega.
+            omega_k = get_float(f"{pfx}bs_omega", 0.0)
             lump.update(
                 {
                     "qball_mass": mass,
                     "qball_lam": lam,
                     "qball_mu": mu,
-                    "qball_omega": omega,
+                    "qball_omega": omega_k if omega_k > 0.0 else omega,
                 }
             )
         lumps.append(lump)

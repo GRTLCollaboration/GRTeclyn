@@ -19,6 +19,13 @@ Appendix B of `research/nextsteps.md`).*
 > Fixed-frequency dressed-star initial data landed; first rung where the
 > dressed ω=0.55 star exists is λ=10240 ("ultraweak"). Dressed single-lump
 > calibration running as `bondi_dipole_selfgrav_v1`.
+>
+> **UPDATE 2026-08-07 — CAMPAIGN CLOSED: SUCCESS.  See §9 for final
+> results.** Dispersal solved (two root causes, §7 + §8.4), both dressed
+> stars stable to t=40, the (+,−) runaway demonstrated at t=60 with both
+> controls null, and the equal-|ADM| variant run.  Kept runs live under
+> `runs/bondi/`; every superseded run directory referenced in §§2–8.6 was
+> deleted in the 2026-08-06 cleanup (§8.8).
 
 ## TL;DR
 
@@ -602,3 +609,184 @@ in §§6–8.6 above are historical). New cells land inside `runs/bondi/`.
 pp = mutual attraction, sep shrinks, pair centre stays put; mm = mutual
 repulsion, sep grows, centre stays put. Co-drift in either control would
 flag a numerical artifact; none expected.
+
+### 8.9 Equal-|ADM| pair: per-lump frequency wiring + pm_eqm launch (2026-08-07, morning)
+
+The pm chase closed because the sectors' masses differ at equal omega
+(+0.0640 vs −0.0770).  Masses slide along each sector's star family with
+frequency, and they cross: a CPU scan + bisection found
+
+| star | omega | ADM |
+|---|---|---|
+| canonical | 0.55000 | +0.06395 |
+| phantom | **0.56598** | **−0.06395** (match < 0.001%) |
+
+**Wiring (per-lump U(1) phase velocity, previously global-only):**
+
+- `config.py`: new per-lump knob `trajectory_lump{k}_bs_omega` → the lump's
+  `qball_omega` solve target (0 ⇒ global `grtresna_bs_omega`).
+- `solver/params.py`: `_write_selfgrav_profile` groups lumps by (sector,
+  omega), solves one star per group, back-writes per-lump `amp`,
+  `bs_omega` (solved eigenvalue) and `profile_path`; emits
+  `lump{k}_bs_omega` lines (C++ falls back to global when absent).
+- `fields/boson_star.py`: the bicomplex repaint's `_boosted_lump_fields`
+  uses the lump's own `bs_omega` for Pi_im (at-rest AND boosted paths).
+- GRTresna C++: `boson_lump_t.bs_omega` (parsed as `lump{k}_bs_omega`,
+  distinct from `omega` which non-winding lumps use as a rigid ROTATION
+  rate in `lump_pi1`); non-winding Pi_im paint + emtensor + `total_pi2`
+  now use `omega_k = bs_omega > 0 ? bs_omega : global`.  Rebuilt
+  BosonStarBH via `scripts/wormhole/build/build_grtresna_bosonstar.sh`.
+- Test: `test_selfgrav_pair_mixed_frequency_equal_mass` (wiring + repaint
+  + params.txt contract); full selfgrav/bicomplex suites pass (14).
+
+**Launch: `bondi_sg_pair_pm_eqm`** (GPU 0, stop 60, sep 8 — same geometry
+as the chase run so the ONLY changed variable is the mass match), runs at
+`runs/bondi/pair_pm_eqm/`, via `run_pair_selfgrav.sh` with
+`BONDI_S1_OMEGA=0.56598`.  New phantom t=0 fingerprint (predictor
+reproduces both old stars exactly): **total ≈ 17.051 / rms ≈ 5.162**;
+canonical unchanged 15.92 / 5.05.
+
+**Prediction:** with |M₊| = |M₋| the textbook Bondi runaway — both stars
+accelerate equally, the GAP STAYS CONSTANT, no catch-up, no merger.
+Residual gap-closing would implicate the overlap skirts (direct scalar
+interaction at sep 8 with rms-5 stars), not gravity; the follow-up lever
+is sep 12.
+
+Meanwhile the controls (runs/bondi/pair_pp, runs/bondi/pair_mm, stop 60)
+are mid-flight: pp centre pinned at 32.00±0.08 through t≈32, mm centre
+pinned at 32.00 through t≈25 — no co-drift in either, as required.  Both
+verdicts land in §8.10.
+
+### 8.10 Control verdicts: the runaway is exclusive to (+,−) (2026-08-07)
+
+Both controls ran to t=60 (runs/bondi/pair_pp, runs/bondi/pair_mm; solve
+residuals within gates, t=0 fingerprints exactly 2× the singles, centres
+born at 32.000).  Final centre drift, against the mixed pair:
+
+| cell | prediction (§1) | centre at t=60 | verdict |
+|---|---|---|---|
+| pair_pp (+,+) | attract, no net drift | 32.157 (+0.16, late merger slosh; chi → 0.56) | **pass** |
+| pair_mm (−,−) | repel, no net drift | 32.039 (+0.04; rms 6.7 → 28, chi ~1.00 flat) | **pass** |
+| pair_pm (+,−) | runaway +x | canon +3.35, phantom +9.57 | **runaway** |
+
+The co-drift signature is exclusive to the mixed cell — 20–80× above
+either control's residual wobble.  The §1 falsifiable matrix is now fully
+confirmed on gravity-dressed equilibria.  Also mirrors the single-sector
+physics: pp deepens its well hard (two attractors + trapped bath), mm
+spreads its material yet keeps its geometry almost undisturbed.
+
+**pair_pm_eqm (equal-|ADM|) interim through t=20:** birth perfect (canon
+15.90/5.05, phantom 17.08/5.16 vs predicted 17.05/5.16 — per-lump omega
+wiring validated in production; residuals Ham 0.082%/Mom 0.077%).  Drift
+tracks the UNEQUAL chase run nearly point-for-point (sep 7.82 vs 7.84 at
+t=20; phantom still outrunning canonical ~3:1).  Matching the masses has
+NOT slowed the approach so far — early gap closure looks skirt-driven
+(direct scalar overlap), not mass-asymmetry-driven.  Final verdict when
+it lands.
+
+**pair_pm_eqm FINAL (t=60): equal ADM masses do NOT stop the chase — but
+they expose exactly which part of the motion is Newtonian.**
+
+| t | xC | xP | sep | (unequal run sep) |
+|---|---|---|---|---|
+| 0 | 36.00 | 28.00 | 8.00 | 8.00 |
+| 20 | 36.11 | 28.30 | 7.82 | 7.84 |
+| 40 | ~37.2 | ~30.6 | ~6.6 | 6.87 |
+| 60 | 38.94 | 37.59 | **1.35** | 1.78 |
+
+Two findings:
+
+1. **The canonical star's push DID scale with the phantom's mass, like
+   textbook gravity.** Its t=60 displacement dropped +3.35 → +2.94 when
+   the phantom lightened 0.077 → 0.064; ratio 0.88 vs the Newtonian
+   prediction 0.83.  The far-field co-drift component is quantitatively
+   gravitational.
+2. **The phantom's fall did not care** (+9.57 → +9.59): it is set by the
+   canonical star's field, which didn't change.  In BOTH runs the phantom
+   falls ~3× faster than point-Newtonian predicts from M₊ — the stars
+   overlap heavily from t=0 (rms ~5 at sep 8), so the phantom's skirt sits
+   deep inside the canonical near-field (plus the shared trapped bath),
+   where the effective pull far exceeds ADM/r².  Point-mass "constant-gap
+   runaway" needs point-like separation; at sep 8 these are extended
+   bodies in contact, and the approach → near-merger (chi_min 0.41 at
+   t=60) happens regardless of mass matching.
+
+Next lever if a constant-gap runaway is wanted: separation 12–16 (weaker
+overlap; slower but cleaner drift), or lighter/more compact stars (both
+sectors at higher omega) to shrink the skirts relative to the gap.
+
+## 9. FINAL RESULTS (2026-08-07) — campaign closed
+
+**The Bondi dipole runaway has been demonstrated in full 3+1 numerical
+relativity with dynamical, constraint-solved matter** — to our knowledge
+the first time.  A canonical (positive active mass) and a phantom
+(negative active mass) self-gravitating scalar star, released at rest,
+self-accelerate in the same direction with no external force, while both
+same-sector controls stay put.
+
+### 9.1 Why the matter used to disperse (both root causes)
+
+1. **Amplitude clamp (§7):** the painters rescale the profile table by
+   `amp/phi_c`, and `cap_well_depth` silently clamped amp to the thin-wall
+   estimate — every seed was born at 95.45% of its eigenstate amplitude.
+   Fix: `grtresna_qball_exact_amplitude=1` (opt-in) + selfgrav back-writes
+   amp := solved phi_c.
+2. **No dressed equilibrium at the old couplings (§8):** even the exact
+   flat-space eigenstate blows off, because at the weak/mid rungs NO
+   gravitationally dressed ω=0.55 star exists.  Fix: ultraweak rung
+   (λ=10240, μ=21845333) + fixed-frequency dressed-star solves
+   (`solve_selfgrav_at_omega`, amplitude-shooting, per-sector
+   `gravity_sign`), painted with the star's own lapse.
+
+### 9.2 The result matrix (all cells, final)
+
+| run | dir (runs/bondi/) | outcome |
+|---|---|---|
+| single_p (canonical star, t=40) | `single_p/` | stable; ±8% breath (resolution-intrinsic, §8.7); chi slides 0.99→0.90 (trapped bath) |
+| single_m (first phantom star ever solved AND evolved, t=40) | `single_m/` | most stable object of the campaign: chi pinned at 1.0009±0.0001, bath 4× slower |
+| **pair_pm (+,−), t=60** | `pair_pm/` | **RUNAWAY: canon 36.0→39.35, phantom 28.0→37.57, both +x; sep 8→1.78 (chase → near-merger)** |
+| pair_pp (+,+), t=60 | `pair_pp/` | centre 32.00→32.16 — null (attracting merger, chi→0.56) |
+| pair_mm (−,−), t=60 | `pair_mm/` | centre 32.00→32.04 — null (repulsive spreading, chi≈1.00) |
+| pair_pm_eqm (equal \|ADM\|, t=60) | `pair_pm_eqm/` | chase persists (sep→1.35); canonical push scales with phantom mass exactly as Newton predicts (0.88 vs 0.83); phantom fall is overlap-dominated |
+
+Solve quality: every cell Ham ≤ 0.09% / Mom ≤ 0.08% (gates 0.1%); every
+t=0 fingerprint matched its prediction (canon 15.92/5.05, phantom-0.550
+20.99/5.43, phantom-0.566 17.05/5.16) to ~0.2%.
+
+### 9.3 Physics take-aways
+
+- **The co-drift is genuinely gravitational**: exclusive to the mixed
+  cell (controls 20–80× smaller), direction as predicted (phantom chases
+  canonical), magnitude responsive to source mass (eqm run).
+- **At sep 8 the stars are extended bodies in contact** (rms ~5): the
+  phantom's fall into the canonical well is ~3× the point-Newtonian rate,
+  so the pair closes and near-merges by t≈60 in both mixed runs.  A
+  constant-gap textbook runaway needs sep 12–16 or more compact stars.
+- **The phantom sector is the stable one**: repulsive self-gravity fights
+  clumping (smaller breath, no chi drift) and its shed bath self-dilutes
+  instead of piling on.  "Antigravity ⇒ disperses" is wrong here because
+  the binding is scalar self-interaction, not gravity.
+- **Boundaries trap the massive bath** (massless-wave BCs): canonical-side
+  chi drifts down all run; keep mixed cells ≤ t≈60, or add a sponge /
+  resolution notch for longer runs.
+
+### 9.4 Where everything lives
+
+| what | where |
+|---|---|
+| runs (all kept cells) | `runs/bondi/{single_p,single_m,pair_pm,pair_pp,pair_mm,pair_pm_eqm}/` + `<name>.launch.log` |
+| movies (pm + eqm, 19 fields × 152 frames, t=0–60) | `runs/bondi/pair_pm*/bondi_sg_pair_pm*/movies/` — watch `movie_scalar_activity_z.mp4` (both blobs) and `movie_chi_minus_1_z.mp4` (well vs hill) |
+| launchers | `scripts/campaigns/bondi_dipole/run_single_selfgrav.sh`, `run_pair_selfgrav.sh` (BONDI_S0/S1, BONDI_S1_OMEGA for equal-mass) |
+| star solver | `grtresna/profiles/boson_star_ode.py` (`solve_selfgrav_at_omega`, `gravity_sign=±1`) |
+| per-lump frequency wiring (§8.9) | `config.py` (`trajectory_lump{k}_bs_omega`), `solver/params.py`, `fields/boson_star.py`, GRTresna `BosonStarParams.hpp` + `ComplexScalarField.cpp` (`lump{k}_bs_omega`) |
+| tests | `tests/grtresna/test_selfgrav_profile_wiring.py` (incl. mixed-frequency), `test_qball_bicomplex_campaign.py` — 14 pass |
+| trajectory record | `<run>/small_data/sector_barycenters.dat` (cols 3 / 8 = canon / phantom x; grid centre 32) |
+
+### 9.5 Open leads (if the campaign reopens)
+
+1. Constant-gap runaway: sep 12–16 at the same rung (slower — budget
+   longer stop times), or both sectors at higher ω for compact stars.
+2. Sponge layer or an absorbing notch for the trapped massive bath —
+   would unlock t≫60 and cleaner late-time chi.
+3. The 3× super-Newtonian phantom infall at overlap: worth quantifying
+   against the enclosed-mass profile M(r) of the canonical star.

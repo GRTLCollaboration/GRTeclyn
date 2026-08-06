@@ -38,6 +38,10 @@ def _lump_lines(cfg: GRTresnaConfig) -> list[str]:
             # the global qball_profile_path when this key is absent.
             if lump.get("profile_path"):
                 lines.append(f"lump{k}_profile_path = {lump['profile_path']}")
+            # Per-lump U(1) phase velocity (mixed-frequency selfgrav pairs);
+            # C++ falls back to the global bs_omega when this key is absent.
+            if float(lump.get("bs_omega", 0.0)) > 0.0:
+                lines.append(f"lump{k}_bs_omega = {lump['bs_omega']}")
         return lines
     return [
         f"lump_amp = {cfg.lump_amp}",
@@ -128,9 +132,14 @@ def _write_selfgrav_profile(
     its own lapse (alpha > 1 inside) and a negative ADM mass, so sharing the
     canonical table would seed it off-equilibrium.  Each lump gets its own
     ``profile_path`` (read per-lump by GRTresna, with the canonical table as the
-    global fallback).  Both sectors solve to the SAME requested frequency, so
-    the C++ painter's global-omega momentum paint stays correct; per-lump omega
-    support in C++ is only needed for mixed-frequency pairs.
+    global fallback).
+
+    Lumps may request PER-LUMP frequencies (``qball_omega`` on the lump, from
+    ``trajectory_lump{k}_bs_omega``): stars are solved per (sector, omega)
+    group and each lump carries its own ``bs_omega`` so both painters (GRTresna
+    ``lump{k}_bs_omega`` and the Python bicomplex repaint) use the lump's own
+    U(1) phase velocity.  This is what an equal-|ADM| mixed pair needs -- the
+    phantom star matches the canonical star's mass at a slightly higher omega.
     """
     from ..profiles.boson_star_ode import cached_selfgrav_profile
 
@@ -154,21 +163,37 @@ def _write_selfgrav_profile(
             ]
             if not sector_lumps:
                 continue
-            profile = cached_selfgrav_at_omega(mass, lam, mu, omega_target, sign)
-            name = "qball_profile.dat" if sign > 0 else "qball_profile_exotic.dat"
-            path = _emit_star_table(
-                params_path.parent / name, profile,
-                mass=mass, lam=lam, mu=mu, sector=sector,
-            )
+            # One star per requested frequency within the sector (per-lump
+            # qball_omega, global omega_target as the fallback).
+            by_omega: dict[float, list[dict]] = {}
             for lump in sector_lumps:
-                # The C++/Python painters rescale the table by amp/phi_c; only
-                # amp == the solved phi_c keeps the seed on the eigenstate.
-                lump["amp"] = float(profile.phi_c)
-                lump["omega"] = float(profile.omega)
-                lump["profile_path"] = path
-            if global_path is None or sign > 0:
-                global_path = path
-                omega_out = float(profile.omega)
+                omega_k = float(lump.get("qball_omega", 0.0)) or omega_target
+                by_omega.setdefault(omega_k, []).append(lump)
+            base = "qball_profile.dat" if sign > 0 else "qball_profile_exotic.dat"
+            for g_idx, (omega_k, group) in enumerate(sorted(by_omega.items())):
+                profile = cached_selfgrav_at_omega(mass, lam, mu, omega_k, sign)
+                name = base if g_idx == 0 else base.replace(
+                    ".dat", f"_w{omega_k:.5f}.dat"
+                )
+                path = _emit_star_table(
+                    params_path.parent / name, profile,
+                    mass=mass, lam=lam, mu=mu, sector=sector,
+                )
+                for lump in group:
+                    # The C++/Python painters rescale the table by amp/phi_c;
+                    # only amp == the solved phi_c keeps the seed on the
+                    # eigenstate.
+                    lump["amp"] = float(profile.phi_c)
+                    lump["omega"] = float(profile.omega)
+                    # Per-lump U(1) phase velocity for both painters; the
+                    # repaint dispatch re-derives the star from qball_omega,
+                    # which must equal the solve request to share the cache.
+                    lump["bs_omega"] = float(profile.omega)
+                    lump["qball_omega"] = omega_k
+                    lump["profile_path"] = path
+                if global_path is None or (sign > 0 and g_idx == 0):
+                    global_path = path
+                    omega_out = float(profile.omega)
         cfg.bs_omega = omega_out
         assert global_path is not None
         return global_path

@@ -312,3 +312,88 @@ def test_selfgrav_pair_gets_per_sector_tables(tmp_path: Path) -> None:
         phi0_at_radius(r, cfg.lumps[1], raw_amp=True),
         np.asarray(canon.eval_phi0(r)), rtol=1.0e-3,
     )
+
+
+def test_selfgrav_pair_mixed_frequency_equal_mass(tmp_path: Path) -> None:
+    """Equal-|ADM| (+,-) pair: the phantom lump requests its OWN frequency.
+
+    Per-lump qball_omega must produce per-lump solves, per-lump bs_omega in
+    params.txt (the C++ painter's per-lump U(1) phase velocity), and a repaint
+    that resolves each lump's own star.  This is the wiring the equal-mass
+    Bondi runaway cell depends on: phantom at omega=0.566 weighs the same as
+    canonical at omega=0.550.
+    """
+    import numpy as np
+
+    from grteclyn_wrapper.grtresna.profiles.boson_star_ode import (
+        cached_selfgrav_at_omega,
+    )
+    from grteclyn_wrapper.grtresna.profiles.envelope import phi0_at_radius
+    from grteclyn_wrapper.grtresna.solver.params import write_grtresna_params
+
+    def lump(x: float, exotic: int, omega: float) -> dict:
+        return {
+            "amp": 0.08,
+            "width": 1.2,
+            "center": (x, 0.0, 0.0),
+            "profile": PROFILE_SELFGRAV_BOUND,
+            "exotic": exotic,
+            "qball_mass": 1.0,
+            "qball_lam": 10240.0,
+            "qball_mu": 21845333.0,
+            "qball_omega": omega,
+        }
+
+    cfg = GRTresnaConfig(
+        matter_model="grtresna_bicomplex_scalar",
+        scalar_mass=1.0,
+        scalar_lambda=10240.0,
+        scalar_mu=21845333.0,
+        bs_phi_c=0.08,
+        bs_omega=0.0,
+        lumps=[lump(4.0, 0, 0.55), lump(-4.0, 1, 0.566)],
+    )
+    write_grtresna_params(cfg, tmp_path / "params.txt")
+
+    canon = cached_selfgrav_at_omega(1.0, 10240.0, 21845333.0, 0.55, 1.0)
+    phant = cached_selfgrav_at_omega(1.0, 10240.0, 21845333.0, 0.566, -1.0)
+
+    # Each lump carries its own solved star: amp AND phase velocity.
+    assert cfg.lumps[0]["amp"] == pytest.approx(canon.phi_c, abs=0)
+    assert cfg.lumps[1]["amp"] == pytest.approx(phant.phi_c, abs=0)
+    assert cfg.lumps[0]["bs_omega"] == pytest.approx(canon.omega)
+    assert cfg.lumps[1]["bs_omega"] == pytest.approx(phant.omega)
+    assert cfg.lumps[1]["bs_omega"] == pytest.approx(0.566, rel=2.0e-4)
+    # Global omega stays the canonical star's (fallback for unset lumps).
+    assert cfg.bs_omega == pytest.approx(canon.omega)
+
+    # The C++ painter contract: per-lump bs_omega lines in params.txt.
+    text = (tmp_path / "params.txt").read_text(encoding="utf-8")
+    assert f"lump0_bs_omega = {cfg.lumps[0]['bs_omega']}" in text
+    assert f"lump1_bs_omega = {cfg.lumps[1]['bs_omega']}" in text
+    assert "lump1_profile_path = " in text
+    assert (tmp_path / "qball_profile_exotic.dat").exists()
+    head = (tmp_path / "qball_profile_exotic.dat").read_text().splitlines()[0]
+    assert "omega_eigenvalue=0.566" in head
+
+    # Repaint resolves the phantom's 0.566 star, not a 0.55 one.
+    r = np.linspace(0.0, 10.0, 41)
+    assert np.allclose(
+        phi0_at_radius(r, cfg.lumps[1], raw_amp=True),
+        np.asarray(phant.eval_phi0(r)), rtol=1.0e-10,
+    )
+
+    # The Python bicomplex repaint uses the per-lump phase velocity for Pi_im.
+    from grteclyn_wrapper.grtresna.fields.boson_star import _boosted_lump_fields
+
+    px = np.zeros((1, 1, 1)) - 4.0
+    py = np.zeros((1, 1, 1))
+    pz = np.zeros((1, 1, 1))
+    inv_lapse = np.ones((1, 1, 1))
+    _, _, _, pi_im = _boosted_lump_fields(
+        cfg.lumps[1], px, py, pz, cfg.bs_omega, inv_lapse
+    )
+    expected = -phant.omega * float(
+        np.asarray(phant.eval_phi0(np.array([0.0]))).ravel()[0]
+    )
+    assert float(pi_im[0, 0, 0]) == pytest.approx(expected, rel=1.0e-10)

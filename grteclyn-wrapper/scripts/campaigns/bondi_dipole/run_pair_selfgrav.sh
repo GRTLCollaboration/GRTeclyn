@@ -27,6 +27,10 @@
 #   BONDI_S0=0 BONDI_S1=1 BONDI_GPU=3 bash scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
 # Overrides: BONDI_GPU (default 3), BONDI_STOP_TIME (default 60),
 #            BONDI_RUNS_DIR, BONDI_SEP (default 8), BONDI_S0/BONDI_S1.
+#   BONDI_S1_OMEGA: per-lump star frequency for lump1 (equal-|ADM| cells --
+#     the phantom star at omega=0.56598 weighs the canonical star's 0.0640;
+#     its t=0 fingerprint becomes total ~= 17.05 / rms ~= 5.16).  Appends
+#     "_eqm" to the run name so the standard cell is never clobbered.
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
@@ -41,8 +45,13 @@ S1="${BONDI_S1:-1}"
 R0="$(python3 -c "print(${SEP}/2)")"
 PI="3.141592653589793"
 
+S1_OMEGA="${BONDI_S1_OMEGA:-}"
+
 sector_tag() { if [[ "$1" == "1" ]]; then echo m; else echo p; fi; }
 suffix="$(sector_tag "${S0}")$(sector_tag "${S1}")"
+if [[ -n "${S1_OMEGA}" ]]; then
+  suffix="${suffix}_eqm"
+fi
 out_name="bondi_sg_pair_${suffix}"
 RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_selfgrav_${suffix}}"
 
@@ -112,6 +121,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --extra-override trajectory_lump1_v_rad=0 \
   --extra-override trajectory_lump1_omega_rot=0 \
   --extra-override trajectory_lump1_well_depth=0.15 \
-  --extra-override trajectory_lump1_exotic="${S1}"
+  --extra-override trajectory_lump1_exotic="${S1}" \
+  ${S1_OMEGA:+--extra-override trajectory_lump1_bs_omega="${S1_OMEGA}"}
 
 echo "[bondi] pair cell complete: ${RUNS_DIR}/${out_name}"
