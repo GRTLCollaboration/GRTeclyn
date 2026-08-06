@@ -102,10 +102,14 @@
     </li>
     </ul>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../updating_docs/">Updating the docs</a>
+                  </li>
               </ul>
               <p class="caption"><span class="caption-text">Other features and tools</span></p>
               <ul>
                   <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../two_punctures/">TwoPunctures</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
                   </li>
@@ -198,15 +202,10 @@ interactive rebase:</p>
 <h2 id="step-3-compile-and-debug">Step 3: Compile and debug</h2>
 <p>Unless your code was already up-to-date with the main branch, you may now have compilation issues that you need to fix. You should add a new test for any major changes to confirm that the feature still behaves as expected and later changes don't introduce regressions. Looking at the existing tests will give you ideas on how to set these up, but ask for help if you aren't sure.</p>
 <h2 id="step-4-tidy-and-comment-the-code">Step 4: Tidy and comment the code</h2>
-<p>All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the coding conventions in [[Coding conventions| Coding conventions]]. In particular you will need to ensure code is formatted using Clang Format. </p>
+<p>All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the <a href="../coding_conventions/"><strong>coding conventions</strong></a>. In particular you will need to ensure code is formatted using Clang Format. </p>
 <h2 id="step-5-create-or-amend-the-documentation">Step 5: Create or amend the documentation</h2>
 <p>You should also draft documentation for the wiki for any major new features that need explaining, or update the existing docs for any changes.</p>
-<p>You can view the docs locally in your browser by installing mkdocs:</p>
-<p><code>pip install mkdocs</code></p>
-<p>and then running</p>
-<p><code>mkdocs serve</code></p>
-<p>in the folder in which the index <code>mkdocs.yml</code> lives (the base folder).</p>
-<p>It should say something like <code>Serving on http://127.0.0.1:8000/</code>, and you can then open this address in your browser to view the docs as they will appear online once you push them.</p>
+<p>See <a href="../updating_docs/"><strong>Updating the documentation</strong></a> for more info on how to do this.</p>
 <h2 id="step-6-create-a-pull-request-pr">Step 6: Create a pull request (PR)</h2>
 <p>Open a <a href="https://github.com/GRTLCollaboration/GRTeclyn/pulls">new Pull request (PR)</a> in this repository, requesting to merge code from your new branch into the <code>main</code> branch.</p>
 <p>This is a place for your new code to be reviewed by other members of the collaboration and improved prior to inclusion. The format is mostly self-explanatory, but will highlight the changes to the code you have made, and show whether the automatically run unit tests have passed. More details on GitHub pull requests are given here:
@@ -225,7 +224,7 @@ if you don't want anyone to review it yet but might appreciate constructive comm
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href="../coding_conventions/" class="btn btn-neutral float-left" title="Coding conventions"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../initial_data/" class="btn btn-neutral float-right" title="Initial data">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../updating_docs/" class="btn btn-neutral float-right" title="Updating the docs">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -251,7 +250,7 @@ if you don't want anyone to review it yet but might appreciate constructive comm
       <span><a href="../coding_conventions/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../initial_data/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../updating_docs/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
