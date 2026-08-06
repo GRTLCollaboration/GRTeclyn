@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import math
+import os
+import pickle
 import random
+import shutil
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -54,6 +58,14 @@ try:
     import numpy as np
 except ImportError:
     np = None  # type: ignore[assignment]
+
+# Generation-level CMA-ES checkpoint (optimizer state + counters).  Written
+# atomically after every tell() so a killed campaign can resume without losing
+# the learned covariance — infrastructure failures must not cost physics
+# progress (born from the 2026-08-06 solver-timeout restart that threw away a
+# generation of direction-learning).
+CMAES_STATE_FILE = "cmaes_state.pkl"
+
 
 @dataclass(frozen=True)
 class OptimizeResult:
@@ -127,6 +139,7 @@ def run_optimize(
     example: ExampleConfig | str = "RadialRecipe",
     name: str | None = None,
     dry_run: bool = False,
+    resume: bool = False,
     constrained: bool = True,
     phantom: bool = True,
     use_preflight: bool = True,
@@ -208,7 +221,13 @@ def run_optimize(
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         name = f"optimize_{timestamp}"
     opt_dir = (runs_dir / name).expanduser().resolve()
-    opt_dir.mkdir(parents=True, exist_ok=False)
+    opt_dir.mkdir(parents=True, exist_ok=resume)
+
+    state_path = opt_dir / CMAES_STATE_FILE
+    resume_state: dict[str, Any] | None = None
+    if resume and state_path.exists():
+        with state_path.open("rb") as fh:
+            resume_state = pickle.load(fh)
 
     # Plotfiles live on the node's own disk now, which is the small one.  A
     # campaign killed mid-flight leaves directories nothing will return for;
@@ -261,6 +280,30 @@ def run_optimize(
     trajectory_path = opt_dir / "trajectory.jsonl"
     trajectory_lock = threading.Lock()
 
+    if resume_state is not None:
+        # Restore to "end of last completed generation": rows and eval dirs
+        # from a generation the checkpoint never told the optimizer are
+        # dropped (they are re-dispatched with the same eval numbers).
+        checkpoint_evals = int(resume_state["eval_counter"])
+        if trajectory_path.exists():
+            with trajectory_path.open("r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    rec = json.loads(line)
+                    ev = rec.get("eval")
+                    if ev is not None and int(ev) > checkpoint_evals:
+                        continue
+                    trajectory.append(rec)
+        for stale in opt_dir.glob("eval_*"):
+            try:
+                stale_num = int(stale.name.split("_")[1])
+            except (IndexError, ValueError):
+                continue
+            if stale_num > checkpoint_evals:
+                shutil.rmtree(stale, ignore_errors=True)
+
     gpu_pool = None
     cpu_admission = None
     pipeline_sizing: dict[str, int | float] = {}
@@ -280,7 +323,7 @@ def run_optimize(
             cpu_admission = CpuAdmissionController(max_concurrent_grtresna_override)
             pipeline_sizing["max_grtresna"] = max_concurrent_grtresna_override
 
-    write_json(opt_dir / "metadata.json", {
+    metadata_payload = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "example": example_cfg.name,
         "max_generations": max_generations,
@@ -329,15 +372,38 @@ def run_optimize(
             {"key": d.param_key, "lower": d.lower, "upper": d.upper, "initial": d.center}
             for d in dims
         ],
-    })
+    }
+    metadata_path_json = opt_dir / "metadata.json"
+    if resume_state is None:
+        write_json(metadata_path_json, metadata_payload)
+    else:
+        try:
+            existing_meta = json.loads(metadata_path_json.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            existing_meta = metadata_payload
+        existing_meta.setdefault("resumes", []).append(
+            datetime.now(timezone.utc).isoformat()
+        )
+        write_json(metadata_path_json, existing_meta)
 
-    es = cma.CMAEvolutionStrategy(initial, sigma0, opts)
-    rng = random.Random(seed)
-
-    best_score = -math.inf
-    best_params: dict[str, float] = {}
-    best_episode = ""
-    gen = 0
+    if resume_state is not None:
+        es = resume_state["es"]
+        rng = random.Random()
+        rng.setstate(resume_state["rng_state"])
+        best_score = resume_state["best_score"]
+        best_params = dict(resume_state["best_params"])
+        best_episode = resume_state["best_episode"]
+        gen = resume_state["gen"]
+        eval_counter[0] = resume_state["eval_counter"]
+        print(f"[optimize] RESUMED from {state_path.name}: gen={gen}, "
+              f"evals={eval_counter[0]}, all-time-best={best_score:.4f}")
+    else:
+        es = cma.CMAEvolutionStrategy(initial, sigma0, opts)
+        rng = random.Random(seed)
+        best_score = -math.inf
+        best_params = {}
+        best_episode = ""
+        gen = 0
 
     print(f"[optimize] Starting CMA-ES: {len(dims)}D, popsize={es.popsize}, "
           f"max_gen={max_generations}, GPUs={gpu_ids or cuda_devices}, "
@@ -515,6 +581,20 @@ def run_optimize(
         with (opt_dir / "trajectory.jsonl").open("w", encoding="utf-8") as fh:
             for rec in trajectory:
                 fh.write(format_trajectory_line(rec))
+
+        if not dry_run:
+            state_tmp = state_path.with_suffix(".pkl.tmp")
+            with state_tmp.open("wb") as fh:
+                pickle.dump({
+                    "es": es,
+                    "gen": gen,
+                    "eval_counter": eval_counter[0],
+                    "best_score": best_score,
+                    "best_params": best_params,
+                    "best_episode": best_episode,
+                    "rng_state": rng.getstate(),
+                }, fh)
+            os.replace(state_tmp, state_path)
 
         if retention_active and not dry_run:
             _apply_optimize_retention(

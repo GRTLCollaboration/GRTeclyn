@@ -253,6 +253,15 @@ def main() -> int:
     parser.add_argument("--ftl-L", type=float, default=8.0)
     parser.add_argument("--grtresna-ranks", type=int, default=8)
     parser.add_argument("--grtresna-iterations", type=int, default=30)
+    parser.add_argument(
+        "--grtresna-nl-exit-tolerance", type=float, default=1.0,
+        help="NL solve exit tolerance in %% (Ham AND Mom). The default 1.0 "
+        "leaves a ~0.6%% momentum residual that radiates as a metric ring at "
+        "launch -- tighten (e.g. 0.05) for equilibrium-star seeds.",
+    )
+    parser.add_argument(
+        "--grtresna-nl-stall-tolerance", type=float, default=0.02,
+    )
     parser.add_argument("--grtresna-max-level", type=int, default=3)
     parser.add_argument("--grtresna-refine-threshold", type=float, default=0.5)
     parser.add_argument("--grtresna-regrid-radius", type=float, default=0.0)
@@ -424,6 +433,8 @@ def main() -> int:
         grtresna_config = GRTresnaConfig(
             mpi_ranks=args.grtresna_ranks,
             max_NL_iterations=args.grtresna_iterations,
+            nl_exit_tolerance=args.grtresna_nl_exit_tolerance,
+            nl_stall_tolerance=args.grtresna_nl_stall_tolerance,
             timeout=args.grtresna_timeout,
             max_level=args.grtresna_max_level,
             refine_threshold=args.grtresna_refine_threshold,

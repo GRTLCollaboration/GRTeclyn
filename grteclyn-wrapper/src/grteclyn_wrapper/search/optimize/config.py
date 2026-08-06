@@ -476,13 +476,16 @@ def _expand_trajectory_boson_lumps_from_overrides(
             velocity = (0.0, 0.0, 0.0)
 
         exotic = int(round(get_float(f"{pfx}exotic", 0.0)))
-        if use_selfgrav and exotic:
-            # A phantom (negative-energy) scalar is anti-confining: the coupled
-            # Einstein-Klein-Gordon system has no self-gravitating equilibrium, so
-            # there is no exotic self-grav star to seed.  Force canonical.
+        if use_selfgrav and exotic and not (lam > 0.0 and mu > 0.0 and omega > 0.0):
+            # A gravity-BOUND phantom star cannot exist (its self-gravity is
+            # repulsive), so the mini-star path (lam=mu=0, phi_c-parameterized)
+            # has nothing to seed.  With sextic couplings + a target frequency
+            # the binding is the scalar interaction and the dressed phantom
+            # star DOES exist (solved with gravity_sign=-1); let it through.
             logger.warning(
-                "trajectory lump %d: exotic flag ignored in self-gravitating mode "
-                "(no phantom boson-star equilibrium exists); using canonical matter.",
+                "trajectory lump %d: exotic flag ignored in self-gravitating "
+                "mini-star mode (no gravity-bound phantom equilibrium); using "
+                "canonical matter.  Sextic couplings + bs_omega enable it.",
                 k,
             )
             exotic = 0

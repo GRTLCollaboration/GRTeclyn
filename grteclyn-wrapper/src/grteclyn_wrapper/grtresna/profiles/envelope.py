@@ -8,7 +8,11 @@ from typing import Any, Mapping
 import numpy as np
 from numpy.typing import NDArray
 
-from .boson_star import PROFILE_ODE_BOUND, PROFILE_SECH_BOUND
+from .boson_star import (
+    PROFILE_ODE_BOUND,
+    PROFILE_SECH_BOUND,
+    PROFILE_SELFGRAV_BOUND,
+)
 
 EXOTIC_AMP_SCALE = 0.25
 
@@ -73,6 +77,26 @@ def phi0_at_radius(r: NDArray, lump: Mapping[str, Any], *, raw_amp: bool) -> NDA
             omega=float(lump.get("qball_omega", 0.0)),
         )
         return np.asarray(radial.eval_phi0(r), dtype=np.float64)
+    if profile_type == PROFILE_SELFGRAV_BOUND:
+        # Gravitationally dressed star: amp == the star's own phi_c by
+        # construction, so no amp rescale applies.  Falling through to the
+        # Gaussian here would paint evolution matter that contradicts the
+        # constraint solve's tabulated star.  Dispatch must mirror
+        # _write_selfgrav_profile so both sides hit the same cache entry.
+        q_mass = float(lump.get("qball_mass", 1.0))
+        q_lam = float(lump.get("qball_lam", 0.0))
+        q_mu = float(lump.get("qball_mu", 0.0))
+        q_omega = float(lump.get("qball_omega", 0.0))
+        if q_omega > 0.0 and q_lam > 0.0 and q_mu > 0.0:
+            from .boson_star_ode import cached_selfgrav_at_omega
+
+            gravity_sign = -1.0 if int(lump.get("exotic", 0)) else 1.0
+            star = cached_selfgrav_at_omega(q_mass, q_lam, q_mu, q_omega, gravity_sign)
+        else:
+            from .boson_star_ode import cached_selfgrav_profile
+
+            star = cached_selfgrav_profile(q_mass, q_lam, q_mu, amp)
+        return np.asarray(star.eval_phi0(r), dtype=np.float64)
     if profile_type == PROFILE_SECH_BOUND:
         return scale / np.cosh(r / width)
     if profile_type == 1:

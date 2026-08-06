@@ -92,6 +92,12 @@ fi
 TARGET_EVALS_ARGS=()
 [[ -n "${TARGET_EVALS}" ]] && TARGET_EVALS_ARGS+=(--target-evals "${TARGET_EVALS}")
 
+# RESUME=1: pick up a killed run from <run_dir>/cmaes_state.pkl (checkpointed
+# after every generation; keeps covariance, counters, and eval numbering).
+# Requires the same RUN_NAME.  Falls back to a fresh start if no checkpoint.
+RESUME_ARGS=()
+[[ "${RESUME:-0}" == "1" ]] && RESUME_ARGS+=(--resume)
+
 # shellcheck disable=SC2086
 exec ${PYTHON_BIN} -m grteclyn_wrapper \
   "${PRE_ARGS[@]}" \
@@ -113,5 +119,6 @@ exec ${PYTHON_BIN} -m grteclyn_wrapper \
   --gpu-ids ${GPU_IDS} \
   "${FTL_PIPELINE_ARGS[@]}" \
   "${TARGET_EVALS_ARGS[@]}" \
+  "${RESUME_ARGS[@]}" \
   "${PIN_ARGS[@]}" \
   "${CONSUME_ARGS[@]}"

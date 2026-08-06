@@ -12,6 +12,13 @@ Appendix B of `research/nextsteps.md`).*
 > amplitude to the thin-wall estimate. One-line opt-in fix landed
 > (`grtresna_qball_exact_amplitude=1`). The proposed well-depth scan would
 > have been three identical runs (the knob saturates); do not run it.
+>
+> **UPDATE 2026-08-06 (later) — §7.3 step 1 ran and FAILED; superseded by §8.**
+> The exact-amplitude flat ball still blows off, because at the weak rung the
+> gravitationally dressed equilibrium near the target ball DOES NOT EXIST.
+> Fixed-frequency dressed-star initial data landed; first rung where the
+> dressed ω=0.55 star exists is λ=10240 ("ultraweak"). Dressed single-lump
+> calibration running as `bondi_dipole_selfgrav_v1`.
 
 ## TL;DR
 
@@ -348,3 +355,136 @@ Dead-knob inventory and full plumbing trace (10 silent-drop points, incl.
 the sech fallback when a profile table is missing, and the Python-vs-C++
 profile-enum collision 4↔4) — kept out of this journal; ask for the
 2026-08-06 trace if needed.
+
+## 8. Exact amplitude is not enough: no dressed equilibrium at the weak rung (2026-08-06, later)
+
+### 8.1 The §7.3 gate run — verified seed, same blow-off
+
+`bondi_ex_single_p` (runs/bondi_dipole_exact_v1, weak rung, ω=0.55,
+`grtresna_qball_exact_amplitude=1`, stop 40, GPU 1):
+
+- **Seed verified end-to-end**: `lump0_amp = 0.03928682593468194` (the ODE
+  φ_c, not the 0.0375 clamp); t=0 stream read total 36.2998 / rms 5.2209 vs
+  the §7.2 prediction 36.300 / 5.221. The fix works exactly as designed.
+- **Physics failed anyway**:
+
+```
+rms: 5.221@t0 → 4.714@t7.2 (min, −9.7%) → 5.304@t11.2 → 5.604@t12.8
+     → 6.167@t16.8 → 6.610@t20        (gate ±10% broken at t≈12.5; stopped)
+```
+
+  Differences from the clamped runs: the first breath is a *gravitational
+  contraction* (total ∫|φ| fell 36.3 → 29.3 while the core brightened ~2×,
+  i.e. the field concentrated instead of leaking), the bottom is shallower,
+  and the blow-off is ~10% slower — but it is the same terminal blow-off.
+
+### 8.2 Why: the dressed heavy star does not exist at these couplings
+
+Mapping the self-gravitating (dressed) star family at the weak rung with the
+ODE solver (`cached_selfgrav_profile`, ω-shooting at fixed φ_c):
+
+```
+phi_c    omega    ADM     alpha(0)
+0.0385   0.786    0.045   0.967     <- feather-light stable branch
+0.0393   0.753    0.053   0.963
+0.0399   0.311    2.50    0.50      <- jump: ultra-compact (unstable) branch
+0.0430   0.364    2.22    0.375
+0.0500   0.369    2.30    0.207
+```
+
+There is **nothing near the flat ω=0.55 ball (E=0.281, compactness
+2E/R≈0.14)**. The exact-amplitude seed contracted under gravity, found no
+nearby equilibrium, and unbound — consistent with every observation in §8.1.
+This also retro-explains the whole §2 ladder: compactness ∝ 1/λ, so heavier
+rungs were further from any dressed equilibrium, not closer.
+
+Second finding: the ω-shooting parameterization *cannot* reach heavy-branch
+sextic stars even where they exist — the heavy ball sits with φ_c a fraction
+of a percent below the effective-potential top, making its eigenvalue an
+exponentially thin needle in ω (requesting the ω=0.55 star at φ_c=0.0393
+silently returns the 5× lighter ω=0.753 star; verified by scanning the
+over/under classification: a single fat transition at ω_int≈0.78).
+
+### 8.3 Code landed (all tested; 22+2 pass)
+
+1. **Evolution repaint for dressed lumps** — `profiles/envelope.py`
+   `phi0_at_radius` and `fields/boson_star.py _raw_lump_phi_grid` had no
+   branch for `PROFILE_SELFGRAV_BOUND`: a dressed lump fell through to the
+   **Gaussian** envelope, so the evolution's t=0 matter would have
+   contradicted the constraint solve's tabulated star (likely the residual
+   "slow leak" in SELFGRAV_HANDOFF's own result). Both now resolve the same
+   cached star table.
+2. **Fixed-frequency dressed solve** — `boson_star_ode.py
+   solve_selfgrav_at_omega` / `cached_selfgrav_at_omega`: bisect φ_c at fixed
+   integration-frame ω (mirroring the proven flat-space parameterization),
+   outer-iterate ω_int so ω_phys = ω_int/α_inf hits the request. Note the
+   dressed twist: α grows outward so a start exactly at the flat-space
+   barrier top rolls off the *outward* side — the "over" bracket edge sits
+   below f_top and is found by scanning down.
+3. **Params writer** — `solver/params.py _write_selfgrav_profile`: when a
+   selfgrav lump carries `qball_omega>0` and sextic couplings, solve at that
+   frequency; φ_c becomes an OUTPUT and is back-written onto `lump.amp` (the
+   painters rescale the table by amp/φ_c — only amp==φ_c keeps the seed on
+   the eigenstate; same bug class as §7's clamp).
+4. Regression tests: Gaussian-fallback repaint, at-omega back-write +
+   repaint consistency, exact-amplitude flag (both states).
+
+### 8.4 The ultraweak rung — first rung where the dressed star exists
+
+Keeping λ²/μ = 4.8 (ω_min = 0.316 unchanged), ω = 0.55:
+
+| λ | μ | dressed ω=0.55 star? | φ_c | ADM | α(0) |
+|---|---|---|---|---|---|
+| 2560 (weak) | 1365333 | **no** | — | — | — |
+| 5120 | 5461333 | **no** | — | — | — |
+| **10240 (ultraweak)** | **21845333** | **yes** | 0.019695 | 0.0640 | 0.977 |
+
+Cost of the rung: the lump is ~4.4× lighter than the weak-rung flat ball, so
+the pair drift is gentler — a ≈ M/sep² ≈ 1e-3, displacement ≈ 5 length units
+by t=100. Still far above the barycentre stream's resolution.
+
+### 8.5 Running now + revised road forward
+
+- `bondi_sg_single_p` (runs/bondi_dipole_selfgrav_v1, GPU 1, stop 40,
+  `run_single_selfgrav.sh`): ultraweak rung, `grtresna_bs_selfgrav=1`,
+  ω=0.55. Seed verified at launch: solved eigenvalue 0.5500068,
+  lump0_amp = 0.0196947, 3-column (lapse) table. Expected t=0 fingerprint
+  total ≈ 15.92 / rms ≈ 5.05; pass gate unchanged (rms ±10% to t=40,
+  min_chi > 0.3 plateau). Expect ~1% ripple, not ±10–18% breathing.
+- If it holds → pair matrix needs the §7.3-step-3 wiring first:
+  per-lump profile tables + per-lump ω (Python emitter + C++
+  `ComplexScalarField.cpp:169` global-ω for non-winding lumps), and the
+  phantom-dressed profile (sign-flipped gravity in `_ode_rhs` — the phantom
+  star's own gravity is repulsive, equilibrium slightly puffed; lift the
+  exotic→canonical veto in `config.py:472-482` for the dressed path).
+- The `grtresna_qball_exact_amplitude` flag stays: it is the correct (and
+  necessary) fix for any FLAT-profile path; it is just not sufficient where
+  no dressed equilibrium exists.
+
+### 8.6 Dressed-star calibration v1 verdict (2026-08-06, evening)
+
+`bondi_sg_single_p` (runs/bondi_dipole_selfgrav_v1) ran to t=40. Verdict:
+**bound breather, dirty launch — the first lump that did NOT disperse.**
+
+- Seed verified digit-perfect: t=0 total 15.924 / rms 5.045 vs predicted
+  15.92 / 5.05; solved eigenvalue 0.5500068; amp = the star's own φ_c.
+- **The core survived and breathed**: peak amplitude oscillated with period
+  ≈14 (crests 0.0254 / 0.0247 / 0.0247 at t≈6/20/36 — cycles 2-3 undamped),
+  confined fraction swung around ~0.5 in rhythm. No dispersal: the flat
+  seeds' cores unravelled by this point; this core is intact at t=40.
+- **The rms stream is NOT a star diagnostic here**: it climbed 5.0 → 13.2
+  monotonically while the core breathed — it tracks the shed-radiation
+  bath (amplitude-linear weight × r² leverage). Gate needs rethinking for
+  dressed runs: use peak + confined_frac + min_chi, not rms.
+- **Launch was dirty**: GRTresna exited at Mom residual 0.64% (exit tol
+  1.0%); the residual radiated as a visible χ>1 metric ring (frames at
+  t≈18) that sloshed the star's envelope. Fix landed: replay_eval now
+  exposes NL exit/stall tolerances; both selfgrav scripts use 0.1 / 0.002.
+- **Watch item**: min_chi deepened monotonically 0.99 → 0.86 over t=40,
+  accelerating late — the massive-field radiation bath cannot exit through
+  massless-wave boundaries and keeps washing over the star (plus possible
+  gauge drift). If it persists in the clean run, options: sponge layer, or
+  accept and keep pair runs ≤ t≈60.
+- v2 (tight solve, runs/bondi_dipole_selfgrav_v2) launched; if the breath
+  shrinks and chi stabilises → five-cell matrix
+  (`run_matrix_selfgrav.sh`, runs/bondi_dipole_selfgrav_matrix_v1).

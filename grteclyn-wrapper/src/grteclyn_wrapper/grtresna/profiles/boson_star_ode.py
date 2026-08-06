@@ -165,8 +165,15 @@ def _ode_rhs(
     lam: float,
     mu: float,
     omega: float,
+    gravity_sign: float = 1.0,
 ) -> list[float]:
-    """RHS of the coupled Einstein-Klein-Gordon radial system (isotropic form)."""
+    """RHS of the coupled Einstein-Klein-Gordon radial system (isotropic form).
+
+    ``gravity_sign = -1`` is the phantom sector of the bicomplex model: the
+    field obeys the SAME Klein-Gordon equation (positive inertial mass), only
+    its stress-energy enters the metric equations with a flipped sign
+    (negative active mass -> repulsive self-gravity, psi < 1, alpha > 1).
+    """
     phi = float(state[_PHI])
     dphi = float(state[_DPHI])
     psi = float(state[_PSI])
@@ -196,6 +203,10 @@ def _ode_rhs(
     #   rho+S  = 2 omega^2/alpha^2 phi^2 - 2 U
     rho = 0.5 * omega_over_alpha_sq * phi2 + 0.5 * inv_psi4 * dphi * dphi + u_val
     rho_plus_s = 2.0 * omega_over_alpha_sq * phi2 - 2.0 * u_val
+    # Only the METRIC sources flip for the phantom sector; the Klein-Gordon
+    # equation below keeps its canonical form.
+    rho = gravity_sign * rho
+    rho_plus_s = gravity_sign * rho_plus_s
 
     if r > 1.0e-12:
         inv_r = 1.0 / r
@@ -229,6 +240,7 @@ def _shoot(
     lam: float,
     mu: float,
     r_max: float,
+    gravity_sign: float = 1.0,
 ) -> tuple[str, object]:
     """Integrate the coupled system outward from a regular r~0 start.
 
@@ -254,7 +266,10 @@ def _shoot(
     y0 = [phi_c, 0.0, 1.0, 0.0, 1.0, 0.0]
 
     def rhs(r, y):
-        return _ode_rhs(r, y, mass=mass, lam=lam, mu=mu, omega=omega)
+        return _ode_rhs(
+            r, y, mass=mass, lam=lam, mu=mu, omega=omega,
+            gravity_sign=gravity_sign,
+        )
 
     # Overshoot: phi0 crosses zero (descending) -> over.
     def event_zero(r, y):
@@ -333,6 +348,7 @@ def _build_profile(
     lam: float,
     mu: float,
     r_max: float,
+    gravity_sign: float = 1.0,
 ) -> BosonStarODEProfile:
     """Sample the near-separatrix solution, rescale to the physical isotropic
     frame, and attach the analytic exterior.
@@ -397,8 +413,11 @@ def _build_profile(
     phi_m = float(phi_core_keep[-1])
 
     # --- ADM mass from the exterior conformal factor psi -> 1 + M/(2 r). -------
+    # Canonical stars have M >= 0; phantom (gravity_sign < 0) stars have M <= 0
+    # (negative active mass, psi < 1).  Clamp toward the sector's sign only.
     psi_m = float(psi_core_keep[-1])
-    adm_mass = float(max(2.0 * r_m_phys * (psi_m - 1.0), 0.0))
+    adm_raw = 2.0 * r_m_phys * (psi_m - 1.0)
+    adm_mass = float(max(adm_raw, 0.0) if gravity_sign >= 0.0 else min(adm_raw, 0.0))
 
     kappa = math.sqrt(max(mass * mass - omega_phys * omega_phys, 1.0e-30))
 
@@ -573,6 +592,124 @@ def cached_selfgrav_profile(
     return solve_selfgrav_boson_star(
         QBallCouplings(mass=mass, lam=lam, mu=mu, omega=0.5 * mass, phi_core=phi_c),
         phi_c=phi_c,
+    )
+
+
+def solve_selfgrav_at_omega(
+    couplings: QBallCouplings,
+    *,
+    omega_phys: float,
+    r_max: float | None = None,
+    rel_tol: float = 1.0e-4,
+    gravity_sign: float = 1.0,
+) -> BosonStarODEProfile:
+    """Dressed star at a TARGET physical frequency, by amplitude-shooting.
+
+    Heavy-branch sextic stars sit with ``phi_c`` a fraction of a percent below
+    the effective-potential top ``f_top``, so at fixed ``phi_c`` the eigenvalue
+    in omega is an exponentially thin needle -- omega-shooting steps over it and
+    lands on the light branch (observed: requesting the omega=0.55 weak-rung
+    ball returned the 5x-lighter omega=0.75 star).  Mirror the flat-space
+    solver's parameterization instead: bisect ``phi_c`` at fixed
+    integration-frame omega, then outer-iterate omega_int so the rescaled
+    ``omega_phys = omega_int / alpha_inf`` matches the request.
+    """
+    mass, lam, mu = couplings.mass, couplings.lam, couplings.mu
+    if mass <= 0.0:
+        raise ValueError("mass must be positive")
+    if lam <= 0.0 or mu <= 0.0:
+        raise ValueError(
+            "solve_selfgrav_at_omega needs the sextic couplings (lam, mu > 0); "
+            "for the free-field mini star use solve_selfgrav_boson_star(phi_c=...)"
+        )
+    if not 0.0 < omega_phys < mass:
+        raise ValueError("omega_phys must lie in (0, mass) for a bound star")
+
+    r_max = float(r_max if r_max is not None else max(80.0, 30.0 / mass))
+
+    def bisect_phi_c(omega_int: float):
+        # Central values sit in the psi(0)=alpha(0)=1 gauge, so the flat-space
+        # barrier top applies at r=0: f_top^2 = (lam + sqrt(disc)) / (2 mu).
+        disc = lam * lam - 4.0 * mu * (mass * mass - omega_int * omega_int)
+        if disc <= 0.0:
+            raise RuntimeError(
+                f"no barrier top at omega_int={omega_int}: below the Q-ball band"
+            )
+        f_top = math.sqrt((lam + math.sqrt(disc)) / (2.0 * mu))
+        lo = 1.0e-3 * f_top
+        k_lo, _ = _shoot(omega_int, lo, mass=mass, lam=lam, mu=mu, r_max=r_max, gravity_sign=gravity_sign)
+        if k_lo != "under":
+            raise RuntimeError("amplitude bracket: low side is not 'under'")
+        # In the dressed system the lapse grows outward, weakening the local
+        # binding, so a start exactly at the flat-space barrier top rolls off
+        # the OUTWARD side ("under").  The over window sits below f_top; scan
+        # down to find its edge.
+        hi = None
+        for eps in (1e-9, 1e-6, 1e-4, 1e-3, 3e-3, 1e-2, 3e-2, 1e-1, 3e-1):
+            cand = f_top * (1.0 - eps)
+            if cand <= lo:
+                break
+            k_hi, _ = _shoot(omega_int, cand, mass=mass, lam=lam, mu=mu, r_max=r_max, gravity_sign=gravity_sign)
+            if k_hi == "over":
+                hi = cand
+                break
+        if hi is None:
+            raise RuntimeError(
+                "amplitude bracket: no 'over' start found below f_top "
+                f"(omega_int={omega_int})"
+            )
+        best = lo
+        best_sol = None
+        for _ in range(200):
+            mid = 0.5 * (lo + hi)
+            k, sol = _shoot(omega_int, mid, mass=mass, lam=lam, mu=mu, r_max=r_max, gravity_sign=gravity_sign)
+            if k == "over":
+                hi = mid
+            else:
+                lo = mid
+                best = mid
+                best_sol = sol
+            if hi - lo <= 1.0e-15 * f_top:
+                break
+        if best_sol is None:
+            _, best_sol = _shoot(omega_int, best, mass=mass, lam=lam, mu=mu, r_max=r_max, gravity_sign=gravity_sign)
+        return best, best_sol
+
+    omega_int = omega_phys
+    profile = None
+    for _ in range(8):
+        phi_c, sol = bisect_phi_c(omega_int)
+        profile = _build_profile(
+            sol, omega_int=omega_int, phi_c=phi_c, mass=mass, lam=lam, mu=mu,
+            r_max=r_max, gravity_sign=gravity_sign,
+        )
+        if abs(profile.omega - omega_phys) <= rel_tol * omega_phys:
+            return profile
+        # alpha_inf depends only weakly on omega_int: fixed-point rescale.
+        omega_int *= omega_phys / profile.omega
+    raise RuntimeError(
+        f"selfgrav at-omega solve did not converge: target {omega_phys}, "
+        f"last {profile.omega if profile else 'n/a'}"
+    )
+
+
+@lru_cache(maxsize=32)
+def cached_selfgrav_at_omega(
+    mass: float,
+    lam: float,
+    mu: float,
+    omega_phys: float,
+    gravity_sign: float = 1.0,
+) -> BosonStarODEProfile:
+    """Memoised fixed-frequency dressed star; ``phi_c`` is the solved output.
+
+    ``gravity_sign = -1`` -> phantom-sector star (repulsive self-gravity,
+    negative ADM mass).  Part of the cache key: the two sectors' stars differ.
+    """
+    return solve_selfgrav_at_omega(
+        QBallCouplings(mass=mass, lam=lam, mu=mu, omega=omega_phys, phi_core=0.0),
+        omega_phys=omega_phys,
+        gravity_sign=gravity_sign,
     )
 
 

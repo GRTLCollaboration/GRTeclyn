@@ -69,6 +69,7 @@ def run_optimize_command(args: argparse.Namespace, base_overrides: dict) -> int:
         example=example,
         name=args.name,
         dry_run=args.dry_run,
+        resume=getattr(args, "resume", False),
         constrained=use_constrained,
         phantom=use_phantom,
         use_preflight=use_preflight,

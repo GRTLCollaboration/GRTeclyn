@@ -231,6 +231,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     opt = subparsers.add_parser("optimize", help="CMA-ES optimization over RadialRecipe coefficients.")
+    opt.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume a killed run from <run_dir>/cmaes_state.pkl (optimizer "
+        "state + counters, checkpointed after every generation). Requires the "
+        "same --name and --runs-dir; falls back to a fresh start if no "
+        "checkpoint exists.",
+    )
     opt.add_argument("--max-generations", type=int, default=50, help="Maximum CMA-ES generations.")
     opt.add_argument(
         "--target-evals",

@@ -34,6 +34,10 @@ def _lump_lines(cfg: GRTresnaConfig) -> list[str]:
                 f"lump{k}_winding = {int(lump.get('winding', 0))}",
                 f"lump{k}_profile = {grtresna_lump_profile(int(lump.get('profile', 0)))}",
             ])
+            # Per-lump table (mixed-sector selfgrav pairs); C++ falls back to
+            # the global qball_profile_path when this key is absent.
+            if lump.get("profile_path"):
+                lines.append(f"lump{k}_profile_path = {lump['profile_path']}")
         return lines
     return [
         f"lump_amp = {cfg.lump_amp}",
@@ -93,14 +97,40 @@ def _maybe_write_qball_profile(cfg: GRTresnaConfig, params_path: Path) -> str | 
     return str(dat_path.resolve())
 
 
+def _emit_star_table(dat_path: Path, profile, *, mass: float, lam: float, mu: float, sector: str) -> str:
+    with dat_path.open("w", encoding="utf-8") as fh:
+        fh.write(
+            f"# self-gravitating boson star phi0(r) [{sector}]: m={mass} lam={lam} "
+            f"mu={mu} omega_eigenvalue={profile.omega} ADM_mass={profile.adm_mass}\n"
+        )
+        # Three columns: r  phi0(r)  alpha(r).  The lapse alpha(r) lets GRTresna
+        # set the stationary momentum Pi_im = -(omega/alpha) phi0 (a boson star is
+        # stationary, NOT static: painting Pi with the flat-space alpha=1 gives
+        # the wrong kinetic energy and the seed radiates).
+        fh.write(f"# phi_c(0) = {profile.phi_c}\n")
+        fh.write("# columns: r  phi0  alpha\n")
+        for r_i, phi_i, alpha_i in zip(profile.r, profile.phi0, profile.alpha):
+            fh.write(f"{float(r_i):.10g} {float(phi_i):.10g} {float(alpha_i):.10g}\n")
+    return str(dat_path.resolve())
+
+
 def _write_selfgrav_profile(
     cfg: GRTresnaConfig, selfgrav_lumps: list[dict], params_path: Path
 ) -> str:
-    """Solve the self-gravitating boson star ODE and emit its tabulated phi0(r).
+    """Solve the self-gravitating star ODE(s) and emit tabulated phi0(r).
 
     The gravitational eigenvalue ``omega`` is written back onto ``cfg.bs_omega``
     and every self-grav lump's ``omega`` so the painter and the constraint solve
     agree on the phase velocity.
+
+    Mixed-sector pairs (canonical + exotic lumps) get ONE TABLE PER SECTOR: the
+    phantom star's repulsive self-gravity gives it a slightly puffed profile,
+    its own lapse (alpha > 1 inside) and a negative ADM mass, so sharing the
+    canonical table would seed it off-equilibrium.  Each lump gets its own
+    ``profile_path`` (read per-lump by GRTresna, with the canonical table as the
+    global fallback).  Both sectors solve to the SAME requested frequency, so
+    the C++ painter's global-omega momentum paint stays correct; per-lump omega
+    support in C++ is only needed for mixed-frequency pairs.
     """
     from ..profiles.boson_star_ode import cached_selfgrav_profile
 
@@ -108,33 +138,52 @@ def _write_selfgrav_profile(
     mass = float(src.get("qball_mass", cfg.scalar_mass))
     lam = float(src.get("qball_lam", cfg.scalar_lambda))
     mu = float(src.get("qball_mu", cfg.scalar_mu))
-    # Central amplitude sets the star on its mass-radius branch.  Prefer the
-    # lump's painted amplitude; fall back to bs_phi_c.
+    # A requested frequency (qball_omega, sextic couplings) pins the star on
+    # the intended eigenvalue branch and makes phi_c a solved OUTPUT;
+    # otherwise phi_c parameterizes the star (mini-star path, omega solved).
+    omega_target = float(src.get("qball_omega", 0.0))
+    if omega_target > 0.0 and lam > 0.0 and mu > 0.0:
+        from ..profiles.boson_star_ode import cached_selfgrav_at_omega
+
+        global_path: str | None = None
+        omega_out = 0.0
+        for sector, sign in (("canonical", 1.0), ("exotic", -1.0)):
+            sector_lumps = [
+                lump for lump in selfgrav_lumps
+                if bool(int(lump.get("exotic", 0))) == (sign < 0)
+            ]
+            if not sector_lumps:
+                continue
+            profile = cached_selfgrav_at_omega(mass, lam, mu, omega_target, sign)
+            name = "qball_profile.dat" if sign > 0 else "qball_profile_exotic.dat"
+            path = _emit_star_table(
+                params_path.parent / name, profile,
+                mass=mass, lam=lam, mu=mu, sector=sector,
+            )
+            for lump in sector_lumps:
+                # The C++/Python painters rescale the table by amp/phi_c; only
+                # amp == the solved phi_c keeps the seed on the eigenstate.
+                lump["amp"] = float(profile.phi_c)
+                lump["omega"] = float(profile.omega)
+                lump["profile_path"] = path
+            if global_path is None or sign > 0:
+                global_path = path
+                omega_out = float(profile.omega)
+        cfg.bs_omega = omega_out
+        assert global_path is not None
+        return global_path
+
     phi_c = float(src.get("amp", 0.0)) or float(cfg.bs_phi_c)
-
     profile = cached_selfgrav_profile(mass, lam, mu, phi_c)
-
     # Propagate the eigenvalue so the painter's Pi2 = -omega*phi0/alpha and the
     # constraint solve share the phase velocity.
     cfg.bs_omega = float(profile.omega)
     for lump in selfgrav_lumps:
         lump["omega"] = float(profile.omega)
-
-    dat_path = params_path.parent / "qball_profile.dat"
-    with dat_path.open("w", encoding="utf-8") as fh:
-        fh.write(
-            f"# self-gravitating boson star phi0(r): m={mass} lam={lam} mu={mu} "
-            f"omega_eigenvalue={profile.omega} ADM_mass={profile.adm_mass}\n"
-        )
-        # Three columns: r  phi0(r)  alpha(r).  The lapse alpha(r) lets GRTresna
-        # set the stationary momentum Pi_im = -(omega/alpha) phi0 (a boson star is
-        # stationary, NOT static: alpha(0) ~ 0.45 << 1, so painting Pi with the
-        # flat-space alpha=1 gives the wrong kinetic energy and the seed radiates).
-        fh.write(f"# phi_c(0) = {profile.phi_c}\n")
-        fh.write("# columns: r  phi0  alpha\n")
-        for r_i, phi_i, alpha_i in zip(profile.r, profile.phi0, profile.alpha):
-            fh.write(f"{float(r_i):.10g} {float(phi_i):.10g} {float(alpha_i):.10g}\n")
-    return str(dat_path.resolve())
+    return _emit_star_table(
+        params_path.parent / "qball_profile.dat", profile,
+        mass=mass, lam=lam, mu=mu, sector="canonical",
+    )
 
 
 def write_grtresna_params(cfg: GRTresnaConfig, path: Path) -> None:
