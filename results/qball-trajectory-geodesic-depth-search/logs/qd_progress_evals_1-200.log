@@ -1,0 +1,80 @@
+[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000002 (69 overrides)
+[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000141 (69 overrides)
+[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000179 (69 overrides)
+[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000226 (69 overrides)
+[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000272 (69 overrides)
+[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000322 (69 overrides)
+[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000370 (69 overrides)
+[qd] MAP-Elites: 39D, bins=8x8, batch=4, iters=49, GPUs=[0, 1, 2, 3], pipeline=True, evals=0->200
+[qd] report: elites=2 coverage=0.03 best=4208.1569 evals=15/200 near_miss=0 shadow_cov=0.00
+[qd] report: elites=3 coverage=0.05 best=4208.1569 evals=19/200 near_miss=0 shadow_cov=0.00
+[qd] pruned 5 eval dirs; kept 16 + protected [7, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+[qd] report: elites=3 coverage=0.05 best=4609.2878 evals=23/200 near_miss=0 shadow_cov=0.00
+[qd] report: elites=3 coverage=0.05 best=4609.2878 evals=27/200 near_miss=2 shadow_cov=0.02
+[qd] pruned 9 eval dirs; kept 17 + protected [19, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+[qd] report: elites=3 coverage=0.05 best=4609.2878 evals=31/200 near_miss=3 shadow_cov=0.02
+[qd] report: elites=5 coverage=0.08 best=4609.2878 evals=35/200 near_miss=3 shadow_cov=0.02
+[qd] report: elites=5 coverage=0.08 best=4609.2878 evals=39/200 near_miss=3 shadow_cov=0.02
+[qd] pruned 9 eval dirs; kept 18 + protected [28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41]
+[qd] report: elites=6 coverage=0.09 best=4609.2878 evals=43/200 near_miss=3 shadow_cov=0.02
+[qd] report: elites=8 coverage=0.12 best=4609.2878 evals=47/200 near_miss=3 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+[qd] report: elites=8 coverage=0.12 best=4609.2878 evals=51/200 near_miss=3 shadow_cov=0.02
+[qd] report: elites=8 coverage=0.12 best=4609.2878 evals=55/200 near_miss=3 shadow_cov=0.02
+[qd] report: elites=8 coverage=0.12 best=4609.2878 evals=59/200 near_miss=3 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 18 + protected [49, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61]
+[qd] report: elites=8 coverage=0.12 best=4609.2878 evals=63/200 near_miss=4 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=67/200 near_miss=4 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 18 + protected [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=71/200 near_miss=4 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=75/200 near_miss=4 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=79/200 near_miss=4 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [69, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=83/200 near_miss=6 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=87/200 near_miss=7 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [78, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=91/200 near_miss=7 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=95/200 near_miss=7 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=99/200 near_miss=7 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [89, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=103/200 near_miss=7 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=107/200 near_miss=7 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=111/200 near_miss=7 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=115/200 near_miss=8 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=119/200 near_miss=8 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=123/200 near_miss=8 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=127/200 near_miss=8 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [119, 120, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=131/200 near_miss=9 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=135/200 near_miss=10 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=139/200 near_miss=10 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [129, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=143/200 near_miss=11 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=147/200 near_miss=11 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [137, 140, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=151/200 near_miss=12 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=155/200 near_miss=13 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=159/200 near_miss=13 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=163/200 near_miss=13 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=167/200 near_miss=16 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [151, 155, 156, 158, 160, 165, 166, 167, 168, 169, 170, 171]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=171/200 near_miss=19 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=175/200 near_miss=20 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=179/200 near_miss=22 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [166, 169, 170, 171, 174, 175, 176, 177, 178, 179, 180, 181]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=183/200 near_miss=24 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=187/200 near_miss=25 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 19 + protected [179, 180, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=191/200 near_miss=25 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=195/200 near_miss=26 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=199/200 near_miss=26 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 18 + protected [186, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=200/200 near_miss=26 shadow_cov=0.02
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=200/200 near_miss=26 shadow_cov=0.02
+[qd] pruned 10 eval dirs; kept 8 + protected [200]
+[qd] report: elites=9 coverage=0.14 best=4609.2878 evals=200/200 near_miss=26 shadow_cov=0.02
+[qd] pruned 1 eval dirs; kept 7 + protected []
+[qd] Done. elites=9 coverage=0.14 tiers={'rejected': 0, 'constructed': 3, 'nontrivial': 0, 'operational': 6, 'persistent': 0, 'observer_ec': 0, 'converged': 0, 'analytic': 0} dir=/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1

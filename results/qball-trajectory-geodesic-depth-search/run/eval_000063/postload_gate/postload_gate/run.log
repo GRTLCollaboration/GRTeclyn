@@ -1,0 +1,128 @@
+
+$ /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/postload_gate/postload_gate/params.txt
+Initializing AMReX (26.02-12-gd7da50458966)...
+MPI initialized with 1 MPI processes
+MPI initialized with thread support level 0
+Initializing CUDA...
+CUDA initialized with 1 device.
+AMReX (26.02-12-gd7da50458966) initialized
+Parameter: num_ghosts not found in parameter file. It has been set to its default value = 3.
+Parameter: tag_buffer_size not found in parameter file. It has been set to its default value = 3.
+Parameter: grid_buffer_size not found in parameter file. It has been set to its default value = 8.
+Parameter: fill_ratio not found in parameter file. It has been set to its default value = 0.7.
+You are using non periodic boundary conditions.
+The boundary params chosen are:  
+---------------------------------
+- Sommerfeld boundaries in direction high 0
+The non zero asymptotic values of the variables in this direction are : 
+chi = 1    h11 = 1    h22 = 1    h33 = 1    lapse = 1    
+
+- Sommerfeld boundaries in direction low 0
+The non zero asymptotic values of the variables in this direction are : 
+chi = 1    h11 = 1    h22 = 1    h33 = 1    lapse = 1    
+
+- Sommerfeld boundaries in direction high 1
+The non zero asymptotic values of the variables in this direction are : 
+chi = 1    h11 = 1    h22 = 1    h33 = 1    lapse = 1    
+
+- Sommerfeld boundaries in direction low 1
+The non zero asymptotic values of the variables in this direction are : 
+chi = 1    h11 = 1    h22 = 1    h33 = 1    lapse = 1    
+
+- Sommerfeld boundaries in direction high 2
+The non zero asymptotic values of the variables in this direction are : 
+chi = 1    h11 = 1    h22 = 1    h33 = 1    lapse = 1    
+
+- Sommerfeld boundaries in direction low 2
+The non zero asymptotic values of the variables in this direction are : 
+chi = 1    h11 = 1    h22 = 1    h33 = 1    lapse = 1    
+
+---------------------------------
+Using single regrid threshold.
+Parameter: max_steps not found in parameter file. It has been set to its default value = 1000000.
+Parameter: recipe_scalar_sign not found in parameter file. It has been set to its default value = 1.
+recipe_scalar_field_signs parsed: -1 1 -1 -1 -1
+Parameter: rl_enabled not found in parameter file. It has been set to its default value = 0.
+Parameter: rl_coarse_step_interval not found in parameter file. It has been set to its default value = 64.
+Parameter: rl_zmq_port not found in parameter file. It has been set to its default value = 5555.
+Parameter: rl_zmq_timeout_ms not found in parameter file. It has been set to its default value = 120000.
+Parameter: rl_num_lumps not found in parameter file. It has been set to its default value = 1.
+Parameter: rl_pump_width not found in parameter file. It has been set to its default value = 1.5.
+Parameter: rl_pump_max_amplitude not found in parameter file. It has been set to its default value = 0.05.
+Parameter: rl_l2_ham_governor_center not found in parameter file. It has been set to its default value = 0.035.
+Parameter: rl_l2_ham_governor_width not found in parameter file. It has been set to its default value = 0.003.
+Parameter: rl_pump_kp_phantom not found in parameter file. It has been set to its default value = -1.
+Parameter: rl_pump_kd_phantom not found in parameter file. It has been set to its default value = -1.
+Parameter: rl_pump_target_amp not found in parameter file. It has been set to its default value = 0.
+Parameter: rl_pump_superpose_targets not found in parameter file. It has been set to its default value = 0.
+Parameter: rl_pump_stop_time not found in parameter file. It has been set to its default value = -1.
+Parameter: controller_reservoir_mode not found in parameter file. It has been set to its default value = 0.
+Parameter: sponge_enabled not found in parameter file. It has been set to its default value = 0.
+Parameter: sponge_inner_radius not found in parameter file. It has been set to its default value = 24.
+Parameter: sponge_outer_radius not found in parameter file. It has been set to its default value = 32.
+Parameter: sponge_strength not found in parameter file. It has been set to its default value = 4.
+Parameter: sponge_ramp_power not found in parameter file. It has been set to its default value = 4.
+Parameter: sponge_center not found in parameter file. It has been set to its default value = 32 32 32.
+Parameter: recipe_num_chi_angular_modes not found in parameter file. It has been set to its default value = 0.
+Parameter: recipe_num_chi_Ylm_modes not found in parameter file. It has been set to its default value = 0.
+Parameter: recipe_num_lapse_angular_modes not found in parameter file. It has been set to its default value = 0.
+Parameter: recipe_num_beta_angular_modes not found in parameter file. It has been set to its default value = 0.
+Parameter: recipe_num_K_angular_modes not found in parameter file. It has been set to its default value = 0.
+Successfully read inputs file ... 
+Successfully read inputs file ... 
+ExternalGridInitialData: mapped 33 of 41 state variables by name
+ExternalGridInitialData: loaded /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/initial_data.gridinit (128x128x128, 33 components)
+grid_places() time: 0.007019196 new finest: 0
+Now regridding at level lbase = 0
+grid_places() time: 0.004592536 new finest: 0
+STEP = 0 TIME = 0 : REGRID  with lbase = 0
+
+INITIAL GRIDS 
+  Level 0   64 grids  2097152 cells  100 % of domain
+            smallest grid: 32 x 32 x 32  biggest grid: 32 x 32 x 32
+
+PLOTFILE: file = /tmp/grteclyn_scratch/postload_gate_postload_gate_9c569f48/RadialRecipePlt00000
+Write plotfile time = 0.286013084  seconds
+
+[Level 0 step 1] ADVANCE at time 0 with dt = 0.01
+[Level 0 step 1] average evolution speed = 0 code units/h
+[Level 0 step 1] Advanced 2097152 cells
+
+[STEP 1] Coarse TimeStep time: 0.223584961
+[STEP 1] FAB kilobyte spread across MPI nodes: [6061604 ... 6061604]
+
+STEP = 1 TIME = 0.01 DT = 0.01
+
+PLOTFILE: file = /tmp/grteclyn_scratch/postload_gate_postload_gate_9c569f48/RadialRecipePlt00001
+Write plotfile time = 0.276617908  seconds
+
+Unused ParmParse Variables:
+  [TOP]::extraction_levels(nvals = 2)  :: [0, 0]
+  [TOP]::extraction_radii(nvals = 2)  :: [8.0, 16.0]
+  [TOP]::extraction_subpath(nvals = 1)  :: [data]
+  [TOP]::hdf5_subpath(nvals = 1)  :: [hdf5]
+  [TOP]::modes(nvals = 2)  :: [2, 0]
+  [TOP]::num_extraction_radii(nvals = 1)  :: [2]
+  [TOP]::num_modes(nvals = 1)  :: [1]
+  [TOP]::num_points_phi(nvals = 1)  :: [24]
+  [TOP]::num_points_theta(nvals = 1)  :: [37]
+  [TOP]::trajectory_lump0_exotic(nvals = 1)  :: [0.5163800480767575]
+  [TOP]::trajectory_lump1_exotic(nvals = 1)  :: [0.3577704989605226]
+  [TOP]::trajectory_lump2_exotic(nvals = 1)  :: [0.6683990124394023]
+  [TOP]::trajectory_lump3_exotic(nvals = 1)  :: [0.9840247138643096]
+  [TOP]::trajectory_lump4_exotic(nvals = 1)  :: [0.954111256969953]
+  [TOP]::trajectory_r_min(nvals = 1)  :: [0.1]
+  [TOP]::trajectory_retrograde_only(nvals = 1)  :: [1]
+  [TOP]::write_extraction(nvals = 1)  :: [0]
+
+Total GPU global memory (MB) spread across MPI: [81079 ... 81079]
+Free  GPU global memory (MB) spread across MPI: [72744 ... 72744]
+[The         Arena] max space (MB) allocated spread across MPI: [6007 ... 6007]
+[The         Arena] max space (MB) used      spread across MPI: [5969 ... 5969]
+[The Managed Arena] max space (MB) allocated spread across MPI: [536 ... 536]
+[The Managed Arena] max space (MB) used      spread across MPI: [528 ... 528]
+[The  Pinned Arena] max space (MB) allocated spread across MPI: [8 ... 8]
+[The  Pinned Arena] max space (MB) used      spread across MPI: [6 ... 6]
+AMReX (26.02-12-gd7da50458966) finalized
+
+[wrapper] exit_code=0 elapsed_seconds=2.461

@@ -1,0 +1,568 @@
+{
+  "convergence": {
+    "best_score": 4609.287774560506,
+    "best_score_delta": 0.0,
+    "converged": true,
+    "coverage": 0.140625,
+    "coverage_delta": 0.0,
+    "coverage_stalled": true,
+    "front_stability": 1.0,
+    "front_stable": true,
+    "score_stalled": true,
+    "window": 3
+  },
+  "history": [
+    {
+      "best_score": 4208.156881717589,
+      "coverage": 0.03125,
+      "front_labels": [
+        "cell_7_7"
+      ],
+      "iteration": 0
+    },
+    {
+      "best_score": 4208.156881717589,
+      "coverage": 0.046875,
+      "front_labels": [
+        "cell_7_7",
+        "cell_3_7"
+      ],
+      "iteration": 1
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.046875,
+      "front_labels": [
+        "cell_3_7"
+      ],
+      "iteration": 2
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.046875,
+      "front_labels": [
+        "cell_3_7"
+      ],
+      "iteration": 3
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.046875,
+      "front_labels": [
+        "cell_3_7"
+      ],
+      "iteration": 4
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.078125,
+      "front_labels": [
+        "cell_4_7",
+        "cell_3_7"
+      ],
+      "iteration": 5
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.078125,
+      "front_labels": [
+        "cell_4_7",
+        "cell_3_7"
+      ],
+      "iteration": 6
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.09375,
+      "front_labels": [
+        "cell_4_7",
+        "cell_3_7"
+      ],
+      "iteration": 7
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.125,
+      "front_labels": [
+        "cell_4_7",
+        "cell_3_7"
+      ],
+      "iteration": 8
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.125,
+      "front_labels": [
+        "cell_4_7",
+        "cell_3_7"
+      ],
+      "iteration": 9
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.125,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 10
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.125,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 11
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.125,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 12
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 13
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 14
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 15
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 16
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 17
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 18
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 19
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_3_7",
+        "cell_1_7"
+      ],
+      "iteration": 20
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_1_7"
+      ],
+      "iteration": 21
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_1_7"
+      ],
+      "iteration": 22
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_4_7"
+      ],
+      "iteration": 23
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_4_7"
+      ],
+      "iteration": 24
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_4_7"
+      ],
+      "iteration": 25
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_4_7"
+      ],
+      "iteration": 26
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_1_7"
+      ],
+      "iteration": 27
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_1_7"
+      ],
+      "iteration": 28
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_1_7"
+      ],
+      "iteration": 29
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_1_7"
+      ],
+      "iteration": 30
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_1_7"
+      ],
+      "iteration": 31
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_1_7"
+      ],
+      "iteration": 32
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7"
+      ],
+      "iteration": 33
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7"
+      ],
+      "iteration": 34
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7"
+      ],
+      "iteration": 35
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7"
+      ],
+      "iteration": 36
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 37
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 38
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 39
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 40
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 41
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 42
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_7_7",
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 43
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 44
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 45
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 46
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 47
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 48
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 49
+    },
+    {
+      "best_score": 4609.287774560506,
+      "coverage": 0.140625,
+      "front_labels": [
+        "cell_6_7",
+        "cell_5_7",
+        "cell_4_7",
+        "cell_1_7"
+      ],
+      "iteration": 50
+    }
+  ],
+  "num_survivors": 6,
+  "survivor_front": [
+    {
+      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000049",
+      "label": "cell_6_7",
+      "objectives": {
+        "anec_condition": 1.0,
+        "constraint_growth": 0.9616521160385654,
+        "operational_ftl": 0.12494149679414078,
+        "tidal_comfort": 1.0
+      },
+      "score": 1775.7233812368734,
+      "tier": 2,
+      "tier_name": "operational"
+    },
+    {
+      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000089",
+      "label": "cell_5_7",
+      "objectives": {
+        "anec_condition": 1.0,
+        "constraint_growth": 0.9788936813608387,
+        "operational_ftl": 0.015358312233227764,
+        "tidal_comfort": 1.0
+      },
+      "score": 1473.3360078903431,
+      "tier": 2,
+      "tier_name": "operational"
+    },
+    {
+      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000109",
+      "label": "cell_4_7",
+      "objectives": {
+        "anec_condition": 1.0,
+        "constraint_growth": 0.9570767648125699,
+        "operational_ftl": 0.16954655827450366,
+        "tidal_comfort": 1.0
+      },
+      "score": 1259.7466077695547,
+      "tier": 2,
+      "tier_name": "operational"
+    },
+    {
+      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000179",
+      "label": "cell_1_7",
+      "objectives": {
+        "anec_condition": 1.0,
+        "constraint_growth": 0.9537336798812789,
+        "operational_ftl": 0.26135383102500387,
+        "tidal_comfort": 1.0
+      },
+      "score": 503.7991101381279,
+      "tier": 2,
+      "tier_name": "operational"
+    }
+  ],
+  "survivor_min_tier": 2,
+  "tier_histogram": {
+    "analytic": 0,
+    "constructed": 3,
+    "converged": 0,
+    "nontrivial": 0,
+    "observer_ec": 0,
+    "operational": 6,
+    "persistent": 0,
+    "rejected": 0
+  }
+}
