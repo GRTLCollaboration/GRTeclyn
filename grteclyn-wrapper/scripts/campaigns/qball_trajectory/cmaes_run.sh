@@ -34,7 +34,9 @@ export MAX_GENERATIONS="${MAX_GENERATIONS:-50}"
 # Keep enough elites that HQ/matrix can still find the champion if freeze is late.
 export KEEP_TOP_EVAL_DIRS="${KEEP_TOP_EVAL_DIRS:-10}"
 export GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
-export POPULATION="${POPULATION:-$(wc -w <<< "${GPU_IDS}")}"
+# 4x GPU slots, never #GPUs: the generation barrier starves the pipeline
+# otherwise (README "Stage 1 - CMA-ES" warning; cap cost with TARGET_EVALS).
+export POPULATION="${POPULATION:-$((4 * $(wc -w <<< "${GPU_IDS}")))}"
 
 # --- Matter model: must match QD (bicomplex) ---
 export GRTRESNA_MATTER_SECTOR=boson_star

@@ -264,10 +264,22 @@ PIN_DIMS="$(bash -c 'source scripts/campaigns/lib/general_ftl_pins.sh && ftl_gen
 
 | Knob | Typical | Notes |
 |------|---------|-------|
-| Population | = GPU count | `POPULATION` defaults to `#GPU_IDS` |
+| Population | **≥ 4 × GPU slots** (e.g. 16 on 4 GPUs) | NEVER `= #GPU_IDS` — see warning below |
 | σ₀ | 0.05–0.08 | local basin width |
 | Warm-start | top-K elites | `WARM_START_TOP_K`, `WARM_START_JITTER` |
 | Target | eval budget | `TARGET_EVALS` or `MAX_GENERATIONS × pop` |
+
+> **⚠ Population must be several × the GPU slot count — never run CMA-ES
+> "generationally starved".** CMA-ES has a hard barrier at every `tell()`:
+> no next-generation candidate exists until ALL of the current generation
+> finish. With `POPULATION = #GPUs` (the old default) any fast-failing
+> candidate (post-load gate reject) or straggler leaves GPUs idle for most
+> of each generation — measured ~50 % idle on the 2026-08-06
+> `qball_traj_fgeo_depth_cmaes_v1` first launch. With `POPULATION ≥ 4 ×`
+> slots the within-generation pipeline streams candidates back-to-back
+> (like MAP-Elites) and the barrier tail is amortized away. Bonus: the
+> CMA-ES textbook population for an n-dim search is `4+⌊3·ln n⌋` (≈ 15 at
+> n = 39) — `pop = 4` was statistically undersized as well as slow.
 
 **Outputs:** `runs/grtresna_cmaes/<RUN_NAME>/` — same layout as QD. **Monitor:**
 `tail -f runs/grtresna_cmaes/<RUN_NAME>/trajectory.jsonl`
@@ -333,6 +345,7 @@ comparison and full env-var reference.
 ### Rules (do not skip)
 
 1. **CMA-ES must mirror QD** — same `OBJECTIVE_MODE`, pins, grid, `STOP_TIME`, geodesic config.
+   And `POPULATION ≥ 4 × GPU slots` — never `= #GPUs` (generation barrier starves the pipeline; see the Stage 1 warning).
 2. **`general_ftl` needs `GRTECLYN_GEO_DIRECTIONS=x y z`** — wormhole shortcuts live on z; x-only scoring replays elites at the wrong fitness.
 3. **HQ `CANDIDATES` is eval/gpu pairs** — e.g. `"46 0 39 1"` not a bare eval list.
 4. **Search turns frames off, HQ turns them on** — by design (`search_common.sh` vs `promote_common.sh`).

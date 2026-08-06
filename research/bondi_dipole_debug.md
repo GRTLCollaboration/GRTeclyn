@@ -6,6 +6,13 @@
 non-dispersing (+,−) runaway with dense frames for smooth movies (N1,
 Appendix B of `research/nextsteps.md`).*
 
+> **UPDATE 2026-08-06 — root cause found; §4 diagnosis and the §5 Step-1 scan
+> are superseded by §7.** The blob was never wrong-shaped: it is the exact
+> Q-ball eigenstate at 95.45% of its amplitude, because the painter clamps the
+> amplitude to the thin-wall estimate. One-line opt-in fix landed
+> (`grtresna_qball_exact_amplitude=1`). The proposed well-depth scan would
+> have been three identical runs (the knob saturates); do not run it.
+
 ## TL;DR
 
 - **Four campaigns, four failures — and the failure modes triangulate the
@@ -241,6 +248,7 @@ Options, in order of preference:
 | what | where |
 |---|---|
 | matrix scripts (strong → mid) | `grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_matrix.sh`, `run_matrix_weakfield.sh`, `run_matrix_weakfield2.sh`, `run_matrix_midfield.sh` |
+| exact-amplitude fix (2026-08-06) | `grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/config.py` (`grtresna_qball_exact_amplitude`), tests in `tests/grtresna/test_qball_bicomplex_campaign.py` |
 | stop tool (the only sanctioned way) | `grteclyn-wrapper/scripts/campaigns/stop_campaign.sh` |
 | run dirs | `runs/bondi_dipole_v1`, `runs/bondi_dipole_weakfield_v1`, `runs/bondi_dipole_weakfield_v2`, `runs/bondi_dipole_midfield_v1` |
 | launch logs | `runs/bondi_wf2_launch.log`, `runs/bondi_midfield_launch.log` |
@@ -248,3 +256,95 @@ Options, in order of preference:
 | grip / collapse monitor | `<run>/small_data/confinement.dat`, min_chi = col 18 |
 | v2 intermediate movies | `runs/bondi_dipole_weakfield_v2/bondi_wf2_single_p/movies/` (19 views, t=0–13) |
 | v1 pair movie (overlap-hypothesis source) | `runs/bondi_dipole_weakfield_v1/bondi_wf_pair_pm/movies/movie_scalar_activity_z_t0-32.mp4` |
+
+## 7. Root cause (2026-08-06) — the amplitude clamp, not the profile
+
+Three parallel code traces + an independent re-solve of the 1D Q-ball
+equation + digit-level reconstruction of the recorded t=0 diagnostics.
+Every claim below was verified against the actual run artifacts.
+
+### 7.1 What actually happens at t=0
+
+1. **The painted shape was always the TRUE Q-ball.** The campaign path
+   (`grtresna_qball_ode_profile=1` → lump profile 3) shoots the exact radial
+   eigenstate and paints it from `grtresna/qball_profile.dat`. An independent
+   re-solve reproduces the table's central amplitude to 6 digits, and the
+   painted table reproduces the recorded t=0 stream *exactly*
+   (predicted total 49.0006 / rms 5.2209 vs measured 49.0006 / 5.2209,
+   mid-field `single_p`). The blob was never "far from any soliton shape" —
+   §4 is wrong on that point.
+2. **The elliptic solver never touches the matter.** Matter is painted once
+   before the nonlinear loop; the solve adjusts only the metric. "The solver
+   relaxes to its own state" is not physically possible in this code.
+3. **Why v1 = v2 to 9 digits:** `grtresna_bs_phi_c` and
+   `grtresna_bs_profile_width` are *dead knobs* on the lump path — written to
+   params.txt, read by nobody (Python config takes the amp from
+   `cap_well_depth`, the C++ legacy branch that would read them is gated on
+   having zero lumps). The two campaigns painted byte-identical profile
+   tables (same md5). Cosmetic knobs, not "solver relaxation".
+4. **The one real defect:** the amplitude is clamped to the thin-wall
+   estimate √(3λ/4μ), but the true eigenstate centre is 4.55% higher
+   (ratio 0.95452 at every rung, since all rungs share λ²/μ). Both painters
+   rescale the exact soliton by amp/φ_c, so every campaign started a
+   **0.9545 × eigenstate** — an off-shell state that must breathe.
+5. **Why the three rungs failed three ways:** the breathing ball's fate is
+   set by self-gravity, which the flat-space profile ignores entirely.
+   Compactness 2E/R of the ω=0.55 ball: weak 0.14 (bounce unbinds →
+   evaporation), mid 0.27 (core crunch + envelope blowoff), strong 0.55
+   (deep infall → collapse). Matches §2 outcomes cell by cell, including the
+   first observed breath *inward* (rms 5.22 → 4.65 by t≈8: gravity switching
+   on over a zero-gravity profile).
+
+Also falsified en route: `trajectory_well_depth` saturates at the same
+√(3λ/4μ) cap — the §5 Step-1 scan over {0.08, 0.15, 0.25} would have been
+**three bit-identical runs**. And ω=0.45 is a bad scan cell regardless: the
+true ball there has rms ≈ 11, too big for separation 8 in this box.
+
+### 7.2 The fix (landed)
+
+`grtresna_qball_exact_amplitude=1` (opt-in override, default off so every
+existing campaign keeps bit-identical seeds): lump amp := the ODE table's own
+φ_c, making the painter's rescale exactly 1 — the seed *is* the stationary
+eigenstate. Regression tests cover both flag states. For the next matrix,
+add to `common_overrides`:
+
+```
+--extra-override grtresna_qball_exact_amplitude=1
+```
+
+(the `grtresna_bs_phi_c` / `grtresna_bs_profile_width` lines can be deleted —
+dead knobs). **Launch-time verification** (first row of
+`sector_barycenters.dat`): total_canon must read ≈ 36.30 (weak rung) or
+≈ 51.34 (mid rung) with rms still 5.221. If it reads 34.65 / 49.00 the flag
+did not reach the solver.
+
+### 7.3 Corrected road forward
+
+1. **Re-run `single_p` at the WEAK rung with the exact amplitude** (ω=0.55,
+   stop 40, same pass gate). Weak rung first *by design*: lowest compactness
+   (0.14) = smallest error from the remaining flat-space-profile
+   approximation. The strong rung can likely never hold a flat-space ball
+   (compactness 0.55); treat it as out of scope for this matrix.
+2. If weak `single_p` holds → full five-cell matrix at the weak rung
+   (§5 Step 2 unchanged otherwise).
+3. If it *still* breathes beyond gate: the remaining defect is the gravity
+   dressing. Escalation: the self-gravitating ODE solver
+   (`grtresna/profiles/boson_star_ode.py`) already handles the sextic
+   potential and emits a 3-column table (φ₀, lapse) that profile 3 accepts —
+   but its mode currently (a) forces exotic lumps to canonical (hard veto in
+   config), (b) shares one table + one ω across lumps, so a Bondi pair needs
+   small wiring work first. Phantom side would also need a sign-flipped
+   variant of the metric ODEs (a phantom lump's self-gravity is *repulsive*;
+   equilibrium should still exist at low compactness as a perturbed Q-ball,
+   but it is not the gravity-bound star branch).
+4. **Do NOT switch to plain boson stars for this experiment**: a
+   gravity-bound phantom star cannot exist (its own gravity pushes it
+   apart) — the code vetoes it for that reason. Q-balls bind through the
+   scalar interaction, which is sector-symmetric: the right matter for a
+   (+,−) pair. (Unchanged conclusion: dispersal was never an exotic-sector
+   disease — the lone canonical lump failed alone, §3.4.)
+
+Dead-knob inventory and full plumbing trace (10 silent-drop points, incl.
+the sech fallback when a profile table is missing, and the Python-vs-C++
+profile-enum collision 4↔4) — kept out of this journal; ask for the
+2026-08-06 trace if needed.

@@ -56,3 +56,48 @@ def test_qball_style_overrides_build_bicomplex_with_matched_signs() -> None:
     evo = evolution_overrides_from_config(cfg)
     assert evo["recipe_scalar_field_signs"] == "1 -1 -1 -1 -1"
     assert "rl_pump_kp" in evo
+
+
+def _bondi_style_overrides(**extra: float) -> dict:
+    overrides = {
+        "grtresna_matter_model": GRTRESNA_BICOMPLEX_SCALAR_MODEL,
+        "grtresna_matter_sector": "boson_star",
+        "grtresna_scalar_mass": 1.0,
+        "grtresna_scalar_lambda": 2560.0,
+        "grtresna_scalar_mu": 1365333.0,
+        "grtresna_bs_omega": 0.55,
+        "grtresna_qball_ode_profile": 1,
+        "grtresna_qball_equilibrium_amplitude": 1,
+        "grtresna_boost_lumps": 0,
+        "trajectory_mode": 1,
+        "trajectory_num_lumps": 1,
+        "trajectory_lump0_R0": 4.0,
+        "trajectory_lump0_phase0": 0.0,
+        "trajectory_lump0_omega_rot": 0.0,
+        "trajectory_lump0_well_depth": 0.15,
+        "trajectory_lump0_exotic": 0.0,
+    }
+    overrides.update(extra)
+    return overrides
+
+
+def test_qball_exact_amplitude_paints_eigenstate_phi_c() -> None:
+    from grteclyn_wrapper.grtresna.profiles.qball_ode import (
+        cached_qball_radial_profile,
+    )
+
+    cfg = build_grtresna_config(
+        _bondi_style_overrides(grtresna_qball_exact_amplitude=1)
+    )
+    phi_c = cached_qball_radial_profile(1.0, 2560.0, 1365333.0, 0.55).phi_c
+    assert cfg.lumps[0]["amp"] == phi_c
+    # The painter's amp/phi_c rescale must be exactly 1 (stationary seed).
+    assert abs(cfg.lumps[0]["amp"] / phi_c - 1.0) == 0.0
+
+
+def test_qball_exact_amplitude_off_keeps_thin_wall_clamp() -> None:
+    import math
+
+    cfg = build_grtresna_config(_bondi_style_overrides())
+    thin_wall = math.sqrt(3.0 * 2560.0 / (4.0 * 1365333.0))
+    assert abs(cfg.lumps[0]["amp"] - thin_wall) < 1.0e-12

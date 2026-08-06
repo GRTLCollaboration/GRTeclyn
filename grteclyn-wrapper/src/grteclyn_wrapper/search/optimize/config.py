@@ -381,6 +381,12 @@ def _expand_trajectory_boson_lumps_from_overrides(
     couplings = QBallCouplings(mass=mass, lam=lam, mu=mu, omega=omega)
     use_equilibrium = bool(int(round(get_float("grtresna_qball_equilibrium_amplitude", 0.0))))
     use_ode = bool(int(round(get_float("grtresna_qball_ode_profile", 0.0))))
+    # Both painters rescale the ODE table by amp/phi_c, so a stationary seed
+    # requires amp == the table's own phi_c.  cap_well_depth instead clamps to
+    # the thin-wall estimate sqrt(3*lam/4*mu), ~4.5% under phi_c at the Bondi
+    # couplings -- an off-shell seed that breathes and sheds.  Opt-in so existing
+    # campaigns keep bit-identical initial data.
+    use_exact_amp = bool(int(round(get_float("grtresna_qball_exact_amplitude", 0.0))))
     # Self-gravitating boson star: gravity binds the lump, so its SEED is a true
     # equilibrium (profile 4).  This replaces only the dispersing sech seed -- the
     # closed-loop PD trap pump still transports the lump along its trajectory.  The
@@ -485,6 +491,10 @@ def _expand_trajectory_boson_lumps_from_overrides(
             # Initial-data central amplitude sets the star on its mass-radius
             # branch via the gravitational eigenvalue; it is NOT the pump depth.
             amp = bs_phi_c
+        elif use_ode and use_exact_amp and lam > 0.0 and mu > 0.0:
+            from ...grtresna.profiles.qball_ode import cached_qball_radial_profile
+
+            amp = float(cached_qball_radial_profile(mass, lam, mu, omega).phi_c)
         elif use_equilibrium and lam > 0.0 and mu > 0.0:
             amp = couplings.cap_well_depth(well_depth)
         else:

@@ -14,7 +14,12 @@ export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRT
 RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_cmaes}"
 MAX_GENERATIONS="${MAX_GENERATIONS:-25}"
 GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
-POPULATION="${POPULATION:-$(wc -w <<< "${GPU_IDS}")}"
+# Population defaults to 4x the GPU slots, NOT #GPUs: CMA-ES blocks at every
+# generation barrier, so pop = #GPUs leaves slots idle behind every fast-fail
+# or straggler (~50% idle measured, qball_traj_fgeo_depth_cmaes_v1 2026-08-06).
+# 4x keeps the within-generation pipeline streaming like MAP-Elites; cap total
+# cost with TARGET_EVALS.  See README "Stage 1 - CMA-ES" warning.
+POPULATION="${POPULATION:-$((4 * $(wc -w <<< "${GPU_IDS}")))}"
 SEED="${SEED:-7}"
 SIGMA0="${SIGMA0:-0.08}"
 RANDOM_INJECTION_FRACTION="${RANDOM_INJECTION_FRACTION:-0.1}"

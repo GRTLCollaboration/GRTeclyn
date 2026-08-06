@@ -30,6 +30,7 @@ from grteclyn_wrapper.grtresna.matter.models import GRTRESNA_BICOMPLEX_SCALAR_MO
 from grteclyn_wrapper.grtresna.profiles.qball_couplings import QBallCouplings
 from grteclyn_wrapper.grtresna.io import read_gridinit
 from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
+from grteclyn_wrapper.objective_modes import OBJECTIVE_MODES
 from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 
 
@@ -287,15 +288,7 @@ def main() -> int:
     parser.add_argument(
         "--objective-mode",
         default="general_ftl",
-        choices=[
-            "weighted",
-            "ftl_first",
-            "robust_ftl",
-            "general_ftl",
-            "critical_collapse",
-            "spacetime_shear",
-            "gw_beam",
-        ],
+        choices=OBJECTIVE_MODES,
         help="Scoring objective (default: general_ftl for HQ v20 replays).",
     )
     parser.add_argument(
