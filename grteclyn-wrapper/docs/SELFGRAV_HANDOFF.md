@@ -142,7 +142,7 @@ ruff check src/grteclyn_wrapper/grtresna/profiles/boson_star_ode.py \
 
 # Rebuild C++ (both required)
 #   GRTresna (initial data):
-GRTRESNA_ENV=~/.mlspace/envs/grtresna CHOMBO_HOME=<...>/Chombo/lib \
+GRTRESNA_ENV=~/<conda-env>/grtresna CHOMBO_HOME=<...>/Chombo/lib \
   make -C ../GRTresna/Examples/BosonStarBH all -j8 MPI=TRUE DIM=3 OPT=HIGH DEBUG=FALSE
 #   GRTeclyn (pump target; nvcc must be on PATH):
 PATH=/usr/local/cuda/bin:$PATH make -C Examples/RadialRecipe \

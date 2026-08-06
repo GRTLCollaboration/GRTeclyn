@@ -19,7 +19,7 @@
         1.0,
         0.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000015",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000015",
       "genome": [
         0.034037361880632666,
         2.042500605031031,

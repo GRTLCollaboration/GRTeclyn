@@ -3,7 +3,7 @@
 
 verbosity = 1
 
-output_path = "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000014/postload_gate/postload_gate"
+output_path = "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000014/postload_gate/postload_gate"
 amr.check_file = "/tmp/grteclyn_scratch/postload_gate_postload_gate_58e6813e/RadialRecipeChk"
 amr.plot_file  = "/tmp/grteclyn_scratch/postload_gate_postload_gate_58e6813e/RadialRecipePlt"
 
@@ -205,7 +205,7 @@ amrex.the_arena_init_size = 1048576
 amrex.use_gpu_aware_mpi = 0
 
 # Wrapper overrides not present in the source template
-recipe_initial_data_file = "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000014/initial_data.gridinit"
+recipe_initial_data_file = "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000014/initial_data.gridinit"
 recipe_matter_model = grtresna_bicomplex_scalar
 recipe_num_scalar_fields = 5
 recipe_scalar_field_signs = -1 -1 -1 -1 -1

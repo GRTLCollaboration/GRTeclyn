@@ -886,7 +886,7 @@
   "num_survivors": 7,
   "survivor_front": [
     {
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000322",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000322",
       "label": "cell_7_7",
       "objectives": {
         "anec_condition": 1.0,
@@ -899,7 +899,7 @@
       "tier_name": "operational"
     },
     {
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000004",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000004",
       "label": "cell_5_7",
       "objectives": {
         "anec_condition": 1.0,

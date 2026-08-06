@@ -1,5 +1,5 @@
 
-$ /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000141/postload_gate/postload_gate/params.txt
+$ Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex runs/grtresna_qd/qball_traj_fgeo_v1/eval_000141/postload_gate/postload_gate/params.txt
 Initializing AMReX (26.02-12-gd7da50458966)...
 MPI initialized with 1 MPI processes
 MPI initialized with thread support level 0
@@ -71,7 +71,7 @@ Parameter: recipe_num_K_angular_modes not found in parameter file. It has been s
 Successfully read inputs file ... 
 Successfully read inputs file ... 
 ExternalGridInitialData: mapped 33 of 41 state variables by name
-ExternalGridInitialData: loaded /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000141/initial_data.gridinit (128x128x128, 33 components)
+ExternalGridInitialData: loaded runs/grtresna_qd/qball_traj_fgeo_v1/eval_000141/initial_data.gridinit (128x128x128, 33 components)
 grid_places() time: 0.006728473 new finest: 0
 Now regridding at level lbase = 0
 grid_places() time: 0.004615097 new finest: 0

@@ -1,0 +1,263 @@
+commit a83ad2d7ab13c159af4f92ef1273929c7e29aab4
+Author: Nikchik-coder <nikita.dash.sh1rokov@gmail.com>
+Date:   Thu Aug 6 09:53:47 2026 +0000
+
+    feat: implement per-lump frequency handling for mixed-frequency self-grav pairs
+    
+    Enhanced the self-grav scripts and related modules to support per-lump U(1) phase velocities, allowing mixed-frequency pairs to operate effectively. Updated `run_pair_selfgrav.sh` to include a new `BONDI_S1_OMEGA` variable for specifying individual lump frequencies, ensuring unique output naming conventions. Modified the boson star and solver parameter files to accommodate per-lump frequency settings, improving the accuracy of self-grav solutions. Added a new test case to validate the functionality of per-lump frequency wiring, ensuring robust performance across mixed-frequency scenarios.
+
+diff --git a/grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh b/grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
+index 40bd1ea0..0ddb66fc 100644
+--- a/grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
++++ b/grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
+@@ -27,6 +27,10 @@
+ #   BONDI_S0=0 BONDI_S1=1 BONDI_GPU=3 bash scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
+ # Overrides: BONDI_GPU (default 3), BONDI_STOP_TIME (default 60),
+ #            BONDI_RUNS_DIR, BONDI_SEP (default 8), BONDI_S0/BONDI_S1.
++#   BONDI_S1_OMEGA: per-lump star frequency for lump1 (equal-|ADM| cells --
++#     the phantom star at omega=0.56598 weighs the canonical star's 0.0640;
++#     its t=0 fingerprint becomes total ~= 17.05 / rms ~= 5.16).  Appends
++#     "_eqm" to the run name so the standard cell is never clobbered.
+ set -euo pipefail
+ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
+@@ -41,8 +45,13 @@ S1="${BONDI_S1:-1}"
+ R0="$(python3 -c "print(${SEP}/2)")"
+ PI="3.141592653589793"
+ 
++S1_OMEGA="${BONDI_S1_OMEGA:-}"
++
+ sector_tag() { if [[ "$1" == "1" ]]; then echo m; else echo p; fi; }
+ suffix="$(sector_tag "${S0}")$(sector_tag "${S1}")"
++if [[ -n "${S1_OMEGA}" ]]; then
++  suffix="${suffix}_eqm"
++fi
+ out_name="bondi_sg_pair_${suffix}"
+ RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_selfgrav_${suffix}}"
+ 
+@@ -112,6 +121,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
+   --extra-override trajectory_lump1_v_rad=0 \
+   --extra-override trajectory_lump1_omega_rot=0 \
+   --extra-override trajectory_lump1_well_depth=0.15 \
+-  --extra-override trajectory_lump1_exotic="${S1}"
++  --extra-override trajectory_lump1_exotic="${S1}" \
++  ${S1_OMEGA:+--extra-override trajectory_lump1_bs_omega="${S1_OMEGA}"}
+ 
+ echo "[bondi] pair cell complete: ${RUNS_DIR}/${out_name}"
+diff --git a/grteclyn-wrapper/src/grteclyn_wrapper/grtresna/fields/boson_star.py b/grteclyn-wrapper/src/grteclyn_wrapper/grtresna/fields/boson_star.py
+index 7537723b..2def0ddb 100644
+--- a/grteclyn-wrapper/src/grteclyn_wrapper/grtresna/fields/boson_star.py
++++ b/grteclyn-wrapper/src/grteclyn_wrapper/grtresna/fields/boson_star.py
+@@ -171,6 +171,11 @@ def _boosted_lump_fields(
+     if amp == 0.0:
+         return zero, zero.copy(), zero.copy(), zero.copy()
+ 
++    # Per-lump U(1) phase velocity (mixed-frequency selfgrav pairs); falls
++    # back to the global omega.  Must match GRTresna's lump{k}_bs_omega so the
++    # repaint and the constraint solve agree on the momentum.
++    omega = float(lump.get("bs_omega", 0.0)) or omega
++
+     width = float(lump.get("width", 5.0))
+     center = np.asarray(lump.get("center", (0.0, 0.0, 0.0)), dtype=np.float64)
+     velocity = np.asarray(lump.get("velocity", (0.0, 0.0, 0.0)), dtype=np.float64)
+diff --git a/grteclyn-wrapper/src/grteclyn_wrapper/grtresna/solver/params.py b/grteclyn-wrapper/src/grteclyn_wrapper/grtresna/solver/params.py
+index 142707ca..64950d91 100644
+--- a/grteclyn-wrapper/src/grteclyn_wrapper/grtresna/solver/params.py
++++ b/grteclyn-wrapper/src/grteclyn_wrapper/grtresna/solver/params.py
+@@ -38,6 +38,10 @@ def _lump_lines(cfg: GRTresnaConfig) -> list[str]:
+             # the global qball_profile_path when this key is absent.
+             if lump.get("profile_path"):
+                 lines.append(f"lump{k}_profile_path = {lump['profile_path']}")
++            # Per-lump U(1) phase velocity (mixed-frequency selfgrav pairs);
++            # C++ falls back to the global bs_omega when this key is absent.
++            if float(lump.get("bs_omega", 0.0)) > 0.0:
++                lines.append(f"lump{k}_bs_omega = {lump['bs_omega']}")
+         return lines
+     return [
+         f"lump_amp = {cfg.lump_amp}",
+@@ -128,9 +132,14 @@ def _write_selfgrav_profile(
+     its own lapse (alpha > 1 inside) and a negative ADM mass, so sharing the
+     canonical table would seed it off-equilibrium.  Each lump gets its own
+     ``profile_path`` (read per-lump by GRTresna, with the canonical table as the
+-    global fallback).  Both sectors solve to the SAME requested frequency, so
+-    the C++ painter's global-omega momentum paint stays correct; per-lump omega
+-    support in C++ is only needed for mixed-frequency pairs.
++    global fallback).
++
++    Lumps may request PER-LUMP frequencies (``qball_omega`` on the lump, from
++    ``trajectory_lump{k}_bs_omega``): stars are solved per (sector, omega)
++    group and each lump carries its own ``bs_omega`` so both painters (GRTresna
++    ``lump{k}_bs_omega`` and the Python bicomplex repaint) use the lump's own
++    U(1) phase velocity.  This is what an equal-|ADM| mixed pair needs -- the
++    phantom star matches the canonical star's mass at a slightly higher omega.
+     """
+     from ..profiles.boson_star_ode import cached_selfgrav_profile
+ 
+@@ -154,21 +163,37 @@ def _write_selfgrav_profile(
+             ]
+             if not sector_lumps:
+                 continue
+-            profile = cached_selfgrav_at_omega(mass, lam, mu, omega_target, sign)
+-            name = "qball_profile.dat" if sign > 0 else "qball_profile_exotic.dat"
+-            path = _emit_star_table(
+-                params_path.parent / name, profile,
+-                mass=mass, lam=lam, mu=mu, sector=sector,
+-            )
++            # One star per requested frequency within the sector (per-lump
++            # qball_omega, global omega_target as the fallback).
++            by_omega: dict[float, list[dict]] = {}
+             for lump in sector_lumps:
+-                # The C++/Python painters rescale the table by amp/phi_c; only
+-                # amp == the solved phi_c keeps the seed on the eigenstate.
+-                lump["amp"] = float(profile.phi_c)
+-                lump["omega"] = float(profile.omega)
+-                lump["profile_path"] = path
+-            if global_path is None or sign > 0:
+-                global_path = path
+-                omega_out = float(profile.omega)
++                omega_k = float(lump.get("qball_omega", 0.0)) or omega_target
++                by_omega.setdefault(omega_k, []).append(lump)
++            base = "qball_profile.dat" if sign > 0 else "qball_profile_exotic.dat"
++            for g_idx, (omega_k, group) in enumerate(sorted(by_omega.items())):
++                profile = cached_selfgrav_at_omega(mass, lam, mu, omega_k, sign)
++                name = base if g_idx == 0 else base.replace(
++                    ".dat", f"_w{omega_k:.5f}.dat"
++                )
++                path = _emit_star_table(
++                    params_path.parent / name, profile,
++                    mass=mass, lam=lam, mu=mu, sector=sector,
++                )
++                for lump in group:
++                    # The C++/Python painters rescale the table by amp/phi_c;
++                    # only amp == the solved phi_c keeps the seed on the
++                    # eigenstate.
++                    lump["amp"] = float(profile.phi_c)
++                    lump["omega"] = float(profile.omega)
++                    # Per-lump U(1) phase velocity for both painters; the
++                    # repaint dispatch re-derives the star from qball_omega,
++                    # which must equal the solve request to share the cache.
++                    lump["bs_omega"] = float(profile.omega)
++                    lump["qball_omega"] = omega_k
++                    lump["profile_path"] = path
++                if global_path is None or (sign > 0 and g_idx == 0):
++                    global_path = path
++                    omega_out = float(profile.omega)
+         cfg.bs_omega = omega_out
+         assert global_path is not None
+         return global_path
+diff --git a/grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/config.py b/grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/config.py
+index 35db1695..baecf51c 100644
+--- a/grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/config.py
++++ b/grteclyn-wrapper/src/grteclyn_wrapper/search/optimize/config.py
+@@ -514,12 +514,17 @@ def _expand_trajectory_boson_lumps_from_overrides(
+             "exotic": exotic,
+         }
+         if (use_ode or use_selfgrav) and lam > 0.0 and mu > 0.0:
++            # Per-lump star frequency (trajectory_lump{k}_bs_omega): lets a
++            # mixed pair match |ADM| across sectors -- the equal-mass Bondi
++            # cell runs the phantom star at a slightly higher omega than the
++            # canonical one.  0 => the global grtresna_bs_omega.
++            omega_k = get_float(f"{pfx}bs_omega", 0.0)
+             lump.update(
+                 {
+                     "qball_mass": mass,
+                     "qball_lam": lam,
+                     "qball_mu": mu,
+-                    "qball_omega": omega,
++                    "qball_omega": omega_k if omega_k > 0.0 else omega,
+                 }
+             )
+         lumps.append(lump)
+diff --git a/grteclyn-wrapper/tests/grtresna/test_selfgrav_profile_wiring.py b/grteclyn-wrapper/tests/grtresna/test_selfgrav_profile_wiring.py
+index 21ef98fa..196b9b5d 100644
+--- a/grteclyn-wrapper/tests/grtresna/test_selfgrav_profile_wiring.py
++++ b/grteclyn-wrapper/tests/grtresna/test_selfgrav_profile_wiring.py
+@@ -312,3 +312,88 @@ def test_selfgrav_pair_gets_per_sector_tables(tmp_path: Path) -> None:
+         phi0_at_radius(r, cfg.lumps[1], raw_amp=True),
+         np.asarray(canon.eval_phi0(r)), rtol=1.0e-3,
+     )
++
++
++def test_selfgrav_pair_mixed_frequency_equal_mass(tmp_path: Path) -> None:
++    """Equal-|ADM| (+,-) pair: the phantom lump requests its OWN frequency.
++
++    Per-lump qball_omega must produce per-lump solves, per-lump bs_omega in
++    params.txt (the C++ painter's per-lump U(1) phase velocity), and a repaint
++    that resolves each lump's own star.  This is the wiring the equal-mass
++    Bondi runaway cell depends on: phantom at omega=0.566 weighs the same as
++    canonical at omega=0.550.
++    """
++    import numpy as np
++
++    from grteclyn_wrapper.grtresna.profiles.boson_star_ode import (
++        cached_selfgrav_at_omega,
++    )
++    from grteclyn_wrapper.grtresna.profiles.envelope import phi0_at_radius
++    from grteclyn_wrapper.grtresna.solver.params import write_grtresna_params
++
++    def lump(x: float, exotic: int, omega: float) -> dict:
++        return {
++            "amp": 0.08,
++            "width": 1.2,
++            "center": (x, 0.0, 0.0),
++            "profile": PROFILE_SELFGRAV_BOUND,
++            "exotic": exotic,
++            "qball_mass": 1.0,
++            "qball_lam": 10240.0,
++            "qball_mu": 21845333.0,
++            "qball_omega": omega,
++        }
++
++    cfg = GRTresnaConfig(
++        matter_model="grtresna_bicomplex_scalar",
++        scalar_mass=1.0,
++        scalar_lambda=10240.0,
++        scalar_mu=21845333.0,
++        bs_phi_c=0.08,
++        bs_omega=0.0,
++        lumps=[lump(4.0, 0, 0.55), lump(-4.0, 1, 0.566)],
++    )
++    write_grtresna_params(cfg, tmp_path / "params.txt")
++
++    canon = cached_selfgrav_at_omega(1.0, 10240.0, 21845333.0, 0.55, 1.0)
++    phant = cached_selfgrav_at_omega(1.0, 10240.0, 21845333.0, 0.566, -1.0)
++
++    # Each lump carries its own solved star: amp AND phase velocity.
++    assert cfg.lumps[0]["amp"] == pytest.approx(canon.phi_c, abs=0)
++    assert cfg.lumps[1]["amp"] == pytest.approx(phant.phi_c, abs=0)
++    assert cfg.lumps[0]["bs_omega"] == pytest.approx(canon.omega)
++    assert cfg.lumps[1]["bs_omega"] == pytest.approx(phant.omega)
++    assert cfg.lumps[1]["bs_omega"] == pytest.approx(0.566, rel=2.0e-4)
++    # Global omega stays the canonical star's (fallback for unset lumps).
++    assert cfg.bs_omega == pytest.approx(canon.omega)
++
++    # The C++ painter contract: per-lump bs_omega lines in params.txt.
++    text = (tmp_path / "params.txt").read_text(encoding="utf-8")
++    assert f"lump0_bs_omega = {cfg.lumps[0]['bs_omega']}" in text
++    assert f"lump1_bs_omega = {cfg.lumps[1]['bs_omega']}" in text
++    assert "lump1_profile_path = " in text
++    assert (tmp_path / "qball_profile_exotic.dat").exists()
++    head = (tmp_path / "qball_profile_exotic.dat").read_text().splitlines()[0]
++    assert "omega_eigenvalue=0.566" in head
++
++    # Repaint resolves the phantom's 0.566 star, not a 0.55 one.
++    r = np.linspace(0.0, 10.0, 41)
++    assert np.allclose(
++        phi0_at_radius(r, cfg.lumps[1], raw_amp=True),
++        np.asarray(phant.eval_phi0(r)), rtol=1.0e-10,
++    )
++
++    # The Python bicomplex repaint uses the per-lump phase velocity for Pi_im.
++    from grteclyn_wrapper.grtresna.fields.boson_star import _boosted_lump_fields
++
++    px = np.zeros((1, 1, 1)) - 4.0
++    py = np.zeros((1, 1, 1))
++    pz = np.zeros((1, 1, 1))
++    inv_lapse = np.ones((1, 1, 1))
++    _, _, _, pi_im = _boosted_lump_fields(
++        cfg.lumps[1], px, py, pz, cfg.bs_omega, inv_lapse
++    )
++    expected = -phant.omega * float(
++        np.asarray(phant.eval_phi0(np.array([0.0]))).ravel()[0]
++    )
++    assert float(pi_im[0, 0, 0]) == pytest.approx(expected, rel=1.0e-10)

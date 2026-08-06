@@ -48,7 +48,8 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path("/home/jovyan/nachevsky/test/simulation/GRTeclyn")
+# grteclyn-wrapper/scripts/campaigns/rl/ → repo root
+ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/params.txt"
 # Overridable with --out; campaign B (corrected spotlight routing) writes to
 # runs/pump/pump_confine_b so the broken-routing A record stays separate.

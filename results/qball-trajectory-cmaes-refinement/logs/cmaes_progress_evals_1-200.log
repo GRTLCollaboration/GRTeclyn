@@ -1,0 +1,213 @@
+[optimize] eval 2 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 3 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 4 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 6 score=4650.3929 status=gpu_ok
+[optimize] eval 7 score=4646.0203 status=gpu_ok
+[optimize] eval 8 score=4659.7862 status=gpu_ok
+[optimize] eval 5 score=4609.1286 status=gpu_ok
+[optimize] eval 9 score=4613.6134 status=gpu_ok
+[optimize] eval 1 score=4648.4003 status=gpu_ok
+[optimize] eval 10 score=4651.6663 status=gpu_ok
+[optimize] eval 12 score=4645.6299 status=gpu_ok
+[optimize] eval 13 score=1051.8034 status=gpu_ok
+[optimize] eval 11 score=4681.2498 status=gpu_ok
+[optimize] eval 14 score=429.7492 status=gpu_failed
+[optimize] eval 16 score=35.9929 status=gpu_failed
+[optimize] eval 15 score=111.5450 status=gpu_ok
+[optimize] gen 1/13: best=4681.2498 mean=2695.9361 all-time-best=4681.2498 evals=16
+[optimize] eval 20 score=4679.8842 status=gpu_ok
+[optimize] eval 19 score=4645.2130 status=gpu_ok
+[optimize] eval 17 score=4654.7770 status=gpu_ok
+[optimize] eval 22 score=4634.5300 status=gpu_ok
+[optimize] eval 18 score=4669.1923 status=gpu_ok
+[optimize] eval 21 score=4689.1070 status=gpu_ok
+[optimize] eval 23 score=4666.4963 status=gpu_ok
+[optimize] eval 24 score=4652.5282 status=gpu_ok
+[optimize] eval 25 score=4631.8279 status=gpu_ok
+[optimize] eval 26 score=4669.2962 status=gpu_ok
+[optimize] eval 30 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 27 score=4658.2288 status=gpu_ok
+[optimize] eval 29 score=130.3644 status=gpu_ok
+[optimize] eval 28 score=4654.8421 status=gpu_ok
+[optimize] eval 31 score=25.1761 status=gpu_failed
+[optimize] eval 32 score=143.5176 status=gpu_ok
+[optimize] gen 2/13: best=4689.1070 mean=3506.5613 all-time-best=4689.1070 evals=32
+[optimize] eval 37 score=4670.7012 status=gpu_ok
+[optimize] eval 38 score=4664.0971 status=gpu_ok
+[optimize] eval 34 score=4685.5227 status=gpu_ok
+[optimize] eval 36 score=4662.4250 status=gpu_ok
+[optimize] eval 33 score=4675.8427 status=gpu_ok
+[optimize] eval 40 score=4636.1459 status=gpu_ok
+[optimize] eval 39 score=4682.6330 status=gpu_ok
+[optimize] eval 35 score=4681.8298 status=gpu_ok
+[optimize] eval 46 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 41 score=4651.0977 status=gpu_ok
+[optimize] eval 42 score=4700.3332 status=gpu_ok
+[optimize] eval 44 score=4699.2080 status=gpu_ok
+[optimize] eval 47 score=28.5089 status=gpu_failed
+[optimize] eval 43 score=4645.5459 status=gpu_ok
+[optimize] eval 45 score=3935.5884 status=gpu_ok
+[optimize] eval 48 score=1133.3597 status=gpu_ok
+[optimize] gen 3/13: best=4700.3332 mean=3815.8025 all-time-best=4700.3332 evals=48
+[optimize] eval 51 score=4687.5243 status=gpu_ok
+[optimize] eval 49 score=4697.7028 status=gpu_ok
+[optimize] eval 54 score=4695.6892 status=gpu_ok
+[optimize] eval 50 score=4658.3316 status=gpu_ok
+[optimize] eval 52 score=4690.0513 status=gpu_ok
+[optimize] eval 53 score=4687.5076 status=gpu_ok
+[optimize] eval 55 score=4693.6060 status=gpu_ok
+[optimize] eval 56 score=4698.7777 status=gpu_ok
+[optimize] eval 57 score=4736.8035 status=gpu_ok
+[optimize] eval 58 score=4658.2864 status=gpu_ok
+[optimize] eval 61 score=26.8466 status=gpu_ok
+[optimize] eval 59 score=4684.2669 status=gpu_ok
+[optimize] eval 60 score=4673.4444 status=gpu_ok
+[optimize] eval 62 score=21.9678 status=gpu_ok
+[optimize] eval 64 score=2559.2743 status=gpu_ok
+[optimize] eval 63 score=2170.3128 status=gpu_ok
+[optimize] gen 4/13: best=4736.8035 mean=3815.0246 all-time-best=4736.8035 evals=64
+[optimize] eval 69 score=4693.2705 status=gpu_ok
+[optimize] eval 68 score=4704.7387 status=gpu_ok
+[optimize] eval 65 score=4717.6114 status=gpu_ok
+[optimize] eval 67 score=4708.1324 status=gpu_ok
+[optimize] eval 70 score=4700.8951 status=gpu_ok
+[optimize] eval 66 score=4725.2302 status=gpu_ok
+[optimize] eval 72 score=4695.3530 status=gpu_ok
+[optimize] eval 71 score=4703.8210 status=gpu_ok
+[optimize] eval 73 score=4735.1889 status=gpu_ok
+[optimize] eval 75 score=4693.3367 status=gpu_ok
+[optimize] eval 74 score=4691.9487 status=gpu_ok
+[optimize] eval 79 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 77 score=1119.8353 status=gpu_ok
+[optimize] eval 78 score=-41.5007 status=gpu_ok
+[optimize] eval 76 score=4688.0681 status=gpu_ok
+[optimize] eval 80 score=36.6691 status=gpu_failed
+[optimize] gen 5/13: best=4735.1889 mean=3592.0374 all-time-best=4736.8035 evals=80
+[optimize] eval 85 score=4726.0926 status=gpu_ok
+[optimize] eval 83 score=4734.3434 status=gpu_ok
+[optimize] eval 84 score=4694.0238 status=gpu_ok
+[optimize] eval 82 score=4715.3765 status=gpu_ok
+[optimize] eval 87 score=4733.2042 status=gpu_ok
+[optimize] eval 86 score=4729.2646 status=gpu_ok
+[optimize] eval 88 score=4736.0468 status=gpu_ok
+[optimize] eval 89 score=4730.5228 status=gpu_ok
+[optimize] eval 94 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 90 score=4732.9586 status=gpu_ok
+[optimize] eval 81 score=4715.7916 status=gpu_ok
+[optimize] eval 91 score=4690.9189 status=gpu_ok
+[optimize] eval 93 score=838.7769 status=gpu_ok
+[optimize] eval 92 score=4715.5098 status=gpu_ok
+[optimize] eval 96 score=-55.8125 status=gpu_failed
+[optimize] eval 95 score=36.5641 status=gpu_failed
+[optimize] gen 6/13: best=4736.0468 mean=3585.8489 all-time-best=4736.8035 evals=96
+[optimize] eval 101 score=4722.4968 status=gpu_ok
+[optimize] eval 97 score=4727.2362 status=gpu_ok
+[optimize] eval 98 score=4713.8339 status=gpu_ok
+[optimize] eval 102 score=4734.4753 status=gpu_ok
+[optimize] eval 100 score=4719.1863 status=gpu_ok
+[optimize] eval 99 score=4739.4105 status=gpu_ok
+[optimize] eval 103 score=4746.8915 status=gpu_ok
+[optimize] eval 104 score=4752.7748 status=gpu_ok
+[optimize] eval 109 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 105 score=4755.9206 status=gpu_ok
+[optimize] eval 106 score=4713.5290 status=gpu_ok
+[optimize] eval 107 score=4753.2197 status=gpu_ok
+[optimize] eval 110 score=28.8002 status=gpu_ok
+[optimize] eval 108 score=4747.5384 status=gpu_ok
+[optimize] eval 111 score=3540.3974 status=gpu_ok
+[optimize] eval 112 score=1322.2615 status=gpu_ok
+[optimize] gen 7/13: best=4755.9206 mean=3851.1233 all-time-best=4755.9206 evals=112
+[optimize] eval 116 score=4768.7488 status=gpu_ok
+[optimize] eval 118 score=4738.5008 status=gpu_ok
+[optimize] eval 119 score=4747.4898 status=gpu_ok
+[optimize] eval 117 score=4765.5040 status=gpu_ok
+[optimize] eval 115 score=4760.7257 status=gpu_ok
+[optimize] eval 114 score=4783.0907 status=gpu_ok
+[optimize] eval 113 score=4764.2222 status=gpu_ok
+[optimize] eval 122 score=4773.2001 status=gpu_ok
+[optimize] eval 120 score=4753.6342 status=gpu_ok
+[optimize] eval 121 score=4733.7576 status=gpu_ok
+[optimize] eval 123 score=4748.8413 status=gpu_ok
+[optimize] eval 125 score=32.0794 status=gpu_failed
+[optimize] eval 126 score=303.9523 status=gpu_ok
+[optimize] eval 127 score=32.0452 status=gpu_failed
+[optimize] eval 124 score=4732.1953 status=gpu_ok
+[optimize] eval 128 score=2175.8699 status=gpu_ok
+[optimize] gen 8/13: best=4783.0907 mean=3725.8661 all-time-best=4783.0907 evals=128
+[optimize] eval 133 score=4761.6031 status=gpu_ok
+[optimize] eval 134 score=4795.7731 status=gpu_ok
+[optimize] eval 131 score=4779.4800 status=gpu_ok
+[optimize] eval 132 score=4766.6071 status=gpu_ok
+[optimize] eval 129 score=4765.9584 status=gpu_ok
+[optimize] eval 130 score=4743.6527 status=gpu_ok
+[optimize] eval 135 score=4766.3337 status=gpu_ok
+[optimize] eval 137 score=4797.0039 status=gpu_ok
+[optimize] eval 136 score=4747.0010 status=gpu_ok
+[optimize] eval 138 score=4755.1222 status=gpu_ok
+[optimize] eval 139 score=4755.0916 status=gpu_ok
+[optimize] eval 142 score=389.1394 status=gpu_ok
+[optimize] eval 144 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 141 score=29.8283 status=gpu_ok
+[optimize] eval 140 score=4769.1959 status=gpu_ok
+[optimize] eval 143 score=1115.4829 status=gpu_ok
+[optimize] gen 9/13: best=4797.0039 mean=3664.8296 all-time-best=4797.0039 evals=144
+[optimize] eval 148 score=4801.8683 status=gpu_ok
+[optimize] eval 145 score=4795.8495 status=gpu_ok
+[optimize] eval 146 score=4797.5633 status=gpu_ok
+[optimize] eval 150 score=4777.3670 status=gpu_ok
+[optimize] eval 147 score=4779.2537 status=gpu_ok
+[optimize] eval 149 score=4766.7111 status=gpu_ok
+[optimize] eval 152 score=4769.4827 status=gpu_ok
+[optimize] eval 153 score=4786.1864 status=gpu_ok
+[optimize] eval 154 score=4787.6153 status=gpu_ok
+[optimize] eval 158 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 151 score=4749.2208 status=gpu_ok
+[optimize] eval 156 score=4788.0765 status=gpu_ok
+[optimize] eval 155 score=4783.2919 status=gpu_ok
+[optimize] eval 159 score=-90.7189 status=gpu_failed
+[optimize] eval 157 score=2691.2675 status=gpu_ok
+[optimize] eval 160 score=3066.3331 status=gpu_ok
+[optimize] gen 10/13: best=4801.8683 mean=3934.3355 all-time-best=4801.8683 evals=160
+[optimize] eval 165 score=4809.0524 status=gpu_ok
+[optimize] eval 166 score=4795.1072 status=gpu_ok
+[optimize] eval 164 score=4807.3190 status=gpu_ok
+[optimize] eval 163 score=4803.7512 status=gpu_ok
+[optimize] eval 167 score=4823.5393 status=gpu_ok
+[optimize] eval 162 score=4746.4396 status=gpu_ok
+[optimize] eval 168 score=4799.9890 status=gpu_ok
+[optimize] eval 169 score=4805.6833 status=gpu_ok
+[optimize] eval 174 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 170 score=4793.6476 status=gpu_ok
+[optimize] eval 161 score=4793.4942 status=gpu_ok
+[optimize] eval 172 score=4815.8403 status=gpu_ok
+[optimize] eval 171 score=4777.5187 status=gpu_ok
+[optimize] eval 173 score=3688.8437 status=gpu_ok
+[optimize] eval 175 score=1059.2449 status=gpu_ok
+[optimize] eval 176 score=-97.0995 status=gpu_failed
+[optimize] gen 11/13: best=4823.5393 mean=3882.6482 all-time-best=4823.5393 evals=176
+[optimize] eval 177 score=4817.6160 status=gpu_ok
+[optimize] eval 182 score=4809.6341 status=gpu_ok
+[optimize] eval 179 score=4792.9761 status=gpu_ok
+[optimize] eval 180 score=4803.8423 status=gpu_ok
+[optimize] eval 178 score=4833.2183 status=gpu_ok
+[optimize] eval 184 score=4795.3863 status=gpu_ok
+[optimize] eval 183 score=4811.2825 status=gpu_ok
+[optimize] eval 181 score=4800.5114 status=gpu_ok
+[optimize] eval 186 score=4825.6698 status=gpu_ok
+[optimize] eval 190 score=nan status=gpu_failed
+[optimize] eval 185 score=4817.0296 status=gpu_ok
+[optimize] eval 187 score=4827.4172 status=gpu_ok
+[optimize] eval 188 score=4813.6786 status=gpu_ok
+[optimize] eval 192 score=-87.7933 status=gpu_failed
+[optimize] eval 189 score=30.6177 status=gpu_ok
+[optimize] eval 191 score=88.6020 status=gpu_ok
+[optimize] gen 12/13: best=4833.2183 mean=nan all-time-best=4833.2183 evals=192
+[optimize] eval 199 score=35.0559 status=gpu_failed
+[optimize] eval 197 score=4846.0959 status=gpu_ok
+[optimize] eval 195 score=4862.6091 status=gpu_ok
+[optimize] eval 198 score=4795.3048 status=gpu_ok
+[optimize] eval 196 score=4853.7796 status=gpu_ok
+[optimize] eval 194 score=4816.4072 status=gpu_ok
+[optimize] eval 193 score=4823.2045 status=gpu_ok
+[optimize] eval 200 score=781.5759 status=gpu_ok
+[optimize] gen 13/13: best=4862.6091 mean=3726.7541 all-time-best=4862.6091 evals=200

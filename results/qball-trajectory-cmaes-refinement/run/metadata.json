@@ -1,0 +1,313 @@
+{
+  "base_overrides": {
+    "L_full": 64.0,
+    "N_full": 128,
+    "center": "32 32 32",
+    "checkpoint_interval": -1,
+    "dt_multiplier": 0.02,
+    "grtresna_bs_omega": 0.8,
+    "grtresna_matter_coupling": "canonical",
+    "grtresna_matter_model": "grtresna_bicomplex_scalar",
+    "grtresna_matter_sector": "boson_star",
+    "grtresna_qball_equilibrium_amplitude": 1,
+    "grtresna_qball_ode_profile": 1,
+    "grtresna_scalar_lambda": 640.0,
+    "grtresna_scalar_mass": 1.0,
+    "grtresna_scalar_mu": 85333,
+    "lo_boundary": "1 1 1",
+    "max_level": 1,
+    "plot_interval": 320,
+    "regrid_interval": [
+      16
+    ],
+    "regrid_threshold": 0.1,
+    "stop_time": 32,
+    "trajectory_lump0_well_depth": 0.15,
+    "trajectory_lump1_well_depth": 0.15,
+    "trajectory_lump2_well_depth": 0.15,
+    "trajectory_lump3_well_depth": 0.15,
+    "trajectory_lump4_well_depth": 0.15,
+    "trajectory_mode": 1,
+    "trajectory_num_lumps": 5,
+    "trajectory_r_min": 0.1,
+    "trajectory_retrograde_only": 1,
+    "trajectory_well_width": 1.667
+  },
+  "cluster_cpu_fraction": 0.3,
+  "constrained": true,
+  "consume_plotfiles": true,
+  "created_at": "2026-08-06T03:58:05.012128+00:00",
+  "dry_run": false,
+  "example": "RadialRecipe",
+  "exotic_injection_fraction": 0.1,
+  "ftl_retention_enabled": true,
+  "gpu_ids": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "gpu_slots": 4,
+  "grtresna": true,
+  "grtresna_max_ham_pct": 5.0,
+  "grtresna_max_mom_pct": 5.0,
+  "grtresna_solved_ftl_gate": false,
+  "keep_top_eval_dirs": 10,
+  "max_concurrent_grtresna": 6,
+  "max_generations": 13,
+  "objective_mode": "f_geo_depth",
+  "phantom": true,
+  "pipeline_share": 1.0,
+  "population_size": 16,
+  "random_injection_fraction": 0.1,
+  "search_space": [
+    {
+      "initial": 0.0,
+      "key": "trajectory_A_breath",
+      "lower": 0.0,
+      "upper": 2.0
+    },
+    {
+      "initial": 0.5,
+      "key": "trajectory_omega_breath",
+      "lower": 0.0,
+      "upper": 3.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_z_amp",
+      "lower": 0.0,
+      "upper": 3.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_omega_z",
+      "lower": 0.0,
+      "upper": 2.0
+    },
+    {
+      "initial": 3.0,
+      "key": "trajectory_lump0_R0",
+      "lower": 1.5,
+      "upper": 8.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump0_omega_rot",
+      "lower": -1.0,
+      "upper": 0.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump0_phase0",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump0_tilt_theta",
+      "lower": 0.0,
+      "upper": 3.141592653589793
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump0_tilt_phi",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump0_v_rad",
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump0_exotic",
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 3.5,
+      "key": "trajectory_lump1_R0",
+      "lower": 1.5,
+      "upper": 8.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump1_omega_rot",
+      "lower": -1.0,
+      "upper": 0.0
+    },
+    {
+      "initial": 1.2566370614359172,
+      "key": "trajectory_lump1_phase0",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump1_tilt_theta",
+      "lower": 0.0,
+      "upper": 3.141592653589793
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump1_tilt_phi",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump1_v_rad",
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump1_exotic",
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 4.0,
+      "key": "trajectory_lump2_R0",
+      "lower": 1.5,
+      "upper": 8.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump2_omega_rot",
+      "lower": -1.0,
+      "upper": 0.0
+    },
+    {
+      "initial": 2.5132741228718345,
+      "key": "trajectory_lump2_phase0",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump2_tilt_theta",
+      "lower": 0.0,
+      "upper": 3.141592653589793
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump2_tilt_phi",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump2_v_rad",
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump2_exotic",
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 4.5,
+      "key": "trajectory_lump3_R0",
+      "lower": 1.5,
+      "upper": 8.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump3_omega_rot",
+      "lower": -1.0,
+      "upper": 0.0
+    },
+    {
+      "initial": 3.7699111843077517,
+      "key": "trajectory_lump3_phase0",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump3_tilt_theta",
+      "lower": 0.0,
+      "upper": 3.141592653589793
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump3_tilt_phi",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump3_v_rad",
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump3_exotic",
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 5.0,
+      "key": "trajectory_lump4_R0",
+      "lower": 1.5,
+      "upper": 8.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump4_omega_rot",
+      "lower": -1.0,
+      "upper": 0.0
+    },
+    {
+      "initial": 5.026548245743669,
+      "key": "trajectory_lump4_phase0",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump4_tilt_theta",
+      "lower": 0.0,
+      "upper": 3.141592653589793
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump4_tilt_phi",
+      "lower": 0.0,
+      "upper": 6.283185307179586
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump4_v_rad",
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    {
+      "initial": 0.0,
+      "key": "trajectory_lump4_exotic",
+      "lower": 0.0,
+      "upper": 1.0
+    }
+  ],
+  "seed": 7,
+  "sigma0": 0.05,
+  "slots_per_gpu": 1,
+  "target_evals": 200,
+  "use_pipeline": true,
+  "use_preflight": true,
+  "warm_start_include_near_miss": true,
+  "warm_start_jitter": 0.05,
+  "warm_start_near_miss_k": 4,
+  "warm_start_top_k": 1,
+  "warm_start_trajectories": [
+    "runs/grtresna_cmaes/qball_traj_fgeo_depth_cmaes_v1_gen1_seed.jsonl"
+  ],
+  "last_eval_counter": 200
+}

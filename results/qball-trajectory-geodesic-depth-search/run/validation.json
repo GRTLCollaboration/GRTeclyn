@@ -502,7 +502,7 @@
   "num_survivors": 6,
   "survivor_front": [
     {
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000049",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000049",
       "label": "cell_6_7",
       "objectives": {
         "anec_condition": 1.0,
@@ -515,7 +515,7 @@
       "tier_name": "operational"
     },
     {
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000089",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000089",
       "label": "cell_5_7",
       "objectives": {
         "anec_condition": 1.0,
@@ -528,7 +528,7 @@
       "tier_name": "operational"
     },
     {
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000109",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000109",
       "label": "cell_4_7",
       "objectives": {
         "anec_condition": 1.0,
@@ -541,7 +541,7 @@
       "tier_name": "operational"
     },
     {
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000179",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000179",
       "label": "cell_1_7",
       "objectives": {
         "anec_condition": 1.0,

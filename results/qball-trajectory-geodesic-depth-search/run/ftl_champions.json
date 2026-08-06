@@ -2,42 +2,42 @@
   "f_geo_evol": {
     "eval": 7,
     "value": 0.45888408585955137,
-    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000007",
+    "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000007",
     "score": 4609.287774560506,
     "t_at_peak": null
   },
   "ftl_geo_evolving": {
     "eval": 14,
     "value": 0.3499709921696341,
-    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000014",
+    "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000014",
     "score": 3730.734851692561,
     "t_at_peak": null
   },
   "f_op_peak": {
     "eval": 80,
     "value": 0.4814925225042355,
-    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000080",
+    "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000080",
     "score": 3355.098872961455,
     "t_at_peak": 32.0000000000022
   },
   "max_local_speed": {
     "eval": 63,
     "value": 41526294108.30463,
-    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063",
+    "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063",
     "score": 589.4723744436092,
     "t_at_peak": 32.0000000000022
   },
   "superluminal_fraction": {
     "eval": 5,
     "value": 1.0,
-    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000005",
+    "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000005",
     "score": 3463.1647002350333,
     "t_at_peak": 9.59999999999984
   },
   "ftl_lifetime_fraction": {
     "eval": 5,
     "value": 1.0,
-    "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000005",
+    "episode": "runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000005",
     "score": 3463.1647002350333,
     "t_at_peak": null
   }

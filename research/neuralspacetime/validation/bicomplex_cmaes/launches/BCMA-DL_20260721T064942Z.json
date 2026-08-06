@@ -3,8 +3,8 @@
   "campaign": "bicomplex_cmaes_validation",
   "phase": 4,
   "role": "domain_large_optional",
-  "manifest": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest.json",
-  "source_run": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1",
+  "manifest": "grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest.json",
+  "source_run": "runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1",
   "eval_id": 146,
   "n_full": 320,
   "l_full": 160.0,
@@ -14,6 +14,6 @@
   "max_level": 3,
   "gpu_id": "3",
   "evolution_mpi_ranks": 1,
-  "out_dir": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/bcma_dl_L160_N320_t30_hq_eval000146",
+  "out_dir": "runs/grtresna_promote/bcma_dl_L160_N320_t30_hq_eval000146",
   "git_commit": "a758f3ade45a0b68d4b9bc4503aab337b1c7b949"
 }

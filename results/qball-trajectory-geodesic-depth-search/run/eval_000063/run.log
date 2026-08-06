@@ -1,5 +1,5 @@
 
-$ /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/params.txt check_params=1
+$ Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/params.txt check_params=1
 Initializing AMReX (26.02-12-gd7da50458966)...
 MPI initialized with 1 MPI processes
 MPI initialized with thread support level 0
@@ -104,9 +104,9 @@ AMReX (26.02-12-gd7da50458966) finalized
 
 [wrapper] exit_code=0 elapsed_seconds=1.235
 
-$ /home/jovyan/nachevsky/test/simulation/GRTeclyn/grteclyn-wrapper/.venv/bin/python -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles --data /tmp/grteclyn_scratch/qball_traj_fgeo_depth_v1_eval_000063_cf6a9f77 --out /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/small_data --stop-sim-path /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/.stop_sim --radii 4.0 8.0 --n-points 64 --center 32 32 32 --areal-radius -j 1 --verbose --watch --delete --keep-last 3 --ftl-timeseries --ftl-l 8 --evolving-geodesic --confinement-timeseries --confinement-well-width 1.667 --incremental-score --objective-mode f_geo_depth --target-stop-time 32 --no-psi4 --shell-fields chi lapse K
+$ grteclyn-wrapper/.venv/bin/python -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles --data /tmp/grteclyn_scratch/qball_traj_fgeo_depth_v1_eval_000063_cf6a9f77 --out runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/small_data --stop-sim-path runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/.stop_sim --radii 4.0 8.0 --n-points 64 --center 32 32 32 --areal-radius -j 1 --verbose --watch --delete --keep-last 3 --ftl-timeseries --ftl-l 8 --evolving-geodesic --confinement-timeseries --confinement-well-width 1.667 --incremental-score --objective-mode f_geo_depth --target-stop-time 32 --no-psi4 --shell-fields chi lapse K
 
-$ /home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/params.txt
+$ Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/params.txt
 Initializing AMReX (26.02-12-gd7da50458966)...
 MPI initialized with 1 MPI processes
 MPI initialized with thread support level 0
@@ -178,7 +178,7 @@ Parameter: recipe_num_K_angular_modes not found in parameter file. It has been s
 Successfully read inputs file ... 
 Successfully read inputs file ... 
 ExternalGridInitialData: mapped 33 of 41 state variables by name
-ExternalGridInitialData: loaded /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/initial_data.gridinit (128x128x128, 33 components)
+ExternalGridInitialData: loaded runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/initial_data.gridinit (128x128x128, 33 components)
 grid_places() time: 0.00782886 new finest: 0
 Now regridding at level lbase = 0
 grid_places() time: 0.005479651 new finest: 0
@@ -1673,7 +1673,7 @@ STEP = 160 TIME = 1.6 : REGRID  with lbase = 0
 
 [Level 0 step 161] ADVANCE at time 1.6 with dt = 0.01
 [Level 0 step 161] average evolution speed = 184.1470526 code units/h
-Watching /tmp/grteclyn_scratch/qball_traj_fgeo_depth_v1_eval_000063_cf6a9f77 for plotfiles. Writing /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/small_data/psi4_mode_l2m0.dat
+Watching /tmp/grteclyn_scratch/qball_traj_fgeo_depth_v1_eval_000063_cf6a9f77 for plotfiles. Writing runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/small_data/psi4_mode_l2m0.dat
 Processing 1 plotfile(s) (~1–5 min each on large AMR; use -j 1 for reliability)...
 [1/1] loading RadialRecipePlt00000 ...
 [Level 0 step 161] Advanced 2097152 cells
@@ -47819,12 +47819,12 @@ AMReX (26.02-12-gd7da50458966) finalized
 
 [wrapper] exit_code=0 elapsed_seconds=709.308
 
-$ /home/jovyan/nachevsky/test/simulation/GRTeclyn/grteclyn-wrapper/.venv/bin/python -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles --data /tmp/grteclyn_scratch/qball_traj_fgeo_depth_v1_eval_000063_cf6a9f77 --out /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/small_data --stop-sim-path /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/.stop_sim --radii 4.0 8.0 --n-points 64 --center 32 32 32 --areal-radius -j 1 --verbose --delete --keep-last 3 --keep-existing-frames --stable-seconds 0 --ftl-timeseries --ftl-l 8 --evolving-geodesic --confinement-timeseries --confinement-well-width 1.667 --incremental-score --objective-mode f_geo_depth --target-stop-time 32 --no-psi4 --shell-fields chi lapse K
+$ grteclyn-wrapper/.venv/bin/python -m grteclyn_wrapper.visualisation.process_wave.consume_plotfiles --data /tmp/grteclyn_scratch/qball_traj_fgeo_depth_v1_eval_000063_cf6a9f77 --out runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/small_data --stop-sim-path runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/.stop_sim --radii 4.0 8.0 --n-points 64 --center 32 32 32 --areal-radius -j 1 --verbose --delete --keep-last 3 --keep-existing-frames --stable-seconds 0 --ftl-timeseries --ftl-l 8 --evolving-geodesic --confinement-timeseries --confinement-well-width 1.667 --incremental-score --objective-mode f_geo_depth --target-stop-time 32 --no-psi4 --shell-fields chi lapse K
 [gc] deleted previously-processed RadialRecipePlt02240
 Processing 1 plotfile(s) (~1–5 min each on large AMR; use -j 1 for reliability)...
 [1/1] loading RadialRecipePlt03200 ...
 WARNING: shell extraction failed for RadialRecipePlt03200: Shell extraction produced no valid samples at any radius.
 [ok] RadialRecipePlt03200  t=32  kept  (17.09s)
-Processed 1 plotfile(s). Output: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/small_data/psi4_mode_l2m0.dat
+Processed 1 plotfile(s). Output: runs/grtresna_qd/qball_traj_fgeo_depth_v1/eval_000063/small_data/psi4_mode_l2m0.dat
 
 [wrapper] exit_code=0 elapsed_seconds=19.278

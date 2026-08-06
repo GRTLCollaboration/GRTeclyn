@@ -30,7 +30,7 @@
         1.0,
         1.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000322",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000322",
       "genome": [
         0.012971705874212702,
         2.876782900389718,
@@ -151,7 +151,7 @@
         0.5738737714578832,
         1.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000017",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000017",
       "genome": [
         0.7666575644419185,
         2.1870471755327436,
@@ -272,7 +272,7 @@
         0.7231750798573804,
         1.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000004",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000004",
       "genome": [
         0.7529872521264868,
         1.8198894410450248,
@@ -393,7 +393,7 @@
         0.8727515154970698,
         1.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000114",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000114",
       "genome": [
         0.36787725693942797,
         2.7118455899214444,
@@ -514,7 +514,7 @@
         0.4710116056408136,
         1.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000189",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000189",
       "genome": [
         0.07463363678758478,
         2.786813240551141,
@@ -635,7 +635,7 @@
         0.14827386195968623,
         1.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000286",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000286",
       "genome": [
         0.39616530149782914,
         2.5292767338420736,
@@ -756,7 +756,7 @@
         0.1103721356819228,
         1.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000239",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000239",
       "genome": [
         0.8099147869637734,
         2.7899762391429146,
@@ -877,7 +877,7 @@
         0.0,
         0.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000231",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000231",
       "genome": [
         1.5435990766293843,
         1.9568052828203464,
@@ -998,7 +998,7 @@
         0.3476097579271419,
         1.0
       ],
-      "episode": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000149",
+      "episode": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000149",
       "genome": [
         0.2943751928615619,
         2.98025380316082,

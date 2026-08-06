@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-08-06T21:01:57.040255+00:00",
+  "cuda_devices": "1",
+  "example": "RadialRecipe",
+  "executable": "Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex",
+  "git_commit": "a83ad2d7ab13c159af4f92ef1273929c7e29aab4",
+  "gridinit": "runs/grtresna_cmaes/qball_traj_fgeo_depth_cmaes_v1/eval_000196/initial_data.gridinit",
+  "mode": "postload_gate",
+  "mpi_ranks": 1,
+  "plotfile_dir": "/tmp/grteclyn_scratch/postload_gate_postload_gate_ec2809fc",
+  "repo_root": ".",
+  "simulation_elapsed_seconds": 2.476081774570048,
+  "simulation_exit_code": 0
+}

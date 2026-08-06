@@ -1,0 +1,264 @@
+diff --git a/Source/Matter/BosonStarParams.hpp b/Source/Matter/BosonStarParams.hpp
+old mode 100644
+new mode 100755
+index 4db2120..e75d62f
+--- a/Source/Matter/BosonStarParams.hpp
++++ b/Source/Matter/BosonStarParams.hpp
+@@ -24,9 +24,18 @@ struct boson_lump_t
+     std::array<Real, 3> center   = {0.0, 0.0, 0.0};
+     std::array<Real, 3> velocity = {0.0, 0.0, 0.0};
+     Real omega                   = 0.0;
++    // Per-lump U(1) phase velocity for NON-winding lumps (mixed-frequency
++    // selfgrav pairs, e.g. the equal-|ADM| Bondi cell where the phantom star
++    // sits at a slightly higher omega).  0 => the global bs_omega.  Distinct
++    // from ``omega`` above, which non-winding lumps use as a rigid ROTATION
++    // rate in lump_pi1.
++    Real bs_omega                = 0.0;
+     int mode                     = 0;
+-    // 0 = Gaussian, 1 = tanh shell, 2 = sech bound lump, 3 = tabulated Q-ball
+-    // ODE profile phi0(r) loaded from ``profile_path`` (see qball_load_table).
++    // 0 = Gaussian, 1 = tanh shell, 2 = sech bound lump, 3 = tabulated 1D
++    // Q-ball ODE profile phi0(r) (see qball_load_table), 4 = tabulated 2D
++    // spinning Q-ball (Q-torus) eigenstate f(rho, z) (see qball_torus_load_table)
++    // -- profile 4 requires ``winding != 0`` (the modulus already vanishes on the
++    // axis; the winding phase e^{i m phi_az} supplies the rotation).
+     int profile                  = 0;
+     // Path to the tabulated flat-space Q-ball radial profile (two whitespace-
+     // separated columns: r  phi0) used when profile == 3.  Written by the Python
+@@ -195,6 +204,142 @@ inline Real qball_table_interp(const qball_table_t &table, Real r)
+     return table.phi0[lo] + t * (table.phi0[hi] - table.phi0[lo]);
+ }
+ 
++// ---------------------------------------------------------------------------
++// Tabulated 2D spinning Q-ball (Q-torus) profile f(rho, z) (lump profile == 4).
++//
++// The Python qball_torus solver finds the stationary rotating m=1 eigenstate
++//   Phi = f(rho, z) e^{i(m phi_az - omega t)}
++// by solving the 2D elliptic PDE for the real modulus f(rho, z) and writes it to
++// a table with the header line ``# qball_torus_2d`` followed by metadata comment
++// lines (n_rho, n_z, f_max, ...) and n_rho*n_z data rows ``rho z f`` with z
++// varying fastest (row-major over (i_rho, j_z)).  Loading the exact table here
++// keeps the constraint solve and the gridinit repaint on the SAME f(rho, z).
++// Unlike the 1D radial Q-ball twisted by (sin theta)^m, this f(rho, z) is a
++// genuine eigenstate, so it does not disperse under evolution.
++// ---------------------------------------------------------------------------
++struct qball_torus_table_t
++{
++    std::vector<Real> rho; // 1D axis, uniform, length n_rho
++    std::vector<Real> z;   // 1D axis, uniform, length n_z (z >= 0 half-plane)
++    std::vector<Real> f;   // n_rho*n_z, row-major: f[i*n_z + j]
++    std::size_t n_rho = 0;
++    std::size_t n_z   = 0;
++    Real drho         = 0.0;
++    Real dz           = 0.0;
++    Real f_max        = 0.0;
++};
++
++inline const qball_torus_table_t &qball_torus_load_table(const std::string &path)
++{
++    static std::unordered_map<std::string, qball_torus_table_t> cache;
++    static std::mutex cache_mutex;
++    std::lock_guard<std::mutex> lock(cache_mutex);
++
++    auto found = cache.find(path);
++    if (found != cache.end())
++        return found->second;
++
++    qball_torus_table_t table;
++    if (!path.empty())
++    {
++        std::ifstream file(path);
++        std::string line;
++        std::vector<Real> rr, zz, ff;
++        std::size_t hdr_n_rho = 0, hdr_n_z = 0;
++        Real hdr_fmax = 0.0;
++        while (std::getline(file, line))
++        {
++            std::size_t first = line.find_first_not_of(" \t\r\n");
++            if (first == std::string::npos)
++                continue;
++            if (line[first] == '#')
++            {
++                // Parse key=value tokens out of the comment header.
++                std::istringstream hss(line.substr(first + 1));
++                std::string tok;
++                while (hss >> tok)
++                {
++                    const std::size_t eq = tok.find('=');
++                    if (eq == std::string::npos)
++                        continue;
++                    const std::string key = tok.substr(0, eq);
++                    const std::string val = tok.substr(eq + 1);
++                    if (key == "n_rho")
++                        hdr_n_rho = static_cast<std::size_t>(std::stol(val));
++                    else if (key == "n_z")
++                        hdr_n_z = static_cast<std::size_t>(std::stol(val));
++                    else if (key == "f_max")
++                        hdr_fmax = std::stod(val);
++                }
++                continue;
++            }
++            std::istringstream iss(line);
++            Real a = 0.0, b = 0.0, c = 0.0;
++            if (!(iss >> a >> b >> c))
++                continue;
++            rr.push_back(a);
++            zz.push_back(b);
++            ff.push_back(c);
++        }
++
++        if (hdr_n_rho > 0 && hdr_n_z > 0 &&
++            rr.size() == hdr_n_rho * hdr_n_z)
++        {
++            table.n_rho = hdr_n_rho;
++            table.n_z   = hdr_n_z;
++            table.f     = std::move(ff);
++            // rho axis: every n_z-th row; z axis: first n_z rows (z fastest).
++            table.rho.resize(hdr_n_rho);
++            table.z.resize(hdr_n_z);
++            for (std::size_t i = 0; i < hdr_n_rho; ++i)
++                table.rho[i] = rr[i * hdr_n_z];
++            for (std::size_t j = 0; j < hdr_n_z; ++j)
++                table.z[j] = zz[j];
++            table.drho = (hdr_n_rho > 1) ? (table.rho[1] - table.rho[0]) : 1.0;
++            table.dz   = (hdr_n_z > 1) ? (table.z[1] - table.z[0]) : 1.0;
++            Real fmax  = 0.0;
++            for (Real v : table.f)
++                fmax = std::max(fmax, std::abs(v));
++            table.f_max = (hdr_fmax > 0.0) ? hdr_fmax : fmax;
++        }
++    }
++
++    auto inserted = cache.emplace(path, std::move(table));
++    return inserted.first->second;
++}
++
++// Bilinear interpolation of the 2D torus modulus f at (rho, |z|), normalised by
++// f_max so the peak is 1 (matching qball_envelope's amp scaling).  Returns 0
++// outside the tabulated domain (the eigenstate has already decayed to ~0 there).
++inline Real qball_torus_interp(const qball_torus_table_t &table, Real rho, Real z)
++{
++    if (table.n_rho < 2 || table.n_z < 2 || table.f_max <= 0.0)
++        return 0.0;
++    const Real zz = std::abs(z);
++    if (rho <= table.rho.front() || rho >= table.rho.back() ||
++        zz >= table.z.back())
++        return 0.0;
++
++    const Real fi = (rho - table.rho.front()) / table.drho;
++    const Real fj = (zz - table.z.front()) / table.dz;
++    std::size_t i = static_cast<std::size_t>(fi);
++    std::size_t j = static_cast<std::size_t>(fj);
++    if (i + 1 >= table.n_rho)
++        i = table.n_rho - 2;
++    if (j + 1 >= table.n_z)
++        j = table.n_z - 2;
++    const Real tx = fi - static_cast<Real>(i);
++    const Real ty = fj - static_cast<Real>(j);
++
++    const Real f00 = table.f[i * table.n_z + j];
++    const Real f10 = table.f[(i + 1) * table.n_z + j];
++    const Real f01 = table.f[i * table.n_z + (j + 1)];
++    const Real f11 = table.f[(i + 1) * table.n_z + (j + 1)];
++    const Real val = (1.0 - tx) * ((1.0 - ty) * f00 + ty * f01) +
++                     tx * ((1.0 - ty) * f10 + ty * f11);
++    return val / table.f_max;
++}
++
+ inline Real phi0_profile(Real r, Real phi_c, Real width)
+ {
+     const Real rr = r * r;
+@@ -352,7 +497,11 @@ inline Real polar_factor(int m, Real dx, Real dy, Real dz)
+     return f;
+ }
+ 
+-// Axisymmetric modulus f(r,theta) = amp * env(r) * (sin theta)^m.
++// Axisymmetric modulus f(rho, z).  For profile == 4 this is the genuine 2D
++// Q-torus eigenstate f(rho, z) read from the tabulated solve (already carries
++// the full (rho, z) structure and vanishes on the axis, so NO (sin theta)^m
++// factor is applied).  For profiles 0-3 it is the legacy radial envelope twisted
++// by the (sin theta)^m polar factor.
+ inline Real lump_winding_modulus(const RealVect &loc, const boson_lump_t &L)
+ {
+     if (L.amp == 0.0)
+@@ -360,6 +509,12 @@ inline Real lump_winding_modulus(const RealVect &loc, const boson_lump_t &L)
+     const Real dx = loc[0] - L.center[0];
+     const Real dy = loc[1] - L.center[1];
+     const Real dz = loc[2] - L.center[2];
++    if (L.profile == 4)
++    {
++        const Real rho = std::sqrt(dx * dx + dy * dy);
++        const qball_torus_table_t &table = qball_torus_load_table(L.profile_path);
++        return L.amp * qball_torus_interp(table, rho, dz);
++    }
+     const Real r2 = dx * dx + dy * dy + dz * dz;
+     const Real r  = std::sqrt(r2);
+     const Real w  = L.width;
+@@ -444,7 +599,8 @@ inline Real total_pi2(const RealVect &loc, const params_t &p, Real omega)
+         for (const auto &L : p.lumps)
+         {
+             const Real a = lump_alpha(loc, L);
+-            sum += -(omega / a) * lump_phi1(loc, L);
++            const Real omega_k = (L.bs_omega > 0.0) ? L.bs_omega : omega;
++            sum += -(omega_k / a) * lump_phi1(loc, L);
+         }
+         return sum;
+     }
+@@ -502,6 +658,9 @@ inline void read_boson_lump(GRParmParse &pp, const std::string &prefix,
+     pp.load((prefix + "amp").c_str(), L.amp, 0.0);
+     pp.load((prefix + "width").c_str(), L.width, 5.0);
+     pp.load((prefix + "omega").c_str(), L.omega, 0.0);
++    // Optional per-lump U(1) phase velocity (mixed-frequency selfgrav pairs);
++    // 0 => the global bs_omega.
++    pp.load((prefix + "bs_omega").c_str(), L.bs_omega, 0.0);
+     pp.load((prefix + "mode").c_str(), L.mode, 0);
+     pp.load((prefix + "profile").c_str(), L.profile, 0);
+     pp.load((prefix + "exotic").c_str(), L.exotic, 0);
+@@ -539,9 +698,10 @@ inline void read_params(GRParmParse &pp, params_t &p)
+         {
+             boson_lump_t L;
+             read_boson_lump(pp, "lump" + std::to_string(k) + "_", L);
+-            // Inherit the shared tabulated profile path when a profile==3 lump
+-            // does not specify its own, so all Q-ball lumps read the same phi0(r).
+-            if (L.profile == 3 && L.profile_path.empty())
++            // Inherit the shared tabulated profile path when a profile==3 (1D
++            // Q-ball) or profile==4 (2D Q-torus) lump does not specify its own,
++            // so all tabulated lumps read the same profile table.
++            if ((L.profile == 3 || L.profile == 4) && L.profile_path.empty())
+                 L.profile_path = p.qball_profile_path;
+             if (L.amp != 0.0)
+                 p.lumps.push_back(L);
+diff --git a/Source/Matter/ComplexScalarField.cpp b/Source/Matter/ComplexScalarField.cpp
+old mode 100644
+new mode 100755
+index ec00673..4ba8c69
+--- a/Source/Matter/ComplexScalarField.cpp
++++ b/Source/Matter/ComplexScalarField.cpp
+@@ -89,7 +89,11 @@ void ComplexScalarField::initialise_matter_vars(
+                         const Real f = BosonStarParams::lump_phi1(loc, L);
+                         phi1 += f;
+                         pi1 += BosonStarParams::lump_pi1(loc, L);
+-                        pi2 += -(omega / alpha_k) * f;
++                        // Per-lump U(1) phase velocity (mixed-frequency
++                        // selfgrav pairs); global bs_omega when unset.
++                        const Real omega_k =
++                            (L.bs_omega > 0.0) ? L.bs_omega : omega;
++                        pi2 += -(omega_k / alpha_k) * f;
+                     }
+                 }
+             }
+@@ -163,9 +167,11 @@ emtensor_t ComplexScalarField::compute_emtensor(
+                 phi1_k = BosonStarParams::lump_phi1(loc, L);
+                 phi2_k = 0.0;
+                 pi1_k  = BosonStarParams::lump_pi1(loc, L);
+-                // Stationary U(1) momentum uses the star's own lapse alpha(r):
+-                // Pi_im = -(omega/alpha) phi1 (alpha == 1 for a flat-space table).
+-                pi2_k = -(omega / alpha_k) * phi1_k;
++                // Stationary U(1) momentum uses the star's own lapse alpha(r)
++                // and its own phase velocity (per-lump bs_omega for mixed-
++                // frequency pairs; alpha == 1 for a flat-space table).
++                const Real omega_k = (L.bs_omega > 0.0) ? L.bs_omega : omega;
++                pi2_k = -(omega_k / alpha_k) * phi1_k;
+                 BosonStarParams::lump_grad_phi1(loc, L, dphi1_k);
+                 dphi2_k = {0.0, 0.0, 0.0}; // phi2_k = 0 => grad phi2_k = 0
+             }

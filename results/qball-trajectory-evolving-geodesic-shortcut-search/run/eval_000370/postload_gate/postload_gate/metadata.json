@@ -2,13 +2,13 @@
   "created_at": "2026-08-04T21:33:58.293316+00:00",
   "cuda_devices": "0",
   "example": "RadialRecipe",
-  "executable": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex",
+  "executable": "Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex",
   "git_commit": "cc1902e9cbafc668151a42b5b029e0d3a9d2ef5f",
-  "gridinit": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000370/initial_data.gridinit",
+  "gridinit": "runs/grtresna_qd/qball_traj_fgeo_v1/eval_000370/initial_data.gridinit",
   "mode": "postload_gate",
   "mpi_ranks": 1,
   "plotfile_dir": "/tmp/grteclyn_scratch/postload_gate_postload_gate_c7235e39",
-  "repo_root": "/home/jovyan/nachevsky/test/simulation/GRTeclyn",
+  "repo_root": ".",
   "simulation_elapsed_seconds": 2.3593645561486483,
   "simulation_exit_code": 0
 }

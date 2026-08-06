@@ -29,7 +29,7 @@ worth copying into any new campaign launcher:
     consume_state.json; otherwise it is kept and logged [KEEP-SCRATCH].
   * DRAIN_SECONDS = 600 after sim exit before the consumer is torn down.
 
-ROOT/BASE/GPUS below are specific to the gigaclust2 deployment -- adjust them,
+ROOT/BASE/GPUS below are specific to the local cluster deployment -- adjust them,
 keep the structure.
 """
 
@@ -44,7 +44,8 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path("/home/jovyan/nachevsky/test/simulation/GRTeclyn")
+# grteclyn-wrapper/scripts/campaigns/rl/ → repo root
+ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "runs/grtresna_promote/bcma_rm_L128_N256_t30_hq_eval000146/params.txt"
 OUT = ROOT / "runs/pump/pump_ladder_m0"
 EXE = ROOT / "Examples/RadialRecipe/main3d.gnu.CUDA.ex"

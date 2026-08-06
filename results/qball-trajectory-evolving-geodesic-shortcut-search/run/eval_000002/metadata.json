@@ -2,7 +2,7 @@
   "created_at": "2026-08-04T06:04:18.851937+00:00",
   "cuda_devices": "1",
   "example": "RadialRecipe",
-  "executable": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex",
+  "executable": "Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex",
   "git_commit": "d30bd88f5afe6c859e716a7725b0d9be2c516c81",
   "grtresna_convergence": {
     "ham_pct": 0.8153322,
@@ -91,7 +91,7 @@
     "passed": true,
     "reason": null
   },
-  "repo_root": "/home/jovyan/nachevsky/test/simulation/GRTeclyn",
+  "repo_root": ".",
   "simulation_elapsed_seconds": 692.1025929236785,
   "simulation_exit_code": 0,
   "solved_geometry_ftl": {

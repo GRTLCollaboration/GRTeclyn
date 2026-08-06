@@ -1,10 +1,10 @@
-[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000002 (69 overrides)
-[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000141 (69 overrides)
-[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000179 (69 overrides)
-[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000226 (69 overrides)
-[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000272 (69 overrides)
-[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000322 (69 overrides)
-[qd] seed loaded: /home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_v1/eval_000370 (69 overrides)
+[qd] seed loaded: runs/grtresna_qd/qball_traj_fgeo_v1/eval_000002 (69 overrides)
+[qd] seed loaded: runs/grtresna_qd/qball_traj_fgeo_v1/eval_000141 (69 overrides)
+[qd] seed loaded: runs/grtresna_qd/qball_traj_fgeo_v1/eval_000179 (69 overrides)
+[qd] seed loaded: runs/grtresna_qd/qball_traj_fgeo_v1/eval_000226 (69 overrides)
+[qd] seed loaded: runs/grtresna_qd/qball_traj_fgeo_v1/eval_000272 (69 overrides)
+[qd] seed loaded: runs/grtresna_qd/qball_traj_fgeo_v1/eval_000322 (69 overrides)
+[qd] seed loaded: runs/grtresna_qd/qball_traj_fgeo_v1/eval_000370 (69 overrides)
 [qd] MAP-Elites: 39D, bins=8x8, batch=4, iters=49, GPUs=[0, 1, 2, 3], pipeline=True, evals=0->200
 [qd] report: elites=2 coverage=0.03 best=4208.1569 evals=15/200 near_miss=0 shadow_cov=0.00
 [qd] report: elites=3 coverage=0.05 best=4208.1569 evals=19/200 near_miss=0 shadow_cov=0.00
@@ -77,4 +77,4 @@
 [qd] pruned 10 eval dirs; kept 8 + protected [200]
 [qd] report: elites=9 coverage=0.14 best=4609.2878 evals=200/200 near_miss=26 shadow_cov=0.02
 [qd] pruned 1 eval dirs; kept 7 + protected []
-[qd] Done. elites=9 coverage=0.14 tiers={'rejected': 0, 'constructed': 3, 'nontrivial': 0, 'operational': 6, 'persistent': 0, 'observer_ec': 0, 'converged': 0, 'analytic': 0} dir=/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_qd/qball_traj_fgeo_depth_v1
+[qd] Done. elites=9 coverage=0.14 tiers={'rejected': 0, 'constructed': 3, 'nontrivial': 0, 'operational': 6, 'persistent': 0, 'observer_ec': 0, 'converged': 0, 'analytic': 0} dir=runs/grtresna_qd/qball_traj_fgeo_depth_v1

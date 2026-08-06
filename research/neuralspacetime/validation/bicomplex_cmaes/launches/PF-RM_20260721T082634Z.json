@@ -3,8 +3,8 @@
   "campaign": "bicomplex_cmaes_pumpfree",
   "phase": 2,
   "role": "pump_free_hq_baseline",
-  "manifest": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest_pumpfree.json",
-  "source_run": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1",
+  "manifest": "grteclyn-wrapper/scripts/campaigns/promote/bicomplex_cmaes_v1/manifest_pumpfree.json",
+  "source_run": "runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1",
   "eval_id": 146,
   "n_full": 256,
   "l_full": 128.0,
@@ -14,6 +14,6 @@
   "max_level": 3,
   "gpu_id": "7",
   "evolution_mpi_ranks": 1,
-  "out_dir": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/grtresna_promote/bcma_pfrm_L128_N256_t30_hq_eval000146",
+  "out_dir": "runs/grtresna_promote/bcma_pfrm_L128_N256_t30_hq_eval000146",
   "git_commit": "8a4879c71b84c7ff6ceebf207a3c2326522f09a8"
 }
