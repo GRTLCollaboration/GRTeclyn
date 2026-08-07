@@ -7,6 +7,16 @@ gitignored `/runs` tree on the machine that produced them.
 | Paper pack | Article | Regenerator |
 |---|---|---|
 | [`matter-first-automated-discovery-of-transient-spacetime-shortcuts/`](matter-first-automated-discovery-of-transient-spacetime-shortcuts/) | [`research/neuralspacetime/article/research.tex`](../research/neuralspacetime/article/research.tex) | [`research/neuralspacetime/pack_publishable_results.sh`](../research/neuralspacetime/pack_publishable_results.sh) |
+| [`bondi-dipole-runaway/`](bondi-dipole-runaway/) | in preparation — source material in the pack itself | [`research/bondi_dipole/pack_results.sh`](../research/bondi_dipole/pack_results.sh) |
+
+### `bondi-dipole-runaway/`
+
+A positive-active-mass and a negative-active-mass soliton, released at rest in
+full 3+1 NR with constraint-solved matter, self-accelerate together; both
+same-sector controls are null. Holds the per-cell time series, dressed-star
+tables, solve/evolution parameters, code patches, curated frames and movies, and
+the derived tables — plus the physics findings, the debugging trail, the matter
+model, and the launch reference as standalone documents.
 
 ## Campaign packs
 

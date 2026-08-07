@@ -15,6 +15,7 @@ from .config import _default_data_dir, _default_frames_out_dir, _frames_auto_zli
 from .extraction.central import CENTRAL_TIMESERIES_HEADER
 from .extraction.confinement import CONFINEMENT_TIMESERIES_HEADER
 from .extraction.sector_barycenters import SECTOR_BARYCENTERS_HEADER
+from .extraction.sector_dynamics import SECTOR_DYNAMICS_HEADER
 from .extraction.ftl import FTL_TIMESERIES_HEADER
 from .extraction.shell import _shell_stats_header
 from .fields import _canonical_field_name
@@ -160,6 +161,21 @@ def main() -> None:
         "(the aggregate barycentre cancels for a mixed-sign pair).",
     )
     parser.add_argument(
+        "--sector-dynamics",
+        action="store_true",
+        help="Per-plotfile CORE dynamics to sector_dynamics.dat: halo-free core "
+        "positions, per-sector matter momentum (Bondi momentum balance) and a "
+        "gauge check (shift at the cores, proper separation).  Builds a "
+        "covering grid, so it is the most expensive stream -- opt in.",
+    )
+    parser.add_argument(
+        "--sector-dynamics-level",
+        type=int,
+        default=0,
+        help="AMR level for the sector-dynamics covering grid (default 0). "
+        "Each level up costs 8x memory and time.",
+    )
+    parser.add_argument(
         "--matter-model",
         default="",
         help="Authoritative recipe_matter_model tag for the sector split "
@@ -302,6 +318,7 @@ def main() -> None:
     ftl_out_path = out_dir / "ftl_timeseries.dat"
     confinement_out_path = out_dir / "confinement.dat"
     sector_barycenters_out_path = out_dir / "sector_barycenters.dat"
+    sector_dynamics_out_path = out_dir / "sector_dynamics.dat"
     central_out_path = out_dir / "central_timeseries.dat"
     central_radial_out_path = out_dir / "central_radial_profile.dat"
     score_ts_path = out_dir / "score_timeseries.jsonl"
@@ -340,6 +357,8 @@ def main() -> None:
             _truncate_if_exists(confinement_out_path)
         if args.sector_barycenters:
             _truncate_if_exists(sector_barycenters_out_path)
+        if args.sector_dynamics:
+            _truncate_if_exists(sector_dynamics_out_path)
         if args.central_timeseries:
             _truncate_if_exists(central_out_path)
         if args.central_radial_profile:
@@ -577,6 +596,12 @@ def main() -> None:
                                     sector_barycenters_out_path,
                                     header=SECTOR_BARYCENTERS_HEADER,
                                     line=res["sector_barycenters_line"],
+                                )
+                            if res.get("sector_dynamics_line"):
+                                _append_line(
+                                    sector_dynamics_out_path,
+                                    header=SECTOR_DYNAMICS_HEADER,
+                                    line=res["sector_dynamics_line"],
                                 )
                             _handle_central_outputs(res)
 

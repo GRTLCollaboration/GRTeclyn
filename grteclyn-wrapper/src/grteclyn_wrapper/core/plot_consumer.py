@@ -322,6 +322,13 @@ def build_consume_command(
         matter_model = _read_str_param(episode.params_path, "recipe_matter_model", "")
         if matter_model:
             command.extend(["--matter-model", matter_model])
+    # Scrutiny stream (core positions, momentum balance, gauge check).  Off by
+    # default: it is the only stream that builds a covering grid.
+    if _env_flag("GRTECLYN_SECTOR_DYNAMICS"):
+        command.append("--sector-dynamics")
+        level = os.environ.get("GRTECLYN_SECTOR_DYNAMICS_LEVEL", "").strip()
+        if level:
+            command.extend(["--sector-dynamics-level", level])
     central_enabled = _central_timeseries_enabled(central_timeseries)
     splash_incremental = (
         _incremental_score_enabled(incremental_score)

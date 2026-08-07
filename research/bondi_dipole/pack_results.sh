@@ -55,6 +55,27 @@ for spec in "${CELLS[@]}"; do
   cp "${src}/grtresna/params.txt" "${out}/grtresna_params.txt"
   cp "${src}/grtresna/Ham_and_Mom_errors.txt" "${out}/"
   cp "${src}/metadata.json" "${src}/initial_data.matter.json" "${out}/"
+  # Evolution-side diagnostics live in data/ at every-step cadence (6001 rows,
+  # ~2 MB each).  Downsample to dt = 0.5 -- plenty for a drift/violation curve.
+  for stream in constraint_norms energy_conditions curvature_invariants; do
+    [[ -f "${src}/data/${stream}.dat" ]] || continue
+    python3 - "${src}/data/${stream}.dat" "${out}/${stream}.dat" <<'PY'
+import sys
+
+src, dst = sys.argv[1], sys.argv[2]
+step, last = 0.5, None
+with open(src, encoding="utf-8") as fh, open(dst, "w", encoding="utf-8") as out:
+    out.write("# downsampled to dt=0.5 from the every-step stream\n")
+    for line in fh:
+        if line.startswith("#") or not line.strip():
+            out.write(line)
+            continue
+        t = float(line.split()[0])
+        if last is None or t - last >= step - 1e-9:
+            out.write(line)
+            last = t
+PY
+  done
   scrub "${out}"/*.txt "${out}"/*.json
   echo "[pack] data/${cell}: $(ls "${out}" | wc -l) files"
 done
@@ -107,6 +128,29 @@ done
 echo "[pack] figures: $(find "${DEST}/figures" -name '*.png' | wc -l) frames"
 
 # ---------------------------------------------------------------------------
+# 3b. Movies -- the views that carry the result (60-180 kB each, not the full
+#     19-field set).  Stitch first if missing:
+#       bash grteclyn-wrapper/scripts/plot/make_movies.sh runs/bondi/<cell>/<run> \
+#            --only scalar_activity_proj_z chi_minus_1_z rho_req_z
+# ---------------------------------------------------------------------------
+for spec in "${CELLS[@]}"; do
+  IFS='|' read -r cell sub _stop <<<"${spec}"
+  mdir="${RUNS}/${sub}/movies"
+  [[ -d "${mdir}" ]] || continue
+  out="${DEST}/movies/${cell}"
+  mkdir -p "${out}"
+  # Matter motion (projection = the clearest view of the drift) + geometry sign.
+  for view in scalar_activity_proj_z chi_minus_1_z; do
+    [[ -f "${mdir}/movie_${view}.mp4" ]] && cp "${mdir}/movie_${view}.mp4" "${out}/${view}.mp4"
+  done
+  # Signed energy density: only meaningful where both sectors are present.
+  if [[ "${cell}" == pair_pm* && -f "${mdir}/movie_rho_req_z.mp4" ]]; then
+    cp "${mdir}/movie_rho_req_z.mp4" "${out}/rho_req_z.mp4"
+  fi
+done
+echo "[pack] movies: $(find "${DEST}/movies" -name '*.mp4' | wc -l) clips ($(du -sh "${DEST}/movies" | cut -f1))"
+
+# ---------------------------------------------------------------------------
 # 4. Code patches -- the matter-model modifications this campaign required
 # ---------------------------------------------------------------------------
 git -C "${GRTRESNA_ROOT}" diff -- \
@@ -130,6 +174,12 @@ scrub "${DEST}/debug_log/bondi_dipole_debug.md"
 # 6. Derived tables (trajectories, per-cell summary) from the packed data
 # ---------------------------------------------------------------------------
 python3 "${DEST}/analysis/make_tables.py" "${DEST}"
+python3 "${DEST}/analysis/newtonian_reference.py" "${DEST}" >/dev/null
+echo "[pack] analysis: summary.{csv,md}, trajectories.csv, newtonian_reference.csv"
+# stars/star_family.csv is NOT regenerated here: the family scan needs the
+# wrapper venv (numpy/scipy).  Refresh it with
+#   PYTHONPATH=grteclyn-wrapper/src grteclyn-wrapper/.venv/bin/python \
+#     results/bondi-dipole-runaway/analysis/star_family_scan.py
 
 echo "[pack] total size: $(du -sh "${DEST}" | cut -f1)"
 echo "[pack] done"

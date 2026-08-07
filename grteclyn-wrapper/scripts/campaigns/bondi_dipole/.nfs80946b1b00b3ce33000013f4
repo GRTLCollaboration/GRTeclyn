@@ -64,11 +64,6 @@ campaign_register_launcher "${RUNS_DIR}"
 # Live per-sector centroid stream + radiation extraction.
 export GRTECLYN_SECTOR_BARYCENTERS=1
 export GRTECLYN_PSI4=1
-# Scrutiny stream (sector_dynamics.dat): halo-free core positions, per-sector
-# matter momentum (the Bondi momentum-balance check) and a gauge check.  Costs
-# ~1.6 s per plotfile, so opt in with BONDI_SCRUTINY=1.
-export GRTECLYN_SECTOR_DYNAMICS="${BONDI_SCRUTINY:-0}"
-export GRTECLYN_SECTOR_DYNAMICS_LEVEL="${BONDI_SCRUTINY_LEVEL:-0}"
 
 # This node: mpirun segfaults cluster-wide -- GRTresna and the evolution both
 # run single-rank.  Do not raise.
