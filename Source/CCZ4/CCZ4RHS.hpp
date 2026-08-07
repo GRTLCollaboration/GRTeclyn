@@ -6,11 +6,11 @@
 #ifndef CCZ4RHS_HPP_
 #define CCZ4RHS_HPP_
 
-#include "GRParmParse.hpp"
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GRParmParse.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "TensorAlgebra.hpp"
 
@@ -37,14 +37,16 @@ struct CCZ4_params_t
         ccz4_pp.queryAdd("kappa1", kappa1);
         if (kappa1 <= 0.0)
         {
-            ccz4_pp.warning("kappa1", "should be greater than 0.0 to damp constraints (see arXiv:1106.2254).");
+            ccz4_pp.warning("kappa1", "should be greater than 0.0 to damp "
+                                      "constraints (see arXiv:1106.2254).");
         }
 
         double kappa2 = 0.0;
         ccz4_pp.queryAdd("kappa2", kappa2);
         if (kappa2 <= -1.0)
         {
-            ccz4_pp.warning("kappa2", "should be greater than -1.0 to damp constraints (see arXiv:1106.2254).");
+            ccz4_pp.warning("kappa2", "should be greater than -1.0 to damp "
+                                      "constraints (see arXiv:1106.2254).");
         }
 
         double kappa3 = 1.0;
@@ -80,6 +82,7 @@ class CCZ4RHS
     };
 
     using params_t = CCZ4_params_t;
+
   protected:
     params_t m_params; //!< CCZ4 parameters
     gauge_t m_gauge;   //!< Class to compute gauge in rhs_equation
@@ -90,7 +93,7 @@ class CCZ4RHS
   public:
     /// Constructor
     CCZ4RHS(
-        double a_dx,                  //!< The grid spacing
+        double a_dx,                       //!< The grid spacing
         double a_cosmological_constant = 0 //!< Value of the cosmological const.
     );
 

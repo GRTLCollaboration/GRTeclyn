@@ -113,8 +113,8 @@ void BinaryBHLevel::initData()
         pp.get("bh2.center", bh2_center);
 
         get_puncture_tracker().set_puncture_coords(
-            {bh1_center[0], bh1_center[1], bh1_center[2],
-             bh2_center[0], bh2_center[1], bh2_center[2]});
+            {bh1_center[0], bh1_center[1], bh1_center[2], bh2_center[0],
+             bh2_center[1], bh2_center[2]});
         // can't call start_from_initial_punctures() because we need the full
         // AMR grid first
     }
@@ -148,7 +148,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     // Calculate CCZ4 right hand side
     int max_spatial_derivative_order;
     pp.get("amr.max_spatial_derivative_order", max_spatial_derivative_order);
-    
+
     if (max_spatial_derivative_order == 4)
     {
         CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> ccz4rhs(
@@ -289,8 +289,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
-        puncture_coords,
-        {bh1_mass, bh2_mass});
+        puncture_coords, {bh1_mass, bh2_mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -356,8 +355,8 @@ void BinaryBHLevel::specificPostTimeStep()
     int puncture_tracking_level;
     pp.get("puncture_tracking.level", puncture_tracking_level);
     int puncture_tracking_writeout_level;
-    pp.get("puncture_tracking.writeout_level", puncture_tracking_writeout_level);
-
+    pp.get("puncture_tracking.writeout_level",
+           puncture_tracking_writeout_level);
 
     // do puncture tracking on requested level
     if (get_bhamr_ptr()->puncture_tracking_enabled &&
@@ -367,8 +366,8 @@ void BinaryBHLevel::specificPostTimeStep()
 
         // only do the write out when we're at at a multiple of the
         // writeout_level
-        bool write_punctures = at_level_timestep_multiple(
-            puncture_tracking_writeout_level);
+        bool write_punctures =
+            at_level_timestep_multiple(puncture_tracking_writeout_level);
         amrex::Real current_time = get_state_data(state_index).curTime();
         amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(current_time, dt, write_punctures);

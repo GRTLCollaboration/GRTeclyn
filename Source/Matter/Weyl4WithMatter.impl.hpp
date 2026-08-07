@@ -123,8 +123,8 @@ void Weyl4WithMatter<matter_t>::compute_mf(amrex::MultiFab &out_mf,
 
     pp.queryAdd("G_newton", G_Newton);
 
-    Weyl4WithMatter<matter_t> my_weyl4_with_matter(
-        geomdata.CellSize(0), out_comp, G_Newton);
+    Weyl4WithMatter<matter_t> my_weyl4_with_matter(geomdata.CellSize(0),
+                                                   out_comp, G_Newton);
 
     amrex::ParallelFor(
         out_mf,

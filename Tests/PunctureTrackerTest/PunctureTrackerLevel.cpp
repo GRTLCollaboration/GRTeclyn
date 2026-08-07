@@ -86,8 +86,7 @@ void PunctureTrackerLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
-        puncture_coords,
-        {fake_bh1_mass, fake_bh2_mass});
+        puncture_coords, {fake_bh1_mass, fake_bh2_mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
@@ -138,8 +137,8 @@ void PunctureTrackerLevel::check_puncture_tagging()
     pp.get("fake_bh1_mass", fake_bh1_mass);
     pp.get("fake_bh2_mass", fake_bh2_mass);
 
-    std::array<amrex::Real, num_punctures> fake_masses{
-        fake_bh1_mass, fake_bh2_mass};
+    std::array<amrex::Real, num_punctures> fake_masses{fake_bh1_mass,
+                                                       fake_bh2_mass};
     const amrex::Real fudge_factor = 1.5; // as in PunctureTagger
     const int max_level            = get_gramr_ptr()->maxLevel();
     const amrex::Real exponent     = std::min(max_level - Level(), 1);

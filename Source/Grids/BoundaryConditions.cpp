@@ -25,7 +25,8 @@ bool BoundaryConditions::params_t::boundary_exists(const int BC) const
 {
     FOR (idir)
     {
-        if (!is_periodic[idir] && (hi_boundary[idir] == BC || lo_boundary[idir] == BC))
+        if (!is_periodic[idir] &&
+            (hi_boundary[idir] == BC || lo_boundary[idir] == BC))
         {
             return true;
         }
@@ -41,10 +42,9 @@ void BoundaryConditions::params_t::fill_params()
     GRParmParse geom_pp("geometry");
     GRParmParse pp;
 
-    std::array<int, AMREX_SPACEDIM> is_periodic_int = {0,0,0};
+    std::array<int, AMREX_SPACEDIM> is_periodic_int = {0, 0, 0};
     geom_pp.get("is_periodic", is_periodic_int);
 
-    
     FOR (idir)
     {
         is_periodic[idir] = static_cast<bool>(is_periodic_int[idir]);
@@ -93,7 +93,6 @@ void BoundaryConditions::params_t::fill_params()
             }
         }
     }
-
 }
 
 void BoundaryConditions::params_t::check_params()
@@ -121,7 +120,8 @@ void BoundaryConditions::params_t::check_params()
         if (is_periodic_int[idir] == 0)
         {
             nonperiodic_boundaries_exist = true;
-            if (hi_boundary[idir] == EXTRAPOLATING_BC || lo_boundary[idir] == EXTRAPOLATING_BC)
+            if (hi_boundary[idir] == EXTRAPOLATING_BC ||
+                lo_boundary[idir] == EXTRAPOLATING_BC)
             {
                 int extrapolation_order = 1;
                 pp.queryAdd("extrapolation_order", extrapolation_order);
@@ -129,14 +129,14 @@ void BoundaryConditions::params_t::check_params()
             }
         }
     }
-    
+
     if (nonperiodic_boundaries_exist)
     {
         // write out boundary conditions where non periodic - useful for
         // debug
-        
+
         // TODO: FIX AND REINSTATE THIS
-        //write_boundary_conditions(*this);
+        // write_boundary_conditions(*this);
     }
 }
 

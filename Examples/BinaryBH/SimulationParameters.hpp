@@ -7,8 +7,8 @@
 #define SIMULATIONPARAMETERS_HPP
 
 // General includes
-#include "GRParmParse.hpp"
 #include "BaseParameterChecker.hpp"
+#include "GRParmParse.hpp"
 
 // Problem specific includes:
 #include "ArrayTools.hpp"
@@ -47,7 +47,7 @@ class SimulationParameters : public BaseParameterChecker
         {
             puncture_tracker_params_t::check_params();
         }
-        
+
         bool calculate_constraint_norms = false;
         pp.queryAdd("calculate_constraint_norms", calculate_constraint_norms);
     }
@@ -259,7 +259,7 @@ class SimulationParameters : public BaseParameterChecker
         check_parameter("TP_Tiny", tp_params.TP_Tiny, tp_params.TP_Tiny >= 0.,
                         "must be >= 0.0");
         check_parameter("TP_Extend_Radius", tp_params.TP_Extend_Radius,
-                        tp_params.TP_Extend_Radius >= 0., "must be >= 0.0");        
+                        tp_params.TP_Extend_Radius >= 0., "must be >= 0.0");
 #endif /* USE_TWOPUNCTURES */
     }
 
@@ -267,7 +267,8 @@ class SimulationParameters : public BaseParameterChecker
     double tp_offset_plus, tp_offset_minus;
     TP::Parameters tp_params;
 #endif
-    SphericalExtraction::params_t extraction_params; // TODO: Remove once extraction is fixed
+    SphericalExtraction::params_t
+        extraction_params; // TODO: Remove once extraction is fixed
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

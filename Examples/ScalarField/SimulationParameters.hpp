@@ -13,8 +13,8 @@
 // Problem specific includes:
 #include "InitialScalarData.hpp"
 #include "KerrBH.hpp"
-#include "Potential.hpp"
 #include "MovingPunctureGauge"
+#include "Potential.hpp"
 
 class SimulationParameters : public SimulationParametersBase
 {
@@ -24,7 +24,7 @@ class SimulationParameters : public SimulationParametersBase
         // read the problem specific params
         read_params(pp);
         check_params();
-        //TODO: GAUGE PARAMS
+        // TODO: GAUGE PARAMS
         MovingPunctureGauge::params_t::check_params();
     }
 

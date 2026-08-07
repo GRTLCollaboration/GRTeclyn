@@ -24,7 +24,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_TracerParticle_mod_K.H> // for linear_interpolation
 
-
 void puncture_tracker_params_t::check_params()
 {
     GRParmParse puncture_tracking_pp("puncture_tracking");
@@ -34,7 +33,7 @@ void puncture_tracker_params_t::check_params()
 
     std::string output_path = ".";
     puncture_tracking_pp.queryAdd("output_path", output_path);
-    
+
     if (!FilesystemTools::directory_exists(output_path))
     {
         FilesystemTools::mkdir_recursive(output_path);
@@ -42,7 +41,7 @@ void puncture_tracker_params_t::check_params()
 
     std::string filename{"punctures"}; // default
     puncture_tracking_pp.queryAdd("filename", filename);
-    
+
     bool disable_writeout = false;
     puncture_tracking_pp.queryAdd("disable_writeout", disable_writeout);
 
@@ -53,7 +52,8 @@ void puncture_tracker_params_t::check_params()
     puncture_tracking_pp.queryAdd("level", level);
     if (level < 0 || level > max_level)
     {
-        puncture_tracking_pp.warning("level", "must be between 0 and max_level (inclusive)");
+        puncture_tracking_pp.warning(
+            "level", "must be between 0 and max_level (inclusive)");
     }
 
     int writeout_level = 0;
@@ -62,9 +62,9 @@ void puncture_tracker_params_t::check_params()
     std::array<double, AMREX_SPACEDIM> center{};
     amr_pp.get("center", center);
 
-    std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_coords
-                        {center[0], center[1] - 1.0, center[2], center[0],
-                         center[1] + 1.0, center[2]};
+    std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_coords{
+        center[0], center[1] - 1.0, center[2],
+        center[0], center[1] + 1.0, center[2]};
     puncture_tracking_pp.queryAdd("initial_coords", initial_coords);
 }
 
@@ -74,8 +74,8 @@ void puncture_tracker_params_t::fill_params()
 
     puncture_tracking_pp.get("output_path", output_path);
     puncture_tracking_pp.get("filename", filename);
-    full_filename = output_path + "/" + filename;
-    checkpoint_subdir  = filename;
+    full_filename     = output_path + "/" + filename;
+    checkpoint_subdir = filename;
 
     puncture_tracking_pp.get("disable_writeout", disable_writeout);
 
@@ -84,7 +84,6 @@ void puncture_tracker_params_t::fill_params()
 
     puncture_tracking_pp.get("initial_coords", initial_coords);
 }
-
 
 //! Set up puncture tracker
 template <unsigned int num_punctures>

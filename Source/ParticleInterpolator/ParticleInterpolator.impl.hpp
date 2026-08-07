@@ -12,9 +12,9 @@
 
 #include "InterpolationQueryParticle.hpp"
 #include "Lagrange.hpp"
+#include "StateTypes.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
-#include "StateTypes.hpp"
 // amrex includes
 
 #include <AMReX_AmrLevel.H>

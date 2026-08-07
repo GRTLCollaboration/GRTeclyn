@@ -26,8 +26,7 @@ class BoostedBHInitialData
         std::array<double, AMREX_SPACEDIM> momentum;
         int id;
 
-        AMREX_FORCE_INLINE params_t(int a_id) : id(a_id)
-        {};
+        AMREX_FORCE_INLINE params_t(int a_id) : id(a_id) {};
 
         AMREX_FORCE_INLINE AMREX_GPU_DEVICE static void check_params(int id);
 

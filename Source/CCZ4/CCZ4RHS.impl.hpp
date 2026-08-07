@@ -16,9 +16,8 @@
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class gauge_t, class deriv_t>
 inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(double a_dx,
-    double a_cosmological_constant)
-    : m_gauge(),
-      m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
+                                          double a_cosmological_constant)
+    : m_gauge(), m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     m_params.fill_params();

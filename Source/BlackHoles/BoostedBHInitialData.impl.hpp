@@ -17,7 +17,7 @@
 
 void BoostedBHInitialData::params_t::check_params(int id)
 {
-    GRParmParse bh_pp("bh"+std::to_string(id));
+    GRParmParse bh_pp("bh" + std::to_string(id));
 
     double mass;
     bh_pp.get("mass", mass);
@@ -30,7 +30,9 @@ void BoostedBHInitialData::params_t::check_params(int id)
     bh_pp.get("momentum", momentum);
     if (std::sqrt(ArrayTools::norm2(momentum)) >= 0.3 * mass)
     {
-        bh_pp.warning("momentum", "approximation used for boosted BH only valid for small boosts");
+        bh_pp.warning(
+            "momentum",
+            "approximation used for boosted BH only valid for small boosts");
     }
 
     GRParmParse pp;
@@ -65,15 +67,15 @@ void BoostedBHInitialData::params_t::check_params(int id)
     {
         if (bh_center[idir] < 0.0 || bh_center[idir] > prob_extent[idir])
         {
-            bh_pp.warning("center", "should be within the computational domain");
+            bh_pp.warning("center",
+                          "should be within the computational domain");
         }
     }
-    
 }
 
 void BoostedBHInitialData::params_t::fill_params()
 {
-    GRParmParse bh_pp("bh"+std::to_string(id));
+    GRParmParse bh_pp("bh" + std::to_string(id));
     bh_pp.get("mass", mass);
     bh_pp.get("center", center);
     bh_pp.get("momentum", momentum);

@@ -67,7 +67,7 @@ void run_particle_interpolator_test()
         ParticleInterpolatorLevel::variableSetUp();
 
         // Set the center
-        std::array<double, AMREX_SPACEDIM> center{}; 
+        std::array<double, AMREX_SPACEDIM> center{};
         pp.get("amr.center", center);
         PolynomialDerivedQuantity::set_center(center);
 
@@ -83,7 +83,7 @@ void run_particle_interpolator_test()
         // Read from params
         int num_points;
         pp.get("num_points", num_points);
-        
+
         bool verbosity;
         pp.get("verbosity", verbosity);
 
@@ -130,8 +130,7 @@ void run_particle_interpolator_test()
                 center[0] + extract_radius * cos(phi) * sin(theta);
             interp_y_local[j] =
                 center[1] + extract_radius * sin(phi) * sin(theta);
-            interp_z_local[j] =
-                center[2] + extract_radius * cos(theta);
+            interp_z_local[j] = center[2] + extract_radius * cos(theta);
         }
 
         // set-up query for derived variable A

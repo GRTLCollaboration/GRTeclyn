@@ -16,10 +16,7 @@
 class SimulationParameters : public BaseParameterChecker
 {
   public:
-    SimulationParameters() : BaseParameterChecker()
-    {
-        check_params(pp);
-    }
+    SimulationParameters() : BaseParameterChecker() { check_params(pp); }
 
   private:
     void check_params()

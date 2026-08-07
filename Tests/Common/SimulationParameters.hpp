@@ -7,18 +7,15 @@
 #define SIMULATIONPARAMETERS_HPP
 
 // General includes
-#include "GRParmParse.hpp"
 #include "BaseParameterChecker.hpp"
+#include "GRParmParse.hpp"
 #include "PunctureTracker.hpp"
 
 class SimulationParameters : public BaseParameterChecker
 {
   public:
     // NOLINTNEXTLINE(readability-identifier-length)
-    SimulationParameters() : BaseParameterChecker()
-    {
-        check_params();
-    }
+    SimulationParameters() : BaseParameterChecker() { check_params(); }
 
     /// Read shared parameters
     // NOLINTNEXTLINE(readability-identifier-length)
@@ -31,7 +28,7 @@ class SimulationParameters : public BaseParameterChecker
         {
             puncture_tracker_params_t::check_params();
         }
-        
+
         amrex::Real fake_bh1_mass = 0.5;
         amrex::Real fake_bh2_mass = 0.5;
 

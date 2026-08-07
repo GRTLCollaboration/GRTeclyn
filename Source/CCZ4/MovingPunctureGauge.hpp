@@ -6,9 +6,9 @@
 #ifndef MOVINGPUNCTUREGAUGE_HPP_
 #define MOVINGPUNCTUREGAUGE_HPP_
 
-#include "GRParmParse.hpp"
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
+#include "GRParmParse.hpp"
 #include <AMReX_Array.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>
@@ -28,18 +28,18 @@ class MovingPunctureGauge
     {
         // lapse params:
         double lapse_advec_coeff; //!< Switches advection terms in
-                                       //! the lapse condition on/off
-        double lapse_power; //!< The power p in \f$\partial_t \alpha = - c
-                                 //!\alpha^p(K-2\Theta)\f$
-        double lapse_coeff; //!< The coefficient c in \f$\partial_t \alpha
-                                 //!= -c \alpha^p(K-2\Theta)\f$
+                                  //! the lapse condition on/off
+        double lapse_power;       //!< The power p in \f$\partial_t \alpha = - c
+                                  //!\alpha^p(K-2\Theta)\f$
+        double lapse_coeff;       //!< The coefficient c in \f$\partial_t \alpha
+                                  //!= -c \alpha^p(K-2\Theta)\f$
         // shift params:
         double shift_Gamma_coeff; //!< Gives the F in \f$\partial_t
-                                         //!  \beta^i =  F B^i\f$
-        double shift_advec_coeff;   //!< Switches advection terms in the
-                                         //! shift condition on/off
+                                  //!  \beta^i =  F B^i\f$
+        double shift_advec_coeff; //!< Switches advection terms in the
+                                  //! shift condition on/off
         double eta; //!< The eta in \f$\partial_t B^i = \partial_t \tilde
-                         //!\Gamma - \eta B^i\f$
+                    //!\Gamma - \eta B^i\f$
 
         static void check_params()
         {
@@ -48,23 +48,25 @@ class MovingPunctureGauge
             double lapse_advec_coeff = 1.;
             gauge_pp.queryAdd("lapse_advec_coeff", lapse_advec_coeff);
             if (std::min(std::abs(lapse_advec_coeff),
-                                    std::abs(lapse_advec_coeff - 1.0)) >
-                            std::numeric_limits<double>::epsilon())
+                         std::abs(lapse_advec_coeff - 1.0)) >
+                std::numeric_limits<double>::epsilon())
             {
-                gauge_pp.warning("lapse_advec_coeff", "usually set to 0.0 or 1.0");
+                gauge_pp.warning("lapse_advec_coeff",
+                                 "usually set to 0.0 or 1.0");
             }
 
             double lapse_power = 1.;
             gauge_pp.queryAdd("lapse_power", lapse_power);
             if (std::abs(lapse_power - 1.0) >
-                            std::numeric_limits<double>::epsilon())
+                std::numeric_limits<double>::epsilon())
             {
                 gauge_pp.warning("lapse_power", "set to 1.0 for 1+log slicing");
             }
 
             double lapse_coeff = 2.;
             gauge_pp.queryAdd("lapse_coeff", lapse_coeff);
-            if (std::abs(lapse_coeff - 2.0) > std::numeric_limits<double>::epsilon())
+            if (std::abs(lapse_coeff - 2.0) >
+                std::numeric_limits<double>::epsilon())
             {
                 gauge_pp.warning("lapse_coeff", "set to 2.0 for 1+log slicing");
             }
@@ -72,25 +74,29 @@ class MovingPunctureGauge
             // Shift Evolution
             double shift_Gamma_coeff = 0.75;
             gauge_pp.queryAdd("shift_Gamma_coeff", shift_Gamma_coeff);
-            if (std::abs(shift_Gamma_coeff - 0.75) > std::numeric_limits<double>::epsilon())
+            if (std::abs(shift_Gamma_coeff - 0.75) >
+                std::numeric_limits<double>::epsilon())
             {
                 gauge_pp.warning("shift_Gamma_coeff", "usually set to 0.75");
             }
-            
+
             double shift_advec_coeff = 0.0;
             gauge_pp.queryAdd("shift_advec_coeff", shift_advec_coeff);
             if (std::min(std::abs(shift_advec_coeff),
-                                    std::abs(shift_advec_coeff - 1.0)) < 
-                                    std::numeric_limits<double>::epsilon())
+                         std::abs(shift_advec_coeff - 1.0)) <
+                std::numeric_limits<double>::epsilon())
             {
-                gauge_pp.warning("shift_advec_coeff", "usually set to 0.0 or 1.0");
+                gauge_pp.warning("shift_advec_coeff",
+                                 "usually set to 0.0 or 1.0");
             }
 
             double eta = 1.0;
             gauge_pp.queryAdd("eta", eta);
             if (eta < 0.1 || eta > 10)
             {
-                gauge_pp.warning("eta", "usually O(1/M_ADM) so typically O(1) in code units");
+                gauge_pp.warning(
+                    "eta",
+                    "usually O(1/M_ADM) so typically O(1) in code units");
             }
         }
 
@@ -112,10 +118,7 @@ class MovingPunctureGauge
     params_t m_params;
 
   public:
-    MovingPunctureGauge() 
-    {
-        m_params.fill_params();
-    }
+    MovingPunctureGauge() { m_params.fill_params(); }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)

@@ -29,7 +29,7 @@ void run_positive_chi_and_lapse_unit_test()
         GRParmParse pp;
         pp.add("min_chi", 1e-4);
         pp.add("min_lapse", 1e-4);
-        
+
         constexpr int N_GRID = 8;
         amrex::Box box(amrex::IntVect(0, 0, 0),
                        amrex::IntVect(N_GRID - 1, N_GRID - 1, N_GRID - 1));

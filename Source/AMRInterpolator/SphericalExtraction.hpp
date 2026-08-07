@@ -59,12 +59,12 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
 
         static void check_params()
         {
-            //TODO: Fill for new extraction class
+            // TODO: Fill for new extraction class
         }
 
         void fill_params()
         {
-            //TODO: Fill for new extraction class
+            // TODO: Fill for new extraction class
         }
     };
 

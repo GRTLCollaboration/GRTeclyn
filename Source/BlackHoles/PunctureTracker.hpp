@@ -14,7 +14,7 @@
 struct puncture_tracker_params_t
 {
     bool disable_writeout; // if true, don't write .dat file (doesn't
-                            // affect checkpoint and plotfiles)
+                           // affect checkpoint and plotfiles)
     std::string filename;
     std::string checkpoint_subdir;
     std::string full_filename;

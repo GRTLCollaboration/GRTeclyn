@@ -9,12 +9,12 @@
 // General includes
 #include "ArrayTools.hpp"
 #include "BoundaryConditions.hpp"
+#include "CCZ4RHS.hpp"
 #include "FilesystemTools.hpp"
 #include "GRParmParse.hpp"
+#include "SphericalExtraction.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
-#include "CCZ4RHS.hpp"
-#include "SphericalExtraction.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -41,10 +41,13 @@ class BaseParameterChecker
         // Grid setup
 
         int max_spatial_derivative_order = 4;
-        amr_pp.queryAdd("max_spatial_derivative_order", max_spatial_derivative_order);
-        if (!(max_spatial_derivative_order == 4 || max_spatial_derivative_order == 6))
+        amr_pp.queryAdd("max_spatial_derivative_order",
+                        max_spatial_derivative_order);
+        if (!(max_spatial_derivative_order == 4 ||
+              max_spatial_derivative_order == 6))
         {
-            amr_pp.error("max_spatial_derivative_order", "only 4 and 6 are supported");
+            amr_pp.error("max_spatial_derivative_order",
+                         "only 4 and 6 are supported");
         }
 
         int max_grid_size = 64;
@@ -65,7 +68,8 @@ class BaseParameterChecker
 
         if (max_grid_size % blocking_factor != 0)
         {
-            amr_pp.error("blocking_factor", "must divide max_grid_size/max_box_size");
+            amr_pp.error("blocking_factor",
+                         "must divide max_grid_size/max_box_size");
         }
 
         int num_ghosts = (max_spatial_derivative_order == 6) ? 4 : 3;
@@ -75,9 +79,11 @@ class BaseParameterChecker
         // of the order given by max_spatial_derivative_order
 
         if ((num_ghosts < ((max_spatial_derivative_order == 6) ? 4 : 3)) ||
-                (num_ghosts > blocking_factor))
+            (num_ghosts > blocking_factor))
         {
-            amr_pp.error("num_ghosts", "must be >= 3 (4th order derivatives) or 4 (6th order derivatives) and <= blocking_factor");
+            amr_pp.error("num_ghosts",
+                         "must be >= 3 (4th order derivatives) or 4 (6th order "
+                         "derivatives) and <= blocking_factor");
         }
 
         // check the restart_file exists and can be read if restarting from a
@@ -92,7 +98,7 @@ class BaseParameterChecker
             }
         }
 
-        int n_error_buf = 3;  // Amount the tagged region is grown by
+        int n_error_buf = 3; // Amount the tagged region is grown by
 
         amr_pp.queryAdd("n_error_buf", n_error_buf);
         if (n_error_buf < 0)
@@ -103,18 +109,20 @@ class BaseParameterChecker
         int n_proper = 1;
         amr_pp.queryAdd("n_proper", n_proper);
         // assume ref_ratio is always 2
-        if (blocking_factor*n_proper < num_ghosts)
+        if (blocking_factor * n_proper < num_ghosts)
         {
-            amr_pp.error("n_proper", " times blocking_factor must be >= num_ghosts for proper nesting");
+            amr_pp.error("n_proper", " times blocking_factor must be >= "
+                                     "num_ghosts for proper nesting");
         }
 
-        double grid_eff = 0.7; // determines how fussy the regridding is about tags
+        double grid_eff =
+            0.7; // determines how fussy the regridding is about tags
         amr_pp.queryAdd("grid_eff", grid_eff);
         if (grid_eff <= 0.0 || grid_eff > 1.0)
         {
             amr_pp.error("grid_eff", "must be > 0 and <= 1");
         }
-        
+
         double dt_multiplier = 0.25;
         amr_pp.queryAdd("dt_multiplier", dt_multiplier);
         if (dt_multiplier <= 0.0)
@@ -127,7 +135,8 @@ class BaseParameterChecker
         }
         else if (dt_multiplier > 0.5)
         {
-            amr_pp.warning("dt_multiplier", "is unlikely to be stable for > 0.5");
+            amr_pp.warning("dt_multiplier",
+                           "is unlikely to be stable for > 0.5");
         }
 
         // For n_cell and prob_extent, must factor in reflective boundaries
@@ -147,20 +156,22 @@ class BaseParameterChecker
             {
                 geom_pp.error("prob_extent", "must be > 0 in all directions");
             }
-            dx[idir] = prob_extent[idir]/n_cell[idir];
+            dx[idir] = prob_extent[idir] / n_cell[idir];
         }
-        FOR(idir)
+        FOR (idir)
         {
-            if (std::abs(dx[idir] - dx[(idir+2)%3]) > dx_tol)
+            if (std::abs(dx[idir] - dx[(idir + 2) % 3]) > dx_tol)
             {
-                geom_pp.error("prob_extent", "does not give equal dx in each direction with provided amr.n_cell");
+                geom_pp.error("prob_extent",
+                              "does not give equal dx in each direction with "
+                              "provided amr.n_cell");
             }
         }
-        double coarsest_dx = prob_extent[0]/n_cell[0];
+        double coarsest_dx = prob_extent[0] / n_cell[0];
 
         amr_pp.add("coarsest_dx", coarsest_dx);
 
-        std::array<int, AMREX_SPACEDIM> is_periodic = {0,0,0};
+        std::array<int, AMREX_SPACEDIM> is_periodic = {0, 0, 0};
         geom_pp.queryAdd("is_periodic", is_periodic);
 
         // Periodicity and boundaries
@@ -195,7 +206,7 @@ class BaseParameterChecker
         }
         amr_pp.queryAdd("center", center);
 
-        int max_level = 0;   // the max number of regriddings to do
+        int max_level = 0; // the max number of regriddings to do
         amr_pp.queryAdd("max_level", max_level);
         if (max_level < 0)
         {
@@ -209,9 +220,10 @@ class BaseParameterChecker
         amrex::Vector<int> ref_ratio(max_level, 2); // ref ratios between levels
         amr_pp.queryAdd("ref_ratio", ref_ratio);
 
-        // Regridding interval on each level, with size max_level (i.e. num_levels-1) since
-        // regridding on max level does nothing
-        amrex::Vector<int> regrid_int(max_level, 2); // steps between regrid at each level
+        // Regridding interval on each level, with size max_level (i.e.
+        // num_levels-1) since regridding on max level does nothing
+        amrex::Vector<int> regrid_int(max_level,
+                                      2); // steps between regrid at each level
         amr_pp.queryAdd("regrid_int", regrid_int);
 
         if (amr_pp.contains("regrid_thresholds"))
@@ -225,7 +237,8 @@ class BaseParameterChecker
             double regrid_threshold = 0.5;
             amr_pp.queryAdd("regrid_threshold", regrid_threshold);
 
-            amrex::Vector<double> regrid_thresholds(max_level + 1, regrid_threshold);
+            amrex::Vector<double> regrid_thresholds(max_level + 1,
+                                                    regrid_threshold);
             amr_pp.queryAdd("regrid_thresholds", regrid_thresholds);
         }
 
@@ -249,7 +262,8 @@ class BaseParameterChecker
             }
         }
 
-        // TODO: Check extraction (and interpolation) params e.g. origin and reflective_domain_lo/hi
+        // TODO: Check extraction (and interpolation) params e.g. origin and
+        // reflective_domain_lo/hi
     }
 
     void check_grteclyn_params()
@@ -263,7 +277,8 @@ class BaseParameterChecker
         pp.queryAdd("sigma", sigma);
         if (sigma < 0.0 || sigma > 2.0 / dt_multiplier)
         {
-            pp.warning("sigma", "must be >= 0.0 and <= 2 / dt_multiplier for stability (see Alcubierre p344)");
+            pp.warning("sigma", "must be >= 0.0 and <= 2 / dt_multiplier for "
+                                "stability (see Alcubierre p344)");
         }
 
         // Nan Check and min chi and lapse values
@@ -274,7 +289,7 @@ class BaseParameterChecker
             pp.warning("nan_check", "should not normally be disabled");
         }
 
-        double min_chi = 1e-4;
+        double min_chi   = 1e-4;
         double min_lapse = 1e-4;
         pp.queryAdd("min_chi", min_chi);
         pp.queryAdd("min_lapse", min_lapse);
@@ -287,7 +302,8 @@ class BaseParameterChecker
         int formulation = CCZ4RHS<>::USE_CCZ4; // Whether to use BSSN or CCZ4
         pp.queryAdd("formulation", formulation);
 
-        if (formulation != CCZ4RHS<>::USE_CCZ4 && formulation != CCZ4RHS<>::USE_BSSN)
+        if (formulation != CCZ4RHS<>::USE_CCZ4 &&
+            formulation != CCZ4RHS<>::USE_BSSN)
         {
             pp.error("formulation", "must be 0 or 1");
         }
@@ -298,9 +314,12 @@ class BaseParameterChecker
         }
         else if (formulation == CCZ4RHS<>::USE_BSSN)
         {
-            if (pp.contains("ccz4.kappa1") || pp.contains("ccz4.kappa2") || pp.contains("ccz4.kappa3"))
+            if (pp.contains("ccz4.kappa1") || pp.contains("ccz4.kappa2") ||
+                pp.contains("ccz4.kappa3"))
             {
-                pp.warning("kappa1/2/3", "should not be provided with BSSN formulation, setting them all to zero");
+                pp.warning("kappa1/2/3",
+                           "should not be provided with BSSN formulation, "
+                           "setting them all to zero");
             }
             pp.add("ccz4.kappa1", 0.0);
             pp.add("ccz4.kappa2", 0.0);
@@ -324,7 +343,7 @@ class BaseParameterChecker
     }
 
     // General parameters
-    
+
     // boundaries.
 
     // Boundary conditions

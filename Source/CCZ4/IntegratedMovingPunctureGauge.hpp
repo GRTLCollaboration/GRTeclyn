@@ -48,10 +48,7 @@ class IntegratedMovingPunctureGauge
     };
 
   public:
-    IntegratedMovingPunctureGauge()
-    {
-        m_params.fill_params();
-    }
+    IntegratedMovingPunctureGauge() { m_params.fill_params(); }
 
     // set the initial B^i to the initial condition equivalent to:
     // \partial_t shift - advec_coeff * advec.shift = 0

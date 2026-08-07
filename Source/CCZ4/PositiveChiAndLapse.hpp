@@ -9,8 +9,8 @@
 
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
-#include "StateVariables.hpp"
 #include "GRParmParse.hpp"
+#include "StateVariables.hpp"
 
 class PositiveChiAndLapse
 {

@@ -55,11 +55,9 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     bh_amr.init(0., stop_time);
 
-    while (
-        (bh_amr.okToContinue() != 0) &&
-        (bh_amr.levelSteps(0) < max_steps ||
-         max_steps < 0) &&
-        (bh_amr.cumTime() < stop_time || stop_time < 0.0))
+    while ((bh_amr.okToContinue() != 0) &&
+           (bh_amr.levelSteps(0) < max_steps || max_steps < 0) &&
+           (bh_amr.cumTime() < stop_time || stop_time < 0.0))
     {
         bh_amr.coarseTimeStep(stop_time);
     }
@@ -71,14 +69,12 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     pp.get("amr.plot_int", plot_int);
 
     // Write final checkpoint and plotfile
-    if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0) &&
-        check_int >= 0)
+    if (bh_amr.stepOfLastCheckPoint() < bh_amr.levelSteps(0) && check_int >= 0)
     {
         bh_amr.checkPoint();
     }
 
-    if (bh_amr.stepOfLastPlotFile() < bh_amr.levelSteps(0) &&
-        plot_int >= 0)
+    if (bh_amr.stepOfLastPlotFile() < bh_amr.levelSteps(0) && plot_int >= 0)
     {
         bh_amr.writePlotFile();
     }

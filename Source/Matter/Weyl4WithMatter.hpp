@@ -20,9 +20,8 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
   public:
     //! Constructor
     Weyl4WithMatter(const double a_dx, const int a_dcomp,
-                    double a_G_Newton       = 1.0)
-        : Weyl4(a_dx, a_dcomp), m_dcomp(a_dcomp),
-          m_G_Newton(a_G_Newton)
+                    double a_G_Newton = 1.0)
+        : Weyl4(a_dx, a_dcomp), m_dcomp(a_dcomp), m_G_Newton(a_G_Newton)
     {
     }
 

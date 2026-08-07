@@ -61,7 +61,6 @@ void run_ccz4_rhs_test()
         const int use_covariantZ4 = 1;
         const int formulation     = 0;
 
-
         GRParmParse pp;
         pp.add("ccz4.kappa1", 0.1);
         pp.add("ccz4.kappa2", 0.0);

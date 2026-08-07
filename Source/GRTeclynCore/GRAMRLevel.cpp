@@ -76,7 +76,7 @@ void GRAMRLevel::variableCleanUp()
     derive_lst.clear();
 }
 
-//TODO: See if this is used, as boundaries and nan_check not set
+// TODO: See if this is used, as boundaries and nan_check not set
 GRAMRLevel::GRAMRLevel() = default;
 
 GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
@@ -141,7 +141,7 @@ void GRAMRLevel::computeNewDt(
         GRParmParse pp;
         double dt_multiplier;
         pp.get("amr.dt_multiplier", dt_multiplier);
-        
+
         for (int i = 0; i <= finest_level; ++i)
         {
             dt_min[i] = dt_level[i] =
@@ -209,7 +209,7 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         FourthOrderInterpFromFineToCoarse(state_coarse, 0, NUM_VARS, state_fine,
                                           ratio);
     }
-    
+
     if (nan_check)
     {
         amrex::MultiFab &state_new = get_new_data(state_index);

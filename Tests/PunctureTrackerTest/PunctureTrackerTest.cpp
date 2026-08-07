@@ -60,10 +60,8 @@ void run_puncture_tracker_test()
         pp.get("amr.max_steps", max_steps);
 
         while ((bh_amr.okToContinue() != 0) &&
-               (bh_amr.levelSteps(0) < max_steps ||
-                max_steps < 0) &&
-               (bh_amr.cumTime() < stop_time ||
-                stop_time < 0.0))
+               (bh_amr.levelSteps(0) < max_steps || max_steps < 0) &&
+               (bh_amr.cumTime() < stop_time || stop_time < 0.0))
         {
             bh_amr.coarseTimeStep(stop_time);
         }
