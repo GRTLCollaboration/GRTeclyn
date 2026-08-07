@@ -33,6 +33,10 @@ CELLS = [
     ("pair_pp", "canonical x2", "x = +4 / -4, sep 8"),
     ("pair_mm", "phantom x2", "x = +4 / -4, sep 8"),
     ("pair_pm_eqm", "canonical + phantom (equal |ADM|)", "x = +4 / -4, sep 8"),
+    # Phase 1 scrutiny cells.
+    ("pair_mp_mirror", "phantom + canonical (mirror control)", "x = +4 / -4, sep 8, sectors swapped"),
+    ("pair_pm_sep12", "canonical + phantom", "x = +6 / -6, sep 12"),
+    ("pair_pm_sep16", "canonical + phantom", "x = +8 / -8, sep 16"),
 ]
 SAMPLE_DT = 4.0  # trajectories.csv row spacing in code time
 

@@ -31,6 +31,11 @@ CELLS=(
   "pair_pp|pair_pp/bondi_sg_pair_pp|60"
   "pair_mm|pair_mm/bondi_sg_pair_mm|60"
   "pair_pm_eqm|pair_pm_eqm/bondi_sg_pair_pm_eqm|60"
+  # Phase 1 scrutiny cells: the mirror control (sectors swapped -> the drift
+  # must reverse) and the separation-scaling series (8 is the reference above).
+  "pair_mp_mirror|pair_mp_mirror/bondi_sg_pair_mp|60"
+  "pair_pm_sep12|pair_pm_sep12/bondi_sg_pair_pm|60"
+  "pair_pm_sep16|pair_pm_sep16/bondi_sg_pair_pm|60"
 )
 
 echo "[pack] dest: ${DEST}"
@@ -175,6 +180,7 @@ scrub "${DEST}/debug_log/bondi_dipole_debug.md"
 # ---------------------------------------------------------------------------
 python3 "${DEST}/analysis/make_tables.py" "${DEST}"
 python3 "${DEST}/analysis/newtonian_reference.py" "${DEST}" >/dev/null
+python3 "${DEST}/analysis/separation_scaling.py" "${DEST}" >/dev/null
 echo "[pack] analysis: summary.{csv,md}, trajectories.csv, newtonian_reference.csv"
 # stars/star_family.csv is NOT regenerated here: the family scan needs the
 # wrapper venv (numpy/scipy).  Refresh it with

@@ -790,3 +790,69 @@ t=0 fingerprint matched its prediction (canon 15.92/5.05, phantom-0.550
    would unlock t≫60 and cleaner late-time chi.
 3. The 3× super-Newtonian phantom infall at overlap: worth quantifying
    against the enclosed-mass profile M(r) of the canonical star.
+
+## 10. Phase 1 scrutiny runs (2026-08-07) — mirror control + separation scaling
+
+Three cells, identical stars and numerics to the reference `pair_pm`, run to
+t=60 at `runs/bondi/{pair_mp_mirror,pair_pm_sep12,pair_pm_sep16}`.  All born on
+the predicted fingerprints with residuals matching the reference to five digits
+(Ham 0.083% / Mom 0.074%).
+
+### 10.1 Mirror control — the artifact objection, closed
+
+Sectors swapped (canonical at −4, phantom at +4).  Physics says the drift must
+reverse; a grid, boundary or diagnostic bias would not.
+
+| t | reference (+x) | mirror (−x) | agreement |
+|---|---|---|---|
+| 30 | canon +0.591 / phant +0.957 | −0.605 / −0.809 | 2.4% / 15% |
+| 42 | canon ≈+1.55 / phant ≈+2.82 | −1.60 / −2.78 | 3% / 1.5% |
+| 60 | canon +3.348 / phant +9.561 | −3.233 / −9.071 | 3.4% / 5.1% |
+
+**Reflecting the configuration reflects the whole trajectory to a few percent.**
+
+### 10.2 Separation scaling — the runaway IS inverse-square once the stars separate
+
+Naive power-law fits to displacement are misleading here: the closest pair's
+gap closes during the run so its acceleration grows, and a fixed-time exponent
+fit reports n = 2.4 → 4.6 depending on when it is evaluated.  It is measuring
+runaway feedback, not the force law.  The correct comparison is each cell
+against its OWN point-mass integration (which closes its gap too):
+
+| gap | NR / point-mass, t=20 | t=30 | t=40 |
+|---|---|---|---|
+| 8 (stars overlap, rms ≈5 each) | **1.48** | 2.14 | 3.17 |
+| 12 | **1.07** | 1.36 | 2.00 |
+| 16 | **1.11** | 1.17 | 1.48 |
+
+**At separations where the point-mass idealisation applies, the measured drift
+agrees with Newtonian gravity to ~10%.** The 48% excess at gap 8 is the
+extended-body overlap enhancement — §9.3's interpretation, now measured
+directly and shown to fall away with separation. (Regenerate:
+`results/bondi-dipole-runaway/analysis/separation_scaling.py`.)
+
+### 10.3 A measurement bias found — the canonical barycentre loses its leading edge
+
+At gap 16 the canonical barycentre drifts BACKWARDS (−0.34 at t=60) — opposite
+to the runaway. Diagnosis from the same stream: canonical tracked activity
+falls 15.91 → 15.09 (−5%) by t≈32 while the phantom's grows 21.0 → 23.8.
+The phantom's repulsion pushes canonical matter toward +x, that matter exits
+the +x boundary, and **removing the leading edge drags the remaining centroid
+backwards.**
+
+Consequences, and they matter for how §9 is read:
+- the canonical drift figures are biased LOW everywhere (so the reference run's
+  +3.35 is an underestimate, not an overestimate);
+- the bias dominates whenever the true displacement is small — i.e. at the
+  wider gaps and at early times;
+- the phantom sector is the trustworthy one (it gains weight rather than losing
+  it), which is why §10.2 uses it;
+- the mass-scaling test (§5.1 of FINDINGS) compares two cells at the SAME
+  separation, so the bias largely cancels in the ratio — it stands.
+
+**Fix, already built:** `sector_dynamics.dat` (opt-in `BONDI_SCRUTINY=1`) —
+core-weighted centroid + peak, which the halo cannot pull; plus per-sector
+matter momentum (the Bondi momentum-balance check) and a gauge check (shift at
+the cores, proper separation).  Module
+`consume_plotfiles/extraction/sector_dynamics.py`, 7 tests, ~1.6 s/plotfile.
+The scaling series should be re-run with it before the numbers are published.
