@@ -117,8 +117,6 @@ void run_bssn_matter_test()
             current_ccz4_rhs{ccz4_params, dx, sigma, CCZ4RHS<>::USE_BSSN,
                              G_Newton};
 
-        FourthOrderDerivatives deriv{dx};
-
         // Set up the constraints
         constexpr int dcomp = NUM_VARS;
 
@@ -134,34 +132,43 @@ void run_bssn_matter_test()
         const auto &out_mf_array  = out_mf.arrays();
         const auto &out_fab_array = out_fab.array();
 
+        // calculate the vacuum solution
+
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+        amrex::ParallelFor(
+            out_mf,
+            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
+            {
+                current_ccz4_rhs.compute_chi_and_h_ij(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+            });
+
+        amrex::ParallelFor(
+            out_mf,
+            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
+            {
+                current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma<
+                    CCZ4RHS<>::USE_BSSN, covariantZ4>(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+            });
+        amrex::ParallelFor(
+            out_mf,
+            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
+            {
+                current_ccz4_rhs.calculate_gauge_rhs(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+            });
+
+        // calculate the matter contribution
         amrex::ParallelFor(
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
                 current_ccz4_rhs.operator()<CCZ4RHS<>::USE_BSSN, covariantZ4>(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
-                // calculate the vacuum solution
-                // current_ccz4_rhs.compute_chi_and_h_ij(
-                //     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
-                // current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma<
-                //     CCZ4RHS<>::USE_BSSN, covariantZ4>(
-                //     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
-
-                // current_ccz4_rhs.apply_gauge(ix, iy, iz, out_mf_array[ibox],
-                //                              in_c_array[ibox]);
-
-                // current_ccz4_rhs.add_emtensor_rhs(
-                //     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
-
-                // current_ccz4_rhs.m_matter.add_matter_rhs(
-                //     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox], deriv);
-
-                // // Add dissipation to all terms
-                // current_ccz4_rhs.apply_dissipation(ix, iy, iz,
-                // out_mf_array[ibox],
-                //                                  in_c_array[ibox]);
             });
 
+        // NOLINTEND(bugprone-easily-swappable-parameters)
         double time = 0.0;
         int *bcrec  = nullptr;
         int level   = 0;

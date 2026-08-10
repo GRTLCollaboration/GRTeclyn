@@ -36,15 +36,8 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
 
     const typename matter_t::Vars vars(state_cell_data);
 
-    // calculate the vacuum solution
-    this->compute_chi_and_h_ij(ix, iy, iz, rhs_state, state);
-    this->template compute_A_ij_and_Theta_and_Gamma<formulation,
-                                                    use_covariant_Z4>(
-        ix, iy, iz, rhs_state, state);
-    this->calculate_gauge_rhs(ix, iy, iz, rhs_state, state);
-
-    // add RHS matter terms from EM Tensor
-    // Only calculate derivatives as needed
+    // NB: the vacuum solution needs to be computed elsewhere!
+    // This will only compute the matter contribution
 
     add_emtensor_rhs(ix, iy, iz, rhs_state, state);
 
