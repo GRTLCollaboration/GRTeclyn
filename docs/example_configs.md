@@ -232,13 +232,10 @@ module purge
 module load rhel9/mi355x/base
 module load openmpi/5.0.10/llvm-amdgpu-7.14/pu3qyle7
 ```
-The `Make.local-pre` file contains the following configuration.
+The `Make.local-pre` file contains the following configuration:
 ```
-COMP=gnu
-AMREX_USE_GPU=TRUE
 USE_HIP=TRUE
-# Option for MI355X
-AMREX_AMD_ARCH=gfx950
+AMREX_AMD_ARCH=gfx950 # MI355X GPU arch
 ```
 An example of the jobscript is
 ```
@@ -247,18 +244,15 @@ An example of the jobscript is
 #SBATCH --time=02:00:00
 #SBATCH --partition=mi355x
 #SBATCH --nodes=1
-#SBATCH --ntasks=8             # 1 MPI rank per GPU (Zenith has 8 GPUs per node)
+#SBATCH --ntasks-per-node=8    # 1 MPI rank per GPU (Zenith has 8 GPUs per node)
 #SBATCH --cpus-per-task=16     # 128 cores total / 8 tasks = 16 cores per task
 #SBATCH --gres=gpu:8           # Request all 8 MI355X GPUs on the node
 #SBATCH --account=NAME-ZENITH-GPU
-#SBATCH --output=out_%j.out
-#SBATCH --error=err_%j.err
 #SBATCH --exclusive
 
 module purge
 module load rhel9/mi355x/base
-module load rocm
-module load openmpi
+module load openmpi/5.0.10/llvm-amdgpu-7.14/pu3qyle7
 
 exec="/path/to/your/executable"
 args="params.txt"
