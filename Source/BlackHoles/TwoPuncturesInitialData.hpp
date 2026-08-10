@@ -12,6 +12,7 @@
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
+#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include "TwoPunctures.hpp"
 #include "VarsTools.hpp"
@@ -23,30 +24,29 @@
 class TwoPuncturesInitialData
 {
   protected:
-    amrex::Real m_dx;
-    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
+    double m_dx;
+    std::array<double, AMREX_SPACEDIM> m_center;
     const TP::TwoPunctures &m_two_punctures;
 
   public:
     template <class data_t> using Vars = CCZ4Vars::VarsWithGauge<data_t>;
 
-    TwoPuncturesInitialData(
-        const amrex::Real a_dx,
-        const std::array<amrex::Real, AMREX_SPACEDIM> a_center,
-        const TP::TwoPunctures &a_two_punctures)
+    TwoPuncturesInitialData(const double a_dx,
+                            const std::array<double, AMREX_SPACEDIM> a_center,
+                            const TP::TwoPunctures &a_two_punctures)
         : m_dx(a_dx), m_center(a_center), m_two_punctures(a_two_punctures)
     {
     }
 
-    void compute(Cell<amrex::Real> current_cell) const;
+    void compute(Cell<double> current_cell) const;
 
   protected:
-    void interpolate_tp_vars(const Coordinates<amrex::Real> &coords,
-                             Tensor::Rank2 &out_h_phys,
-                             Tensor::Rank2 &out_extrinsic_K,
-                             amrex::Real &out_lapse, Tensor::Rank1 &out_shift,
-                             amrex::Real &out_Theta,
-                             Tensor::Rank1 &out_Z3) const;
+    void interpolate_tp_vars(const Coordinates<double> &coords,
+                             Tensor<2, double> &out_h_phys,
+                             Tensor<2, double> &out_extrinsic_K,
+                             double &out_lapse, Tensor<1, double> &out_shift,
+                             double &out_Theta,
+                             Tensor<1, double> &out_Z3) const;
 };
 
 #include "TwoPuncturesInitialData.impl.hpp"
