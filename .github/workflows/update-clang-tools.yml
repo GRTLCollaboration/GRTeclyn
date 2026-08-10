@@ -35,22 +35,24 @@ jobs:
               run: |
                   CPP_LINTER_ACTION=$(curl -fsSL \
                       https://raw.githubusercontent.com/cpp-linter/cpp-linter-action/v2/action.yml)
-                  CLANG_FORMAT_RELEASE=$(curl -fsSL \
+                  CLANG_FORMAT_VERSION=$(curl -fsSL \
                       -H "Accept: application/vnd.github+json" \
                       -H "X-GitHub-Api-Version: 2022-11-28" \
-                      https://api.github.com/repos/pre-commit/mirrors-clang-format/releases/latest \
-                      | jq -r .tag_name)
+                      "https://api.github.com/repos/pre-commit/mirrors-clang-format/tags?per_page=100" \
+                      | jq -r '.[].name' | sed -n \
+                      's/^v\{0,1\}\([0-9]\+\(\.[0-9]\+\)*\)$/\1/p' | sort -V | tail -n1)
                   LATEST_CLANG_TOOLS_VERSION=$(printf '%s\n' "${CPP_LINTER_ACTION}" | \
                       awk '/^  version:/ { in_version = 1; next } \
                       in_version && /^  [[:alnum:]-]+:/ { exit } \
                       in_version' | grep -oE '[0-9]+(\.[0-9]+)*' | sort -V | tail -n1)
                   LATEST_LLVM_MAJOR=${LATEST_CLANG_TOOLS_VERSION%%.*}
-                  if [ -z "${LATEST_LLVM_MAJOR}" ]; then
+                  if [ -z "${LATEST_LLVM_MAJOR}" ] || \
+                     [ -z "${CLANG_FORMAT_VERSION}" ]; then
                           echo "Unable to determine the latest cpp-linter clang-tools version."
                           echo "Check https://github.com/cpp-linter/cpp-linter-action/blob/v2/action.yml."
                           exit 1
                       fi
-                  LATEST_CLANG_FORMAT_VERSION=${CLANG_FORMAT_RELEASE#v}
+                  LATEST_CLANG_FORMAT_VERSION=${CLANG_FORMAT_VERSION}
                   LATEST_CLANG_FORMAT_MAJOR=${LATEST_CLANG_FORMAT_VERSION%%.*}
                   echo "LATEST_LLVM_MAJOR=${LATEST_LLVM_MAJOR}" >> "$GITHUB_ENV"
                   echo "LATEST_CLANG_FORMAT_VERSION=${LATEST_CLANG_FORMAT_VERSION}" \
