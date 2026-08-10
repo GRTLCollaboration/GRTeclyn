@@ -22,8 +22,10 @@ nav:
     - Code structure: code_structure.md
     - Coding conventions: coding_conventions.md
     - Pull requests: pull_requests.md
+    - Updating the docs: updating_docs.md
   - Other features and tools:
     - Initial data: initial_data.md
+    - TwoPunctures: two_punctures.md
     - Particle interpolator: particle_interpolator.md
     - Apparent horizon finder: ah_finder.md
   - Misc resources :
