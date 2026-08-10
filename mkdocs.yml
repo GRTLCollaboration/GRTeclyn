@@ -31,3 +31,6 @@ nav:
   - Contact us: contact_us.md
 
 theme: readthedocs
+
+markdown_extensions:
+  - admonition
