@@ -6,7 +6,6 @@
 #ifndef GAMMACALCULATOR_HPP_
 #define GAMMACALCULATOR_HPP_
 
-#include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"

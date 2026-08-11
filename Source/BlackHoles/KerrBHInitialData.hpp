@@ -7,7 +7,6 @@
 #define KERRBHINITIALDATA_HPP_
 
 #include "ADMConformalVars.hpp"
-#include "Cell.hpp"
 #include "CoordinateTransformations.hpp"
 #include "Coordinates.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components

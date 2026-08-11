@@ -6,7 +6,6 @@
 #ifndef FIXEDGRIDSTAGGER_HPP_
 #define FIXEDGRIDSTAGGER_HPP_
 
-#include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
 

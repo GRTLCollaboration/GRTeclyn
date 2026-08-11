@@ -6,7 +6,6 @@
 #ifndef SIXTHORDERDERIVATIVES_HPP_
 #define SIXTHORDERDERIVATIVES_HPP_
 
-#include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"

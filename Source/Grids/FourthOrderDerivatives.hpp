@@ -6,7 +6,6 @@
 #ifndef FOURTHORDERDERIVATIVES_HPP_
 #define FOURTHORDERDERIVATIVES_HPP_
 
-#include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 
 #include "StateVariables.hpp"

@@ -8,7 +8,6 @@
 #define POSITIVECHIANDLAPSE_HPP_
 
 #include "CCZ4Vars.hpp"
-#include "Cell.hpp"
 #include "StateVariables.hpp"
 
 class PositiveChiAndLapse

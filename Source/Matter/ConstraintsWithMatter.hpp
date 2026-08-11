@@ -7,7 +7,6 @@
 #define CONSTRAINTSWITHMATTER_HPP_
 
 #include "CCZ4Geometry.hpp"
-#include "Cell.hpp"
 #include "Constraints.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"

@@ -7,7 +7,6 @@
 #define BINARYBHINITIALDATA_HPP_
 
 #include "BoostedBHInitialData.hpp"
-#include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"
