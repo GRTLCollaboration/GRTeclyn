@@ -146,27 +146,47 @@
                 <h1 id="moving-from-grchombo">Moving from GRChombo</h1>
 <p>This page is intended to help those coming from using the numerical relativity code <a href="https://github.com/GRTLCollaboration/GRChombo">GRChombo</a> that was the predecessor code to GRTeclyn. If you are new to GRChombo and GRTeclyn, you can skip it!</p>
 <h2 id="why-port-to-grtelcyn">Why port to GRTelcyn?</h2>
-<p>GRTeclyn is a new and improved version of the GRChombo code. It supports GPUs, meaning your code can run as much as 10x faster if you have access to these resources. Even if you only have access to CPUs, GRTeclyn should be faster to run and has a few useful improvements and new features. Most importantly, at some point GRTeclyn will be the default code for our collaboration and so all new features and updates will be focused here.</p>
+<p>GRTeclyn is a new and improved version of the GRChombo code. It supports GPUs, meaning your code can run as much as 10-20x faster if you have access to these resources. Even if you only have access to CPUs, GRTeclyn should be faster to run and has a few useful improvements and new features. Most importantly, GRTeclyn is now the default code for our collaboration and so all new features and updates will be focused here.</p>
 <h2 id="will-it-be-painful">Will it be painful?</h2>
 <p>No - it might even be fun! Porting your code will help you to understand both codes better, and most of the changes are cosmetic rather than fundamental, since Chombo and AMReX share common ancestry in BoxLibs. You should find most of GRTelcyn looks pretty familiar. In this page we will provide some detailed tips to get you started, but the basic idea is: look at how the binary or scalar field examples have changed from GRChombo to GRTeclyn, and then copy the same approach for your own examples.</p>
 <h2 id="key-changes">Key changes</h2>
-<ol>
-<li>
-<p>No <code>data_t</code> ...</p>
-</li>
-<li>
-<p><code>Boxloops()</code> is now <code>ParallelFor</code>.</p>
-</li>
-<li>
-<p>Storing and loading of variables is replaced by direct access to the grid ... wrapper access to specific variables for readability.</p>
-</li>
-<li>
-<p>Certain functions, e.g. those responsible for the RHS calculations, must be instrumented by GPU macros, <code>AMREX_GPU_DEVICE</code> if they are to be run on the GPU. This is true regardless of the GPU architecture (the AMReX backend will expand these as appropriate for CUDA, SYCL etc.) They may also need <code>AMREX_FORCE_INLINE</code> as an additional function qualifier.</p>
-</li>
-<li>
-<p>Puncture tracking is done with spectator particles.</p>
-</li>
-</ol>
+<ul>
+<li><strong>No data_t</strong> </li>
+</ul>
+<p>In news that no one will be sad about, there is no longer any explicit vectorisation of the right hand side, so no more <code>data_t</code>s. Variables that live on the grid, and coordinates, are now all <code>amrex::Real</code>s, which is a type that can be compiled as either a double or single precision number. For this reason, you can just use normal <code>if</code> statements to test if some quantity is larger or smaller than another etc (however, note that branching generally degrades GPU performance). Note the use of curved (not square) brackets.</p>
+<ul>
+<li><strong>Accessing variables</strong> </li>
+</ul>
+<p>We now load and store variables directly to the grid, rather than creating a local copy of the variables at each point and then using those (i.e. the thing that was usually called <code>vars</code>). There is therefore no <code>enum_mapping_function</code> nonsense. We still have a way to access the variables in a readable form, but it uses pointers to the grid values, and so is much more efficient. The new way means you have to do <code>vars.chi()</code> to get a scalar variable, <code>vars.shift(i)</code> to get the i-th component of a vector and <code>vars.h(i,j)</code> to get the i,j component of a tensor. If you take a look at the new <code>CCZ4RHS</code> class you will get the idea.</p>
+<ul>
+<li><strong>Derivatives and symmetries</strong> </li>
+</ul>
+<p>We make use of symmetries where possible to save fewer values. This is particularly the case for symmetric tensors (<code>h</code> and <code>A</code>) and second derivatives. Consider the quantity <code>d2.h</code>. It is a rank 4 tensor with symmetries in the first and second tensorial (i,j) and third and fourth derivative (k,l) indices. You need to declare this as the right kind of object - <code>Tensor::Sym12Sym34Rank4</code>. Having done this, you can then index into it as d2.h(i,j,k,l) in the expected way. (Note that all brackets are now curved and not square). </p>
+<ul>
+<li><strong><code>Boxloops()</code> is now <code>ParallelFor</code></strong> </li>
+</ul>
+<p>Previously when you wanted to iterate over the grid points on each level, you called <code>BoxLoops</code>. The equivalent in AMReX is <code>ParallelFor</code> and this is where the GPU magic happens. <code>Parallel4</code> runs the operations on each cell on the grid on GPUs simulataneously for each box. The function it calls is by default is no longer called <code>compute</code>, instead it is the<code>operator()</code> method of the class, so if we first declare the class
+<pre class="highlight"><code>TraceARemoval trace_A_removal;</code></pre>
+We then access the function we want in the ParallelFor loop as
+<pre class="highlight"><code>    amrex::ParallelFor(state_new,
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       {
+                           trace_A_removal(ix, iy, iz, state_arrays[box_no]);
+                       });</code></pre>
+where we are passing the cell indices, and the state array (the variables) in that box.
+Looking at the trace removal function in one of the examples will be the best way to see what is going on.</p>
+<ul>
+<li><strong>Telling it what to run on GPUs</strong></li>
+</ul>
+<p>Certain functions, e.g. those responsible for the RHS calculations, must be instrumented by GPU macros, <code>AMREX_GPU_DEVICE</code> if they are to be run on the GPU. This is true regardless of the GP$U architecture (the AMReX backend will expand these as appropriate for CUDA, SYCL etc.) They may also need <code>AMREX_FORCE_INLINE</code> as an additional function qualifier. If you start with an existing diagnostic or RHS file and copy this, it should have everything you need.</p>
+<ul>
+<li><strong>Particle interpolation</strong></li>
+</ul>
+<p>All extraction functions are implemented using particles, which know their location and can extract variable values with 4th order accuracy from the grid. See the section on the <a href="../particle_interpolator/"><strong>Particle Interpolator</strong></a> for more details.</p>
+<ul>
+<li><strong>Parameters</strong></li>
+</ul>
+<p>The parameters are now read in where used in each class, rather than passing around a long <code>m_p.params</code> struct. Parameter checking is preserved in the <code>SimulationParameters.hpp</code> class for key parameters, but this is optional if you add your own classes and parameters. See <a href="../parameters/"><strong>Parameters</strong></a> for more details.</p>
               
             </div>
           </div><footer>
