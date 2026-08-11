@@ -40,6 +40,9 @@ theme:
 markdown_extensions:
   - admonition
   - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:pymdownx.emoji.twemoji
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
   - pymdownx.arithmatex:
       generic: true
 
@@ -50,3 +53,4 @@ extra_javascript:
 
 extra_css:
   - https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css
+  - stylesheets/extra.css
