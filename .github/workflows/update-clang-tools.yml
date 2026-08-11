@@ -35,36 +35,81 @@ jobs:
               run: |
                   CPP_LINTER_ACTION=$(curl -fsSL \
                       https://raw.githubusercontent.com/cpp-linter/cpp-linter-action/v2/action.yml)
-                  CLANG_FORMAT_VERSION=$(curl -fsSL \
-                      -H "Accept: application/vnd.github+json" \
-                      -H "X-GitHub-Api-Version: 2022-11-28" \
-                      "https://api.github.com/repos/pre-commit/mirrors-clang-format/tags?per_page=100" \
-                      | jq -r '.[].name' | sed -n \
-                      's/^v\{0,1\}\([0-9]\+\(\.[0-9]\+\)*\)$/\1/p' | sort -V | tail -n1)
-                  LATEST_CLANG_TOOLS_VERSION=$(printf '%s\n' "${CPP_LINTER_ACTION}" | \
+                  CPP_LINTER_AVAILABLE_MAJORS=$(printf '%s\n' "${CPP_LINTER_ACTION}" | \
                       awk '/^  version:/ { in_version = 1; next } \
                       in_version && /^  [[:alnum:]-]+:/ { exit } \
-                      in_version' | grep -oE '[0-9]+(\.[0-9]+)*' | sort -V | tail -n1)
-                  LATEST_LLVM_MAJOR=${LATEST_CLANG_TOOLS_VERSION%%.*}
-                  if [ -z "${LATEST_LLVM_MAJOR}" ] || \
-                     [ -z "${CLANG_FORMAT_VERSION}" ]; then
-                          echo "Unable to determine the latest cpp-linter clang-tools version."
-                          echo "Check https://github.com/cpp-linter/cpp-linter-action/blob/v2/action.yml."
-                          exit 1
+                      in_version' | grep -oE '[0-9]+(\.[0-9]+)*' | \
+                      awk -F. '{ print $1 }' | sort -n -u)
+                  if [ -z "${CPP_LINTER_AVAILABLE_MAJORS}" ]; then
+                      echo "Unable to determine cpp-linter clang-tools versions." >&2
+                      echo "Check https://github.com/cpp-linter/cpp-linter-action/blob/v2/action.yml." >&2
+                      exit 1
+                  fi
+                  CPP_LINTER_NEWER_MAJORS=$(printf '%s\n' "${CPP_LINTER_AVAILABLE_MAJORS}" | \
+                      awk -v current="${CURRENT_LLVM_VERSION}" '$1 > current')
+                  CLANG_FORMAT_VERSIONS=""
+                  for page in $(seq 1 10); do
+                      CLANG_FORMAT_TAGS=$(curl -fsSL \
+                          -H "Accept: application/vnd.github+json" \
+                          -H "X-GitHub-Api-Version: 2022-11-28" \
+                          "https://api.github.com/repos/pre-commit/mirrors-clang-format/tags?per_page=100&page=${page}" \
+                          | jq -r '.[].name' | sed -n \
+                          's/^v\{0,1\}\([0-9]\+\(\.[0-9]\+\)*\)$/\1/p')
+                      if [ -z "${CLANG_FORMAT_TAGS}" ]; then
+                          break
                       fi
-                  LATEST_CLANG_FORMAT_VERSION=${CLANG_FORMAT_VERSION}
-                  LATEST_CLANG_FORMAT_MAJOR=${LATEST_CLANG_FORMAT_VERSION%%.*}
+                      if [ -z "${CLANG_FORMAT_VERSIONS}" ]; then
+                          CLANG_FORMAT_VERSIONS="${CLANG_FORMAT_TAGS}"
+                      else
+                          CLANG_FORMAT_VERSIONS=$(printf '%s\n%s\n' \
+                              "${CLANG_FORMAT_VERSIONS}" "${CLANG_FORMAT_TAGS}" | sed '/^$/d')
+                      fi
+                  done
+                  CLANG_FORMAT_VERSIONS=$(printf '%s\n' "${CLANG_FORMAT_VERSIONS}" | sort -V -u)
+                  if [ -z "${CLANG_FORMAT_VERSIONS}" ]; then
+                      echo "Unable to determine clang-format versions." >&2
+                      echo "Check https://github.com/pre-commit/mirrors-clang-format/tags." >&2
+                      exit 1
+                  fi
+                  CLANG_FORMAT_NEWER_VERSIONS=""
+                  while IFS= read -r version; do
+                      if [ -n "${version}" ] && \
+                         [ "${version}" != "${CURRENT_CLANG_FORMAT_VERSION}" ] && \
+                         [ "$(printf '%s\n%s\n' "${CURRENT_CLANG_FORMAT_VERSION}" "${version}" | \
+                         sort -V | tail -n1)" = "${version}" ]; then
+                          if [ -z "${CLANG_FORMAT_NEWER_VERSIONS}" ]; then
+                              CLANG_FORMAT_NEWER_VERSIONS="${version}"
+                          else
+                              CLANG_FORMAT_NEWER_VERSIONS=$(printf '%s\n%s\n' \
+                                  "${CLANG_FORMAT_NEWER_VERSIONS}" "${version}" | sed '/^$/d')
+                          fi
+                      fi
+                  done <<< "${CLANG_FORMAT_VERSIONS}"
+                  CLANG_FORMAT_NEWER_MAJORS=$(printf '%s\n' "${CLANG_FORMAT_NEWER_VERSIONS}" | \
+                      awk -F. 'NF { print $1 }' | sort -n -u)
+                  COMMON_NEWER_MAJORS=""
+                  while IFS= read -r major; do
+                      if [ -n "${major}" ] && \
+                         printf '%s\n' "${CLANG_FORMAT_NEWER_MAJORS}" | \
+                         grep -qx "${major}"; then
+                          COMMON_NEWER_MAJORS="${COMMON_NEWER_MAJORS}${COMMON_NEWER_MAJORS:+ }${major}"
+                      fi
+                  done <<< "${CPP_LINTER_NEWER_MAJORS}"
+                  LATEST_LLVM_MAJOR=$(printf '%s\n' "${COMMON_NEWER_MAJORS}" | tr ' ' '\n' | \
+                      sed '/^$/d' | sort -n | tail -n1)
+                  LATEST_CLANG_FORMAT_VERSION=$(printf '%s\n' "${CLANG_FORMAT_NEWER_VERSIONS}" | \
+                      awk -F. -v major="${LATEST_LLVM_MAJOR}" '$1 == major { print }' | \
+                      sort -V | tail -n1)
                   echo "LATEST_LLVM_MAJOR=${LATEST_LLVM_MAJOR}" >> "$GITHUB_ENV"
                   echo "LATEST_CLANG_FORMAT_VERSION=${LATEST_CLANG_FORMAT_VERSION}" \
-                      >> "$GITHUB_ENV"
-                  echo "LATEST_CLANG_FORMAT_MAJOR=${LATEST_CLANG_FORMAT_MAJOR}" \
                       >> "$GITHUB_ENV"
 
             - name: Check clang tools compatibility
               id: updates
               run: |
-                  if [ "${LATEST_LLVM_MAJOR}" != "${LATEST_CLANG_FORMAT_MAJOR}" ]; then
-                      echo "Latest clang tools releases have different major versions."
+                  if [ -z "${LATEST_LLVM_MAJOR}" ] || \
+                     [ -z "${LATEST_CLANG_FORMAT_VERSION}" ]; then
+                      echo "No newer compatible clang tools versions found."
                       exit 0
                   fi
                   if [ "${CURRENT_LLVM_VERSION}" != "${LATEST_LLVM_MAJOR}" ] || \
