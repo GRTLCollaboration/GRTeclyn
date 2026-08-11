@@ -12,19 +12,19 @@ No - it might even be fun! Porting your code will help you to understand both co
 
 ## Key changes
 
-- **No data_t** 
+- **No data_t**
 
 In news that no one will be sad about, there is no longer any explicit vectorisation of the right hand side, so no more `data_t`s. Variables that live on the grid, and coordinates, are now all `amrex::Real`s, which is a type that can be compiled as either a double or single precision number. For this reason, you can just use normal `if` statements to test if some quantity is larger or smaller than another etc (but note that branching generally degrades GPU performance).
 
-- **Accessing variables** 
+- **Accessing variables**
 
 We now load and store variables directly to the grid, rather than creating a local copy of the variables at each point and then using those (i.e. the thing that was usually called `vars`). There is therefore no `enum_mapping_function` nonsense. We still have a way to access the variables in a readable form, but it uses pointers to the grid values, and so is much more efficient. The new way means you have to do `vars.chi()` to get a scalar variable, `vars.shift(i)` to get the i-th component of a vector and `vars.h(i,j)` to get the i,j component of a tensor. If you take a look at the new `CCZ4RHS` class you will get the idea. Note the use of curved (not square) brackets for accessing components in a tensor. (This arises because these are now all AMReX arrays under the hood).
 
-- **Derivatives and symmetries** 
+- **Derivatives and symmetries**
 
-We make use of symmetries where possible to save fewer values. This is particularly the case for symmetric tensors (`h` and `A`) and second derivatives. Consider the quantity `d2.h`. It is a rank 4 tensor with symmetries in the first and second tensorial (i,j) and third and fourth derivative (k,l) indices. You need to declare this as the right kind of object - `Tensor::Sym12Sym34Rank4` (this tells you that indices 1 and 2 are symmetric, as are indices 3 and 4, and that the overall rank is 4). Having done this, you can then index into it as d2.h(i,j,k,l) in the expected way. (Note again that all brackets are now curved and not square). As before derivative indices come last. 
+We make use of symmetries where possible to save fewer values. This is particularly the case for symmetric tensors (`h` and `A`) and second derivatives. Consider the quantity `d2.h`. It is a rank 4 tensor with symmetries in the first and second tensorial (i,j) and third and fourth derivative (k,l) indices. You need to declare this as the right kind of object - `Tensor::Sym12Sym34Rank4` (this tells you that indices 1 and 2 are symmetric, as are indices 3 and 4, and that the overall rank is 4). Having done this, you can then index into it as d2.h(i,j,k,l) in the expected way. (Note again that all brackets are now curved and not square). As before derivative indices come last.
 
-- **`Boxloops()` is now `ParallelFor`** 
+- **`Boxloops()` is now `ParallelFor`**
 
 Previously when you wanted to iterate over the grid points on each level, you called `BoxLoops`. The equivalent in AMReX is `ParallelFor` and this is where the GPU magic happens. `Parallel4` runs the operations on each cell on the grid on GPUs simulataneously for each box. The function it calls is by default is no longer called `compute`, instead it is the`operator()` method of the class, so if we first declare the class
 ```
@@ -47,7 +47,7 @@ Certain functions, e.g. those responsible for the RHS calculations, must be inst
 
 - **Particle interpolation**
 
-All extraction functions are implemented using particles, which know their location and can extract variable values with 4th order accuracy from the grid. See the section on the [**Particle Interpolator**](particle_interpolator.md) for more details.
+All extraction functions are implemented using particles, which know their location and can extract variable values with 4th order accuracy from the grid. See the sections on the [**Particle Interpolator**](particle_interpolator.md) and [**Extraction**](extraction.md) for more details.
 
 - **Parameters**
 

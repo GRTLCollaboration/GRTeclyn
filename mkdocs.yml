@@ -27,6 +27,7 @@ nav:
     - Initial data: initial_data.md
     - TwoPunctures: two_punctures.md
     - Particle interpolator: particle_interpolator.md
+    - Extraction: extraction.md
     - Apparent horizon finder: ah_finder.md
   - Misc resources :
     - Useful resources: useful_resources.md
