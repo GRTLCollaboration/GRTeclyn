@@ -108,6 +108,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../extraction/">Extraction</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
                   </li>
               </ul>
@@ -152,19 +154,19 @@
 <p>No - it might even be fun! Porting your code will help you to understand both codes better, and most of the changes are cosmetic rather than fundamental, since Chombo and AMReX share common ancestry in BoxLibs. You should find most of GRTelcyn looks pretty familiar. In this page we will provide some detailed tips to get you started, but the basic idea is: look at how the binary or scalar field examples have changed from GRChombo to GRTeclyn, and then copy the same approach for your own examples.</p>
 <h2 id="key-changes">Key changes</h2>
 <ul>
-<li><strong>No data_t</strong> </li>
+<li><strong>No data_t</strong></li>
 </ul>
 <p>In news that no one will be sad about, there is no longer any explicit vectorisation of the right hand side, so no more <code>data_t</code>s. Variables that live on the grid, and coordinates, are now all <code>amrex::Real</code>s, which is a type that can be compiled as either a double or single precision number. For this reason, you can just use normal <code>if</code> statements to test if some quantity is larger or smaller than another etc (but note that branching generally degrades GPU performance).</p>
 <ul>
-<li><strong>Accessing variables</strong> </li>
+<li><strong>Accessing variables</strong></li>
 </ul>
 <p>We now load and store variables directly to the grid, rather than creating a local copy of the variables at each point and then using those (i.e. the thing that was usually called <code>vars</code>). There is therefore no <code>enum_mapping_function</code> nonsense. We still have a way to access the variables in a readable form, but it uses pointers to the grid values, and so is much more efficient. The new way means you have to do <code>vars.chi()</code> to get a scalar variable, <code>vars.shift(i)</code> to get the i-th component of a vector and <code>vars.h(i,j)</code> to get the i,j component of a tensor. If you take a look at the new <code>CCZ4RHS</code> class you will get the idea. Note the use of curved (not square) brackets for accessing components in a tensor. (This arises because these are now all AMReX arrays under the hood).</p>
 <ul>
-<li><strong>Derivatives and symmetries</strong> </li>
+<li><strong>Derivatives and symmetries</strong></li>
 </ul>
-<p>We make use of symmetries where possible to save fewer values. This is particularly the case for symmetric tensors (<code>h</code> and <code>A</code>) and second derivatives. Consider the quantity <code>d2.h</code>. It is a rank 4 tensor with symmetries in the first and second tensorial (i,j) and third and fourth derivative (k,l) indices. You need to declare this as the right kind of object - <code>Tensor::Sym12Sym34Rank4</code> (this tells you that indices 1 and 2 are symmetric, as are indices 3 and 4, and that the overall rank is 4). Having done this, you can then index into it as d2.h(i,j,k,l) in the expected way. (Note again that all brackets are now curved and not square). As before derivative indices come last. </p>
+<p>We make use of symmetries where possible to save fewer values. This is particularly the case for symmetric tensors (<code>h</code> and <code>A</code>) and second derivatives. Consider the quantity <code>d2.h</code>. It is a rank 4 tensor with symmetries in the first and second tensorial (i,j) and third and fourth derivative (k,l) indices. You need to declare this as the right kind of object - <code>Tensor::Sym12Sym34Rank4</code> (this tells you that indices 1 and 2 are symmetric, as are indices 3 and 4, and that the overall rank is 4). Having done this, you can then index into it as d2.h(i,j,k,l) in the expected way. (Note again that all brackets are now curved and not square). As before derivative indices come last.</p>
 <ul>
-<li><strong><code>Boxloops()</code> is now <code>ParallelFor</code></strong> </li>
+<li><strong><code>Boxloops()</code> is now <code>ParallelFor</code></strong></li>
 </ul>
 <p>Previously when you wanted to iterate over the grid points on each level, you called <code>BoxLoops</code>. The equivalent in AMReX is <code>ParallelFor</code> and this is where the GPU magic happens. <code>Parallel4</code> runs the operations on each cell on the grid on GPUs simulataneously for each box. The function it calls is by default is no longer called <code>compute</code>, instead it is the<code>operator()</code> method of the class, so if we first declare the class
 <pre class="highlight"><code>TraceARemoval trace_A_removal;</code></pre>
@@ -183,7 +185,7 @@ Looking at the trace removal function in one of the examples will be the best wa
 <ul>
 <li><strong>Particle interpolation</strong></li>
 </ul>
-<p>All extraction functions are implemented using particles, which know their location and can extract variable values with 4th order accuracy from the grid. See the section on the <a href="../particle_interpolator/"><strong>Particle Interpolator</strong></a> for more details.</p>
+<p>All extraction functions are implemented using particles, which know their location and can extract variable values with 4th order accuracy from the grid. See the sections on the <a href="../particle_interpolator/"><strong>Particle Interpolator</strong></a> and <a href="../extraction/"><strong>Extraction</strong></a> for more details.</p>
 <ul>
 <li><strong>Parameters</strong></li>
 </ul>

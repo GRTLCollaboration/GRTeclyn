@@ -122,6 +122,8 @@
     </li>
     </ul>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../extraction/">Extraction</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
                   </li>
               </ul>
@@ -160,10 +162,10 @@
               
                 <h1 id="particle-interpolator">Particle Interpolator</h1>
 <h2 id="overview">Overview</h2>
-<p>GRTeclyn uses particles to interpolate evolved fields on the computational grid. Particles are placed at the positions where interpolation is required and the field values are interpolated to those particle locations. Hence, the particles here play a role of a "special" data containter. Using particles lets us reuse AMReX's existing machinery for locating interpolation points on the AMR grid. AMReX determines which level, grid and MPI rank owns each particle and handles the required communication automatically, which means less book-keeping for us!</p>
-<p>Interpolation is performed using a <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/ParticleInterpolator/Lagrange.hpp">Lagrange interpolation</a> algorithm of arbitrary order, with fourth-order interpolation typically used by default. AMReX particles support several possible memory layouts for particle data. In GRTeclyn, interpolated values are stored using a <strong>Struct-of-Arrays (SoA)</strong> layout.</p>
+<p>GRTeclyn uses AMReX particles to interpolate evolved fields on the computational grid. Particles are placed at the positions where interpolation is required and the field values are then interpolated to those particle locations. In this sense, the particles act as special data containers storing the interpolated values. The reason for using particles is that it lets us reuse AMReX's existing machinery for locating interpolation points on the AMR grid, rather than implementing this logic ourselves. In particular, AMReX determines which AMR level and grid contains each particle and which MPI rank owns it. During <code>Redistribute()</code>, AMReX also handles the MPI communication required to move particles to the appropriate ranks. This significantly reduces the amount of parallel book-keeping required in GRTeclyn.</p>
 <p>If you are not familiar with the AMReX particle interface, see the <a href="https://amrex-codes.github.io/amrex/docs_html/Particle.html">AMReX particle documentation</a>.</p>
-<p>The main class used for interpolation in GRTeclyn is <code>ParticleInterpolator</code>. This class is templated over the number of components, i.e. the number of variables to be interpolated. It handles the interpolation logic, boundary conditions treatment, interaction between the particles and the mesh data and many other things.</p>
+<p>Interpolation is performed using a <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/ParticleInterpolator/Lagrange.hpp">Lagrange interpolation</a> algorithm of arbitrary order, with fourth-order interpolation typically used by default. AMReX particles support several possible memory layouts for particle data. In GRTeclyn, interpolated values are stored using a <strong>Struct-of-Arrays (SoA)</strong> layout.</p>
+<p>The main class used for interpolation in GRTeclyn is <code>ParticleInterpolator</code>. This class is templated over the number of components, i.e. the number of variables to be interpolated. It handles the interpolation logic, boundary conditions treatment, interaction between the particles and the mesh data and many other things. If you ever end up using interpolation for your example,<code>ParticleInterpolator</code> is one of the classes you will need to interact directly with, in addition to the <code>InterpolationQueryParticle</code> class, which set-ups the information about the interpolation query. See the section below for more information on how to get started.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Currently, <code>ParticleInterpolator</code> supports interpolation of multiple
@@ -174,17 +176,17 @@ components only when they are in the <strong>contiguous</strong> order!</p>
 together. In contrast, <span class="arithmatex">\(\chi\)</span> and the extrinsic curvature <span class="arithmatex">\(K\)</span> cannot be
 interpolated together, as their component indices are not contiguous!</p>
 </div>
-<p>Our <code>ParticleInterpolator</code> supports both <strong>state</strong> and <strong>derived</strong> variables.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The interpolation setup differs slightly depending on whether state or derived variables are being interpolated.</p>
+<p>Our <code>ParticleInterpolator</code> supports both <strong>state</strong> and <strong>derived</strong> variables.
+The interpolation setup differs slightly depending on whether state or derived variables are being interpolated. Both cases will be described in more detail below.</p>
 </div>
-<p>Both cases will be described in more detail below.</p>
 <h2 id="quick-start">Quick start</h2>
-<p>To use the particle interpolator, first define an interpolation query specifying:</p>
+<p>To use the particle interpolator, we first need to define an interpolation query specifying:</p>
 <ol>
 <li>where interpolation should take place (i.e. coordinate positions)</li>
-<li>which component(s) should be interpolated.</li>
+<li>which component(s) should be interpolated</li>
+<li>any additional information, such as whether the variable being interpolated is state or derived and the parity, if derived variable is queried.</li>
 </ol>
 <p>Queries are generated by the <code>InterpolationQueryParticle</code> class.</p>
 <h3 id="defining-query-for-a-state-variable">Defining query for a state variable</h3>
@@ -228,7 +230,7 @@ my_interpolator.setup(&amp;gr_amr, sim_params.boundary_params, verbosity);</code
 <ul>
 <li><code>gr_amr</code> is the AMR object that you would have already created</li>
 <li><code>sim_params.boundary_params</code> contains the information on the boundary conditions</li>
-<li><code>verbosity</code> controls the amount of diagnostic output</li>
+<li><code>verbosity</code> controls the amount of diagnostic output.</li>
 </ul>
 <p>The template parameter <code>num_components</code> must correspond to the number of components that will be interpolated. In this example, <code>num_components = 1</code>.</p>
 <h3 id="performing-the-interpolation">Performing the interpolation</h3>
@@ -252,69 +254,75 @@ my_interpolator.setup(&amp;gr_amr, sim_params.boundary_params, verbosity);</code
 <p>We also check whether the points you provide in the query are valid using <code>ParticleInterpolator::check_domain()</code>. If you encounter any issues or you think we missed a special case, please let us know.</p>
 </li>
 <li>
-<p><code>ParticleInterpolator</code> applies the parity to interpolated fields automatically. Whilst the parity for state variables is defined directly in the source code (see e.g. <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/CCZ4/CCZ4StateVariables.hpp#L79"><code>CCZ4StateVariables.hpp</code></a>), you have to provide the required parities for derived variables.</p>
+<p><code>ParticleInterpolator</code> applies the parity to the interpolated fields automatically. Whilst the parity for state variables is defined directly in the source code (see e.g. <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/CCZ4/CCZ4StateVariables.hpp#L79"><code>CCZ4StateVariables.hpp</code></a>), you have to provide the required parities for derived variables.</p>
 </li>
 <li>
 <p>If the grid layout changes during the simulation, we must call <code>Redistribute()</code> on our particles to ensure that the particles have been reassigned to the correct levels, grids and MPI ranks. In particular, the grid layout changes whenever we regrid. Using <code>ParticleInterpolator::ensure_redistributed()</code>, we automatically determine whether the particles need to be redistributed.</p>
 </li>
 <li>
-<p>Whilst the ownership of particles in the AMR grid is handled automatically by AMReX's particle machinery, additional complications arise when we also have different querying ranks. In most applications, such as GW extraction, only rank 0 makes the query. However, it is also possible for multiple ranks to have their own queried points. In particular, the ranks containing the queried points may be different from the ranks actually containing the answers (i.e. the interpolated values). In this case, we need to send the answers back to the querying ranks using MPI communication. Again, this is handled automatically within the <code>ParticleInterpolator</code> class and you do not need to worry about it. This communication is facilitated by the helper <code>MPIContextParticle</code> and <code>MPILayoutParticle</code> classes. In the section below we provide a simple example of such communication.</p>
+<p>Whilst the ownership of particles in the AMR grid is handled automatically by AMReX's particle machinery, additional complications arise when we also have different querying ranks. In most applications, such as GW extraction, only rank 0 makes the query. However, it is also possible for multiple ranks to have their own queried points. In particular, the ranks containing the queried points may be different from the ranks actually containing the answers (i.e. the interpolated values). In this case, we need to send the answers back to the querying ranks using MPI communication. Again, this is handled automatically within the <code>ParticleInterpolator</code> class and you do not need to worry about it. This communication is facilitated by the helper <code>MPIContextParticle</code> and <code>MPILayoutParticle</code> classes. If you would like to understand the details of the implenetatio in more details, we encourage you to refer to the section below, where we provide a simple example. Or if you do not want to end up with the headache, we encourage you to skip it altogether.</p>
 </li>
 </ol>
 <h3 id="example-matching-interpolated-answers-back-to-query-points">Example: matching interpolated answers back to query points</h3>
-<p>The main ingredients illustrated by this example are contained are contained in <code>ParticleInterpolator::prepare_receive_buffers()</code> and <code>ParticleInterpolator::prepare_send_buffers()</code> functions.</p>
+<p>As described in point #5 above, additional machinery is required to send interpolated values back to the querying ranks. The main ingredients in the code that facilitate this logic are contained in <code>ParticleInterpolator::prepare_receive_buffers()</code> and <code>ParticleInterpolator::prepare_send_buffers()</code> functions. In here we walk through these parts of the code using a simple example.</p>
+<p>As the names of our functions suggest, we have send and receive buffers. What are these creatures? The send buffer stores each interpolated value (i.e. answer) together with the query index identifying the point for which that value was computed. During the MPI exchange, the query index and the corresponding interpolated value are sent back to the receiving rank and stored in the receive buffer.</p>
 <p>For the purpose of our toy example, suppose that after <code>Redistribute()</code> the current answering rank (e.g. rank 1) holds three particles:</p>
 <pre class="highlight"><code class="language-text">Particle   iquery   Query rank (p.cpu())   Query index (p.id())   Interpolated value (answer)
 A          0        0                        2                        10.5
 B          1        1                        0                        20.7
 C          2        0                        5                        30.1</code></pre>
-<p>Since particles A and C belong to queries made by rank 0, while particle B belongs to a query made by rank 1, the current rank has</p>
+<p>In the table above:</p>
+<ul>
+<li><em>iquery</em> is the loop index over the locally cached particle answers before they are packed into the MPI send buffers.</li>
+<li><em>query rank</em> is the rank that requested the interpolation point. In our implementation the query rank is the rank on which the interpolation particle is originally created from the query.</li>
+<li><em>query index</em> is the index of that interpolation point within the query on the rank that created it. In this example we purposely chose non-contiguous query indices. For example, rank 0 can have 6 query points. Only 2 points, with query indices 2 and 5, will be located on answering rank 1. Query indices 0, 1, 3 and 4 will then be located on other ranks.</li>
+<li><em>interpolated value</em> is the answer.</li>
+</ul>
+<p>Since particles A and C belong to queries made by rank 0, while particle B belongs to a query made by rank 1, the current rank has:</p>
 <ul>
 <li>2 answers to send to rank 0</li>
 <li>1 answer  to send to rank 1</li>
 </ul>
-<p>The send buffers therefore have three entries in total:</p>
+<p>We have 3 answers to send back, therefore the send buffers must have three entries in total:</p>
 <pre class="highlight"><code class="language-cpp">const int total_send = 3;
 
 m_answer_idx.resize(total_send); // query-point indices associated with answers
-m_answer_data.resize(total_send); // actual answers; in the code we actually have m_answer_data[k][idx], with k being the number of components, but we remove it here for simplicity (assuming we have k = 1)</code></pre>
-<p>Note that <code>MPI_Alltoallv</code> requires the entries sent to a given rank to occupy a contiguous section of the send buffer. We therefore arrange the buffer as:</p>
+m_answer_data.resize(total_send); // actual answers; in the code we actually have m_answer_data[k][idx], with k being the index of the component, but we remove it here for simplicity (assuming we have only one component so that k = 1)</code></pre>
+<p>We use <code>MPI_Alltoallv</code> to exchange the information. It is basically a collective MPI communication routine that allows every rank to send a different amount of data to every other rank. Note, however, that <code>MPI_Alltoallv</code> requires the entries sent to a given rank to occupy a contiguous section of the send buffer. We therefore arrange the buffer as:</p>
 <pre class="highlight"><code class="language-text">send-buffer position:   0      1      2
-destination rank:       0      0      1</code></pre>
-<p>Defining a function <code>answerDispl(r)</code>, which gives the starting position in the flat MPI send buffer for the answers that will be sent to rank r, we find:</p>
+destination rank:       0      0      1
+particle:               A      C      B
+iquery:                 0      2      1</code></pre>
+<p>With our new arrangement of <code>[0, 0, 1]</code> for destination ranks, it is useful to define a function <code>answerDispl(r)</code>, which gives the starting position in the flat MPI send buffer for the answers that will be sent to rank r. Within our example, this function gives:</p>
 <pre class="highlight"><code class="language-cpp">answerDispl(0) = 0;
 answerDispl(1) = 2;</code></pre>
-<p>All this means is that destination rank 0 starts from send-buffer position 0 but destination rank 1 starts from send-buffer position 2. This is just a special packaging we need for <code>MPI_Alltoallv</code>.</p>
-<p>We also define:</p>
+<p>All this means is that destination rank 0 starts from send-buffer position 0 but destination rank 1 starts from send-buffer position 2. This allows us to cleverly separate the answers needed to be sent to each rank.</p>
+<p>For book-kepping, we also define <code>rank_counter[r]</code>, which records how many answers have already been placed into the section of the send buffer corresponding to rank <code>r</code>.</p>
 <pre class="highlight"><code class="language-cpp">std::vector&lt;int&gt; rank_counter(mpi_procs, 0);</code></pre>
-<p>where <code>rank_counter[r]</code> records how many answers have already been placed into the section of the send buffer corresponding to rank <code>r</code>.</p>
 <p>Initially:</p>
 <pre class="highlight"><code class="language-text">rank_counter = [0, 0]</code></pre>
 <p>But then for each particle its position in the send buffer is calculated as:</p>
 <pre class="highlight"><code class="language-cpp">const int idx =
     m_mpi.answerDispl(query_rank) + rank_counter[query_rank]++;</code></pre>
-<p>So, for particle A:</p>
+<p>So, recall that for particle A, we have:</p>
 <pre class="highlight"><code class="language-text">iquery = 0
 query_ranks[0]   = 0
 query_indices[0] = 2
 comp_values[0]   = 10.5</code></pre>
 <p>Here, <code>comp_values[0] = 10.5</code> is the interpolated value that was previously stored in the particle SoA and copied into <code>comp_values</code> in <code>prepare_send_buffers()</code>.</p>
-<p>Particle A is the first answer being packed for rank 0, so</p>
+<p>Particle A is the first answer being packed for rank 0, so we find:</p>
 <pre class="highlight"><code class="language-text">answerDispl(0)  = 0
 rank_counter[0] = 0</code></pre>
-<p>and its position in the MPI send buffer is</p>
+<p>Its position in the MPI send buffer is then:</p>
 <pre class="highlight"><code class="language-text">idx = answerDispl(query_rank) + rank_counter[query_rank]
     = answerDispl(0)          + rank_counter[0]
     = 0                       + 0
     = 0</code></pre>
-<p>Note the way we determine <code>idx</code> here using increments:</p>
-<pre class="highlight"><code class="language-cpp">const int idx =
-    m_mpi.answerDispl(query_rank) + rank_counter[query_rank]++;</code></pre>
-<p>so <code>rank_counter[0]</code> becomes <code>1</code> after <code>idx</code> is calculated.</p>
+<p>Note above that <code>rank_counter[0]</code> will become <code>1</code> after <code>idx</code> is calculated.</p>
 <p>The original query index, stored in <code>query_indices[iquery]</code> and the corresponding interpolated value, stored in <code>comp_values[iquery]</code>, are then written to the same send-buffer position <code>idx</code>:</p>
 <pre class="highlight"><code class="language-cpp">m_answer_idx[idx]  = query_indices[iquery];
 m_answer_data[idx] = comp_values[iquery];</code></pre>
-<p>For particle A this gives</p>
+<p>For particle A this gives:</p>
 <pre class="highlight"><code class="language-cpp">m_answer_idx[0]  = query_indices[0]; // = 2
 m_answer_data[0] = comp_values[0]; // = 10.5</code></pre>
 <p>Playing the same game for particles B and C, the final packed send buffers are:</p>
@@ -343,7 +351,7 @@ interpolated value       10.5    20.7    30.1</code></pre>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href="../two_punctures/" class="btn btn-neutral float-left" title="TwoPunctures"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../ah_finder/" class="btn btn-neutral float-right" title="Apparent horizon finder">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../extraction/" class="btn btn-neutral float-right" title="Extraction">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -369,7 +377,7 @@ interpolated value       10.5    20.7    30.1</code></pre>
       <span><a href="../two_punctures/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../ah_finder/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../extraction/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

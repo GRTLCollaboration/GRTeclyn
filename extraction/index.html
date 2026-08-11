@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Extraction - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Extraction";
+        var mkdocs_page_input_path = "extraction.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../img/grteclyn-logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Running and modifying examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../bbh_example/">Running the binary black hole example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../sf_example/">Running the scalar field example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../visualising_outputs/">Visualising outputs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../kg_example/">Testing with the Klein Gordon example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../parameters/">Parameters guide</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developing code</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../updating_docs/">Updating the docs</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Other features and tools</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../two_punctures/">TwoPunctures</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Extraction</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#gw-extraction">GW extraction</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#defining-your-own-extraction">Defining your own extraction</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Misc resources</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Other features and tools</li>
+      <li class="breadcrumb-item active">Extraction</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="extraction">Extraction</h1>
+<h2 id="overview">Overview</h2>
+<p>Before reading this section on extracting various fields using a specified geometry, we recommend you check out the <a href="https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/">Particle Interpolator</a> section. If you would like to use gravitational-wave (GW) extraction or perhaps adapt the current extraction classes to your own needs, this chapter is for you.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Extraction uses our <code>ParticleInterpolator</code> class. Hence, if we want persistent extraction throughout the simulation, we should really initiate the <code>ParticleInterpolator</code> only once. An example of this is explained in GW extraction section below.</p>
+</div>
+<p>We inherit our legacy GRChombo structure, where we have a general class called <code>SurfaceExtraction</code>, which sets up the prerequisites for a 2D surface extraction. The geometry and the variables you are extracting in this class are kept arbitrary, but we will explain how they need to be specified shortly. Function <code>SurfaceExtraction::extract()</code> contains the necessary call to the <code>ParticleInterpolator</code> class; recall that your extraction points may not coincide with the grid points. We note that the class takes the following form:</p>
+<pre class="highlight"><code class="language-cpp">template &lt;class SurfaceGeometry, int num_components&gt; class SurfaceExtraction</code></pre>
+<p>So, similar to GRChombo, we template over the <code>SurfaceGeometry</code>, which can be e.g. <code>SphericalGeometry</code>, but also add an additional template <code>num_components</code>, which directly enters the <code>ParticleInterpolator</code> and corresponds to the number of components we are extracting. The <code>SurfaceExtraction</code> class additionally has several helper functions to let you add the variables you need to extract, see e.g. <code>SurfaceExtraction::add_state_vars()</code> and <code>SurfaceExtraction::add_derived_vars()</code>. The information about the variables that you are extracting is stored in a special struct:</p>
+<pre class="highlight"><code class="language-cpp">struct vars_t
+    {
+        int comp{};
+        VariableType type{};
+        Derivative deriv;
+
+        amrex::Vector&lt;BCParity&gt; parities{};
+        std::string derived_name;
+    };</code></pre>
+<p>which then propagates all of this information directly to the <code>ParticleInterpolator</code>. Why is this needed? Well, you should do your homework and read the <a href="https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/">Particle Interpolator</a> section <img alt="🤪" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f92a.svg" title=":zany_face:" /> !</p>
+<p>We similarly reuse GRChombo's <code>SphericalExtraction</code> class, which allows for the spin-weighted spherical-harmonic decomposition. Similar to <code>SurfaceExtraction</code> it also now has an additional template argument for <code>int num_components</code>.</p>
+<h2 id="gw-extraction">GW extraction</h2>
+<p>The most relevant application of the extraction classes to numerical relativity is undoubtedly the GW extraction. Let us walk you through how we implement this, as it may be useful if you wish to extract other quantities. The relevant class to look at is <code>WeylExtraction</code>.</p>
+<p>First, our class is defined as follows:</p>
+<pre class="highlight"><code class="language-cpp">class WeylExtraction : public SphericalExtraction&lt;2&gt;</code></pre>
+<p>Here:</p>
+<ul>
+<li>we inherit from <code>SphericalExtraction</code>, since we extract on spheres. This fixes the geometry to <code>SphericalGeometry</code> and gives us access to additional post-processing functions for mode decomposition.</li>
+<li><code>SphericalExtraction</code> is templated over two components. Recall that <span class="arithmatex">\(\Psi_4\)</span> has two components -- real and imaginary.</li>
+</ul>
+<p>Within the class, we add components needed to be extracted and note that here we additionally provide the parities. This is important because <span class="arithmatex">\(\Psi_4\)</span> is a <strong>derived</strong> variable, not a state variable!</p>
+<pre class="highlight"><code class="language-cpp">amrex::Vector&lt;BCParity&gt; parities = {BCParity::even, BCParity::odd_xyz};
+this-&gt;add_derived_vars({0, 1}, parities, "Weyl4");</code></pre>
+<p>Here <code>{0, 1}</code> refers to the component indices, whilst <code>Weyl4</code> refers to the derived group. We encourage you to consult the <code>Weyl4</code> class for this.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Our extraction implementation is such that you cannot mix different derived groups. You will need to define separate objects if you wish to extract several derived groups!</p>
+</div>
+<p>We then provide the instruction to the class on what to do, i.e. how we want to extract <span class="arithmatex">\(\Psi_4\)</span> using <code>WeylExtraction::execute_query()</code>. In particular,</p>
+<ul>
+<li>we extract <span class="arithmatex">\(\Psi_4\)</span> on the sphere using <code>extract(a_interpolator)</code></li>
+<li>we additionally perform mode decomposition using <code>add_mode_integrand()</code> and <code>integrate()</code>.</li>
+</ul>
+<p>As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the <code>ParticleInterpolator</code> only once. We therefore store it as part of the AMR object and set it up during AMR initialisation. For example, for black holes (BHs) we have <code>BHAMR</code> class. Hence, we directly add the interpolator as its public member:</p>
+<pre class="highlight"><code class="language-cpp">// example for interpolator object for Psi4 extraction
+    static constexpr int weyl_num_components = 2;
+    ParticleInterpolator&lt;weyl_num_components&gt; m_weyl_interpolator; // interpolator object</code></pre>
+<p>and set up the interpolator in <code>BHAMR::init()</code>:</p>
+<pre class="highlight"><code class="language-cpp">void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
+    {
+        GRAMR::init(a_strt_time, a_stop_time);
+
+        const auto &amp;params = get_simulation_parameters();
+        m_weyl_interpolator.setup(this, params.boundary_params, true);
+    }</code></pre>
+<p>In our binary BH example, we can then switch on the extraction in <code>BinaryBHLevel::specificPostTimeStep</code> using:</p>
+<pre class="highlight"><code class="language-cpp">// Weyl extraction
+    if (simParams().activate_extraction)
+    {
+        int min_level = simParams().extraction_params.min_extraction_level();
+        bool calculate_weyl = at_level_timestep_multiple(min_level);
+
+        if (calculate_weyl &amp;&amp; Level() == min_level)
+        {
+            amrex::Real m_time       = get_state_data(state_index).curTime();
+            amrex::Real m_dt         = get_gramr_ptr()-&gt;dtLevel(Level());
+            amrex::Real restart_time = get_gramr_ptr()-&gt;get_restart_time();
+            bool first_step          = (m_time &lt;= m_dt);
+
+            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
+                                         m_time, first_step, restart_time);
+            my_extraction.execute_query(&amp;get_bhamr_ptr()-&gt;m_weyl_interpolator);
+        }
+    }</code></pre>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are using derived variables, such as <span class="arithmatex">\(\Psi_4\)</span>, do not forget to register the derived quantity in your <code>Example::variableSetUp()</code>. For instance, for <span class="arithmatex">\(\Psi_4\)</span>, one would add <code>Weyl4::set_up(state_index)</code>.</p>
+</div>
+<h2 id="defining-your-own-extraction">Defining your own extraction</h2>
+<p>It is hard to cover every single extraction scenario a user may want to have, as it depends on the physics one is trying to do. Here we briefly describe what you need to do in the most common situations:</p>
+<ol>
+<li>
+<p><em>I want to extract my own quantity on the sphere.</em></p>
+<p>Please refer to the <code>WeylExtraction</code> class and the previous section for an example that you can adapt to your needs.</p>
+</li>
+<li>
+<p><em>I want to use my own geometry/extraction.</em></p>
+<p>If your application requires something other than spheres, you should write your own <code>MyGeometry</code> class and <code>MyExtraction</code> class. In fact, our GRChombo code has an example of <a href="https://github.com/GRTLCollaboration/GRChombo/blob/training/fawcett/Source/AMRInterpolator/CylindricalExtraction.hpp">cylindrical extraction</a> and the associated <a href="https://github.com/GRTLCollaboration/GRChombo/blob/training/fawcett/Source/AMRInterpolator/CylindricalGeometry.hpp">cylindrical geometry</a>. However, this has not been ported to GRTeclyn yet.</p>
+</li>
+<li>
+<p><em>Can I extract along the line?</em></p>
+<p>Yes! We provide a <code>LineExtraction</code> class that does exactly that and requires the user to specify the start and end points of the line. This is also a nice example to see how <code>ParticleInterpolator</code> is used.</p>
+</li>
+</ol>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../particle_interpolator/" class="btn btn-neutral float-left" title="Particle interpolator"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../ah_finder/" class="btn btn-neutral float-right" title="Apparent horizon finder">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../particle_interpolator/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../ah_finder/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+      <script src="../javascripts/katex-render.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
