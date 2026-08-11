@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
         <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -147,8 +148,8 @@
 <p>Compiling GRTeclyn for GPUs is in principle very easy, but in practise can be a bit of a pain. You will probably find it useful to look at some of the specific systems examples, e.g. the one for the Cosma8 AMD MI300 GPUs in <a href="../example_configs/">Example configs for specific HPC systems</a>.</p>
 <p>The same process is followed as for CPUs, with the following changes:</p>
 <h2 id="you-need-to-install-the-right-gpu-compiler">You need to install the right GPU compiler</h2>
-<p>One of the annoying things about GPUs is that there are 3 types related to the 3 vendors (Intel, AMD and Nvidia), and since they can't agree on things (thank you capitalism :pray:) you have to be able to understand the slightly different (but essentially the same) terminology and tools from all three. </p>
-<p>Fortunately (thank you AMReX and historic US government funding :pray:), AMReX takes care of all the pain of implementing the code so it works on all three architectures. But you still have to think about this when you compile and run on a particular one. You may need to ask a lot of questions to the system admin, and you will probably end up feeling confused and stupid. That's ok. It will be worth it when you see the speed up, and once you are set up things should run smoothly. </p>
+<p>One of the annoying things about GPUs is that there are 3 types related to the 3 vendors (Intel, AMD and Nvidia), and since they can't agree on things (thank you capitalism <img alt="🙏" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f64f.svg" title=":pray:" />) you have to be able to understand the slightly different (but essentially the same) terminology and tools from all three. </p>
+<p>Fortunately (thank you AMReX and historic US government funding <img alt="🙏" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f64f.svg" title=":pray:" />), AMReX takes care of all the pain of implementing the code so it works on all three architectures. But you still have to think about this when you compile and run on a particular one. You may need to ask a lot of questions to the system admin, and you will probably end up feeling confused and stupid. That's ok. It will be worth it when you see the speed up, and once you are set up things should run smoothly. </p>
 <p>For AMD GPUs, you need to be using the HIP compiler, for Intel it is SYCL and for Nvidia it is the more well known CUDA. You can think of them all as being like CUDA, but with a different name.</p>
 <p>If you are on a login node, this will be a CPU node, but you may be able to module load the GPU compiler, e.g. on cosma8 you do
 <pre class="highlight"><code>module load hipcc/6.3amd</code></pre>
