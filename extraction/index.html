@@ -105,6 +105,12 @@
     <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#gw-extraction">GW extraction</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#specifying-how-to-extract-psi_4">Specifying how to extract \(\Psi_4\)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#linking-with-your-example-and-particleinterpolator">Linking with your example and ParticleInterpolator</a>
+    </li>
+        </ul>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#defining-your-own-extraction">Defining your own extraction</a>
     </li>
@@ -148,14 +154,14 @@
               
                 <h1 id="extraction">Extraction</h1>
 <h2 id="overview">Overview</h2>
-<p>Before reading this section on extracting various fields using a specified geometry, we recommend you check out the <a href="https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/">Particle Interpolator</a> section. If you would like to use gravitational-wave (GW) extraction or perhaps adapt the current extraction classes to your own needs, this chapter is for you.</p>
+<p>Before reading this section on extracting various fields using a specified geometry, we recommend you check out the <a href="https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/">Particle Interpolator</a> chapter. If you would like to use gravitational-wave (GW) extraction or perhaps adapt the current extraction classes to your own needs, this chapter is for you.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Extraction uses our <code>ParticleInterpolator</code> class. Hence, if we want persistent extraction throughout the simulation, we should really initiate the <code>ParticleInterpolator</code> only once. An example of this is explained in GW extraction section below.</p>
 </div>
 <p>We inherit our legacy GRChombo structure, where we have a general class called <code>SurfaceExtraction</code>, which sets up the prerequisites for a 2D surface extraction. The geometry and the variables you are extracting in this class are kept arbitrary, but we will explain how they need to be specified shortly. Function <code>SurfaceExtraction::extract()</code> contains the necessary call to the <code>ParticleInterpolator</code> class; recall that your extraction points may not coincide with the grid points. We note that the class takes the following form:</p>
 <pre class="highlight"><code class="language-cpp">template &lt;class SurfaceGeometry, int num_components&gt; class SurfaceExtraction</code></pre>
-<p>So, similar to GRChombo, we template over the <code>SurfaceGeometry</code>, which can be e.g. <code>SphericalGeometry</code>, but also add an additional template <code>num_components</code>, which directly enters the <code>ParticleInterpolator</code> and corresponds to the number of components we are extracting. The <code>SurfaceExtraction</code> class additionally has several helper functions to let you add the variables you need to extract, see e.g. <code>SurfaceExtraction::add_state_vars()</code> and <code>SurfaceExtraction::add_derived_vars()</code>. The information about the variables that you are extracting is stored in a special struct:</p>
+<p>So, similar to GRChombo, we template over the <code>SurfaceGeometry</code>, which can be e.g. <code>SphericalGeometry</code>, but also add an additional template <code>num_components</code>, which directly enters the <code>ParticleInterpolator</code> and corresponds to the number of components we are extracting. The <code>SurfaceExtraction</code> class additionally has several helper functions that let you add the variables you need to extract, see e.g. <code>SurfaceExtraction::add_state_vars()</code> and <code>SurfaceExtraction::add_derived_vars()</code>. The information about the variables that you are extracting is stored in a special struct:</p>
 <pre class="highlight"><code class="language-cpp">struct vars_t
     {
         int comp{};
@@ -165,10 +171,12 @@
         amrex::Vector&lt;BCParity&gt; parities{};
         std::string derived_name;
     };</code></pre>
-<p>which then propagates all of this information directly to the <code>ParticleInterpolator</code>. Why is this needed? Well, you should do your homework and read the <a href="https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/">Particle Interpolator</a> section <img alt="🤪" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f92a.svg" title=":zany_face:" /> !</p>
+<p>which then propagates all of this information directly to the <code>ParticleInterpolator</code>. Why is this needed? Well, you should do your homework and read the <a href="https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/">Particle Interpolator</a> chapter <img alt="🤪" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f92a.svg" title=":zany_face:" /> !</p>
 <p>We similarly reuse GRChombo's <code>SphericalExtraction</code> class, which allows for the spin-weighted spherical-harmonic decomposition. Similar to <code>SurfaceExtraction</code> it also now has an additional template argument for <code>int num_components</code>.</p>
 <h2 id="gw-extraction">GW extraction</h2>
-<p>The most relevant application of the extraction classes to numerical relativity is undoubtedly the GW extraction. Let us walk you through how we implement this, as it may be useful if you wish to extract other quantities. The relevant class to look at is <code>WeylExtraction</code>.</p>
+<p>The most relevant application of the extraction classes to numerical relativity is undoubtedly the GW extraction. Let us walk you through how we implement this, as it may be useful if you wish to extract other quantities.</p>
+<h3 id="specifying-how-to-extract-psi_4">Specifying how to extract <span class="arithmatex">\(\Psi_4\)</span></h3>
+<p>The relevant class to start with is <code>WeylExtraction</code>, where provide the machinery to extract <span class="arithmatex">\(\Psi_4\)</span>.</p>
 <p>First, our class is defined as follows:</p>
 <pre class="highlight"><code class="language-cpp">class WeylExtraction : public SphericalExtraction&lt;2&gt;</code></pre>
 <p>Here:</p>
@@ -186,9 +194,11 @@ this-&gt;add_derived_vars({0, 1}, parities, "Weyl4");</code></pre>
 </div>
 <p>We then provide the instruction to the class on what to do, i.e. how we want to extract <span class="arithmatex">\(\Psi_4\)</span> using <code>WeylExtraction::execute_query()</code>. In particular,</p>
 <ul>
-<li>we extract <span class="arithmatex">\(\Psi_4\)</span> on the sphere using <code>extract(a_interpolator)</code></li>
+<li>we extract <span class="arithmatex">\(\Psi_4\)</span> on the sphere using <code>extract(a_interpolator)</code>. This can also write out the field values at the specified <span class="arithmatex">\((r, \theta, \phi)\)</span> coordinates for each time step if you set <code>write_extraction</code> to <code>true</code>.</li>
 <li>we additionally perform mode decomposition using <code>add_mode_integrand()</code> and <code>integrate()</code>.</li>
 </ul>
+<h3 id="linking-with-your-example-and-particleinterpolator">Linking with your example and <code>ParticleInterpolator</code></h3>
+<p>In this section we will explain how to link your extraction method to your particlar example. We will use the BinaryBH as an example.</p>
 <p>As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the <code>ParticleInterpolator</code> only once. We therefore store it as part of the AMR object and set it up during AMR initialisation. For example, for black holes (BHs) we have <code>BHAMR</code> class. Hence, we directly add the interpolator as its public member:</p>
 <pre class="highlight"><code class="language-cpp">// example for interpolator object for Psi4 extraction
     static constexpr int weyl_num_components = 2;
