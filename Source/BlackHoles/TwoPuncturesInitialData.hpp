@@ -86,8 +86,6 @@ class TwoPuncturesInitialData
             state_cell_data[i] = 0.0;
         }
 
-        // CCZ4Vars vars(state_cell_data);
-
         Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_center);
         Tensor::Sym12Rank2 h_phys, K_tensor;
         Tensor::Rank1 shift, Z3;
