@@ -9,7 +9,6 @@
 #define CONSTRAINTS_HPP_
 
 // GRTeclyn includes
-#include "CCZ4D1Vars.hpp"
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
@@ -17,6 +16,7 @@
 #include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
 #include "Interval.hpp"
+
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
@@ -44,8 +44,8 @@ class Constraints
     {
         amrex::Real Ham{};
         amrex::Real Ham_abs_terms{};
-        Tensor<1, amrex::Real> Mom;
-        Tensor<1, amrex::Real> Mom_abs_terms;
+        Tensor::Rank1 Mom{};
+        Tensor::Rank1 Mom_abs_terms{};
     };
 
     // Constructor which allows specifying Ham and Mom vars
@@ -94,10 +94,11 @@ class Constraints
 
     [[nodiscard]]
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(
-        const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-        const Tensor<2, amrex::Real> &d2_chi,
-        const Tensor<4, amrex::Real> &d2_h, const Tensor<2, amrex::Real> &h_UU,
-        const chris_t &chris) const;
+        const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
+        const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
+        const Tensor::Rank1 &d1_K, const Tensor::Sym12Rank3 &d1_A,
+        const Tensor::Sym12Rank2 &d2_chi, const Tensor::Sym12Sym34Rank4 &d2_h,
+        const Tensor::Rank2 &h_UU, const chris_t &chris) const;
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     store_vars(const constraints_t &out,

@@ -31,25 +31,25 @@ BoostedBHInitialData::psi_minus_one(Coordinates coords) const
            P_squared * psi2(r, cos_theta) / (m_params.mass * m_params.mass);
 }
 
-[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
+[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor::Rank2
 BoostedBHInitialData::Aij(Coordinates a_coords) const
 {
     const amrex::Real r = center_dist(a_coords);
-    const Tensor<1, amrex::Real> l{(a_coords.x - m_params.center[0]) / r,
-                                   (a_coords.y - m_params.center[1]) / r,
-                                   (a_coords.z - m_params.center[2]) / r};
-    const amrex::Real l_dot_p = l[0] * m_params.momentum[0] +
-                                l[1] * m_params.momentum[1] +
-                                l[2] * m_params.momentum[2];
+    const Tensor::Rank1 l{(a_coords.x - m_params.center[0]) / r,
+                          (a_coords.y - m_params.center[1]) / r,
+                          (a_coords.z - m_params.center[2]) / r};
+    const amrex::Real l_dot_p = l(0) * m_params.momentum[0] +
+                                l(1) * m_params.momentum[1] +
+                                l(2) * m_params.momentum[2];
 
-    Tensor<2, amrex::Real> out;
+    Tensor::Rank2 out;
 
     FOR (i, j)
     {
         const double delta = (i == j) ? 1 : 0;
-        out[i][j]          = 1.5 *
-                    (m_params.momentum[i] * l[j] + m_params.momentum[j] * l[i] -
-                     (delta - l[i] * l[j]) * l_dot_p) /
+        out(i, j)          = 1.5 *
+                    (m_params.momentum[i] * l(j) + m_params.momentum[j] * l(i) -
+                     (delta - l(i) * l(j)) * l_dot_p) /
                     (r * r);
     }
     return out;

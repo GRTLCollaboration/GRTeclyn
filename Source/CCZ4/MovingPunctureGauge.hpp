@@ -6,12 +6,10 @@
 #ifndef MOVINGPUNCTUREGAUGE_HPP_
 #define MOVINGPUNCTUREGAUGE_HPP_
 
-#include "CCZ4AdvecVars.hpp"
-#include "CCZ4D1Vars.hpp"
-#include "CCZ4D2Vars.hpp"
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
-#include "Tensor.hpp"
+#include <AMReX_Array.H>
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>
 
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute
@@ -50,24 +48,29 @@ class MovingPunctureGauge
     MovingPunctureGauge(const params_t &a_params) : m_params(a_params) {}
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    rhs_gauge(const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
-              const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
-              const CCZ4AdvecVars &advec) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters,
+    // readability-convert-member-functions-to-static)
+    rhs_gauge(const amrex::CellData<amrex::Real> &rhs_cell_data,
+              const CCZ4Vars &vars, const amrex::Real &advec_lapse,
+              const Tensor::Rank1 &advec_shift, const Tensor::Rank1 &advec_B,
+              const Tensor::Rank1 &advec_Gamma) const
+    // NOLINTEND(bugprone-easily-swappable-parameters,
+    // readability-convert-member-functions-to-static)
     {
-        rhs[c_lapse] = m_params.lapse_advec_coeff * advec.lapse() -
-                       m_params.lapse_coeff *
-                           pow(vars.lapse(), m_params.lapse_power) *
-                           (vars.K() - 2.0 * vars.Theta());
+        rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec_lapse -
+                                 m_params.lapse_coeff *
+                                     pow(vars.lapse(), m_params.lapse_power) *
+                                     (vars.K() - 2.0 * vars.Theta());
 
         FOR (i)
         {
-            rhs[c_shift1 + i] = m_params.shift_advec_coeff * advec.shift(i) +
-                                m_params.shift_Gamma_coeff * vars.B(i);
-            rhs[c_B1 + i] = m_params.shift_advec_coeff * advec.B(i) -
-                            m_params.shift_advec_coeff * advec.Gamma(i) +
-                            rhs[c_Gamma1 + i] - m_params.eta * vars.B(i);
+            rhs_cell_data[c_shift1 + i] =
+                m_params.shift_advec_coeff * advec_shift(i) +
+                m_params.shift_Gamma_coeff * vars.B(i);
+            rhs_cell_data[c_B1 + i] =
+                m_params.shift_advec_coeff * advec_B(i) -
+                m_params.shift_advec_coeff * advec_Gamma(i) +
+                rhs_cell_data[c_Gamma1 + i] - m_params.eta * vars.B(i);
         }
     }
 };

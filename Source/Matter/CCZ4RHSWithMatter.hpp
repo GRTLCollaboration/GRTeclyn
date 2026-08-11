@@ -13,7 +13,6 @@
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
 //!  Calculates RHS using CCZ4 including matter terms, and matter variable
@@ -52,8 +51,9 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
 
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
+    template <int formulation, int use_covariant_Z4>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(int ix, int iy, int iz,
+    operator()(const int ix, const int iy, const int iz,
                const amrex::Array4<amrex::Real> &rhs_state,
                const amrex::Array4<amrex::Real const> &state) const;
 
@@ -61,13 +61,12 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
     //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
     //! compute()
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
-        const amrex::CellData<amrex::Real>
-            &rhs, //!< the RHS data for each variable at that point.
-        const typename matter_t::Vars
-            &state, //!< the value of the variables at the point.
-        const typename matter_t::D1Vars
-            &d1 //!< the value of the first derivatives of the variables.
-    ) const;
+        const int ix, const int iy, const int iz,
+        const amrex::Array4<amrex::Real>
+            &rhs_state, //!< the RHS data for each variable at that point.
+        const amrex::Array4<const amrex::Real>
+            &state) //!< the current value of the variables at the point.
+        const;
 
     // Class members
     matter_t m_matter; //!< The matter object, e.g. a scalar field.

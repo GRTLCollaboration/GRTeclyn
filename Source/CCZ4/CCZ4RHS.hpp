@@ -6,15 +6,11 @@
 #ifndef CCZ4RHS_HPP_
 #define CCZ4RHS_HPP_
 
-#include "CCZ4AdvecVars.hpp"
-#include "CCZ4D1Vars.hpp"
-#include "CCZ4D2Vars.hpp"
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGauge.hpp"
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
@@ -53,10 +49,16 @@ template <class gauge_t = MovingPunctureGauge,
 class CCZ4RHS
 {
   public:
-    enum
+    enum formulations : int
     {
-        USE_CCZ4,
-        USE_BSSN
+        USE_CCZ4 = 0,
+        USE_BSSN = 1
+    };
+
+    enum covariantZ4 : int
+    {
+        YES,
+        NO
     };
 
     using params_t = CCZ4_params_t<typename gauge_t::params_t>;
@@ -83,17 +85,29 @@ class CCZ4RHS
     /** This function orchestrates the calculation of the rhs for one specific
      * grid cell.
      */
+    /// Calculates the rhs for chi and h_ij
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(int ix, int iy, int iz,
-               const amrex::Array4<amrex::Real> &rhs_state,
-               const amrex::Array4<amrex::Real const> &state) const;
+    compute_chi_and_h_ij(int ix, int iy, int iz,
+                         const amrex::Array4<amrex::Real> &rhs,
+                         const amrex::Array4<const amrex::Real> &state) const;
 
-  protected:
-    /// Calculates the rhs for CCZ4
+    // Calculates rhs for A_ij and Theta and Gamma
+    template <int formulation, int use_covariant_Z4>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void compute_A_ij_and_Theta_and_Gamma(
+        int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
+        const amrex::Array4<const amrex::Real> &state) const;
+
+    // Apply gauage (no derivatives needed here!)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_equation(const amrex::CellData<amrex::Real> &rhs, const CCZ4Vars &vars,
-                 const CCZ4D1Vars &d1, const CCZ4D2Vars &d2,
-                 const CCZ4AdvecVars &advec) const;
+    calculate_gauge_rhs(int ix, int iy, int iz,
+                        const amrex::Array4<amrex::Real> &rhs,
+                        const amrex::Array4<const amrex::Real> &state) const;
+
+    // Apply dissipation (split for matter classes)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    apply_dissipation(int ix, int iy, int iz,
+                      const amrex::Array4<amrex::Real> &rhs,
+                      const amrex::Array4<const amrex::Real> &state) const;
 };
 
 #include "CCZ4RHS.impl.hpp"

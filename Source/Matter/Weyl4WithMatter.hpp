@@ -19,21 +19,27 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
 {
   public:
     //! Constructor
+
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     Weyl4WithMatter(const std::array<double, AMREX_SPACEDIM> a_center,
                     const double a_dx, const int a_dcomp,
                     const int a_formulation = CCZ4RHS<>::USE_CCZ4,
                     double a_G_Newton       = 1.0)
         : Weyl4(a_center, a_dx, a_dcomp, a_formulation), m_dcomp(a_dcomp),
           m_G_Newton(a_G_Newton)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
     }
 
     //! The compute member which calculates the wave quantities at each point on
     //! the grid
+
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &weyl_scalars,
                const amrex::Array4<amrex::Real const> &state) const;
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     static void set_up(int a_state_index);
 
@@ -51,12 +57,14 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     double m_G_Newton; //!< Newton's constant, set to one by default
 
     //! Add matter terms to electric and magnetic parts
+
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_matter_EB(EBFields_t &eb_fields, const typename matter_t::Vars &vars,
-                  const typename matter_t::D1Vars &d1,
-                  const Tensor<3, amrex::Real> &epsilon3_LUU,
-                  const Tensor<2, amrex::Real> &h_UU,
+    add_matter_EB(EBFields_t &eb_fields, const int ix, const int iy,
+                  const int iz, const amrex::Array4<const amrex::Real> &state,
+                  const Tensor::Rank3 &epsilon3_LUU, const Tensor::Rank2 &h_UU,
                   const chris_t &chris) const;
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 };
 
 #include "Weyl4WithMatter.impl.hpp"

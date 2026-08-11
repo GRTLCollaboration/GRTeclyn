@@ -11,24 +11,31 @@
 #define SCALARFIELD_IMPL_HPP_
 
 // Calculate the stress energy tensor elements
-template <class potential_t>
-AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
-    const Vars &vars, const D1Vars &d1, const Tensor<2, amrex::Real> &h_UU,
-    const Tensor<3, amrex::Real> &chris_ULL) const
+template <class potential_t, class deriv_t>
+AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t, deriv_t>::compute_emtensor(
+    const int ix, const int iy, const int iz,
+    const amrex::Array4<const amrex::Real> &state, const deriv_t &a_deriv,
+    const Tensor::Rank2 &h_UU) const
 {
     emtensor_t out;
+
+    const amrex::CellData<const amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+
+    const Vars vars(state_cell_data);
+
+    auto d1_phi = a_deriv.d1_scalar(ix, iy, iz, state, c_phi);
 
     //    Useful quantity Vt
     amrex::Real Vt = -vars.Pi() * vars.Pi();
     FOR (i, j)
     {
-        Vt += vars.chi() * h_UU[i][j] * d1.phi(i) * d1.phi(j);
+        Vt += vars.chi() * h_UU(i, j) * d1_phi(i) * d1_phi(j);
     }
 
     // set the potential values
     amrex::Real V_of_phi = 0.0;
     amrex::Real dVdphi   = 0.0;
-
     // compute potential and add constributions to EM Tensor
     m_potential.compute_potential(V_of_phi, dVdphi, vars);
 
@@ -36,8 +43,8 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     // S = T_ij
     FOR (i, j)
     {
-        out.S[i][j] = -0.5 * vars.h(i, j) * Vt / vars.chi() +
-                      d1.phi(i) * d1.phi(j) -
+        out.S(i, j) = -0.5 * vars.h(i, j) * Vt / vars.chi() +
+                      d1_phi(i) * d1_phi(j) -
                       vars.h(i, j) * V_of_phi / vars.chi();
     }
 
@@ -51,22 +58,45 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t>::compute_emtensor(
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)
     {
-        out.j[i] = -d1.phi(i) * vars.Pi();
+        out.j(i) = -d1_phi(i) * vars.Pi();
     }
 
     return out;
 }
 
 // Adds in the RHS for the matter vars
-template <class potential_t>
+template <class potential_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-ScalarField<potential_t>::add_matter_rhs(
-    const amrex::CellData<amrex::Real> &rhs, const Vars &vars, const D1Vars &d1,
-    const D2Vars &d2, const AdvecVars &advec) const
+ScalarField<potential_t, deriv_t>::add_matter_rhs(
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
+    const amrex::Array4<const amrex::Real> &state, const deriv_t &a_deriv) const
 {
+    const amrex::CellData<amrex::Real> &rhs_cell_data =
+        rhs_state.cellData(ix, iy, iz);
+    const amrex::CellData<const amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
+
+    const Vars vars(state_cell_data);
+
     // call the function for the rhs excluding the potential
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
+    auto d1_h        = a_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+
+    // calculate the derivatives
+    auto d1_chi   = a_deriv.d1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_lapse = a_deriv.d1_scalar(ix, iy, iz, state, c_lapse);
+
+    auto d1_phi = a_deriv.d1_scalar(ix, iy, iz, state, c_phi);
+    auto d1_Pi  = a_deriv.d1_scalar(ix, iy, iz, state, c_Pi);
+
+    auto d2_phi = a_deriv.d2_scalar(ix, iy, iz, state, c_phi);
+
+    Tensor::Rank1 shift_vector{vars.shift(0), vars.shift(1), vars.shift(2)};
+
+    auto advec_phi =
+        a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_phi);
+    auto advec_Pi = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_Pi);
 
     // set the potential values
     amrex::Real V_of_phi = 0.0;
@@ -74,20 +104,22 @@ ScalarField<potential_t>::add_matter_rhs(
     m_potential.compute_potential(V_of_phi, dVdphi, vars);
 
     // evolution equations for scalar field and (minus) its conjugate momentum
-    rhs[c_phi] = vars.lapse() * vars.Pi() + advec.phi();
+    rhs_cell_data[c_phi] = vars.lapse() * vars.Pi() + advec_phi;
 
-    rhs[c_Pi] = vars.lapse() * (vars.K() * vars.Pi() - dVdphi) + advec.Pi();
+    rhs_cell_data[c_Pi] =
+        vars.lapse() * (vars.K() * vars.Pi() - dVdphi) + advec_Pi;
 
     FOR (i, j)
     {
         // includes non conformal parts of chris not included in chris_ULL
-        rhs[c_Pi] += h_UU[i][j] * (-0.5 * d1.chi(j) * vars.lapse() * d1.phi(i) +
-                                   vars.chi() * vars.lapse() * d2.phi[i][j] +
-                                   vars.chi() * d1.lapse(i) * d1.phi(j));
+        rhs_cell_data[c_Pi] +=
+            h_UU(i, j) * (-0.5 * d1_chi(j) * vars.lapse() * d1_phi(i) +
+                          vars.chi() * vars.lapse() * d2_phi(i, j) +
+                          vars.chi() * d1_lapse(i) * d1_phi(j));
         FOR (k)
         {
-            rhs[c_Pi] += -vars.chi() * vars.lapse() * h_UU[i][j] *
-                         chris.ULL[k][i][j] * d1.phi(k);
+            rhs_cell_data[c_Pi] += -vars.chi() * vars.lapse() * h_UU(i, j) *
+                                   chris.ULL(k, i, j) * d1_phi(k);
         }
     }
 }

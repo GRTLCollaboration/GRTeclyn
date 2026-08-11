@@ -32,16 +32,18 @@ class ChiTagger
     {
     }
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int i, int j, int k,
                const amrex::Array4<amrex::TagBox::TagType> &tags,
                const amrex::Array4<amrex::Real const> &state) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-        const auto d2_chi      = m_deriv.diff2(i, j, k, state, c_chi);
+        const auto d2_chi      = m_deriv.d2_scalar(i, j, k, state, c_chi);
         amrex::Real mod_d2_chi = 0;
         FOR (idir, jdir)
         {
-            mod_d2_chi += d2_chi[idir][jdir] * d2_chi[idir][jdir];
+            mod_d2_chi += d2_chi(idir, jdir) * d2_chi(idir, jdir);
         }
         amrex::Real criterion = m_dx * std::sqrt(mod_d2_chi);
 

@@ -10,12 +10,8 @@
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "ScalarFieldAdvecVars.hpp"
-#include "ScalarFieldD1Vars.hpp"
-#include "ScalarFieldD2Vars.hpp"
 #include "ScalarFieldVars.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
-#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 
 //!  Calculates the matter type specific elements such as the EMTensor and
@@ -32,7 +28,9 @@
      It assumes minimal coupling of the field to gravity.
      \sa MatterCCZ4(), ConstraintsMatter()
 */
-template <class potential_t = DefaultPotential> class ScalarField
+template <class potential_t = DefaultPotential,
+          class deriv_t     = FourthOrderDerivatives>
+class ScalarField
 {
   protected:
     potential_t m_potential;
@@ -43,27 +41,29 @@ template <class potential_t = DefaultPotential> class ScalarField
     //!  Constructor of class ScalarField, inputs are the matter parameters.
     ScalarField() = default;
 
-    using Vars      = ScalarFieldVars;
-    using D1Vars    = ScalarFieldD1Vars;
-    using D2Vars    = ScalarFieldD2Vars;
-    using AdvecVars = ScalarFieldAdvecVars;
+    using Vars = ScalarFieldVars;
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
     [[nodiscard]]
-    AMREX_GPU_DEVICE emtensor_t
-    compute_emtensor(const Vars &vars, const D1Vars &d1,
-                     const Tensor<2, amrex::Real>
-                         &h_UU, //!< the inverse metric (raised indices)
-                     const Tensor<3, amrex::Real> &chris_ULL)
-        const; //!< the conformal christoffel symbol
+    AMREX_GPU_DEVICE emtensor_t compute_emtensor(
+        const int ix, const int iy, const int iz, //!< grid indicies
+        const amrex::Array4<const amrex::Real>
+            &state,             //!< the current value of state variables
+        const deriv_t &a_deriv, //!< the object that calculates the derivative
+        const Tensor::Rank2 &h_UU) //!< the inverse metric (raised indices)
+        const;
 
-    //! The function which adds in the RHS for the matter field vars,
-    //! including the potential
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
-                   const D1Vars &d1, const D2Vars &d2,
-                   const AdvecVars &advec) const;
+    // ! The function which adds in the RHS for the matter field vars,
+    // ! including the potential
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_matter_rhs(
+        const int ix, const int iy, const int iz, //!< grid indicies
+        const amrex::Array4<amrex::Real>
+            &rhs_state, //!< the next value of state variables (rhs update)
+        const amrex::Array4<const amrex::Real>
+            &state, //!< the current value of state variables
+        const deriv_t &a_deriv)
+        const; //!< the object for calculating derivatives
 };
 
 #include "ScalarField.impl.hpp"

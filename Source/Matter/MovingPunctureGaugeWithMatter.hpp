@@ -9,8 +9,6 @@
 #include "CCZ4RHSWithMatter.hpp"
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
-// #include "EMTensor.hpp"
-#include "Tensor.hpp"
 
 #include <cmath>
 
@@ -35,9 +33,9 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void
     rhs_gauge_add_matter_terms(const amrex::CellData<amrex::Real> &rhs,
-                               const CCZ4Vars &vars,
-                               Tensor<2, amrex::Real> h_UU,
-                               const emtensor_t emtensor, const double G_Newton)
+                               const CCZ4Vars &vars, const Tensor::Rank2 &h_UU,
+                               const emtensor_t &emtensor,
+                               const double &G_Newton)
     {
         FOR (i)
         {
@@ -45,7 +43,7 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
             FOR (j)
             {
                 matter_term_Gamma += -16.0 * M_PI * G_Newton * vars.lapse() *
-                                     h_UU[i][j] * emtensor.j[j];
+                                     h_UU(i, j) * emtensor.j(j);
             }
             rhs[c_B1 + i] += matter_term_Gamma;
         }

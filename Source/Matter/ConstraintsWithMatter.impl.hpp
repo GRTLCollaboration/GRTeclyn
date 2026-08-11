@@ -34,22 +34,28 @@ ConstraintsWithMatter<matter_t>::operator()(
     const amrex::CellData<const amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
     typename matter_t::Vars vars(state_cell_data);
-    const typename matter_t::D1Vars d1(ix, iy, iz, state, m_deriv);
-    const Tensor<2, amrex::Real> d2_chi =
-        m_deriv.diff2(ix, iy, iz, state, c_chi);
-    const Tensor<4, amrex::Real> d2_h =
-        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
+
+    auto d2_chi = m_deriv.d2_scalar(ix, iy, iz, state, c_chi);
+    auto d2_h   = m_deriv.d2_sym_tensor(ix, iy, iz, state, c_h11);
 
     // Inverse metric and Christoffel symbol
+    auto d1_h        = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
     // Get the non matter terms for the constraints
-    constraints_t out =
-        constraint_equations(vars, d1, d2_chi, d2_h, h_UU, chris);
+    // This needs d1 chi, K, h, A
+    auto d1_chi   = m_deriv.d1_scalar(ix, iy, iz, state, c_chi);
+    auto d1_Gamma = m_deriv.d1_vector(ix, iy, iz, state, c_Gamma1);
+    auto d1_K     = m_deriv.d1_scalar(ix, iy, iz, state, c_K);
+    auto d1_A     = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_A11);
+
+    constraints_t out = constraint_equations(vars, d1_chi, d1_Gamma, d1_h, d1_K,
+                                             d1_A, d2_chi, d2_h, h_UU, chris);
 
     // Energy Momentum Tensor
-    const auto emtensor = my_matter.compute_emtensor(vars, d1, h_UU, chris.ULL);
+    const auto emtensor =
+        my_matter.compute_emtensor(ix, iy, iz, state, m_deriv, h_UU);
 
     // Hamiltonian constraint
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
@@ -63,9 +69,9 @@ ConstraintsWithMatter<matter_t>::operator()(
     {
         FOR (i)
         {
-            out.Mom[i] += -8.0 * M_PI * m_G_Newton * emtensor.j[i];
-            out.Mom_abs_terms[i] +=
-                8.0 * M_PI * m_G_Newton * std::abs(emtensor.j[i]);
+            out.Mom(i) += -8.0 * M_PI * m_G_Newton * emtensor.j(i);
+            out.Mom_abs_terms(i) +=
+                8.0 * M_PI * m_G_Newton * std::abs(emtensor.j(i));
         }
     }
     // Write the constraints into the output FArrayBox

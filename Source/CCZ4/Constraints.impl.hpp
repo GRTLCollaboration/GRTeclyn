@@ -53,18 +53,23 @@ Constraints::operator()(int ix, int iy, int iz,
     CCZ4Vars vars(state_cell_data);
 
     // we need d1 chi, K, h, A... this just gets all of them
-    const CCZ4D1Vars d1(ix, iy, iz, state, m_deriv);
+    Tensor::Rank1 d1_chi    = m_deriv.d1_scalar(ix, iy, iz, state, c_chi);
+    Tensor::Rank2 d1_Gamma  = m_deriv.d1_vector(ix, iy, iz, state, c_Gamma1);
+    Tensor::Rank1 d1_K      = m_deriv.d1_scalar(ix, iy, iz, state, c_K);
+    Tensor::Sym12Rank3 d1_A = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_A11);
+    Tensor::Sym12Rank3 d1_h = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
+
     // we only need d2 of chi and h
-    const Tensor<2, amrex::Real> d2_chi =
-        m_deriv.diff2(ix, iy, iz, state, c_chi);
-    const Tensor<4, amrex::Real> d2_h =
-        m_deriv.diff2_tensor(ix, iy, iz, state, c_h11);
+    const Tensor::Sym12Rank2 d2_chi =
+        m_deriv.d2_scalar(ix, iy, iz, state, c_chi);
+    const Tensor::Sym12Sym34Rank4 d2_h =
+        m_deriv.d2_sym_tensor(ix, iy, iz, state, c_h11);
 
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);
-    const auto chris = CCZ4Geometry::compute_christoffel(d1, h_UU);
+    const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
-    constraints_t out =
-        constraint_equations(vars, d1, d2_chi, d2_h, h_UU, chris);
+    constraints_t out = constraint_equations(vars, d1_chi, d1_Gamma, d1_h, d1_K,
+                                             d1_A, d2_chi, d2_h, h_UU, chris);
 
     // TODO: Simplify this storing so less choice but more readable
     const auto constraint_cell_data = constraints.cellData(ix, iy, iz);
@@ -73,16 +78,18 @@ Constraints::operator()(int ix, int iy, int iz,
 
 AMREX_GPU_DEVICE
 Constraints::constraints_t Constraints::constraint_equations(
-    const CCZ4Vars &vars, const CCZ4D1Vars &d1,
-    const Tensor<2, amrex::Real> &d2_chi, const Tensor<4, amrex::Real> &d2_h,
-    const Tensor<2, amrex::Real> &h_UU, const chris_t &chris) const
+    const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
+    const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
+    const Tensor::Rank1 &d1_K, const Tensor::Sym12Rank3 &d1_A,
+    const Tensor::Sym12Rank2 &d2_chi, const Tensor::Sym12Sym34Rank4 &d2_h,
+    const Tensor::Rank2 &h_UU, const chris_t &chris) const
 {
     constraints_t out;
 
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
     {
-        auto ricci =
-            CCZ4Geometry::compute_ricci(vars, d1, d2_chi, d2_h, h_UU, chris);
+        auto ricci = CCZ4Geometry::compute_ricci(vars, d1_chi, d1_Gamma, d1_h,
+                                                 d2_chi, d2_h, h_UU, chris);
 
         // This is A_ij A^ij
         amrex::Real Aij_squared = CCZ4Geometry::compute_Aij_squared(vars, h_UU);
@@ -100,34 +107,34 @@ Constraints::constraints_t Constraints::constraint_equations(
     if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)
     {
         // Covariant derivative of \bar A_ij
-        Tensor<3, amrex::Real> covd_A;
+        Tensor::Rank3 covd_A{};
         FOR (i, j, k)
         {
-            covd_A[i][j][k] = d1.A(j, k, i);
+            covd_A(i, j, k) = d1_A(j, k, i);
             FOR (l)
             {
-                covd_A[i][j][k] += -chris.ULL[l][i][j] * vars.A(l, k) -
-                                   chris.ULL[l][i][k] * vars.A(l, j);
+                covd_A(i, j, k) += -chris.ULL(l, i, j) * vars.A(l, k) -
+                                   chris.ULL(l, i, k) * vars.A(l, j);
             }
         }
         FOR (i)
         {
-            out.Mom[i]           = -(GR_SPACEDIM - 1.) * d1.K(i) / GR_SPACEDIM;
-            out.Mom_abs_terms[i] = std::abs(out.Mom[i]);
+            out.Mom(i)           = -(GR_SPACEDIM - 1.) * d1_K(i) / GR_SPACEDIM;
+            out.Mom_abs_terms(i) = std::abs(out.Mom(i));
         }
-        Tensor<1, amrex::Real> covd_A_term = 0.0;
-        Tensor<1, amrex::Real> d1_chi_term = 0.0;
+        Tensor::Rank1 covd_A_term{};
+        Tensor::Rank1 d1_chi_term{};
         FOR (i, j, k)
         {
-            covd_A_term[i] += h_UU[j][k] * covd_A[k][j][i];
-            d1_chi_term[i] += -GR_SPACEDIM * h_UU[j][k] * vars.A(i, j) *
-                              d1.chi(k) / (2.0 * vars.chi());
+            covd_A_term(i) += h_UU(j, k) * covd_A(k, j, i);
+            d1_chi_term(i) += -GR_SPACEDIM * h_UU(j, k) * vars.A(i, j) *
+                              d1_chi(k) / (2.0 * vars.chi());
         }
         FOR (i)
         {
-            out.Mom[i] += covd_A_term[i] + d1_chi_term[i];
-            out.Mom_abs_terms[i] +=
-                std::abs(covd_A_term[i]) + std::abs(d1_chi_term[i]);
+            out.Mom(i) += covd_A_term(i) + d1_chi_term(i);
+            out.Mom_abs_terms(i) +=
+                std::abs(covd_A_term(i)) + std::abs(d1_chi_term(i));
         }
     }
 
@@ -151,7 +158,7 @@ Constraints::store_vars(const constraints_t &out,
         FOR (i)
         {
             int ivar           = m_c_Moms.begin() + i;
-            current_cell[ivar] = out.Mom[i];
+            current_cell[ivar] = out.Mom(i);
         }
     }
     else if (m_c_Moms.size() == 1)
@@ -159,9 +166,9 @@ Constraints::store_vars(const constraints_t &out,
         amrex::Real Mom_sq = 0.0;
         FOR (i)
         {
-            Mom_sq += out.Mom[i] * out.Mom[i];
+            Mom_sq += out.Mom(i) * out.Mom(i);
         }
-        amrex::Real Mom                = sqrt(Mom_sq);
+        amrex::Real Mom                = std::sqrt(Mom_sq);
         current_cell[m_c_Moms.begin()] = Mom;
     }
     if (m_c_Moms_abs_terms.size() == GR_SPACEDIM)
@@ -169,7 +176,7 @@ Constraints::store_vars(const constraints_t &out,
         FOR (i)
         {
             int ivar           = m_c_Moms_abs_terms.begin() + i;
-            current_cell[ivar] = out.Mom_abs_terms[i];
+            current_cell[ivar] = out.Mom_abs_terms(i);
         }
     }
     else if (m_c_Moms_abs_terms.size() == 1)
@@ -177,9 +184,9 @@ Constraints::store_vars(const constraints_t &out,
         amrex::Real Mom_abs_terms_sq = 0.0;
         FOR (i)
         {
-            Mom_abs_terms_sq += out.Mom_abs_terms[i] * out.Mom_abs_terms[i];
+            Mom_abs_terms_sq += out.Mom_abs_terms(i) * out.Mom_abs_terms(i);
         }
-        amrex::Real Mom_abs_terms                = sqrt(Mom_abs_terms_sq);
+        amrex::Real Mom_abs_terms                = std::sqrt(Mom_abs_terms_sq);
         current_cell[m_c_Moms_abs_terms.begin()] = Mom_abs_terms;
     }
 }

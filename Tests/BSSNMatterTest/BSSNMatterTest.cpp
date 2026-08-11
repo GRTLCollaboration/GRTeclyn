@@ -87,6 +87,10 @@ void run_bssn_matter_test()
                 random_matter_bssn_initial_data(iv, in_array[ibox], coords);
             });
 
+        // This needs to be a const for the template below when calculating the
+        // RHS
+        const int covariantZ4 = 1;
+
         CCZ4_params_t<MovingPunctureGaugeWithMatter::params_t> ccz4_params;
         ccz4_params.kappa1            = 0.0;
         ccz4_params.kappa2            = 0.0;
@@ -97,10 +101,12 @@ void run_bssn_matter_test()
         ccz4_params.lapse_coeff       = 2.0;
         ccz4_params.shift_advec_coeff = 0.0;
         ccz4_params.eta               = 1.0;
+        ccz4_params.covariantZ4       = covariantZ4;
 
         amrex::Real sigma = 0.1;
 
-        using DefaultScalarField = ScalarField<DefaultPotential>;
+        using DefaultScalarField =
+            ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
         double G_Newton = 1.0;
         GRParmParse pp;
@@ -126,14 +132,43 @@ void run_bssn_matter_test()
         const auto &out_mf_array  = out_mf.arrays();
         const auto &out_fab_array = out_fab.array();
 
+        // calculate the vacuum solution
+
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
-                current_ccz4_rhs(ix, iy, iz, out_mf_array[ibox],
-                                 in_c_array[ibox]);
+                current_ccz4_rhs.compute_chi_and_h_ij(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
             });
 
+        amrex::ParallelFor(
+            out_mf,
+            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
+            {
+                current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma<
+                    CCZ4RHS<>::USE_BSSN, covariantZ4>(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+            });
+        amrex::ParallelFor(
+            out_mf,
+            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
+            {
+                current_ccz4_rhs.calculate_gauge_rhs(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+            });
+
+        // calculate the matter contribution
+        amrex::ParallelFor(
+            out_mf,
+            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
+            {
+                current_ccz4_rhs.operator()<CCZ4RHS<>::USE_BSSN, covariantZ4>(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+            });
+
+        // NOLINTEND(bugprone-easily-swappable-parameters)
         double time = 0.0;
         int *bcrec  = nullptr;
         int level   = 0;

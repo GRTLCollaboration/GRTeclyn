@@ -57,11 +57,15 @@ void run_ccz4_rhs_test()
                                random_ccz4_initial_data(iv, in_array, coords);
                            });
 
+        // These need to be const and so declared separately
+        const int use_covariantZ4 = 1;
+        const int formulation     = 0;
+
         CCZ4_params_t<MovingPunctureGauge::params_t> current_ccz4_params;
         current_ccz4_params.kappa1            = 0.1;
         current_ccz4_params.kappa2            = 0;
         current_ccz4_params.kappa3            = 1;
-        current_ccz4_params.covariantZ4       = true;
+        current_ccz4_params.covariantZ4       = use_covariantZ4;
         current_ccz4_params.lapse_advec_coeff = 0.0;
         current_ccz4_params.lapse_power       = 1.0;
         current_ccz4_params.lapse_coeff       = 2.0;
@@ -105,20 +109,54 @@ void run_ccz4_rhs_test()
         const auto &diff_array        = diff_fab.array();
 
         // Do the current and old CCZ4RHS calculation in the same loop
+
+        amrex::ParallelFor(
+            box, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+            { old_ccz4_rhs.compute(ix, iy, iz, old_out_array, in_c_array); });
+
+        // The RHS is split into three different kernels
+
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+        amrex::ParallelFor(box,
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                           {
+                               current_ccz4_rhs.compute_chi_and_h_ij(
+                                   ix, iy, iz, current_out_array, in_c_array);
+                           });
+
         amrex::ParallelFor(
             box,
             [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
             {
-                old_ccz4_rhs.compute(ix, iy, iz, old_out_array, in_c_array);
-                current_ccz4_rhs(ix, iy, iz, current_out_array, in_c_array);
-
-                for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
-                {
-                    diff_array(ix, iy, iz, ivar) =
-                        std::fabs(current_out_array(ix, iy, iz, ivar) -
-                                  old_out_array(ix, iy, iz, ivar));
-                }
+                current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma<
+                    formulation, use_covariantZ4>(ix, iy, iz, current_out_array,
+                                                  in_c_array);
             });
+
+        amrex::ParallelFor(box,
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                           {
+                               current_ccz4_rhs.calculate_gauge_rhs(
+                                   ix, iy, iz, current_out_array, in_c_array);
+                               current_ccz4_rhs.apply_dissipation(
+                                   ix, iy, iz, current_out_array, in_c_array);
+                           });
+
+        // GPU barrier
+        amrex::Gpu::streamSynchronize();
+
+        amrex::ParallelFor(box,
+                           [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                           {
+                               for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
+                               {
+                                   diff_array(ix, iy, iz, ivar) = std::fabs(
+                                       current_out_array(ix, iy, iz, ivar) -
+                                       old_out_array(ix, iy, iz, ivar));
+                               }
+                           });
+
+        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         // GPU barrier
         amrex::Gpu::streamSynchronize();
@@ -126,9 +164,12 @@ void run_ccz4_rhs_test()
         amrex::Real max_diff = 0.0;
         amrex::IntVect max_diff_index{};
 
+        double test_threshold = 1e-11;
+
         const int cout_precision = 17;
         for (int ivar = 0; ivar < NUM_CCZ4_VARS; ++ivar)
         {
+            // NOLINTNEXTLINE(bugprone-chained-comparison)
             diff_fab.maxIndex<amrex::RunOn::Device>(box, max_diff,
                                                     max_diff_index, ivar);
 
@@ -139,7 +180,7 @@ void run_ccz4_rhs_test()
                                << old_out_array(max_diff_index, ivar)
                                << ", Current value: "
                                << current_out_array(max_diff_index, ivar));
-            CHECK(max_diff == doctest::Approx(0.0).epsilon(1e-12));
+            CHECK(max_diff == doctest::Approx(0.0).epsilon(test_threshold));
         }
 
         // GPU barrier

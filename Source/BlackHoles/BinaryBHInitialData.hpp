@@ -45,7 +45,7 @@ class BinaryBHInitialData
     [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
     compute_chi(Coordinates coords) const;
 
-    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor<2, amrex::Real>
+    [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor::Rank2
     compute_A(amrex::Real chi, Coordinates coords) const;
 };
 
