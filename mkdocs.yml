@@ -32,7 +32,10 @@ nav:
     - Useful resources: useful_resources.md
   - Contact us: contact_us.md
 
-theme: readthedocs
+theme:
+  name: readthedocs
+  logo: img/grteclyn-logo.png
+  favicon: img/favicon.ico
 
 markdown_extensions:
   - admonition
