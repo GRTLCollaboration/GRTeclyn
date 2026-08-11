@@ -111,7 +111,7 @@ my_interpolator.interp(query);
 For derived variables, two additional pieces of information are required:
 
 * the name of the **derived group**, for example `"Weyl4"`
-* the time at which the derived quantity should be evaluated
+* the time at which the derived quantity should be evaluated.
 
 For example, schematically:
 
@@ -133,9 +133,9 @@ For a minimal working example, see the [`ParticleInterpolatorUnitTest`](https://
 
 4. If the grid layout changes during the simulation, we must call `Redistribute()` on our particles to ensure that the particles have been reassigned to the correct levels, grids and MPI ranks. In particular, the grid layout changes whenever we regrid. Using `ParticleInterpolator::ensure_redistributed()`, we automatically determine whether the particles need to be redistributed.
 
-5. Whilst the ownership of particles in the AMR grid is handled automatically by AMReX's particle machinery, additional complications arise when we also have different querying ranks. In most applications, such as GW extraction, only rank 0 makes the query. However, it is also possible for multiple ranks to have their own queried points. In particular, the ranks containing the queried points may be different from the ranks actually containing the answers (i.e. the interpolated values). In this case, we need to send the answers back to the querying ranks using MPI communication. Again, this is handled automatically within the `ParticleInterpolator` class and you do not need to worry about it. This communication is facilitated by the helper `MPIContextParticle` and `MPILayoutParticle` classes. If you would like to understand the details of the implenetatio in more details, we encourage you to refer to the section below, where we provide a simple example. Or if you do not want to end up with the headache, we encourage you to skip it altogether.
+5. Whilst the ownership of particles in the AMR grid is handled automatically by AMReX's particle machinery, additional complications arise when we also have different querying ranks. In most applications, such as GW extraction, only rank 0 makes the query. However, it is also possible for multiple ranks to have their own queried points. In particular, the ranks containing the queried points may be different from the ranks actually containing the answers (i.e. the interpolated values). In this case, we need to send the answers back to the querying ranks using MPI communication. Again, this is handled automatically within the `ParticleInterpolator` class and you do not need to worry about it. This communication is facilitated by the helper `MPIContextParticle` and `MPILayoutParticle` classes. If you would like to understand the details of the implenetation in more details, we encourage you to refer to the section below, where we provide a simple example. Or if you do not want to end up with the headache, we encourage you to skip it altogether.
 
-### Example: matching interpolated answers back to query points
+### Example: sending interpolated answers back to querying ranks
 
 As described in point #5 above, additional machinery is required to send interpolated values back to the querying ranks. The main ingredients in the code that facilitate this logic are contained in `ParticleInterpolator::prepare_receive_buffers()` and `ParticleInterpolator::prepare_send_buffers()` functions. In here we walk through these parts of the code using a simple example.
 
@@ -154,15 +154,15 @@ In the table above:
 
 * *iquery* is the loop index over the locally cached particle answers before they are packed into the MPI send buffers.
 * *query rank* is the rank that requested the interpolation point. In our implementation the query rank is the rank on which the interpolation particle is originally created from the query.
-* *query index* is the index of that interpolation point within the query on the rank that created it. In this example we purposely chose non-contiguous query indices. For example, rank 0 can have 6 query points. Only 2 points, with query indices 2 and 5, will be located on answering rank 1. Query indices 0, 1, 3 and 4 will then be located on other ranks.
+* *query index* is the index of that interpolation point within the query on the rank that created it. In this example we purposely chose non-contiguous query indices. For example, rank 0 can have 6 query points. Only 2 points with query indices 2 and 5 will be located on answering rank 1. Query indices 0, 1, 3 and 4 will then be located on other ranks.
 * *interpolated value* is the answer.
 
-Since particles A and C belong to queries made by rank 0, while particle B belongs to a query made by rank 1, the current rank has:
+Since particles A and C belong to queries made by rank 0, while particle B belongs to a query made by rank 1, the current answering rank has:
 
 * 2 answers to send to rank 0
-* 1 answer  to send to rank 1
+* 1 answer to send to rank 1
 
-We have 3 answers to send back, therefore the send buffers must have three entries in total:
+We have 3 answers to send back, therefore the send buffers must have 3 entries in total:
 
 ```cpp
 const int total_send = 3;

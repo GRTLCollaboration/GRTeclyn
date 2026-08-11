@@ -2,7 +2,7 @@
 
 ## Overview
 
-Before reading this section on extracting various fields using a specified geometry, we recommend you check out the [Particle Interpolator](https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/) section. If you would like to use gravitational-wave (GW) extraction or perhaps adapt the current extraction classes to your own needs, this chapter is for you.
+Before reading this section on extracting various fields using a specified geometry, we recommend you check out the [Particle Interpolator](https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/) chapter. If you would like to use gravitational-wave (GW) extraction or perhaps adapt the current extraction classes to your own needs, this chapter is for you.
 
 !!! note
 
@@ -14,7 +14,7 @@ We inherit our legacy GRChombo structure, where we have a general class called `
 template <class SurfaceGeometry, int num_components> class SurfaceExtraction
 ```
 
-So, similar to GRChombo, we template over the `SurfaceGeometry`, which can be e.g. `SphericalGeometry`, but also add an additional template `num_components`, which directly enters the `ParticleInterpolator` and corresponds to the number of components we are extracting. The `SurfaceExtraction` class additionally has several helper functions to let you add the variables you need to extract, see e.g. `SurfaceExtraction::add_state_vars()` and `SurfaceExtraction::add_derived_vars()`. The information about the variables that you are extracting is stored in a special struct:
+So, similar to GRChombo, we template over the `SurfaceGeometry`, which can be e.g. `SphericalGeometry`, but also add an additional template `num_components`, which directly enters the `ParticleInterpolator` and corresponds to the number of components we are extracting. The `SurfaceExtraction` class additionally has several helper functions that let you add the variables you need to extract, see e.g. `SurfaceExtraction::add_state_vars()` and `SurfaceExtraction::add_derived_vars()`. The information about the variables that you are extracting is stored in a special struct:
 
 ```cpp
 struct vars_t
@@ -28,13 +28,17 @@ struct vars_t
     };
 ```
 
-which then propagates all of this information directly to the `ParticleInterpolator`. Why is this needed? Well, you should do your homework and read the [Particle Interpolator](https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/) section :zany_face: !
+which then propagates all of this information directly to the `ParticleInterpolator`. Why is this needed? Well, you should do your homework and read the [Particle Interpolator](https://grtlcollaboration.github.io/GRTeclyn/particle_interpolator/) chapter :zany_face: !
 
 We similarly reuse GRChombo's `SphericalExtraction` class, which allows for the spin-weighted spherical-harmonic decomposition. Similar to `SurfaceExtraction` it also now has an additional template argument for `int num_components`.
 
 ## GW extraction
 
-The most relevant application of the extraction classes to numerical relativity is undoubtedly the GW extraction. Let us walk you through how we implement this, as it may be useful if you wish to extract other quantities. The relevant class to look at is `WeylExtraction`.
+The most relevant application of the extraction classes to numerical relativity is undoubtedly the GW extraction. Let us walk you through how we implement this, as it may be useful if you wish to extract other quantities.
+
+### Specifying how to extract $\Psi_4$
+
+The relevant class to start with is `WeylExtraction`, where provide the machinery to extract $\Psi_4$.
 
 First, our class is defined as follows:
 
@@ -63,8 +67,12 @@ Here `{0, 1}` refers to the component indices, whilst `Weyl4` refers to the deri
 
 We then provide the instruction to the class on what to do, i.e. how we want to extract $\Psi_4$ using `WeylExtraction::execute_query()`. In particular,
 
-* we extract $\Psi_4$ on the sphere using `extract(a_interpolator)`
+* we extract $\Psi_4$ on the sphere using `extract(a_interpolator)`. This can also write out the field values at the specified $(r, \theta, \phi)$ coordinates for each time step if you set `write_extraction` to `true`.
 * we additionally perform mode decomposition using `add_mode_integrand()` and `integrate()`.
+
+### Linking with your example and `ParticleInterpolator`
+
+In this section we will explain how to link your extraction method to your particlar example. We will use the BinaryBH as an example.
 
 As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the `ParticleInterpolator` only once. We therefore store it as part of the AMR object and set it up during AMR initialisation. For example, for black holes (BHs) we have `BHAMR` class. Hence, we directly add the interpolator as its public member:
 
