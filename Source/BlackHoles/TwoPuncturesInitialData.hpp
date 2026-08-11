@@ -163,24 +163,29 @@ class TwoPuncturesInitialData
 
             s_two_punctures.adm_tol = 1.0e-10;
             pp.queryAdd("adm_tol", s_two_punctures.adm_tol);
-
-            amrex::Print() << "TwoPunctures will solve for bare masses to "
-                              "achieve target ADM masses of "
-                           << s_two_punctures.target_M_plus << " and "
-                           << s_two_punctures.target_M_minus
-                           << " with tolerance " << s_two_punctures.adm_tol
-                           << "\n";
+            if (s_two_punctures.verbose)
+            {
+                amrex::Print()
+                    << "TwoPunctures will solve for bare masses to "
+                       "achieve target ADM masses of "
+                    << s_two_punctures.target_M_plus << " and "
+                    << s_two_punctures.target_M_minus << " with tolerance "
+                    << s_two_punctures.adm_tol << "\n";
+            }
         }
         else
         {
             pp.get("mass_plus", s_two_punctures.par_m_plus);
             pp.get("mass_minus", s_two_punctures.par_m_minus);
-            amrex::Print() << "TwoPunctures will use bare masses of "
-                           << std::setprecision(16)
-                           << s_two_punctures.par_m_plus << " and "
-                           << s_two_punctures.par_m_minus << "\n";
-            // reset precision
-            amrex::Print() << std::setprecision(6);
+            if (s_two_punctures.verbose)
+            {
+                amrex::Print()
+                    << "TwoPunctures will use bare masses of "
+                    << std::setprecision(16) << s_two_punctures.par_m_plus
+                    << " and " << s_two_punctures.par_m_minus << "\n";
+                // reset precision
+                amrex::Print() << std::setprecision(6);
+            }
         }
 
         std::array<amrex::Real, AMREX_SPACEDIM> momentum_plus{};
@@ -201,28 +206,31 @@ class TwoPuncturesInitialData
             s_two_punctures.par_S_minus[i] = spin_minus[i];
         }
 
-        amrex::Print() << "The corresponding momenta are"
-                       << "\nP_plus = ";
-        FOR (i)
+        if (s_two_punctures.verbose)
         {
-            amrex::Print() << s_two_punctures.par_P_plus[i] << " ";
-        }
-        amrex::Print() << "\nP_minus = ";
-        FOR (i)
-        {
-            amrex::Print() << s_two_punctures.par_P_minus[i] << " ";
-        }
+            amrex::Print() << "The corresponding momenta are"
+                           << "\nP_plus = ";
+            FOR (i)
+            {
+                amrex::Print() << s_two_punctures.par_P_plus[i] << " ";
+            }
+            amrex::Print() << "\nP_minus = ";
+            FOR (i)
+            {
+                amrex::Print() << s_two_punctures.par_P_minus[i] << " ";
+            }
 
-        amrex::Print() << "\nThe corresponding spins are"
-                       << "\nS_plus = ";
-        FOR (i)
-        {
-            amrex::Print() << s_two_punctures.par_S_plus[i] << " ";
-        }
-        amrex::Print() << "\nS_minus = ";
-        FOR (i)
-        {
-            amrex::Print() << s_two_punctures.par_S_minus[i] << " ";
+            amrex::Print() << "\nThe corresponding spins are"
+                           << "\nS_plus = ";
+            FOR (i)
+            {
+                amrex::Print() << s_two_punctures.par_S_plus[i] << " ";
+            }
+            amrex::Print() << "\nS_minus = ";
+            FOR (i)
+            {
+                amrex::Print() << s_two_punctures.par_S_minus[i] << " ";
+            }
         }
 
         // default to Taylor expansion interpolation as it is much faster
