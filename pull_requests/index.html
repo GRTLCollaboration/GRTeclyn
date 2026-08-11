@@ -165,7 +165,7 @@ Contact <a href="https://github.com/KAClough/">Katy</a> or
 permissions to push to this repository.</p>
 </blockquote>
 <p>If you have a local clone of your fork, you can add the main public "upstream" repository as a new remote repository using the command
-<pre class="highlight"><code class="language-bash">git remote add upstream https://github.com/GRChombo/GRChombo.git</code></pre>
+<pre class="highlight"><code class="language-bash">git remote add upstream https://github.com/GRTLCollaboration/GRTeclyn.git</code></pre>
 You can replace <code>upstream</code> with whatever name you prefer e.g. <code>public</code> but we shall stick with <code>upstream</code> below. Then, make sure you fetch the latest commits from this new remote using the command
 <pre class="highlight"><code class="language-bash">git fetch upstream</code></pre>
 Finally, to create a new branch based off upstream's <code>main</code>, you can do the two commands
@@ -175,7 +175,7 @@ Finally, once you have added and committed your changes to this new branch, you 
 <pre class="highlight"><code class="language-bash">git push -u upstream enhancement/my_new_enhancement</code></pre>
 This local branch will be set to track a branch of the same name in the upstream repository (rather than on your fork).</p>
 <p>Alternatively, if you don't want to have to deal with multiple remote repositories, you can clone this repository to a separate directory to your fork.</p>
-<p>It is probably useful to make your changes in several staged commits, so that you can look back through the process of what you did. For example, if you plan to add a new file and then amend it, first add the file, then commit, then amend it, then commit again. This way the commit history will show the changes you made. If you only commit after editing, the whole thing will appear as a new file, which isn't very helpful. </p>
+<p>It is probably useful to make your changes in several staged commits, so that you can look back through the process of what you did. For example, if you plan to add a new file and then amend it, first add the file, then commit, then amend it, then commit again. This way the commit history will show the changes you made. If you only commit after editing, the whole thing will appear as a new file, which isn't very helpful.</p>
 <p>When writing commit messages, try to follow <a href="https://cbea.ms/git-commit/">this style guide</a>. In particular, rather than
 writing one long message using a command such as
 <pre class="highlight"><code class="language-bash">git commit -m "My really really really long single-line commit message that goes on for far too long"</code></pre>
@@ -191,12 +191,12 @@ you prefer a different editor you can change it using the command
 <p>Small commits for minor changes (e.g. fixing a single typo) should be avoided. These can be rebased or squashed into one commit using an
 interactive rebase:
 <pre class="highlight"><code class="language-bash">git rebase -i</code></pre>
-but if you have the code already developed, you should be able to avoid them by adding things carefully in a logical order. </p>
+but if you have the code already developed, you should be able to avoid them by adding things carefully in a logical order.</p>
 <p>Having said the advice above, don't be too fussy; it's better to get the (tidy, readable) code in with a messy commit history than not add it at all.</p>
 <h2 id="step-3-compile-and-debug">Step 3: Compile and debug</h2>
 <p>Unless your code was already up-to-date with the main branch, you may now have compilation issues that you need to fix. You should add a new test for any major changes to confirm that the feature still behaves as expected and later changes don't introduce regressions. Looking at the existing tests will give you ideas on how to set these up, but ask for help if you aren't sure.</p>
 <h2 id="step-4-tidy-and-comment-the-code">Step 4: Tidy and comment the code</h2>
-<p>All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the <a href="../coding_conventions/"><strong>coding conventions</strong></a>. In particular you will need to ensure code is formatted using Clang Format. </p>
+<p>All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the <a href="../coding_conventions/"><strong>coding conventions</strong></a>. In particular you will need to ensure code is formatted using Clang Format.</p>
 <h2 id="step-5-create-or-amend-the-documentation">Step 5: Create or amend the documentation</h2>
 <p>You should also draft documentation for the wiki for any major new features that need explaining, or update the existing docs for any changes.</p>
 <p>See <a href="../updating_docs/"><strong>Updating the documentation</strong></a> for more info on how to do this.</p>
@@ -211,7 +211,7 @@ if you don't want anyone to review it yet but might appreciate constructive comm
 <h2 id="step-7-review">Step 7 : Review</h2>
 <p>The code needs to be reviewed by someone else in the collaboration, and strictly it should not be someone from the same institution as you or who has collaborated on the same project that produced the code. It needs to be someone critical who can look at it with fresh eyes and really challenge whether it is good quality code. The person you want to review it should be tagged in the PR, if in doubt tag both @mirenradia and @KAClough and we will do it or delegate.</p>
 <blockquote>
-<p>TOP TIP: Don't take the review personally! Use it as a learning experience and really engage in the discussions to make the code as good as it can be. (Respectful) creative conflict is your friend. </p>
+<p>TOP TIP: Don't take the review personally! Use it as a learning experience and really engage in the discussions to make the code as good as it can be. (Respectful) creative conflict is your friend.</p>
 </blockquote>
               
             </div>

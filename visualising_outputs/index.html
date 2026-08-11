@@ -178,7 +178,7 @@
 <p>Install (or module load) VisIt and run it in command line mode either directly on the login nodes or by submitting a batch job. Some example scripts and the appropriate run command for this can be found here:</p>
 </li>
 </ol>
-<p>https://github.com/GRChombo/Postprocessing_tools/tree/master/VisItTools</p>
+<p>https://github.com/GRTLCollaboration/Postprocessing_tools/tree/master/VisItTools</p>
 <p>This is usually the best option for systems with a firewall preventing outgoing connections (e.g. Marenostrum, SupermucNG). One can generate png files or videos which can then be transferred to one's local machine using scp or by mounting the remote server using the sshfs command.</p>
 <ol>
 <li>Run Visit remotely by downloading <strong>the same version</strong> (ie, 1.12.3 etc) of Visit on the cluster and setting up a remote profile in Visit on your local machine (see below). This has the advantage that you can keep the data on the cluster, and use its (probably more powerful) compute power, although some clusters don't like you to run Visit on the login nodes as it can clog up the system for other users, and may have dedicated nodes for visualisation. You should check this with your local cluster administrator. <strong>(Note: The remote version should be the one with Mesa support for rendering without a display, otherwise you will have problems saving images and movies.)</strong></li>
@@ -203,21 +203,21 @@
 <p>http://www.visitusers.org/index.php?title=Short_Tutorial</p>
 <p>See our tips for making good visualisations in [[Visualisation tips | Visualisation tips]]. Feel free to add to them!</p>
 <p>There are a number of example scripts for processing GRChombo files using the VisIt command line here:</p>
-<p>https://github.com/GRChombo/Postprocessing_tools/tree/master/VisItTools</p>
+<p>https://github.com/GRTLCollaboration/Postprocessing_tools/tree/master/VisItTools</p>
 <h2 id="using-paraview">Using ParaView</h2>
-<p><a href="https://www.paraview.org/">ParaView</a> is an open-source and scalable 
-visualisation application similar to VisIt (it actually uses VisIt's Chombo 
+<p><a href="https://www.paraview.org/">ParaView</a> is an open-source and scalable
+visualisation application similar to VisIt (it actually uses VisIt's Chombo
 file reader underneath).</p>
-<p>You can download a prebuilt version of ParaView for your local machine 
-(Windows/macOS/Linux) from <a href="https://www.paraview.org/download/">here</a>. 
-* For Windows and macOS, these are in the form of executables 
+<p>You can download a prebuilt version of ParaView for your local machine
+(Windows/macOS/Linux) from <a href="https://www.paraview.org/download/">here</a>.
+* For Windows and macOS, these are in the form of executables
   (exe and dmg respectively).
 * For Linux, you can download and extract the tar file to a directory of your
   choosing. The application can be run by changing to the the <code>bin</code> subdirectory
   of the extracted folder and running the <code>paraview</code> executable, for example
   <pre class="highlight"><code class="language-bash">cd /path/to/ParaView-5.9.1-MPI-Linux-Python3.8-64bit/bin
 ./paraview</code></pre>
-Before downloading the latest version, read below on the guide to remote 
+Before downloading the latest version, read below on the guide to remote
 visualisation as you may need to download an older version to make it work.</p>
 <h3 id="remote-visualisation">Remote visualisation</h3>
 <p>Assuming you have just performed a simulation on a remote HPC cluster and wish
@@ -227,14 +227,14 @@ will need to match the version on the cluster with your local version
 so check what version is available via modules (assuming your system uses some
 form of modules):
 <pre class="highlight"><code>module avail paraview</code></pre>
-and install the corresponding version locally. If ParaView is not installed, 
+and install the corresponding version locally. If ParaView is not installed,
 ask the cluster administrator to install the latest version for you.</p>
 <p>Since ParaView relies on open ports in order to be able to connect between the
-client and server, and most HPC systems do not leave ports open for security 
+client and server, and most HPC systems do not leave ports open for security
 reasons, we will get around this by "tunnelling" the port with ssh.</p>
 <p>To do this, follow the steps below
 1. Open ParaView locally.
-2. Click the 'Connect' icon (<img src="https://gitlab.kitware.com/paraview/paraview/-/raw/3762f9acc03c221b1755b137820855edb148edc5/Qt/Components/Resources/Icons/pqConnect.svg" width=20>) 
+2. Click the 'Connect' icon (<img src="https://gitlab.kitware.com/paraview/paraview/-/raw/3762f9acc03c221b1755b137820855edb148edc5/Qt/Components/Resources/Icons/pqConnect.svg" width=20>)
    near the top left (or via the menu option File → Connect). Click 'Add Server'
    and set the fields to
     | Field | Value |
@@ -243,16 +243,16 @@ reasons, we will get around this by "tunnelling" the port with ssh.</p>
     | Server Type | Client/Server |
     | Host | localhost |
     | Port | 11111 |</p>
-<pre><code>Then click 'Configure' and set the 'Startup Type' field to 'Manual'. 
+<pre><code>Then click 'Configure' and set the 'Startup Type' field to 'Manual'.
 Click 'Save' and then click 'Close'
 </code></pre>
 <ol>
-<li>SSH into the remote cluster and load the relevant ParaView module. For versions 
-   5.10 or greater, the maximum 
-   number of threads that ParaView uses is controlled by the <code>VTK_SMP_MAX_THREADS</code> 
-   environment variable (similar to the <code>OMP_NUM_THREADS</code> environment variable for 
-   OpenMP programs such as GRChombo) so, in order to avoid accidentally using a 
-   very large number of threads, you should manually set this to a sensible value 
+<li>SSH into the remote cluster and load the relevant ParaView module. For versions
+   5.10 or greater, the maximum
+   number of threads that ParaView uses is controlled by the <code>VTK_SMP_MAX_THREADS</code>
+   environment variable (similar to the <code>OMP_NUM_THREADS</code> environment variable for
+   OpenMP programs such as GRChombo) so, in order to avoid accidentally using a
+   very large number of threads, you should manually set this to a sensible value
    by running a command such as
    <code>bash
    export VTK_SMP_MAX_THREADS=4</code>
@@ -266,7 +266,7 @@ Click 'Save' and then click 'Close'
    particularly large file, you might want to run this command in parallel
    with MPI in a job:
    <code>mpiexec -n 8 pvserver</code></li>
-<li>Set up the tunnel between the local <code>11111</code> port and <code>&lt;remote port&gt;</code> with 
+<li>Set up the tunnel between the local <code>11111</code> port and <code>&lt;remote port&gt;</code> with
    the command
    <code>bash
    ssh -NL 11111:localhost:&lt;remote port&gt; &lt;username&gt;@&lt;hostname&gt;</code>
@@ -274,12 +274,12 @@ Click 'Save' and then click 'Close'
    has 'hung' (i.e. no prompt). If you are running <code>pvserver</code> in a job, and
    you cannot SSH directly to the compute node on which the job is running
    (as is likely the case),
-   you will need to tunnel the port via the login node which can be done with 
+   you will need to tunnel the port via the login node which can be done with
    a command such as
    <code>bash
    ssh -L 11111:localhost:11111 &lt;username&gt;@&lt;login node hostname&gt; ssh -4 -L 11111:localhost:&lt;remote port&gt; -N &lt;compute node hostname&gt;</code></li>
 <li>Click the 'Connect' icon again and choose the server we configured in step 2
-   called <code>localhost</code>. It should then connect to the remote cluster and the 
+   called <code>localhost</code>. It should then connect to the remote cluster and the
    output from your SSH session in step 3 will have the extra line
    <code>Client connected.</code>
    Using the menu options 'File → Open', you should be able to browse the remote
@@ -288,9 +288,9 @@ Click 'Save' and then click 'Close'
 <p>Note that you only need to do step 2 once. To run remote visualisation another
 time, simply repeat steps 1 and 3-5.</p>
 <h3 id="remote-visualisation-reverse-connection">Remote visualisation (reverse connection)</h3>
-<p>If you are having problems with the above method for remote visualisation with 
+<p>If you are having problems with the above method for remote visualisation with
 ParaView, there is an alternative in the form of <em>reverse connections</em> where
-the remote server connects to the local client (rather than the above where the 
+the remote server connects to the local client (rather than the above where the
 local client connects to the server). If you are trying to use Catalyst Live
 with the ParaView Catalyst insitu instrumentation, this also uses a reverse
 connection so you will need to follow similar steps.</p>
@@ -299,7 +299,7 @@ mode, you will need to have a version of ParaView installed on the remote system
 and the same version installed locally.</p>
 <p>To set up remote visualisation with reverse connections, follow the steps below
 1. Open ParaView locally
-2. Click the 'Connect' icon (<img src="https://gitlab.kitware.com/paraview/paraview/-/raw/3762f9acc03c221b1755b137820855edb148edc5/Qt/Components/Resources/Icons/pqConnect.svg" width=20>) 
+2. Click the 'Connect' icon (<img src="https://gitlab.kitware.com/paraview/paraview/-/raw/3762f9acc03c221b1755b137820855edb148edc5/Qt/Components/Resources/Icons/pqConnect.svg" width=20>)
    near the top left (or via the menu option File → Connect). Click 'Add Server'
    and set the fields to
     | Field | Value |
@@ -307,7 +307,7 @@ and the same version installed locally.</p>
     | Name | localhost (reverse connection) |
     | Server Type | Client/Server (reverse connection) |
     | Port | 11111 |</p>
-<p>Then click 'Configure' and set the 'Startup Type' field to 'Manual'. 
+<p>Then click 'Configure' and set the 'Startup Type' field to 'Manual'.
    Click 'Save'.
 3. Connect to the server we have just configured by selecting it and then
    clicking 'Connect'. A dialog box will appear which says</p>
@@ -344,12 +344,12 @@ Client connected.</code></pre>
    filesystem and select your HDF5 files.</p>
 </blockquote>
 <h3 id="documentation-and-tutorials">Documentation and Tutorials</h3>
-<p>The ParaView user and reference guide can be found 
+<p>The ParaView user and reference guide can be found
 <a href="https://docs.paraview.org/en/latest/">here</a>. Make sure to select the correct
 version in the bottom left.</p>
 <p>There are also some tutorials that are linked to from the main ParaView website
 <a href="https://www.paraview.org/tutorials/">here</a>.</p>
-<p>As for VisIt above, there is also a YouTube video for a presentation given at 
+<p>As for VisIt above, there is also a YouTube video for a presentation given at
 ATPESC <a href="https://youtu.be/sXY72e3Ce4g">here</a>.</p>
 <h2 id="using-yt">Using yt</h2>
 <p>yt is an alternative python based visualisation software which is very good for processing and analysing data. Instructions on downloading and using yt can be found here:</p>
@@ -357,16 +357,16 @@ ATPESC <a href="https://youtu.be/sXY72e3Ce4g">here</a>.</p>
 <p>There are a number of example scripts for processing GRChombo files here:</p>
 <p>https://github.com/GRChombo/Postprocessing_tools/tree/master/YTAnalysisTools</p>
 <h3 id="basics">Basics</h3>
-<p>The following script shows an example of the most basic commands: </p>
-<pre class="highlight"><code>import yt 
+<p>The following script shows an example of the most basic commands:</p>
+<pre class="highlight"><code>import yt
 
 filename = "/your/path/BBH_000100.3d.hdf5"       # path to the checkpoint/plot file.
-ds = yt.load(filename)                           # yt.load() automatically detects that is a Chombo file and loads it. 
+ds = yt.load(filename)                           # yt.load() automatically detects that is a Chombo file and loads it.
 
-L, _, _ = ds.domain_with                         # extract the size of the grid 
+L, _, _ = ds.domain_with                         # extract the size of the grid
 
 # Loading data
-data_flat = ds.r[:,:,:]                          # creates a dict with flat data (1D-array), 
+data_flat = ds.r[:,:,:]                          # creates a dict with flat data (1D-array),
                                                  #it ignores duplicated datapoints from coarser levels.
 data_grid = ds.r[::120j,::120j,::120j]           # creates a dict with grid data (3d-array with 120 points per side),
                                                  ## using 0th-interpolation order ('nearest') from the finest level.
@@ -377,21 +377,21 @@ data_grid = ds.r[::120j,::120j, L/2]             # creates a dict with grid data
 print('shape flat: ',  data_flat["K"].shape)     # Here it has been used the var "K" as an example
 print('shape grid: ',  data_grid["K"].shape)
 print('shape slice: ',  data_slice["K"].shape)
-# Output: 
+# Output:
 # shape flat:  (15489664,)
 # shape grid:  (120, 120, 120)
 # shape slice:  (120, 120)
 </code></pre>
-<p>The command <code>ds.r[:,:,:]</code> creates a python-dictionary that contains the outputted variables  (e.g. "K", "chi", etc) and other useful grid-variables  (e.g. "x", "y", ..., "dx", ..., etc). 
-The following script shows an example of how to compute the averaged quantities of a variable of interest. </p>
+<p>The command <code>ds.r[:,:,:]</code> creates a python-dictionary that contains the outputted variables  (e.g. "K", "chi", etc) and other useful grid-variables  (e.g. "x", "y", ..., "dx", ..., etc).
+The following script shows an example of how to compute the averaged quantities of a variable of interest.</p>
 <pre class="highlight"><code>import numpy as np
 
 # Loading data
 ds = yt.load("/path/your/file/???.hdf5")
 dd = ds.r[:,:,:]                                         # Load the dict containing the flat array data
 
-gridcell_volume = dd['dx']**3 
-physical_cell_volume =  dd['dx']**3*dd['chi']**(-1.5)    # physical cell volume taking into account the conformal factor "chi". 
+gridcell_volume = dd['dx']**3
+physical_cell_volume =  dd['dx']**3*dd['chi']**(-1.5)    # physical cell volume taking into account the conformal factor "chi".
 total_volume = np.sum(physical_cell_volume)
 
 average_K = np.sum(dd['K'] * physical_cell_volume)/total_volume
