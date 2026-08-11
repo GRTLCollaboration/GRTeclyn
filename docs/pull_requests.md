@@ -19,7 +19,7 @@ If your fork of the GRTeclyn repository is messy (as many of ours are) and has s
 
 If you have a local clone of your fork, you can add the main public "upstream" repository as a new remote repository using the command
 ```bash
-git remote add upstream https://github.com/GRChombo/GRChombo.git
+git remote add upstream https://github.com/GRTLCollaboration/GRTeclyn.git
 ```
 You can replace `upstream` with whatever name you prefer e.g. `public` but we shall stick with `upstream` below. Then, make sure you fetch the latest commits from this new remote using the command
 ```bash
@@ -38,7 +38,7 @@ This local branch will be set to track a branch of the same name in the upstream
 
 Alternatively, if you don't want to have to deal with multiple remote repositories, you can clone this repository to a separate directory to your fork.
 
-It is probably useful to make your changes in several staged commits, so that you can look back through the process of what you did. For example, if you plan to add a new file and then amend it, first add the file, then commit, then amend it, then commit again. This way the commit history will show the changes you made. If you only commit after editing, the whole thing will appear as a new file, which isn't very helpful. 
+It is probably useful to make your changes in several staged commits, so that you can look back through the process of what you did. For example, if you plan to add a new file and then amend it, first add the file, then commit, then amend it, then commit again. This way the commit history will show the changes you made. If you only commit after editing, the whole thing will appear as a new file, which isn't very helpful.
 
 When writing commit messages, try to follow [this style guide](https://cbea.ms/git-commit/). In particular, rather than
 writing one long message using a command such as
@@ -63,7 +63,7 @@ interactive rebase:
 ```bash
 git rebase -i
 ```
-but if you have the code already developed, you should be able to avoid them by adding things carefully in a logical order. 
+but if you have the code already developed, you should be able to avoid them by adding things carefully in a logical order.
 
 Having said the advice above, don't be too fussy; it's better to get the (tidy, readable) code in with a messy commit history than not add it at all.
 
@@ -73,7 +73,7 @@ Unless your code was already up-to-date with the main branch, you may now have c
 
 ## Step 4: Tidy and comment the code
 
-All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the [**coding conventions**](coding_conventions.md). In particular you will need to ensure code is formatted using Clang Format. 
+All new code will be held to high standards of readability. You should follow the design principles in this wiki, and the [**coding conventions**](coding_conventions.md). In particular you will need to ensure code is formatted using Clang Format.
 
 ## Step 5: Create or amend the documentation
 
@@ -99,4 +99,4 @@ if you don't want anyone to review it yet but might appreciate constructive comm
 The code needs to be reviewed by someone else in the collaboration, and strictly it should not be someone from the same institution as you or who has collaborated on the same project that produced the code. It needs to be someone critical who can look at it with fresh eyes and really challenge whether it is good quality code. The person you want to review it should be tagged in the PR, if in doubt tag both @mirenradia and @KAClough and we will do it or delegate.
 
 
-> TOP TIP: Don't take the review personally! Use it as a learning experience and really engage in the discussions to make the code as good as it can be. (Respectful) creative conflict is your friend. 
+> TOP TIP: Don't take the review personally! Use it as a learning experience and really engage in the discussions to make the code as good as it can be. (Respectful) creative conflict is your friend.

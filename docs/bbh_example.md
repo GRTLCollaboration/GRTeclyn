@@ -10,9 +10,9 @@ NOTE: THE FOLLOWING EXAMPLE HAS NOT YET BEEN PORTED... UNDER CONSTRUCTION...
 
 ## Physical scenario
 
-This page describes running the Binary BH example using the parameters found in [this parameter file](https://github.com/GRChombo/GRChombo/blob/master/Examples/BinaryBH/params.txt).
+This page describes running the Binary BH example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/BinaryBH/params.txt).
 
-The initial conditions consist of a superposition of two equal mass black holes, with initial momenta and positions chosen to give approximately 10 circular orbits before merger. 
+The initial conditions consist of a superposition of two equal mass black holes, with initial momenta and positions chosen to give approximately 10 circular orbits before merger.
 
 Note that finding the right momenta for an initial circular trajectory is in general a hard problem in NR - simply setting the momentum to the Newtonian approximation will result in elliptic orbits even for well separated initial BHs. One must use the Post-Newtonian approximations, and then adjust the momentum manually over several iterations to achieve an initial eccentricity of less than 1%. We are grateful to Dr Sebastian Khan at Cardiff University for providing us with these initial data values.
 
@@ -50,7 +50,7 @@ Here is an example jobscript for the CSD3 machine (see your cluster docs for a t
     #! Number of nodes and tasks per node allocated by SLURM (do not change):
     mpi_tasks_per_node=$(echo "$SLURM_TASKS_PER_NODE" | sed -e  's/^\([0-9][0-9]*\).*$/\1/')
 
-    #! Full path to application executable: 
+    #! Full path to application executable:
     application="Main_BinaryBH3d.Linux.64.mpicxx.ifort.OPTHIGH.MPI.OPENMPCC.ex"
     #! Run options for the application:
     options="params.txt"
@@ -65,7 +65,7 @@ Here is an example jobscript for the CSD3 machine (see your cluster docs for a t
 
     CMD="mpirun -ppn $mpi_tasks_per_node -np $SLURM_NTASKS $application $options"
 
-    eval $CMD 
+    eval $CMD
 ```
 
 
@@ -75,13 +75,13 @@ Here is an example jobscript for the CSD3 machine (see your cluster docs for a t
 
 See [[Visualising Ouputs | Visualising Outputs]] for further details on visualising with VisIt.
 
-The most enlightening variable to look at in the outputs is chi, the conformal factor of the metric, which goes to zero at the centres of the BHs. When the Pseudocolour plot is viewed on a slice through the centre of the grid, normal to the z axis, the black holes should be seen to inspiral and merge. 
+The most enlightening variable to look at in the outputs is chi, the conformal factor of the metric, which goes to zero at the centres of the BHs. When the Pseudocolour plot is viewed on a slice through the centre of the grid, normal to the z axis, the black holes should be seen to inspiral and merge.
 
-Note that you can look at these files even when the job is still running. It is always a good idea to check the files after a few timesteps. 
+Note that you can look at these files even when the job is still running. It is always a good idea to check the files after a few timesteps.
 
 ### Puncture plots
 
-The example also outputs some ASCII datafiles for post processing. Firstly, it gives a file `BinaryBHChk_Punctures.dat` which gives the location at each timestep of the two BHs. 
+The example also outputs some ASCII datafiles for post processing. Firstly, it gives a file `BinaryBHChk_Punctures.dat` which gives the location at each timestep of the two BHs.
 
 This can be plotted using a `gnuplot` command:
 
@@ -134,7 +134,7 @@ plt.savefig("PunctureTracks.png")
 
 The resulting image should look like this one:
 
-![](https://github.com/GRChombo/GRChombo/wiki/files/BBHPunctures.png)
+![](https://github.com/GRTLCollaboration/GRChombo/wiki/files/BBHPunctures.png)
 
 ### Gravitational Wave plots
 
@@ -195,8 +195,8 @@ plt.savefig(filename)
 
 The resulting image should look like this one:
 
-![](https://github.com/GRChombo/GRChombo/wiki/files/WeylScalar22.png)
+![](https://github.com/GRTLCollaboration/GRChombo/wiki/files/WeylScalar22.png)
 
 ### What next?
 
-Congratulations - you have successfully run a binary black hole simulation with GRChombo! We suggest that you try amending some of the variables in params.txt and rerun the code to understand what they do (see the [[Guide to parameters | Guide to parameters]] for helpful info). 
+Congratulations - you have successfully run a binary black hole simulation with GRTeclyn! We suggest that you try amending some of the variables in params.txt and rerun the code to understand what they do (see the [[Guide to parameters | Guide to parameters]] for helpful info).

@@ -71,7 +71,7 @@ It will be cloned to the `amrex` directory.
 
 Next, clone the GRTeclyn repository
 ```bash
-git clone https://github.com/GRChombo/GRTeclyn.git
+git clone https://github.com/GRTLCollaboration/GRTeclyn.git
 ```
 
 **Note**

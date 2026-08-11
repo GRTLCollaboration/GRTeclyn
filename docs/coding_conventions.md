@@ -14,7 +14,7 @@ Note that some of the following instructions will only work with newer versions 
 
 ### Getting Clang Format
 
-We recommend installing `clang-format` using the Python package manager `pip` (see [here](https://packaging.python.org/tutorials/installing-packages/) if you don't have `pip` available). You should install the version that is current enforced by [the GitHub action](https://github.com/GRChombo/GRChombo/blob/main/.github/workflows/test-clang-format.yml) that checks it (currently v19 at time of writing, NB: this is different to what GRChombo uses). This can be done with a command such as
+We recommend installing `clang-format` using the Python package manager `pip` (see [here](https://packaging.python.org/tutorials/installing-packages/) if you don't have `pip` available). You should install the version that is current enforced by [the GitHub action](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/.github/workflows/lint.yml) that checks it (currently v19 at time of writing, NB: this is different to what GRChombo uses). This can be done with a command such as
 ```bash
 python3 -m pip install --user clang-format==19.1.7
 ```
