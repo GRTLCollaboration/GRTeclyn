@@ -17,7 +17,7 @@
 #include "AMReX_FArrayBox.H"
 
 // Other includes
-#include "Cell.hpp"
+// #include "Cell.hpp"
 #include "HarmonicTest.hpp"
 
 enum
