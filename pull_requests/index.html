@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -163,42 +164,34 @@ Contact <a href="https://github.com/KAClough/">Katy</a> or
 <a href="https://github.com/mirenradia">Miren</a> if you don't have the necessary
 permissions to push to this repository.</p>
 </blockquote>
-<p>If you have a local clone of your fork, you can add the main public "upstream" repository as a new remote repository using the command</p>
-<pre><code class="language-bash">git remote add upstream https://github.com/GRChombo/GRChombo.git
-</code></pre>
-<p>You can replace <code>upstream</code> with whatever name you prefer e.g. <code>public</code> but we shall stick with <code>upstream</code> below. Then, make sure you fetch the latest commits from this new remote using the command</p>
-<pre><code class="language-bash">git fetch upstream
-</code></pre>
-<p>Finally, to create a new branch based off upstream's <code>main</code>, you can do the two commands</p>
-<pre><code class="language-bash">git checkout upstream/main
-git branch enhancement/my_new_enhancement
-</code></pre>
-<p>Finally, once you have added and committed your changes to this new branch, you can push it to <code>upstream</code> by using the command</p>
-<pre><code class="language-bash">git push -u upstream enhancement/my_new_enhancement
-</code></pre>
-<p>This local branch will be set to track a branch of the same name in the upstream repository (rather than on your fork).</p>
+<p>If you have a local clone of your fork, you can add the main public "upstream" repository as a new remote repository using the command
+<pre class="highlight"><code class="language-bash">git remote add upstream https://github.com/GRChombo/GRChombo.git</code></pre>
+You can replace <code>upstream</code> with whatever name you prefer e.g. <code>public</code> but we shall stick with <code>upstream</code> below. Then, make sure you fetch the latest commits from this new remote using the command
+<pre class="highlight"><code class="language-bash">git fetch upstream</code></pre>
+Finally, to create a new branch based off upstream's <code>main</code>, you can do the two commands
+<pre class="highlight"><code class="language-bash">git checkout upstream/main
+git branch enhancement/my_new_enhancement</code></pre>
+Finally, once you have added and committed your changes to this new branch, you can push it to <code>upstream</code> by using the command
+<pre class="highlight"><code class="language-bash">git push -u upstream enhancement/my_new_enhancement</code></pre>
+This local branch will be set to track a branch of the same name in the upstream repository (rather than on your fork).</p>
 <p>Alternatively, if you don't want to have to deal with multiple remote repositories, you can clone this repository to a separate directory to your fork.</p>
 <p>It is probably useful to make your changes in several staged commits, so that you can look back through the process of what you did. For example, if you plan to add a new file and then amend it, first add the file, then commit, then amend it, then commit again. This way the commit history will show the changes you made. If you only commit after editing, the whole thing will appear as a new file, which isn't very helpful. </p>
 <p>When writing commit messages, try to follow <a href="https://cbea.ms/git-commit/">this style guide</a>. In particular, rather than
-writing one long message using a command such as</p>
-<pre><code class="language-bash">git commit -m &quot;My really really really long single-line commit message that goes on for far too long&quot;
-</code></pre>
-<p>do</p>
-<pre><code class="language-bash">git commit
-</code></pre>
-<p>which should open you into a text editor where you can separate out the short title of the commit (ideally &lt;= 50 chars) from a more detailed description in the body (this is not always necessary for small changes).</p>
+writing one long message using a command such as
+<pre class="highlight"><code class="language-bash">git commit -m "My really really really long single-line commit message that goes on for far too long"</code></pre>
+do
+<pre class="highlight"><code class="language-bash">git commit</code></pre>
+which should open you into a text editor where you can separate out the short title of the commit (ideally &lt;= 50 chars) from a more detailed description in the body (this is not always necessary for small changes).</p>
 <blockquote>
 <p><strong>Note</strong>
 The default editor is usually <code>vim</code> but if
 you prefer a different editor you can change it using the command
-<code>bash
-git config --global core.editor "&lt;my preferred text editor command&gt;"</code></p>
+<pre class="highlight"><code class="language-bash">git config --global core.editor "&lt;my preferred text editor command&gt;"</code></pre></p>
 </blockquote>
 <p>Small commits for minor changes (e.g. fixing a single typo) should be avoided. These can be rebased or squashed into one commit using an
-interactive rebase:</p>
-<pre><code class="language-bash">git rebase -i
-</code></pre>
-<p>but if you have the code already developed, you should be able to avoid them by adding things carefully in a logical order. </p>
+interactive rebase:
+<pre class="highlight"><code class="language-bash">git rebase -i</code></pre>
+but if you have the code already developed, you should be able to avoid them by adding things carefully in a logical order. </p>
 <p>Having said the advice above, don't be too fussy; it's better to get the (tidy, readable) code in with a messy commit history than not add it at all.</p>
 <h2 id="step-3-compile-and-debug">Step 3: Compile and debug</h2>
 <p>Unless your code was already up-to-date with the main branch, you may now have compilation issues that you need to fix. You should add a new test for any major changes to confirm that the feature still behaves as expected and later changes don't introduce regressions. Looking at the existing tests will give you ideas on how to set these up, but ask for help if you aren't sure.</p>
@@ -259,6 +252,9 @@ if you don't want anyone to review it yet but might appreciate constructive comm
     <script>var base_url = "..";</script>
     <script src="../js/theme_extra.js"></script>
     <script src="../js/theme.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+      <script src="../javascripts/katex-render.js"></script>
       <script src="../search/main.js"></script>
     <script>
         jQuery(function () {

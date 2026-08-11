@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -181,23 +182,20 @@
 <h2 id="mac-laptop">Mac laptop</h2>
 <p>This is really for only for debugging.</p>
 <p>Install command line tools on your Mac using the command <code>xcode-select --install</code> in the terminal.</p>
-<p>In the <code>make.local-pre</code> file:</p>
-<pre><code>COMP = llvm
+<p>In the <code>make.local-pre</code> file:
+<pre class="highlight"><code>COMP = llvm
 USE_OMP = FALSE
-USE_MPI = FALSE
-</code></pre>
+USE_MPI = FALSE</code></pre></p>
 <p>then to run <code>./main3d.llvm.ex params.txt</code>.</p>
 <hr />
 <h2 id="cosma8-cpus">Cosma8 (CPUs)</h2>
-<p>The modules used</p>
-<pre><code>module load gnu_comp openmpi
-</code></pre>
-<p>Or you can also use the Intel modules for better performance:</p>
-<pre><code>module load intel_comp/2025.1.1 compiler-rt/latest tbb/latest  compiler/latest mpi/latest
-</code></pre>
-<p>NB: You will need to set the option <code>--mpi=pmi2</code> in your Slurm script to launch Intel MPI correctly.</p>
-<p>In the <code>make.local-pre</code> file we have</p>
-<pre><code>COMP = gnu
+<p>The modules used
+<pre class="highlight"><code>module load gnu_comp openmpi</code></pre>
+Or you can also use the Intel modules for better performance:</p>
+<p><pre class="highlight"><code>module load intel_comp/2025.1.1 compiler-rt/latest tbb/latest  compiler/latest mpi/latest</code></pre>
+NB: You will need to set the option <code>--mpi=pmi2</code> in your Slurm script to launch Intel MPI correctly.</p>
+<p>In the <code>make.local-pre</code> file we have
+<pre class="highlight"><code>COMP = gnu
 USE_OMP = TRUE
 
 # Options you might want to turn on
@@ -205,11 +203,10 @@ USE_OMP = TRUE
 #PROFILE=FALSE
 #USE_MPI = FALSE
 #USE_HDF5 = TRUE
-
 </code></pre>
-<p>Note that <code>TINY_PROFILE=TRUE</code> and <code>PROFILE=FALSE</code> are a <em>pair</em> of options, that is to use <code>TINY_PROFILER</code>, <code>PROFILE</code> must be set to <code>FALSE</code>.</p>
+Note that <code>TINY_PROFILE=TRUE</code> and <code>PROFILE=FALSE</code> are a <em>pair</em> of options, that is to use <code>TINY_PROFILER</code>, <code>PROFILE</code> must be set to <code>FALSE</code>.</p>
 <p>And the jobscript:</p>
-<pre><code>#!/bin/bash -l
+<pre class="highlight"><code>#!/bin/bash -l
 
 # number of nodes
 #SBATCH --nodes 4
@@ -240,7 +237,7 @@ date
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 #! Number of nodes and tasks per node allocated by SLURM (do not change):
-mpi_tasks_per_node=$(echo &quot;$SLURM_TASKS_PER_NODE&quot; | sed -e  's/^\([0-9][0-9]*\).*$/\1/')
+mpi_tasks_per_node=$(echo "$SLURM_TASKS_PER_NODE" | sed -e  's/^\([0-9][0-9]*\).*$/\1/')
 
 #! Number of nodes and tasks per node allocated by SLURM (do not change):
 numnodes=$SLURM_JOB_NUM_NODES
@@ -250,35 +247,32 @@ numtasks=$SLURM_NTASKS
 np=$[${numnodes}*${mpi_tasks_per_node}]
 
 #! Full path to application executable:
-application=&quot;./main3d.gnu.MPI.OMP.ex&quot;
+application="./main3d.gnu.MPI.OMP.ex"
 
 #! Run options for the application:
-options=&quot;params.txt&quot;
+options="params.txt"
 
 #! Work directory (i.e. where the job will run):
-workdir=&quot;$SLURM_SUBMIT_DIR&quot;
+workdir="$SLURM_SUBMIT_DIR"
 
 # Run the program
 
-mpirun --map-by ppr:$mpi_tasks_per_node:node -np $SLURM_NTASKS $application $options
-</code></pre>
+mpirun --map-by ppr:$mpi_tasks_per_node:node -np $SLURM_NTASKS $application $options</code></pre>
 <hr />
 <h2 id="cosma8-gpus">Cosma8 (GPUs)</h2>
 <h3 id="amd-mi300x-partition">AMD MI300X partition</h3>
-<p>The modules used</p>
-<pre><code>module load hipcc/6.3amd openmpi/5.0.3
-</code></pre>
-<p>In the <code>make.local-pre</code> file we have</p>
-<pre><code>COMP = gnu
+<p>The modules used
+<pre class="highlight"><code>module load hipcc/6.3amd openmpi/5.0.3</code></pre></p>
+<p>In the <code>make.local-pre</code> file we have
+<pre class="highlight"><code>COMP = gnu
 AMREX_USE_GPU=TRUE
 USE_HIP=TRUE
 # for MI300
 AMREX_AMD_ARCH=gfx942
 # Option for MI200 - need to switch if using this
-# AMREX_AMD_ARCH=gfx90a
-</code></pre>
+# AMREX_AMD_ARCH=gfx90a</code></pre></p>
 <p>And the jobscript (uses all 8 GPUs to avoid overlap with other users, but be considerate!):</p>
-<pre><code>#!/bin/bash
+<pre class="highlight"><code>#!/bin/bash
 #SBATCH -J grteclyn-bbh
 #SBATCH -A do018
 #SBATCH -p mi300x
@@ -290,21 +284,19 @@ AMREX_AMD_ARCH=gfx942
 
 module load hipcc/6.3amd openmpi/5.0.3
 
-exec=&quot;./main3d.hip.MPI.HIP.ex&quot;
-args=&quot;params.txt&quot;
+exec="./main3d.hip.MPI.HIP.ex"
+args="params.txt"
 
-mpirun -n ${SLURM_NTASKS} ${exec} ${args}
-</code></pre>
+mpirun -n ${SLURM_NTASKS} ${exec} ${args}</code></pre>
 <hr />
 <h2 id="lumi-g">LUMI-G</h2>
-<p>The modules used</p>
-<pre><code>module load craype-x86-trento
+<p>The modules used
+<pre class="highlight"><code>module load craype-x86-trento
 module load PrgEnv-cray
 module load craype-accel-amd-gfx90a
-module load rocm
-</code></pre>
-<p>In the <code>make.local-pre</code> file we have</p>
-<pre><code>COMP=cray
+module load rocm</code></pre></p>
+<p>In the <code>make.local-pre</code> file we have
+<pre class="highlight"><code>COMP=cray
 AMREX_USE_GPU=TRUE
 USE_HIP=TRUE
 # Option for MI200 and MI250x
@@ -320,11 +312,10 @@ ifeq ($(USE_MPI),TRUE)
   ifeq ($(USE_HIP),TRUE)
     LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx90a) -lmpi_gtl_hsa
   endif
-endif
-</code></pre>
-<p>(the latter part may be added to the public build files at some point)</p>
-<p>And the jobscript:</p>
-<pre><code>#!/bin/bash -l
+endif</code></pre>
+(the latter part may be added to the public build files at some point)</p>
+<p>And the jobscript:
+<pre class="highlight"><code>#!/bin/bash -l
 #SBATCH --job-name=grteclyntest   # Job name
 #SBATCH --output=LRWC.o%j # Name of stdout output file
 #SBATCH --error=LRWC.e%j  # Name of stderr error file
@@ -351,27 +342,24 @@ EOF
 
 chmod +x ./select_gpu
 
-CPU_BIND=&quot;map_cpu:49,57,17,25,1,9,33,41&quot;
+CPU_BIND="map_cpu:49,57,17,25,1,9,33,41"
 
 export OMP_NUM_THREADS=1
 export MPICH_GPU_SUPPORT_ENABLED=1
 
 srun --cpu-bind=${CPU_BIND} --gres-flags=allow-task-sharing ./select_gpu ./main3d.hip.x86-trento.MPI.HIP.ex params.txt
-rm -rf ./select_gpu
-</code></pre>
+rm -rf ./select_gpu</code></pre></p>
 <hr />
 <h2 id="zenith">Zenith</h2>
-<p>The modules used</p>
-<pre><code>module purge
+<p>The modules used
+<pre class="highlight"><code>module purge
 module load rhel9/mi355x/base
-module load openmpi/5.0.10/llvm-amdgpu-7.14/pu3qyle7
-</code></pre>
-<p>The <code>Make.local-pre</code> file contains the following configuration:</p>
-<pre><code>USE_HIP=TRUE
-AMREX_AMD_ARCH=gfx950 # MI355X GPU arch
-</code></pre>
-<p>An example of the jobscript is</p>
-<pre><code>#!/bin/bash
+module load openmpi/5.0.10/llvm-amdgpu-7.14/pu3qyle7</code></pre>
+The <code>Make.local-pre</code> file contains the following configuration:
+<pre class="highlight"><code>USE_HIP=TRUE
+AMREX_AMD_ARCH=gfx950 # MI355X GPU arch</code></pre>
+An example of the jobscript is
+<pre class="highlight"><code>#!/bin/bash
 #SBATCH --job-name=grteclyn
 #SBATCH --time=02:00:00
 #SBATCH --partition=mi355x
@@ -386,18 +374,16 @@ module purge
 module load rhel9/mi355x/base
 module load openmpi/5.0.10/llvm-amdgpu-7.14/pu3qyle7
 
-exec=&quot;/path/to/your/executable&quot;
-args=&quot;params.txt&quot;
+exec="/path/to/your/executable"
+args="params.txt"
 
-echo &quot;Running GRTeclyn ...&quot;
+echo "Running GRTeclyn ..."
 mpirun -n ${SLURM_NTASKS} ${exec} ${args}
-echo &quot;Run complete.&quot;
-</code></pre>
+echo "Run complete."</code></pre></p>
 <h2 id="tursa">Tursa</h2>
 <p>Tursa is primarily a GPU system with Nvidia A100s as the GPU but there are CPU queues available as well. We will focus on the GPU part for this wiki.</p>
 <p>No modules are loaded by default and you'll notice that the system wide modules available are a bit sparse. These are the modules that Juliana uses for GRTeclyn/AMReX workloads:</p>
-<pre><code>module load gcc/12.2.0 cuda/12.3 openmpi/4.1.5-cuda12.3 ucx/1.15.0-cuda12.3
-</code></pre>
+<pre class="highlight"><code>module load gcc/12.2.0 cuda/12.3 openmpi/4.1.5-cuda12.3 ucx/1.15.0-cuda12.3</code></pre>
 <p>You can save these modules for later reuse with <code>module save &lt;name of module environment&gt;</code>
 Then every time you log back into Tursa, you can load the same environment using <code>module restore &lt;name of module environment&gt;</code></p>
 <h3 id="building-grteclyn">Building GRTeclyn</h3>
@@ -405,78 +391,66 @@ Then every time you log back into Tursa, you can load the same environment using
 <code>make -j 4 USE_CUDA=TRUE CUDA_ARCH=80</code></p>
 <p><code>CUDA_ARCH</code> is necessary because the code will generate a binary only valid for that type of Nvidia architecture, which are grouped by generation. For example: A100s are 80, V100s are 70 and Grace Hoppers are 90. Tursa exclusively contains A100s.</p>
 <h3 id="running-grteclyn">Running GRTeclyn</h3>
-<p>An example of a single GPU run:</p>
-<pre><code>srun -A &lt;your project code&gt; -p gpu --qos=&lt;priority&gt; --nodes=1 --ntasks=1 --gres=gpu:1 --time=00:10:00 ./main3d.gnu.MPI.CUDA.ex params_test.txt
-</code></pre>
-<p>where <code>&lt;your project code&gt;</code> is the name of your allocation and <code>&lt;priority&gt;</code> sets your priority level. Choose from <code>standard</code>, <code>dev</code>, <code>low</code>, or <code>high</code>. Read more about the possible options <a href="https://epcced.github.io/dirac-docs/tursa-user-guide/scheduler/">here</a></p>
+<p>An example of a single GPU run:
+<pre class="highlight"><code>srun -A &lt;your project code&gt; -p gpu --qos=&lt;priority&gt; --nodes=1 --ntasks=1 --gres=gpu:1 --time=00:10:00 ./main3d.gnu.MPI.CUDA.ex params_test.txt</code></pre>
+where <code>&lt;your project code&gt;</code> is the name of your allocation and <code>&lt;priority&gt;</code> sets your priority level. Choose from <code>standard</code>, <code>dev</code>, <code>low</code>, or <code>high</code>. Read more about the possible options <a href="https://epcced.github.io/dirac-docs/tursa-user-guide/scheduler/">here</a></p>
 <p>NB: The <code>gpu</code> queue above is general. There are two types of A100s on Tursa, those with 40GB memory per card and those with 80GB memory per card. If you need a particular amount of memory, you can choose between them by setting either <code>-p gpu-a100-40</code> or <code>-p gpu-a100-80</code>. Using <code>-p gpu</code> will give you whichever is available first and so increases your chances of the job starting earlier.</p>
 <hr />
 <h2 id="swirles">Swirles</h2>
 <p>Swirles is a local cluster hosted by DAMTP, funded with the support of the ExCALIBUR programme and so open to all UK researchers. It contains a mix of Nvidia and Intel GPUs (codenamed Ponte Vecchio or PVCs).</p>
-<p>To get started, git clone the repo located here:</p>
-<pre><code>git clone https://github.com/COSMOS-CTC-Cambridge/swirles-training.git
-</code></pre>
-<p>In it, you will find introductory notes on the system and most importantly example scripts to set up an environment for using the GPUs and for submitting to the Slurm queue.</p>
-<p>NB: To install the pre-commit hook for GitHub, you will need to load the newer version of Python on the system:</p>
-<pre><code>module load python/3.10.13/gcc/t6nyisbb
-</code></pre>
-<p>then setup a virtual environment</p>
-<pre><code>python -m venv .precommit
-source ~/.precommit/bin/activate
-</code></pre>
-<p>then <code>pip install</code> the package:</p>
-<pre><code>python -m pip install pre-commit
-</code></pre>
+<p>To get started, git clone the repo located here:
+<pre class="highlight"><code>git clone https://github.com/COSMOS-CTC-Cambridge/swirles-training.git</code></pre>
+In it, you will find introductory notes on the system and most importantly example scripts to set up an environment for using the GPUs and for submitting to the Slurm queue.</p>
+<p>NB: To install the pre-commit hook for GitHub, you will need to load the newer version of Python on the system:
+<pre class="highlight"><code>module load python/3.10.13/gcc/t6nyisbb</code></pre>
+then setup a virtual environment
+<pre class="highlight"><code>python -m venv .precommit
+source ~/.precommit/bin/activate</code></pre>
+then <code>pip install</code> the package:
+<pre class="highlight"><code>python -m pip install pre-commit</code></pre></p>
 <p>You can then move it to a more convenient location once installed e.g. <code>~/.local/bin</code></p>
 <h3 id="intel-gpus">Intel GPUs</h3>
 <p>To build GRTeclyn for the Intel GPUs:</p>
 <ol>
-<li>Start an interactive session from the head node:</li>
+<li>
+<p>Start an interactive session from the head node:
+<pre class="highlight"><code>srun -p pvc --nodes=1 --ntasks=28 --gres=gpu:1 --time=1:00:00 --pty bash</code></pre>
+This will give you a quarter of the node and 1 GPU for 1 hour (each node has 4 GPUs and 112 cores spread over 2 sockets). If you want your own node add <code>--exclusive</code> and change to <code>--gres=gpu:4</code>. Do not build GRTeclyn on the head node if you want to run on the Intel GPUs - it has a different architecture.</p>
+</li>
+<li>
+<p>Source the environment from the git repo <code>swirles-training</code>:
+<pre class="highlight"><code>source ~/swirles-training/Environments/pvc-env.sh</code></pre>
+This will set up the relevant modules as well as some environment variables necessary for using Intel MPI on the system. It will also expose the Intel GPUs as separate tiles.</p>
+</li>
+<li>
+<p>Build the Binary BH example:
+<pre class="highlight"><code>make -j 28 USE_SYCL=TRUE</code></pre>
+You may also like to set some ancillary AMReX variables to help Intel GPU performance, such as <code>SYCL_SUB_GROUB_SIZE=16</code>. For more information, see <a href="https://amrex-codes.github.io/amrex/docs_html/GPU.html#sycl-configuration-variables">this</a> part of the AMReX documentation and <a href="https://github.com/GRTLCollaboration/GRTeclyn/issues/67">this</a> GitHub issue.</p>
+</li>
+<li>
+<p>Run the example:
+<pre class="highlight"><code>mpirun -np 2 ./main3d.sycl.MPI.ex ./params_test.txt</code></pre>
+Notice that I am only running with 2 MPI ranks even though I have access to 28 cores (if submitted exactly as above). This is because AMReX is heavily optimized for 1 MPI rank to 1 GPU. In this case, it is running 2 MPI ranks for the 2 tiles on a single Intel GPU card (again only possible if the environment variables have been set up as above).</p>
+</li>
 </ol>
-<pre><code>srun -p pvc --nodes=1 --ntasks=28 --gres=gpu:1 --time=1:00:00 --pty bash
-</code></pre>
-<p>This will give you a quarter of the node and 1 GPU for 1 hour (each node has 4 GPUs and 112 cores spread over 2 sockets). If you want your own node add <code>--exclusive</code> and change to <code>--gres=gpu:4</code>. Do not build GRTeclyn on the head node if you want to run on the Intel GPUs - it has a different architecture.</p>
-<ol>
-<li>Source the environment from the git repo <code>swirles-training</code>:</li>
-</ol>
-<pre><code>source ~/swirles-training/Environments/pvc-env.sh
-</code></pre>
-<p>This will set up the relevant modules as well as some environment variables necessary for using Intel MPI on the system. It will also expose the Intel GPUs as separate tiles.</p>
-<ol>
-<li>Build the Binary BH example:</li>
-</ol>
-<pre><code>make -j 28 USE_SYCL=TRUE
-</code></pre>
-<p>You may also like to set some ancillary AMReX variables to help Intel GPU performance, such as <code>SYCL_SUB_GROUB_SIZE=16</code>. For more information, see <a href="https://amrex-codes.github.io/amrex/docs_html/GPU.html#sycl-configuration-variables">this</a> part of the AMReX documentation and <a href="https://github.com/GRTLCollaboration/GRTeclyn/issues/67">this</a> GitHub issue.</p>
-<ol>
-<li>Run the example:</li>
-</ol>
-<pre><code>mpirun -np 2 ./main3d.sycl.MPI.ex ./params_test.txt
-</code></pre>
-<p>Notice that I am only running with 2 MPI ranks even though I have access to 28 cores (if submitted exactly as above). This is because AMReX is heavily optimized for 1 MPI rank to 1 GPU. In this case, it is running 2 MPI ranks for the 2 tiles on a single Intel GPU card (again only possible if the environment variables have been set up as above).</p>
 <p>Example Slurm submission scripts are also available in the <code>swirles-training</code> repository.</p>
 <h3 id="nvidia-a100s">Nvidia A100s</h3>
-<p>Load the following modules:</p>
-<pre><code>module load gcc-runtime/11.4.0/gcc/s4m43s2g openmpi/5.0.3/gcc/2jvxbhe6 cuda/12.6.3/gcc/leehydd5
-</code></pre>
+<p>Load the following modules:
+<pre class="highlight"><code>module load gcc-runtime/11.4.0/gcc/s4m43s2g openmpi/5.0.3/gcc/2jvxbhe6 cuda/12.6.3/gcc/leehydd5</code></pre></p>
 <h2 id="polaris">Polaris</h2>
 <p>There are several programming environments on Polaris that will allow you to build and run AMReX/GRTeclyn. I prefer the GNU toolchain.</p>
-<p>Load the GNU programming environment and GCC:</p>
-<pre><code>module load PrgEnv-gnu/8.6.0 gcc-native/14
-</code></pre>
-<p>Load CUDA Toolkit:</p>
-<pre><code>module load cudatoolkit-standalone/12.9.1
-</code></pre>
+<p>Load the GNU programming environment and GCC:
+<pre class="highlight"><code>module load PrgEnv-gnu/8.6.0 gcc-native/14</code></pre></p>
+<p>Load CUDA Toolkit:
+<pre class="highlight"><code>module load cudatoolkit-standalone/12.9.1</code></pre></p>
 <p>Then when compiling use:</p>
-<pre><code>make -j 8 COMP=gnu USE_CUDA=TRUE
-</code></pre>
+<pre class="highlight"><code>make -j 8 COMP=gnu USE_CUDA=TRUE</code></pre>
 <p>NB: AMReX knows about Polaris so you don't have to specify the CUDA architecture. You do have to specify <code>COMP=gnu</code> because <code>cray</code> is also possible.</p>
 <h2 id="csd3">CSD3</h2>
 <h3 id="wilkesampere-partition">Wilkes/Ampere partition</h3>
 <p>NB: This is the same set of modules used in the GitLab pipeline</p>
-<pre><code>module load rhel8/ampere/base gcc/14.3.0/vlhhcp6m openmpi/4.1.8/gcc/hemliivg cuda/12.8.1/gcc/kdeps6ab
-</code></pre>
-<p>...</p>
+<p><pre class="highlight"><code>module load rhel8/ampere/base gcc/14.3.0/vlhhcp6m openmpi/4.1.8/gcc/hemliivg cuda/12.8.1/gcc/kdeps6ab</code></pre>
+...</p>
               
             </div>
           </div><footer>
@@ -516,6 +490,9 @@ source ~/.precommit/bin/activate
     <script>var base_url = "..";</script>
     <script src="../js/theme_extra.js"></script>
     <script src="../js/theme.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+      <script src="../javascripts/katex-render.js"></script>
       <script src="../search/main.js"></script>
     <script>
         jQuery(function () {

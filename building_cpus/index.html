@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -144,16 +145,13 @@
 <p>Unlike in the predecessor code GRChombo, you don't have to separately build AMReX and GRTeclyn. Building an example in GRTeclyn will compile the relevant parts of AMReX too.</p>
 <p>But you should have checked that you have the set up described in <a href="../prerequisites/">Prerequisites</a> before trying to compile an example.</p>
 <h2 id="building-an-example">Building an example</h2>
-<p>Navigate to the example directory, e.g. for the BinaryBH example</p>
-<pre><code class="language-bash">cd GRTeclyn/Examples/BinaryBH
-</code></pre>
-<p>The default build options are set in <a href="https://github.com/AMReX-Codes/amrex/blob/development/Tools/GNUMake/Make.defs">Make.defs</a>. They are very similar to Chombo's, and, like Chombo, can be overriden on the command line, e.g. by doing something like</p>
-<pre><code>make -j 4 USE_OMP=TRUE
-</code></pre>
-<p>If want to consistently override these, it is best to create a <code>Make.local-pre</code> file at</p>
-<pre><code>amrex/Tools/GNUMake/Make.local-pre
-</code></pre>
-<p>which sets the build configuration variables as you wish. There is an example in <code>${AMREX_HOME}/Tools/GNUMake/Make.local.template</code>. You might want to change some of the following: </p>
+<p>Navigate to the example directory, e.g. for the BinaryBH example
+<pre class="highlight"><code class="language-bash">cd GRTeclyn/Examples/BinaryBH</code></pre></p>
+<p>The default build options are set in <a href="https://github.com/AMReX-Codes/amrex/blob/development/Tools/GNUMake/Make.defs">Make.defs</a>. They are very similar to Chombo's, and, like Chombo, can be overriden on the command line, e.g. by doing something like
+<pre class="highlight"><code>make -j 4 USE_OMP=TRUE</code></pre></p>
+<p>If want to consistently override these, it is best to create a <code>Make.local-pre</code> file at
+<pre class="highlight"><code>amrex/Tools/GNUMake/Make.local-pre</code></pre>
+which sets the build configuration variables as you wish. There is an example in <code>${AMREX_HOME}/Tools/GNUMake/Make.local.template</code>. You might want to change some of the following: </p>
 <ul>
 <li>Set <code>USE_OMP = TRUE</code> to use OpenMP</li>
 <li>If you don't want to use the GNU compiler <code>g++</code> , change <code>COMP = gnu</code> to 
@@ -163,31 +161,26 @@
 </ul>
 <p>See the separate page <a href="../building_gpus/">Building and Running on GPUs</a> for more details on the options required for using GPUs.</p>
 <p>For more detailed build configuration information, consult the <a href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html">AMReX documentation</a></p>
-<p>Now start building AMReX and the example. For example, to build with 4 processes (which will speed it up), do</p>
-<pre><code class="language-bash">make -j 4
-</code></pre>
-<p>A new <code>tmp_build_dir</code> directory will be created to store the compiled object and auxiliary files. Assuming all is well, you should have an executable in the current directory of the form <code>main&lt;config&gt;.ex</code> e.g. <code>main3d.gnu.MPI.OMP.ex</code>.</p>
-<p>If you want to clean the current build configuration you can do</p>
-<pre><code class="language-bash">make cleanconfig
-</code></pre>
+<p>Now start building AMReX and the example. For example, to build with 4 processes (which will speed it up), do
+<pre class="highlight"><code class="language-bash">make -j 4</code></pre>
+A new <code>tmp_build_dir</code> directory will be created to store the compiled object and auxiliary files. Assuming all is well, you should have an executable in the current directory of the form <code>main&lt;config&gt;.ex</code> e.g. <code>main3d.gnu.MPI.OMP.ex</code>.</p>
+<p>If you want to clean the current build configuration you can do
+<pre class="highlight"><code class="language-bash">make cleanconfig</code></pre></p>
 <blockquote>
 <p>Note that this is similar to <code>make clean</code> for GRChombo examples.</p>
 </blockquote>
-<p>If you want to clean all build configuration, you can do</p>
-<pre><code class="language-bash">make clean
-</code></pre>
+<p>If you want to clean all build configuration, you can do
+<pre class="highlight"><code class="language-bash">make clean</code></pre></p>
 <blockquote>
 <p>Note that this is similar to <code>make realclean</code> for GRChombo examples.</p>
 </blockquote>
 <p>Tip: To speed up subsequent compilations, you can install
-<a href="https://ccache.dev/">Ccache</a> and then add</p>
-<pre><code>USE_CCACHE = TRUE
-</code></pre>
-<p>to your <code>Make.local-pre</code> configuration file. This is particularly useful for GPU compilation which tends to be a bit slower. Alternatively just go and make a cup of tea and it should be done when you get back. It's good to take a break.</p>
+<a href="https://ccache.dev/">Ccache</a> and then add
+<pre class="highlight"><code>USE_CCACHE = TRUE</code></pre>
+to your <code>Make.local-pre</code> configuration file. This is particularly useful for GPU compilation which tends to be a bit slower. Alternatively just go and make a cup of tea and it should be done when you get back. It's good to take a break.</p>
 <h2 id="running-the-code">Running the code</h2>
 <p>You can run the example by passing the parameter file as the first argument. For example, for launching with MPI, you might do something like</p>
-<pre><code class="language-bash">mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex params.txt
-</code></pre>
+<pre class="highlight"><code class="language-bash">mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex params.txt</code></pre>
 <p>On a cluster you will probably need to submit a jobscript for the run. You should consult the system documentation, but some example jobscripts can be found in <a href="../example_configs/">Example configs for specific HPC systems</a> along with the <code>make.local-pre</code> files and module choices if relevant.</p>
               
             </div>
@@ -228,6 +221,9 @@
     <script>var base_url = "..";</script>
     <script src="../js/theme_extra.js"></script>
     <script src="../js/theme.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+      <script src="../javascripts/katex-render.js"></script>
       <script src="../search/main.js"></script>
     <script>
         jQuery(function () {
