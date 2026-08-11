@@ -4,6 +4,7 @@ repos:
     rev: v19.1.7
     hooks:
       - id: clang-format
+        types: [c, c++]
   # Shell format
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.11.0-1
