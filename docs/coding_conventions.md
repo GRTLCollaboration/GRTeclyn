@@ -6,9 +6,9 @@ We hope you appreciate the effort we have made to keep the code consistent and r
 
 ## Using Clang Format
 
-Note that we use the Clang Format tool to maintain a uniformly formatted code base. The settings are provided in the `.clang-format` file in the base directory of the code. 
+Note that we use the Clang Format tool to maintain a uniformly formatted code base. The settings are provided in the `.clang-format` file in the base directory of the code.
 
-We use `clang-format` to maintain our coding style, and it is enforced for any new pull requests to the `main` branch. However, even if you do not plan to contribute to the public code we recommend using it, as having a clear and consistently structured code helps avoid errors and makes your code more readable. 
+We use `clang-format` to maintain our coding style, and it is enforced for any new pull requests to the `main` branch. However, even if you do not plan to contribute to the public code we recommend using it, as having a clear and consistently structured code helps avoid errors and makes your code more readable.
 
 Note that some of the following instructions will only work with newer versions of Python (e.g. v3.6+). If you are working on a cluster, the system Python version may be too old (As of January 2020, Python 2 is deprecated and should be avoided.) and you may need to load a newer version from a module.
 
@@ -64,9 +64,9 @@ The next time you try to commit a change, it will configure the pre-commit hook 
 
 In general we follow the conventions found in the style guide for C++ [here](https://google.github.io/styleguide/cppguide.html).
 
-One of our key rules is that **variable names should not be abbreviated**. Everything should be called something recognisable, even if it takes longer to type. 
+One of our key rules is that **variable names should not be abbreviated**. Everything should be called something recognisable, even if it takes longer to type.
 
-All code should be commented frequently but concisely. Please provide references to a specific arXiv paper where you use a formula that is not generally known or which has several variants.  
+All code should be commented frequently but concisely. Please provide references to a specific arXiv paper where you use a formula that is not generally known or which has several variants.
 
 ---
 
@@ -81,7 +81,7 @@ All code should be commented frequently but concisely. Please provide references
 * Member variables m and underscore e.g. `m_level`
 * Function arguments a and underscore e.g. `a_level`
 * nth derivative is denoted by `d` + number e.g. `d1.chi`, `d2.chi` etc
-* Derivatives indices on tensors are located last, e.g. `d2_xy` of `A_ij` will be denoted as `d2.A[i][j][x][y]`. 
+* Derivatives indices on tensors are located last, e.g. `d2_xy` of `A_ij` will be denoted as `d2.A[i][j][x][y]`.
 * Specify tensor index types with upper case cap, e.g. `h_UU` is $h^{ij}$. If unmarked, the default is lower e.g. `h` is $h_{ij}$. (Note - two exceptions to this rule are `Gamma` / `chris.contracted` and `shift` which are both U.)
 * No abbreviations apart from:
   ```
@@ -115,40 +115,51 @@ Here are some things that you should do when using the code in terms of Git[Hub]
 * All branch names should be in lower case.
 * Any spaces in branch names should be replaced with underscores.
 * Please use `enhancement/your_branch_name` for any general code improvements and modifications of existing features, `feature/your_branch_name` for any new features  and `simulation/your_branch_name` for any edits to the code for the purpose of simulations. `bugfix/ISSUE_NUMBER` can be used for bug fixes, and should be linked to an issue.
-* When writing commit messages, please try to follow [this style
-  guide](https://cbea.ms/git-commit/). 
+* When writing commit messages, please try to follow [this style guide](https://cbea.ms/git-commit/).
 
   ![](https://imgs.xkcd.com/comics/git_commit.png)
 
-  In particular,
+  In particular:
+
   * Rather than writing one long message using a command such as
+
     ```bash
     git commit -m "My really really really long single-line commit message that goes on for far too long"
     ```
+
     do
+
     ```bash
     git commit
     ```
+
     which should open you into a text editor where you can separate out the
     short title of the commit from a more detailed description in the body (this
     is not always necessary for small changes).
-    > :information_source: **Note**
-    > The default editor is usually `vim` but if
-    > you prefer a different editor you can change it using the command
-    > ```bash
-    > git config --global core.editor "<my preferred text editor command>"
-    > ```
+
+    !!! note
+        The default editor is usually `vim` but if you prefer a different
+        editor you can change it using the command
+
+        ```bash
+        git config --global core.editor "<my preferred text editor command>"
+        ```
+
   * The _title_ of your commit message should be
+
     * Ideally less than 50 characters.
     * Written in the imperative mood i.e. it should complete the sentence
       "If applied, this commit will ...".
     * Start with a capital letter but omit the full stop.
+
   * The _body_ of your commit message (if necessary) should
+
     * Wrapped at 72 characters.
     * Explain _what_ and _why_ you have made the change.
     * Link to any relevant GitHub issues.
+
 * Rebase your commits to avoid lots of tiny ones! For example a commit that says
-  "forgot a semi-colon" should not exist. The command is 
+  "forgot a semi-colon" should not exist. The command is
   ```bash
   git rebase -i
   ```
