@@ -7,7 +7,7 @@
 
 # These files don't make sense on their own
 lint-only: *.impl.hpp
-Tests/CCZ4GeometryUnitTests/CCZ4GeometryMathematicaValues.hpp
+Tests/CCZ4GeometryUnitTests/CCZ4GeometryExpectedValues.hpp
 external/*
 
 # These directories/files have yet to be ported to AMReX
