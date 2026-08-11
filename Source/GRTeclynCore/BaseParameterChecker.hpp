@@ -9,7 +9,6 @@
 // General includes
 #include "ArrayTools.hpp"
 #include "BoundaryConditions.hpp"
-#include "CCZ4RHS.hpp"
 #include "FilesystemTools.hpp"
 #include "GRParmParse.hpp"
 #include "SphericalExtraction.hpp"
@@ -298,33 +297,6 @@ class BaseParameterChecker
         // check_parameter("min_chi", min_chi, (min_chi >= 0.0), "must be >=
         // 0.0"); check_parameter("min_lapse", min_lapse, (min_lapse >= 0.0)
         // "must be >= 0.0");
-
-        int formulation = CCZ4RHS<>::USE_CCZ4; // Whether to use BSSN or CCZ4
-        pp.queryAdd("formulation", formulation);
-
-        if (formulation != CCZ4RHS<>::USE_CCZ4 &&
-            formulation != CCZ4RHS<>::USE_BSSN)
-        {
-            pp.error("formulation", "must be 0 or 1");
-        }
-
-        if (formulation == CCZ4RHS<>::USE_CCZ4)
-        {
-            CCZ4_params_t::check_params();
-        }
-        else if (formulation == CCZ4RHS<>::USE_BSSN)
-        {
-            if (pp.contains("ccz4.kappa1") || pp.contains("ccz4.kappa2") ||
-                pp.contains("ccz4.kappa3"))
-            {
-                pp.warning("kappa1/2/3",
-                           "should not be provided with BSSN formulation, "
-                           "setting them all to zero");
-            }
-            pp.add("ccz4.kappa1", 0.0);
-            pp.add("ccz4.kappa2", 0.0);
-            pp.add("ccz4.kappa3", 0.0);
-        }
 
         // Extraction params
         bool activate_extraction = false;

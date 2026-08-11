@@ -1,25 +1,26 @@
-max_steps = 8
-stop_time = 2
+amr.max_steps = 8
+amr.stop_time = 2
 
 #################################################
 # Geometry and Boundary Conditions parameters
 
 # Periodic directions - 0 = false, 1 = true
-isPeriodic          =  1   1   1
-center              =  16 16 16
+geometry.is_periodic    =  1   1   1
+amr.center              =  16 16 16
 
-L_full              =  32     # geometric extent (same for all directions)
-N_full              =  64     # size of coarse grid
+geometry.prob_extent    =  32 32 32     # geometric extent (same for all directions)
+amr.n_cell              =  64 64 64     # size of coarse grid
 
 
 #################################################
 # AMR parameters
 
-verbosity           =  1
-max_level           =  0     # maximum level number allowed
-regrid_interval     =  2     # must be defined even if single level
-max_box_size        =  64    # maximum allowed grid size
-block_factor        =  16    # block factor
+amrex.verbose       = 1
+amr.verbose         = 1
+amr.max_level       =  0     # maximum level number allowed
+amr.regrid_int      =  2     # must be defined even if single level
+amr.max_grid_size   =  64    # maximum allowed grid size
+amr.blocking_factor        =  16    # block factor
 
 amr.v = 1
 
@@ -27,12 +28,9 @@ amr.v = 1
 
 ##################################################
 
-output_path = "."           # not used right now
 amr.plot_files_output = 1   # write plot files or not (overrides all other plot file commands)
 #How often to write plot files, can use either
-plot_interval = 1           # (hold over from GRChombo)
 amr.plot_int = 1            # (AMReX variable)
-checkpoint_interval = 8
 
 amr.checkpoint_files_output = 1  # write checkpoint files or not (overrides all other checkpoint options)
 amr.check_int = 8
@@ -42,13 +40,11 @@ amr.derive_plot_vars = ALL   #also write out derived parameters
 amr.plot_file = plt
 amr.check_file =chk
 
-
-rk_order = 4
-dt_multiplier = 0.2
+amr.dt_multiplier = 0.2
 sigma = 0.3 #coefficient for KO dissipation
 nan_check=True
 
-tag_buffer_size=1
+amr.n_error_buf=1
 
 #Klein Gordon Parameters
 # Choose from "Wave" or "SineGordon1D" or "SineGordon3D"
@@ -59,12 +55,11 @@ tag_buffer_size=1
 # can't be 0 because then the solution is uniformly 0
 
 klein_gordon.model = SineGordon3D
-klein_gordon.alpha = 0.7
+sine_gordon.alpha = 0.7
 klein_gordon.initial_time = -5.4;
-
 
 # Example parameters for Wave model
 # NB: wave_vector must be defined
 #klein_gordon.model = Wave
-#klein_gordon.wave_vector = 10.
-#klein_gordon.scalar_mass = 1      # potential is scalar_mass^2 phi^2 - only relevant for Wave models
+#wave.wave_vector = 10.
+#wave.scalar_mass = 1      # potential is scalar_mass^2 phi^2 - only relevant for Wave models

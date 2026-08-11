@@ -10,6 +10,7 @@
 #include "BaseParameterChecker.hpp"
 #include "GRParmParse.hpp"
 #include "PunctureTracker.hpp"
+#include "CCZ4RHS.hpp"
 
 class SimulationParameters : public BaseParameterChecker
 {
@@ -22,6 +23,33 @@ class SimulationParameters : public BaseParameterChecker
     void check_params()
     {
         GRParmParse pp;
+        int formulation = CCZ4RHS<>::USE_CCZ4; // Whether to use BSSN or CCZ4
+        pp.queryAdd("formulation", formulation);
+
+        if (formulation != CCZ4RHS<>::USE_CCZ4 &&
+            formulation != CCZ4RHS<>::USE_BSSN)
+        {
+            pp.error("formulation", "must be 0 or 1");
+        }
+
+        if (formulation == CCZ4RHS<>::USE_CCZ4)
+        {
+            CCZ4_params_t::check_params();
+        }
+        else if (formulation == CCZ4RHS<>::USE_BSSN)
+        {
+            if (pp.contains("ccz4.kappa1") || pp.contains("ccz4.kappa2") ||
+                pp.contains("ccz4.kappa3"))
+            {
+                pp.warning("kappa1/2/3",
+                           "should not be provided with BSSN formulation, "
+                           "setting them all to zero");
+            }
+            pp.add("ccz4.kappa1", 0.0);
+            pp.add("ccz4.kappa2", 0.0);
+            pp.add("ccz4.kappa3", 0.0);
+        }
+
         bool puncture_tracking_enabled{false};
         pp.queryAdd("puncture_tracking.enabled", puncture_tracking_enabled);
         if (puncture_tracking_enabled)

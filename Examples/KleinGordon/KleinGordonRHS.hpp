@@ -10,6 +10,7 @@
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "TensorAlgebra.hpp"
+#include "GRParmParse.hpp"
 
 // Problem specific includes
 #include "StateVariables.hpp"
@@ -20,8 +21,12 @@ class KleinGordonRHS
   public:
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    KleinGordonRHS(amrex::Real a_sigma, amrex::Real a_dx, model_t a_model)
-        : m_sigma(a_sigma), m_deriv(a_dx), m_model(a_model) {};
+    KleinGordonRHS(amrex::Real a_dx, model_t a_model)
+        : m_deriv(a_dx), m_model(a_model) 
+    {
+        GRParmParse pp;
+        pp.get("sigma", m_sigma);
+    };
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,

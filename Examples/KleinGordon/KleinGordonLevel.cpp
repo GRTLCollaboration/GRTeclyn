@@ -7,6 +7,7 @@
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "KleinGordonRHS.hpp"
+#include "StateTypes.hpp"
 #include <numeric>
 
 void KleinGordonLevel::variableSetUp()
@@ -38,7 +39,7 @@ void KleinGordonLevel::variableSetUp()
 
     amrex::ParmParse pp("klein_gordon");
     std::string model{};
-    pp.query("model", model);
+    pp.get("model", model);
 
     const int ncomp_rho{1}; // only one component associated with energy density
     const int nghosts_rho{2};
@@ -73,9 +74,9 @@ void KleinGordonLevel::initData()
     amrex::Real initial_time{0.0};
 
     amrex::ParmParse pp;
-    pp.query("center", center);
-    pp.query("klein_gordon.model", model);
-    pp.query("klein_gordon.initial_time", initial_time);
+    pp.get("amr.center", center);
+    pp.get("klein_gordon.model", model);
+    pp.get("klein_gordon.initial_time", initial_time);
 
     amrex::MultiFab &state_new = get_new_data(state_index);
     auto const &array_new      = state_new.arrays();
@@ -139,7 +140,7 @@ void KleinGordonLevel::eval_model_specific_rhs(amrex::MultiFab &a_soln,
     const auto &rhs_arrays        = a_rhs.arrays();
 
     model_t my_model;
-    KleinGordonRHS kg_rhs(simParams().sigma, dx, my_model);
+    KleinGordonRHS kg_rhs(dx, my_model);
 
     amrex::ParallelFor(
         a_soln,

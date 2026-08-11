@@ -18,7 +18,7 @@ calc_analytic_solution(amrex::MultiFab &mf_out, int dcomp, int /*numcomp*/,
 {
     amrex::ParmParse pp("klein_gordon");
     std::string model{};
-    pp.query("model", model);
+    pp.get("model", model);
 
     amrex::Real scalar_mass{0.0};
     pp.query("scalar_mass", scalar_mass);
@@ -85,7 +85,7 @@ AMREX_FORCE_INLINE void calc_analytic_mf_3d(amrex::MultiFab &mf_out, int dcomp,
     const auto dx = geom.CellSizeArray();
 
     std::array<amrex::Real, AMREX_SPACEDIM> center{};
-    pp.query("center", center);
+    pp.query("amr.center", center);
 
     model_t model;
 

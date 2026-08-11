@@ -31,7 +31,7 @@ bh2.momentum = 0.0  0.1 0.0
 # Grid parameters
 
 amr.n_cell = 32 32 16
-amr.prob_extent = 8 8 4
+geometry.prob_extent = 8 8 4
 
 amr.max_level = 0 # There are (max_level+1) levels
 
@@ -42,7 +42,7 @@ amr.blocking_factor = 16
 
 # tag_buffer_size = 3
 # num_ghosts = 3
-# center = 8 8 8 # defaults to center of the grid
+# amr.center = 8 8 8 # defaults to center of the grid
 
 #################################################
 # Boundary Conditions parameters

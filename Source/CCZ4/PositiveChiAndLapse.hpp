@@ -21,7 +21,7 @@ class PositiveChiAndLapse
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Constructor for class
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE PositiveChiAndLapse()
+    PositiveChiAndLapse()
     {
         GRParmParse pp;
         pp.get("min_chi", m_min_chi);
