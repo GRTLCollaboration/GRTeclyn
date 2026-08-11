@@ -242,16 +242,14 @@ class TwoPuncturesInitialData
         std::string initial_lapse = "psi^n";
         pp.queryAdd("initial_lapse", s_two_punctures.initial_lapse);
 
-        if (s_two_punctures.initial_lapse != "twopunctures-antisymmetric" &&
-            s_two_punctures.initial_lapse != "twopunctures-averaged" &&
-            s_two_punctures.initial_lapse != "psi^n" &&
-            s_two_punctures.initial_lapse != "brownsville")
-        {
-            std::string message  = "Parameter: two_punctures.initial_lapse: ";
-            message             += s_two_punctures.initial_lapse;
-            message             += " invalid";
-            amrex::Abort(message.c_str());
-        }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            s_two_punctures.initial_lapse == "twopunctures-antisymmetric" ||
+                s_two_punctures.initial_lapse == "twopunctures-averaged" ||
+                s_two_punctures.initial_lapse == "psi^n" ||
+                s_two_punctures.initial_lapse == "brownsville",
+            "two_punctures.initial_lapse must be one of "
+            "'twopunctures-antisymmetric', 'twopunctures-averaged', "
+            "'psi^n', or 'brownsville'");
         if (s_two_punctures.initial_lapse == "psi^n")
         {
             s_two_punctures.initial_lapse_psi_exponent = -2.0;
@@ -266,11 +264,7 @@ class TwoPuncturesInitialData
         pp.queryAdd("num_points_B", s_two_punctures.npoints_B);
         s_two_punctures.npoints_phi = 16;
         pp.queryAdd("num_points_phi", s_two_punctures.npoints_phi);
-        if (s_two_punctures.npoints_phi % 4 != 0)
-        {
-            amrex::Abort(
-                "two_punctures.num_points_phi must be a multiple of 4");
-        }
+        AMREX_ALWAYS_ASSERT(s_two_punctures.npoints_phi % 4 == 0);
 
         // solver parameters
         s_two_punctures.Newton_tol = 1.0e-10;
