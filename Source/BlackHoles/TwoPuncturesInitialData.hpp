@@ -89,8 +89,8 @@ class TwoPuncturesInitialData
         // CCZ4Vars vars(state_cell_data);
 
         Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_center);
-        Tensor<2, amrex::Real> h_phys, K_tensor;
-        Tensor<1, amrex::Real> shift, Z3;
+        Tensor::Sym12Rank2 h_phys, K_tensor;
+        Tensor::Rank1 shift, Z3;
         amrex::Real lapse, Theta;
 
         interpolate_tp_vars(coords, h_phys, K_tensor, state_cell_data[c_lapse],
@@ -106,7 +106,7 @@ class TwoPuncturesInitialData
         FOR (i)
         {
             // Bowen-York data is conformally flat
-            state_cell_data[VAR_IDX(c_h11, i, i)] = 1.0;
+            state_cell_data[sym_var_idx(c_h11, i, i)] = 1.0;
         }
 
         amrex::Real trace_A = 0.0;
@@ -114,26 +114,27 @@ class TwoPuncturesInitialData
         // extrinsic curvature
         FOR (i, j)
         {
-            state_cell_data[VAR_IDX(c_A11, i, j)] = chi * K_tensor[i][j];
+            state_cell_data[sym_var_idx(c_A11, i, j)] = chi * K_tensor(i, j);
             // conformal flatness
-            trace_A += state_cell_data[VAR_IDX(c_A11, i, j)] *
+            trace_A += state_cell_data[sym_var_idx(c_A11, i, j)] *
                        TensorAlgebra::delta(i, j);
         }
 
-        // Todo: Replace with TensorAlgebra::make_trace_free
+        // We choose not to use TensorAlgebra::make_trace_free so that we don't
+        // need to instantiate a temporary tensor object.
         amrex::Real one_over_gr_spacedim =
             1. / static_cast<amrex::Real>(GR_SPACEDIM);
         FOR (i)
         {
             // conformal flatness
-            state_cell_data[VAR_IDX(c_A11, i, i)] -=
+            state_cell_data[sym_var_idx(c_A11, i, i)] -=
                 one_over_gr_spacedim * trace_A;
         }
 
         // gauge
         FOR (i)
         {
-            state_cell_data[c_shift1 + i] = shift[i];
+            state_cell_data[c_shift1 + i] = shift(i);
         }
 
         // Z4 variables
