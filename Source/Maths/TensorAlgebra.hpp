@@ -7,7 +7,6 @@
 #define TENSORALGEBRA_HPP_
 
 // GRTeclyn includes
-#include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 #include "Tensor.hpp"
 
