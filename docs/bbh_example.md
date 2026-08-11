@@ -2,90 +2,49 @@
 
 The following gives some instructions on running the binary black hole example.
 
----
-
-NOTE: THE FOLLOWING EXAMPLE HAS NOT YET BEEN PORTED... UNDER CONSTRUCTION...
-
----
-
 ## Physical scenario
 
-This page describes running the Binary BH example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/BinaryBH/params.txt).
+This page describes running the Binary BH example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/BinaryBH/params_profile.txt).
 
 The initial conditions consist of a superposition of two equal mass black holes, with initial momenta and positions chosen to give approximately 10 circular orbits before merger.
 
 Note that finding the right momenta for an initial circular trajectory is in general a hard problem in NR - simply setting the momentum to the Newtonian approximation will result in elliptic orbits even for well separated initial BHs. One must use the Post-Newtonian approximations, and then adjust the momentum manually over several iterations to achieve an initial eccentricity of less than 1%. We are grateful to Dr Sebastian Khan at Cardiff University for providing us with these initial data values.
 
-Note that this is a realistic example but not production quality for generating BBH waveforms (one should probably have a larger wave zone, and better resolution at the horizon).
+Note that this is a realistic example but not production quality for generating BBH waveforms (one should have a larger wave zone, and better resolution at the horizon). Production level parameters are provided in `params_production.txt`.
 
-The initial data solves the Momentum constraint exactly but uses an approximation for low boosts to solve the Hamiltonian constraint (see [Baumgarte and Shapiro](https://doi.org/10.1017/CBO9781139193344), pg 73-74) which is accurate up to order P⁴, where P is the momentum of the BH. One could also use our [[Two Punctures Initial Data | TwoPunctures Initial Data]] extension (best for vacuum binaries) or [GRTresna](https://github.com/GRTLCollaboration/GRTresna) (for binaries with additional field content) to solve the Hamiltonian constraint if higher accuracy is required.
+The initial data solves the Momentum constraint exactly but uses an approximation for low boosts to solve the Hamiltonian constraint (see [Baumgarte and Shapiro](https://doi.org/10.1017/CBO9781139193344), pg 73-74) which is accurate up to order P⁴, where P is the momentum of the BH.
+
+One can also use the [**Two Punctures Initial Data**](two_punctures.md) extension for more accurate initial data, in which case one needs to use `params_twopunctures.txt`.
 
 ## Computational set up
 
-See the general comments on compiling and running examples in [[Running examples | Running examples]].
+Please read the [Performance Optimisation](performance_optimisation.md) guide to understand how to divide the domain into boxes that are shared over the MPI ranks, as this is crucial for obtaining good performance on HPC systems. When GRTeclyn regrids (always at the first step, and at later steps as requested by the user), it will output the grid setup to the output file. This tells you how many boxes are on each level, and what their sizes are. This is very useful for understanding if you are load balancing appropriately.
 
-For this specific example, with `max_box_size = min_box_size = 16` (set in `params.txt`) there will be approximately 800 boxes on the finest levels (which are the most important for the load balancing - see [[Performance optimisation | Performance optimisation]]), so for good load balancing, one could run the example with 200 ranks on 200 cores with 4 boxes per core. However, normally the memory per rank will not be sufficient, and the job will either run out of memory and crash, or (worse) just run *very* slowly. In this case better performance can be obtained by using 200 ranks x 4 openMP threads = 800 cores. The OpenMP threads then share the work in each box, providing a further speed up, whilst having more cores per rank provides more memory. On the [CSD3 HPC system in Cambridge](https://www.hpc.cam.ac.uk/high-performance-computing) one achieves roughly 50 M/hr at t = 10M in this configuration, setting `OPT = HIGH` (which turns off checking of assertion statements), `DEBUG = FALSE` and using AVX512 vectorisation. Since the stop time is t = 2200M, this implies a run time of just less than 2 days.
-(If fewer cores are available, an alternative is to set `max_box_size = min_box_size = 32` and run on 96 ranks x 4 openMP threads = 384 cores, which gives roughly two boxes per rank, and a speed of approx 25 M/hr.)
+The parameters should be mostly self explanatory if you are familiar with NR, but you can look at the [**Parameters**](parameters.md) guide for more details.
 
-Here is an example jobscript for the CSD3 machine (see your cluster docs for a template for your own system):
+Typically, on a CPU system, dividing the domain up into 16^3 boxes, and running on 512 CPU cores with 512 MPI ranks, we obtain a speed of 30 M/hr in code units. The speed is output at every timestep to the output file. This is just a rough measure obtained by dividing the current simulation time by the total runtime, so if the simulation freezes it won't go immediately to zero.
 
-```bash
+Typically, on a GPU system, dividing the domain up into 32^3 boxes, and running on 8 GPUs (1 node) with 8 MPI ranks, we obtain a speed of 300 M/hr in code units.
 
-    #! Name of the job:
-    #SBATCH -J BBH
-    #! Which project should be charged:
-    #SBATCH -A <account name>
-    #! How many whole nodes should be allocated?
-    #SBATCH --nodes=25
-    #! How many (MPI) tasks will there be in total? (<= nodes*32)
-    #! The skylake nodes have 32 CPUs (cores) each.
-    #SBATCH --ntasks=200
-    #! How many CPUs per tasks should be allocated (for OpenMP threading)
-    #SBATCH --cpus-per-task=4
-    #! How much wallclock time will be required?
-    #SBATCH --time=1-12:00:00
-    #! For 6GB per CPU, set "-p skylake"
-    #SBATCH -p skylake
-
-    #! Number of nodes and tasks per node allocated by SLURM (do not change):
-    mpi_tasks_per_node=$(echo "$SLURM_TASKS_PER_NODE" | sed -e  's/^\([0-9][0-9]*\).*$/\1/')
-
-    #! Full path to application executable:
-    application="Main_BinaryBH3d.Linux.64.mpicxx.ifort.OPTHIGH.MPI.OPENMPCC.ex"
-    #! Run options for the application:
-    options="params.txt"
-
-    #! Are you using OpenMP?
-    export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-
-    #! The following variables define a sensible pinning strategy for Intel MPI tasks -
-    #! this should be suitable for both pure MPI and hybrid MPI/OpenMP jobs:
-    export I_MPI_PIN_DOMAIN=omp:compact # Domains are $OMP_NUM_THREADS cores in size
-    export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
-
-    CMD="mpirun -ppn $mpi_tasks_per_node -np $SLURM_NTASKS $application $options"
-
-    eval $CMD
-```
-
+If you are seeing speeds significantly less than these you may have some memory bottleneck on your system. It will be worth trying to resolve this rather than running at a slower speed - your system admins should be able to advise on how to do this.
 
 ## Checking the outputs
 
 ### Viewing data in VisIt
 
-See [[Visualising Ouputs | Visualising Outputs]] for further details on visualising with VisIt.
+See [**Visualising Ouputs**](visualising_outputs.md) for details on visualising. Note that checkpoint files are not viewable with AMReX, only plot files are.
 
-The most enlightening variable to look at in the outputs is chi, the conformal factor of the metric, which goes to zero at the centres of the BHs. When the Pseudocolour plot is viewed on a slice through the centre of the grid, normal to the z axis, the black holes should be seen to inspiral and merge.
+The most enlightening variable to look at in the outputs is chi, the conformal factor of the metric, which goes to zero at the centres of the BHs. When (for example in VisIt) the Pseudocolour plot is viewed on a slice through the centre of the grid, normal to the z axis, the black holes should be seen to inspiral and merge.
 
-Note that you can look at these files even when the job is still running. It is always a good idea to check the files after a few timesteps.
+Note that you can look at these files even when the job is still running. It is always a good idea to check the files after a few timesteps to make sure it is doing something sensible.
 
 ### Puncture plots
 
-The example also outputs some ASCII datafiles for post processing. Firstly, it gives a file `BinaryBHChk_Punctures.dat` which gives the location at each timestep of the two BHs.
+The example also outputs some ASCII datafiles for post processing in a `data` folder. Firstly, it gives a file `punctures.dat` which gives the location at each timestep of the two BHs.
 
 This can be plotted using a `gnuplot` command:
 
-`f='BinaryBHChk_Punctures.dat'; L=256; plot f using ($2-L):($3-L) with lines, f using ($5-L):($6-L) with lines`
+`f='punctures.dat'; L=256; plot f using ($2-L):($3-L) with lines, f using ($5-L):($6-L) with lines`
 
 or a `python` script such as:
 
@@ -107,7 +66,7 @@ L = 256
 # half the separation of punctures
 r = 6
 # output data from running merger
-data = np.loadtxt("BinaryBHChk_Punctures.dat")
+data = np.loadtxt("data/punctures.dat")
 
 # make the plot
 fig = plt.figure()
@@ -132,9 +91,7 @@ plt.ylim(-r-1,r+1)
 plt.savefig("PunctureTracks.png")
 ```
 
-The resulting image should look like this one:
-
-![](https://github.com/GRTLCollaboration/GRChombo/wiki/files/BBHPunctures.png)
+The resulting image should look like ![this](img/BBHPunctures.png).
 
 ### Gravitational Wave plots
 
@@ -193,10 +150,8 @@ filename = "Weyl_" + mode + ".png"
 plt.savefig(filename)
 ```
 
-The resulting image should look like this one:
-
-![](https://github.com/GRTLCollaboration/GRChombo/wiki/files/WeylScalar22.png)
+The resulting image should look like ![this](img/WeylScalar22.png).
 
 ### What next?
 
-Congratulations - you have successfully run a binary black hole simulation with GRTeclyn! We suggest that you try amending some of the variables in params.txt and rerun the code to understand what they do (see the [[Guide to parameters | Guide to parameters]] for helpful info).
+Congratulations - you have successfully run a binary black hole simulation with GRTeclyn! We suggest that you try amending some of the variables in the parameters and rerun the code to understand what they do.

@@ -276,7 +276,7 @@ The packing step changes the order from `A, B, C` to `A, C, B`, so that all answ
 
 <p style="text-align: center;">
   <img
-    src="../images/grteclyn-interpolation-cartoon.png"
+    src="../img/grteclyn-interpolation-cartoon.png"
     alt="Particle interpolation MPI communication"
     width="700">
 </p>
