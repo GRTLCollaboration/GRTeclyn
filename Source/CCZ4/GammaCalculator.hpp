@@ -6,58 +6,42 @@
 #ifndef GAMMACALCULATOR_HPP_
 #define GAMMACALCULATOR_HPP_
 
-#include "Cell.hpp"
-#include "Coordinates.hpp"
+#include "CCZ4Geometry.hpp"
+#include "CCZ4Vars.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "GRInterval.hpp"
-#include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
-#include "Tensor.hpp"
-#include "TensorAlgebra.hpp"
-#include "VarsTools.hpp"
-#include "simd.hpp"
+#include "StateVariables.hpp"
 
 class GammaCalculator
 {
-    // Only variables needed are metric
-    template <class data_t> struct Vars
-    {
-        Tensor<2, data_t> h;
-
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            VarsTools::define_symmetric_enum_mapping(
-                mapping_function, GRInterval<c_h11, c_h33>(), h);
-        }
-    };
-
-  protected:
-    const FourthOrderDerivatives
-        m_deriv; //!< An object for calculating derivatives of the variables
-
   public:
-    GammaCalculator(double a_dx) : m_deriv(a_dx) {}
-
-    void compute(Cell current_cell) const
+    AMREX_GPU_HOST_DEVICE
+        AMREX_FORCE_INLINE explicit GammaCalculator(double a_dx)
+        : m_deriv(a_dx)
     {
-        // copy data from chombo gridpoint into local variables, and calc 1st
-        // derivs
-        Vars<amrex::Real> vars;
-        load_vars(current_cell, vars);
-        // TODO: Port this code
-        // This code hasn't been ported to GRTeclyn.
-        // We've just removed templating over data_t.
-        const auto d1 = m_deriv.template diff1<Vars>(current_cell);
-
-        using namespace TensorAlgebra;
-        const auto h_UU  = compute_inverse_sym(vars.h);
-        const auto chris = compute_christoffel(d1.h, h_UU);
-
-        // assign values of Gamma^k = h_UU^ij * \tilde{Gamma}^k_ij in the output
-        // FArrayBox
-        current_cell.store_vars(chris.contracted,
-                                GRInterval<c_Gamma1, c_Gamma3>());
     }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &state) const
+    {
+        const amrex::CellData<amrex::Real> &state_cell_data =
+            state.cellData(ix, iy, iz);
+        const amrex::CellData<const amrex::Real> &const_state_cell_data =
+            state_cell_data;
+        const CCZ4Vars vars(const_state_cell_data);
+
+        const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
+        const auto d1_h = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
+        const auto christoffel = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+
+        FOR (i)
+        {
+            state_cell_data[c_Gamma1 + i] = christoffel.contracted(i);
+        }
+    }
+
+  private:
+    FourthOrderDerivatives m_deriv;
 };
 
 #endif /* GAMMACALCULATOR_HPP_ */

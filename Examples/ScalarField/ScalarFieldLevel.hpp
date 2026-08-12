@@ -8,48 +8,30 @@
 
 #include "DefaultLevelFactory.hpp"
 #include "GRAMRLevel.hpp"
-// Problem specific includes
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 
-//!  A class for the evolution of a scalar field, minimally coupled to gravity
-/*!
-     The class takes some initial data for a scalar field (variables phi and Pi)
-     and evolves it using the CCZ4 equations. It is possible to specify an
-   initial period of relaxation for the conformal factor chi, for non analytic
-   initial conditions (for example, a general field configuration at a moment of
-   time symmetry assuming conformal flatness). \sa MatterCCZ4(),
-   ConstraintsMatter(), ScalarField(), RelaxationChi()
-*/
+/// Evolution level for a real scalar field minimally coupled to gravity.
 class ScalarFieldLevel : public GRAMRLevel
 {
-    friend class DefaultLevelFactory<ScalarFieldLevel>;
-    // Inherit the contructors from GRAMRLevel
+  public:
     using GRAMRLevel::GRAMRLevel;
 
-    // Typedef for scalar field
-    typedef ScalarField<Potential> ScalarFieldWithPotential;
+    using ScalarFieldWithPotential = ScalarField<Potential>;
 
-    //! Things to do at the end of the advance step, after RK4 calculation
-    virtual void specificAdvance();
+    static void variableSetUp();
 
-    //! Initialize data for the field and metric variables
-    virtual void initialData();
+    void specificAdvance() override;
 
-    //! RHS routines used at each RK4 step
-    virtual void specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
-                                 const double a_time);
+    void initData() override;
 
-    //! Things to do in UpdateODE step, after soln + rhs update
-    virtual void specificUpdateODE(GRLevelData &a_soln,
-                                   const GRLevelData &a_rhs, Real a_dt);
+    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                         double a_time) override;
 
-    /// Things to do before tagging cells (i.e. filling ghosts)
-    virtual void preTagCells() override;
+    void specificUpdateODE(amrex::MultiFab &a_soln) override;
 
-    //! Tell Chombo how to tag cells for regridding
-    virtual void computeTaggingCriterion(FArrayBox &tagging_criterion,
-                                         const FArrayBox &current_state);
+    void tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                   amrex::Real a_regrid_threshold) final;
 };
 
 #endif /* SCALARFIELDLEVEL_HPP_ */

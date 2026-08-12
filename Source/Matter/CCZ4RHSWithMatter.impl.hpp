@@ -15,14 +15,22 @@ template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
     CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
     double a_sigma, int a_formulation, double a_G_Newton)
-    : CCZ4RHS<gauge_t, deriv_t>(a_params, a_dx, a_sigma, a_formulation,
-                                0.0 /*No cosmological constant*/),
-      m_G_Newton(a_G_Newton)
+    : CCZ4RHSWithMatter(matter_t{}, a_params, a_dx, a_sigma, a_formulation,
+                        a_G_Newton)
 {
 }
 
 template <class matter_t, class gauge_t, class deriv_t>
-template <int formulation, int use_covariant_Z4>
+CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
+    matter_t a_matter, CCZ4_params_t<typename gauge_t::params_t> a_params,
+    double a_dx, double a_sigma, int a_formulation, double a_G_Newton)
+    : CCZ4RHS<gauge_t, deriv_t>(a_params, a_dx, a_sigma, a_formulation,
+                                0.0 /*No cosmological constant*/),
+      m_matter(a_matter), m_G_Newton(a_G_Newton)
+{
+}
+
+template <class matter_t, class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
     const int ix, const int iy, const int iz,

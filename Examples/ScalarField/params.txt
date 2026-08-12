@@ -1,5 +1,4 @@
-# See the wiki page for an explanation of the params!
-# https://github.com/GRChombo/GRChombo/wiki/Guide-to-parameters
+# See the documentation for an explanation of the parameters.
 
 #################################################
 # Filesystem parameters
@@ -7,10 +6,9 @@
 verbosity = 0
 
 # location / naming of output files
-# output_path = "" # Main path for all files. Must exist!
-chk_prefix = ScalarField_
-plot_prefix = ScalarFieldp_
-# restart_file = ScalarField_000000.3d.hdf5
+output_path = .
+amr.check_file = ScalarFieldChk_
+amr.plot_file = ScalarFieldPlot_
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
 checkpoint_interval = 500
@@ -38,19 +36,11 @@ print_progress_only_to_rank_0 = 1
 
 # Change the gravitational constant of the Universe!
 # Default is 1.0, for standard geometric units
-# Here we decouple the evolution so the scalar evolved on the
-# metric background without backreaction (this avoids the need
-# to solve the constaints)
-G_Newton = 0.0
+# The fitted oscillaton solution uses geometric units with G = 1.
+G_Newton = 1.0
 
-# Scalar field initial data
-scalar_amplitude = 0.1
-scalar_width = 5.0
-scalar_mass = 0.2
-
-# Kerr BH data
-kerr_mass = 1.0
-kerr_spin = 0.0
+# The oscillaton fit is expressed in units of the scalar mass.
+scalar_mass = 1.0
 
 #################################################
 # Grid parameters
@@ -75,8 +65,6 @@ max_level = 6 # There are (max_level+1) grids, so min is zero
 # Level Regridding: 0   1   2   3   4   5
 regrid_interval   = 0   0   0   0   0   0
 # regrid_threshold  = 0.5
-
-regrid_interval = 0 0 0 0 0 0
 
 # Max and min box sizes
 max_box_size = 16

@@ -41,6 +41,12 @@ class ScalarField
     //!  Constructor of class ScalarField, inputs are the matter parameters.
     ScalarField() = default;
 
+    AMREX_GPU_HOST_DEVICE
+        AMREX_FORCE_INLINE explicit ScalarField(potential_t a_potential)
+        : m_potential(a_potential)
+    {
+    }
+
     using Vars = ScalarFieldVars;
 
     //! The function which calculates the EM Tensor, given the vars and

@@ -6,36 +6,38 @@
 #ifndef POTENTIAL_HPP_
 #define POTENTIAL_HPP_
 
-#include "simd.hpp"
+#include "ScalarFieldVars.hpp"
+
+#include <AMReX_GpuQualifiers.H>
+#include <AMReX_REAL.H>
 
 class Potential
 {
   public:
     struct params_t
     {
-        double scalar_mass;
+        amrex::Real scalar_mass{1.0};
     };
 
-  private:
-    params_t m_params;
+    Potential() = default;
 
-  public:
-    //! The constructor
-    Potential(params_t a_params) : m_params(a_params) {}
-
-    //! Set the potential function for the scalar field here
-    template <class data_t, template <typename> class vars_t>
-    void compute_potential(data_t &V_of_phi, data_t &dVdphi,
-                           const vars_t<data_t> &vars) const
+    AMREX_GPU_HOST_DEVICE
+        AMREX_FORCE_INLINE explicit Potential(params_t a_params)
+        : m_params(a_params)
     {
-        // The potential value at phi
-        // 1/2 m^2 phi^2
-        V_of_phi = 0.5 * pow(m_params.scalar_mass * vars.phi, 2.0);
-
-        // The potential gradient at phi
-        // m^2 phi
-        dVdphi = pow(m_params.scalar_mass, 2.0) * vars.phi;
     }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
+                      const ScalarFieldVars &vars) const
+    {
+        const amrex::Real mass_times_phi = m_params.scalar_mass * vars.phi();
+        V_of_phi = 0.5 * mass_times_phi * mass_times_phi;
+        dVdphi   = m_params.scalar_mass * m_params.scalar_mass * vars.phi();
+    }
+
+  private:
+    params_t m_params{};
 };
 
 #endif /* POTENTIAL_HPP_ */

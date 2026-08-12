@@ -164,8 +164,8 @@ void run_bssn_matter_test()
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
-                current_ccz4_rhs.operator()<CCZ4RHS<>::USE_BSSN, covariantZ4>(
-                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+                current_ccz4_rhs(ix, iy, iz, out_mf_array[ibox],
+                                 in_c_array[ibox]);
             });
 
         // NOLINTEND(bugprone-easily-swappable-parameters)

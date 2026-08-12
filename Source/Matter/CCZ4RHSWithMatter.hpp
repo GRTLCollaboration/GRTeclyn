@@ -49,9 +49,12 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
                       int a_formulation = CCZ4RHS<>::USE_CCZ4,
                       double a_G_Newton = 1.0);
 
+    CCZ4RHSWithMatter(matter_t a_matter, params_t a_params, double a_dx,
+                      double a_sigma, int a_formulation = CCZ4RHS<>::USE_CCZ4,
+                      double a_G_Newton = 1.0);
+
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
-    template <int formulation, int use_covariant_Z4>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(const int ix, const int iy, const int iz,
                const amrex::Array4<amrex::Real> &rhs_state,

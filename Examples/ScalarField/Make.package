@@ -1,0 +1,9 @@
+GRTECLYN_CEXE_sources += Main_ScalarField.cpp \
+                         ScalarFieldLevel.cpp
+
+GRTECLYN_CEXE_headers += OscillatonInitialData.hpp \
+                         OscillatonInitialData.impl.hpp \
+                         Potential.hpp \
+                         ScalarFieldLevel.hpp \
+                         SimulationParameters.hpp \
+                         StateVariables.hpp

@@ -14,11 +14,9 @@ external/*
 Source/AMRInterpolator/*
 Source/ParticleInterpolators/*
 Source/Grids/SixthOrderDerivatives.hpp
-Source/CCZ4/GammaCalculator.hpp
 Source/CCZ4/IntegratedMovingPunctureGauge.hpp
 Source/BlackHoles/KerrBH*
 Source/IO/MultiLevelTask.hpp
-Examples/ScalarField/*
 Tests/.*
 
 # These are old files we don't want to change

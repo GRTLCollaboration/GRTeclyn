@@ -3,115 +3,191 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-// General includes common to most GR problems
 #include "ScalarFieldLevel.hpp"
-#include "BoxLoops.hpp"
-#include "NanCheck.hpp"
-#include "PositiveChiAndAlpha.hpp"
-#include "SixthOrderDerivatives.hpp"
+
+#include "CCZ4RHSWithMatter.hpp"
+#include "FixedGridsTagger.hpp"
+#include "GammaCalculator.hpp"
+#include "MovingPunctureGaugeWithMatter.hpp"
+#include "OscillatonInitialData.hpp"
+#include "PositiveChiAndLapse.hpp"
+#include "StateTypes.hpp"
 #include "TraceARemoval.hpp"
 
-// For RHS update
-#include "MatterCCZ4RHS.hpp"
+#include <type_traits>
 
-// For constraints calculation
-#include "NewMatterConstraints.hpp"
+void ScalarFieldLevel::variableSetUp()
+{
+    BL_PROFILE("ScalarFieldLevel::variableSetUp()");
+    stateVariableSetUp();
+}
 
-// For tag cells
-#include "FixedGridsTaggingCriterion.hpp"
-
-// Problem specific includes
-#include "ComputePack.hpp"
-#include "GammaCalculator.hpp"
-#include "InitialScalarData.hpp"
-#include "KerrBH.hpp"
-#include "Potential.hpp"
-#include "ScalarField.hpp"
-#include "SetValue.hpp"
-
-// Things to do at each advance step, after the RK4 is calculated
 void ScalarFieldLevel::specificAdvance()
 {
-    // Enforce trace free A_ij and positive chi and alpha
-    BoxLoops::loop(
-        make_compute_pack(TraceARemoval(),
-                          PositiveChiAndAlpha(m_p.min_chi, m_p.min_lapse)),
-        m_state_new, m_state_new, INCLUDE_GHOST_CELLS);
+    BL_PROFILE("ScalarFieldLevel::specificAdvance()");
 
-    // Check for nan's
-    if (m_p.nan_check)
-        BoxLoops::loop(NanCheck(), m_state_new, m_state_new,
-                       EXCLUDE_GHOST_CELLS, disable_simd());
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto &state_arrays   = state_new.arrays();
+
+    const TraceARemoval trace_A_removal;
+    const PositiveChiAndLapse positive_chi_and_lapse;
+
+    amrex::ParallelFor(state_new,
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       {
+                           trace_A_removal(ix, iy, iz, state_arrays[box_no]);
+                           positive_chi_and_lapse(ix, iy, iz,
+                                                  state_arrays[box_no]);
+                       });
+    amrex::Gpu::streamSynchronize();
 }
 
-// Initial data for field and metric variables
-void ScalarFieldLevel::initialData()
+void ScalarFieldLevel::initData()
 {
-    BL_PROFILE("ScalarFieldLevel::initialData");
-    if (m_verbosity)
-        amrex::Print() << "ScalarFieldLevel::initialData " << m_level << endl;
+    BL_PROFILE("ScalarFieldLevel::initData()");
 
-    // First set everything to zero then initial conditions for scalar field -
-    // here a Kerr BH and a scalar field profile
-    BoxLoops::loop(
-        make_compute_pack(SetValue(0.), KerrBH(m_p.kerr_params, m_dx),
-                          InitialScalarData(m_p.initial_params, m_dx)),
-        m_state_new, m_state_new, INCLUDE_GHOST_CELLS);
-
-    fillAllGhosts();
-    BoxLoops::loop(GammaCalculator(m_dx), m_state_new, m_state_new,
-                   EXCLUDE_GHOST_CELLS);
-}
-
-// Things to do in RHS update, at each RK4 step
-void ScalarFieldLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
-                                       const double a_time)
-{
-    // Enforce trace free A_ij and positive chi and alpha
-    BoxLoops::loop(
-        make_compute_pack(TraceARemoval(),
-                          PositiveChiAndAlpha(m_p.min_chi, m_p.min_lapse)),
-        a_soln, a_soln, INCLUDE_GHOST_CELLS);
-
-    // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
-    Potential potential(m_p.potential_params);
-    ScalarFieldWithPotential scalar_field(potential);
-    if (m_p.max_spatial_derivative_order == 4)
+    if (m_verbosity > 0)
     {
-        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
-                      FourthOrderDerivatives>
-            my_ccz4_matter(scalar_field, m_p.ccz4_params, m_dx, m_p.sigma,
-                           m_p.formulation, m_p.G_Newton);
-        BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+        amrex::Print() << "ScalarFieldLevel::initData " << Level() << "\n";
     }
-    else if (m_p.max_spatial_derivative_order == 6)
+
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto &state_arrays   = state_new.arrays();
+
+    const OscillatonInitialData initial_data(simParams().initial_params,
+                                             Geom().CellSize(0));
+    static_assert(std::is_trivially_copyable_v<OscillatonInitialData>,
+                  "OscillatonInitialData must be device copyable");
+
+    amrex::ParallelFor(state_new, state_new.nGrowVect(),
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       {
+                           const amrex::CellData<amrex::Real> cell =
+                               state_arrays[box_no].cellData(ix, iy, iz);
+                           for (int component = 0; component < cell.nComp();
+                                ++component)
+                           {
+                               cell[component] = 0.0;
+                           }
+                           initial_data(ix, iy, iz, state_arrays[box_no]);
+                       });
+
+    const GammaCalculator gamma_calculator(Geom().CellSize(0));
+    amrex::ParallelFor(state_new,
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       { gamma_calculator(ix, iy, iz, state_arrays[box_no]); });
+
+    amrex::Gpu::streamSynchronize();
+}
+
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
+                                       amrex::MultiFab &a_rhs,
+                                       const double /*a_time*/)
+{
+    BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
+
+    const auto &soln_arrays       = a_soln.arrays();
+    const auto &const_soln_arrays = a_soln.const_arrays();
+    const auto &rhs_arrays        = a_rhs.arrays();
+
+    const TraceARemoval trace_A_removal;
+    const PositiveChiAndLapse positive_chi_and_lapse;
+
+    amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       {
+                           trace_A_removal(ix, iy, iz, soln_arrays[box_no]);
+                           positive_chi_and_lapse(ix, iy, iz,
+                                                  soln_arrays[box_no]);
+                       });
+
+    if (simParams().max_spatial_derivative_order != 4)
     {
-        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
-                      SixthOrderDerivatives>
-            my_ccz4_matter(scalar_field, m_p.ccz4_params, m_dx, m_p.sigma,
-                           m_p.formulation, m_p.G_Newton);
-        BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+        amrex::Abort("ScalarField currently supports fourth-order spatial "
+                     "derivatives only");
     }
+
+    const Potential potential(simParams().potential_params);
+    const ScalarFieldWithPotential scalar_field(potential);
+    const CCZ4RHSWithMatter<ScalarFieldWithPotential,
+                            MovingPunctureGaugeWithMatter,
+                            FourthOrderDerivatives>
+        ccz4_rhs(scalar_field, simParams().ccz4_params, Geom().CellSize(0),
+                 simParams().sigma, simParams().formulation,
+                 simParams().G_Newton);
+
+    amrex::ParallelFor(a_rhs,
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       {
+                           ccz4_rhs.compute_chi_and_h_ij(
+                               ix, iy, iz, rhs_arrays[box_no],
+                               const_soln_arrays[box_no]);
+                       });
+
+    amrex::ParmParse pp; // NOLINT(readability-identifier-length)
+    int formulation{0};
+    int covariant_Z4{1};
+    pp.query("formulation", formulation);
+    pp.query("covariantZ4", covariant_Z4);
+
+    using MatterRHS = CCZ4RHSWithMatter<ScalarFieldWithPotential,
+                                        MovingPunctureGaugeWithMatter,
+                                        FourthOrderDerivatives>;
+    amrex::AnyCTO(
+        amrex::TypeList<
+            amrex::CompileTimeOptions<MatterRHS::formulations::USE_CCZ4,
+                                      MatterRHS::formulations::USE_BSSN>,
+            amrex::CompileTimeOptions<MatterRHS::covariantZ4::YES,
+                                      MatterRHS::covariantZ4::NO>>{},
+        {formulation, covariant_Z4},
+        [&](auto cto_func) { amrex::ParallelFor(a_rhs, cto_func); },
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz,
+                             auto formulation_option, auto covariant_Z4_option)
+        {
+            ccz4_rhs.template compute_A_ij_and_Theta_and_Gamma<
+                formulation_option, covariant_Z4_option>(
+                ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
+        });
+
+    amrex::ParallelFor(a_rhs,
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       {
+                           ccz4_rhs.calculate_gauge_rhs(
+                               ix, iy, iz, rhs_arrays[box_no],
+                               const_soln_arrays[box_no]);
+                           ccz4_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                   const_soln_arrays[box_no]);
+                       });
+
+    amrex::Gpu::streamSynchronize();
 }
 
-// Things to do at ODE update, after soln + rhs
-void ScalarFieldLevel::specificUpdateODE(GRLevelData &a_soln,
-                                         const GRLevelData &a_rhs, Real a_dt)
+void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
-    // Enforce trace free A_ij
-    BoxLoops::loop(TraceARemoval(), a_soln, a_soln, INCLUDE_GHOST_CELLS);
+    BL_PROFILE("ScalarFieldLevel::specificUpdateODE()");
+
+    const auto &soln_arrays = a_soln.arrays();
+    const TraceARemoval trace_A_removal;
+
+    amrex::ParallelFor(a_soln, amrex::IntVect(0),
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       { trace_A_removal(ix, iy, iz, soln_arrays[box_no]); });
+    amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::preTagCells()
+void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                                 const amrex::Real /*a_regrid_threshold*/)
 {
-    // we don't need any ghosts filled for the fixed grids tagging criterion
-    // used here so don't fill any
-}
+    BL_PROFILE("ScalarFieldLevel::tag_cells()");
 
-void ScalarFieldLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
-                                               const FArrayBox &current_state)
-{
-    BoxLoops::loop(
-        FixedGridsTaggingCriterion(m_dx, m_level, 2.0 * m_p.L, m_p.center),
-        current_state, tagging_criterion);
+    const auto &tag_arrays = a_tag_box_array.arrays();
+    const FixedGridsTagger tagger(Geom().CellSize(0), Level(),
+                                  Geom().ProbLength(0),
+                                  simParams().initial_params.center);
+
+    amrex::ParallelFor(a_tag_box_array,
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       { tagger(ix, iy, iz, tag_arrays[box_no]); });
+    amrex::Gpu::streamSynchronize();
 }
