@@ -42,18 +42,18 @@ class GRAMR : public amrex::Amr
     set_simulation_parameters(const SimulationParameters &a_sim_params);
     static const SimulationParameters &get_simulation_parameters();
 
-    [[nodiscard]] double get_walltime_since_start() const;
+    [[nodiscard]] amrex::Real get_walltime_since_start() const;
 
-    [[nodiscard]] double get_restart_time() const;
+    [[nodiscard]] amrex::Real get_restart_time() const;
 
   private:
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static const SimulationParameters *m_sim_params;
 
-    void set_restart_time(double a_restart_time);
+    void set_restart_time(amrex::Real a_restart_time);
 
-    double m_start_walltime{std::nan("0.0")};
-    double m_restart_time{0.0};
+    amrex::Real m_start_walltime{std::nan("0.0")};
+    amrex::Real m_restart_time{0.0};
 };
 
 #endif /* GRAMR_HPP_ */
