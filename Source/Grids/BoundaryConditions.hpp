@@ -51,7 +51,7 @@ class BoundaryConditions
         bool extrapolating_boundaries_exist{};
         bool mixed_boundaries_exist{};
 
-        std::array<double, NUM_VARS> vars_asymptotic_values{};
+        std::array<amrex::Real, NUM_VARS> vars_asymptotic_values{};
         std::map<int, int> mixed_bc_vars_map;
         int extrapolation_order{1};
         params_t(); // sets the defaults
@@ -72,7 +72,7 @@ class BoundaryConditions
     amrex::Geometry m_geom;   // the problem domain (excludes boundary cells)
     bool is_defined{
         false}; // whether the BoundaryConditions class members are defined
-    mutable amrex::Gpu::DeviceVector<double> m_asymptotic_values;
+    mutable amrex::Gpu::DeviceVector<amrex::Real> m_asymptotic_values;
 
   public:
     /// Default constructor - need to call define afterwards
@@ -85,14 +85,14 @@ class BoundaryConditions
     BoundaryConditions &operator=(BoundaryConditions &&)      = delete;
 
     /// define function sets members and is_defined set to true
-    void define(std::array<double, AMREX_SPACEDIM> a_center,
+    void define(std::array<amrex::Real, AMREX_SPACEDIM> a_center,
                 const params_t &a_params, const amrex::Geometry &a_geom,
                 int a_num_ghosts);
 
     /// change the asymptotic values of the variables for the Sommerfeld BCs
     /// this will allow them to evolve during a simulation if necessary
     void set_vars_asymptotic_values(
-        std::array<double, NUM_VARS> &vars_asymptotic_values);
+        std::array<amrex::Real, NUM_VARS> &vars_asymptotic_values);
 
     /// write out boundary params (used during setup for debugging)
     static void write_boundary_conditions(const params_t &a_params);

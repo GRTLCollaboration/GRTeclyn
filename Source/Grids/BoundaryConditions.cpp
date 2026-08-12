@@ -139,7 +139,7 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
         std::vector<int> nonzero_asymptotic_vars;
         StateVariablesParmParse::load_vars_to_vector(
             pp, "nonzero_asymptotic_vars", nonzero_asymptotic_vars);
-        const double default_value = 0.0;
+        const amrex::Real default_value = 0.0;
         StateVariablesParmParse::load_values_to_array(
             pp, "nonzero_asymptotic_values", nonzero_asymptotic_vars,
             vars_asymptotic_values, default_value);
@@ -182,9 +182,9 @@ void BoundaryConditions::params_t::read_params(GRParmParse &pp)
 }
 
 /// define function sets members and is_defined set to true
-void BoundaryConditions::define(std::array<double, AMREX_SPACEDIM> a_center,
-                                const params_t &a_params,
-                                const amrex::Geometry &a_geom, int a_num_ghosts)
+void BoundaryConditions::define(
+    std::array<amrex::Real, AMREX_SPACEDIM> a_center, const params_t &a_params,
+    const amrex::Geometry &a_geom, int a_num_ghosts)
 {
     m_num_ghosts = a_num_ghosts;
     m_params     = a_params;
@@ -199,7 +199,7 @@ void BoundaryConditions::define(std::array<double, AMREX_SPACEDIM> a_center,
 /// change the asymptotic values of the variables for the Sommerfeld BCs
 /// this will allow them to evolve during a simulation if necessary
 void BoundaryConditions::set_vars_asymptotic_values(
-    std::array<double, NUM_VARS> &vars_asymptotic_values)
+    std::array<amrex::Real, NUM_VARS> &vars_asymptotic_values)
 {
     m_params.vars_asymptotic_values = vars_asymptotic_values;
 }
@@ -464,7 +464,7 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                         }
                         // asymptotic values - these need to have been set in
                         // the params file
-                        double radius =
+                        amrex::Real radius =
                             std::sqrt(loc[0] * loc[0] + loc[1] * loc[1] +
                                       loc[2] * loc[2]);
                         rhs(i, j, k, n) =
@@ -689,9 +689,9 @@ void BoundaryConditions::fill_sommerfeld_cell(
     amrex::RealVect loc(a_iv + 0.5 * RealVect::Unit);
     loc *= m_dx;
     loc -= m_center;
-    double radius_squared = 0.0;
+    amrex::Real radius_squared = 0.0;
     FOR(i) { radius_squared += loc[i] * loc[i]; }
-    double radius = sqrt(radius_squared);
+    amrex::Real radius = sqrt(radius_squared);
     amrex::IntVect lo_local_offset = a_iv - soln_box.smallEnd();
     amrex::IntVect hi_local_offset = soln_box.bigEnd() - a_iv;
 
@@ -703,7 +703,7 @@ void BoundaryConditions::fill_sommerfeld_cell(
         {
             amrex::IntVect iv_offset1 = a_iv;
             amrex::IntVect iv_offset2 = a_iv;
-            double d1;
+            amrex::Real d1;
             // bit of work to get the right stencils for near
             // the edges of the domain, only using second order
             // stencils for now
@@ -760,12 +760,12 @@ void BoundaryConditions::fill_extrapolating_cell(
     for (int icomp : extrapolating_comps)
     {
         // current radius
-        double radius = Coordinates<double>::get_radius(
+        amrex::Real radius = Coordinates<amrex::Real>::get_radius(
             iv, m_dx, {m_center[0], m_center[1], m_center[2]});
 
         // vector of 2 nearest values and radii within the grid
-        std::array<double, 2> value_at_point;
-        std::array<double, 2> r_at_point;
+        std::array<amrex::Real, 2> value_at_point;
+        std::array<amrex::Real, 2> r_at_point;
         // how many units are we from domain boundary?
         int units_from_edge = 0;
         if (a_side == Side::Hi)
@@ -789,7 +789,7 @@ void BoundaryConditions::fill_extrapolating_cell(
                     }
                 }
                 value_at_point[i] = out_box(iv_tmp, icomp);
-                r_at_point[i] = Coordinates<double>::get_radius(
+                r_at_point[i] = Coordinates<amrex::Real>::get_radius(
                     iv_tmp, m_dx, {m_center[0], m_center[1], m_center[2]});
             }
         }
@@ -814,13 +814,13 @@ void BoundaryConditions::fill_extrapolating_cell(
                     }
                 }
                 value_at_point[i] = out_box(iv_tmp, icomp);
-                r_at_point[i] = Coordinates<double>::get_radius(
+                r_at_point[i] = Coordinates<amrex::Real>::get_radius(
                     iv_tmp, m_dx, {m_center[0], m_center[1], m_center[2]});
             }
         }
 
         // assume some radial dependence and fit it
-        double analytic_change = 0.0;
+        amrex::Real analytic_change = 0.0;
         // comp = const
         if (order == 0)
         {
@@ -829,10 +829,10 @@ void BoundaryConditions::fill_extrapolating_cell(
         // comp = B + A*r
         else if (order == 1)
         {
-            double delta_r_in_domain = r_at_point[1] - r_at_point[0];
-            double A =
+            amrex::Real delta_r_in_domain = r_at_point[1] - r_at_point[0];
+            amrex::Real A =
                 (value_at_point[1] - value_at_point[0]) / delta_r_in_domain;
-            double delta_r_here = radius - r_at_point[0];
+            amrex::Real delta_r_here = radius - r_at_point[0];
             analytic_change = A * delta_r_here;
         }
         // other orders not supported yet
