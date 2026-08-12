@@ -24,7 +24,7 @@
 class SmallDataIO
 {
   public:
-    using column_t = std::vector<double>;
+    using column_t = std::vector<amrex::Real>;
 
     //! Choose between appending data to the same file, writing to a new file
     //! at each timestep or reading a file.
@@ -56,9 +56,9 @@ class SmallDataIO
 
   protected:
     std::string m_filename;
-    double m_dt;
-    double m_time;
-    double m_restart_time;
+    amrex::Real m_dt;
+    amrex::Real m_time;
+    amrex::Real m_restart_time;
     int m_step{};
     Mode m_mode;
     bool m_first_step; // this should be set to true if this is the first
@@ -67,11 +67,11 @@ class SmallDataIO
     static constexpr int s_default_data_precision = 10;
     int m_data_precision;
     int m_data_width;
-    double m_data_epsilon; //!< the maximum data precision error
+    amrex::Real m_data_epsilon; //!< the maximum data precision error
     static constexpr int s_default_coords_precision = 7;
     int m_coords_precision;
     int m_coords_width;
-    double m_coords_epsilon; //!< the maximum coords precision error
+    amrex::Real m_coords_epsilon; //!< the maximum coords precision error
     static constexpr int s_default_filename_steps_width = 6;
 
     std::fstream m_file;
@@ -89,8 +89,8 @@ class SmallDataIO
 
   public:
     //! The full constructor (reading and writing)
-    SmallDataIO(const std::string &a_filename_prefix, double a_dt,
-                double a_time, double a_restart_time, Mode a_mode,
+    SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
+                amrex::Real a_time, amrex::Real a_restart_time, Mode a_mode,
                 bool a_first_step, const file_structure_t *a_file_structure,
                 const std::string &a_file_extension = s_default_file_extension,
                 int a_data_precision                = s_default_data_precision,
@@ -98,8 +98,8 @@ class SmallDataIO
                 int a_filename_steps_width = s_default_filename_steps_width);
 
     //! Constructors for writing (opens file)
-    SmallDataIO(const std::string &a_filename_prefix, double a_dt,
-                double a_time, double a_restart_time, Mode a_mode,
+    SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
+                amrex::Real a_time, amrex::Real a_restart_time, Mode a_mode,
                 bool a_first_step,
                 const std::string &a_file_extension = s_default_file_extension,
                 int a_data_precision                = s_default_data_precision,
@@ -108,8 +108,8 @@ class SmallDataIO
 
     //! Old constructor which assumes SmallDataIO is called in
     //! specificPostTimeStep
-    SmallDataIO(const std::string &a_filename_prefix, double a_dt,
-                double a_time, double a_restart_time, Mode a_mode,
+    SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
+                amrex::Real a_time, amrex::Real a_restart_time, Mode a_mode,
                 const std::string &a_file_extension = s_default_file_extension,
                 int a_data_precision                = s_default_data_precision,
                 int a_coords_precision     = s_default_coords_precision,
@@ -159,17 +159,17 @@ class SmallDataIO
     //! Writes a data line
     //! Use this for 0D or 1D data, where the first column is either the time or
     //! another coordinate.
-    void write_data_line(const std::vector<double> &a_data,
-                         const double a_coord);
+    void write_data_line(const std::vector<amrex::Real> &a_data,
+                         const amrex::Real a_coord);
 
     //! Writes a data line for a specific time.
-    void write_time_data_line(const std::vector<double> &a_data);
+    void write_time_data_line(const std::vector<amrex::Real> &a_data);
 
     //! Writes a data line
     //! Use this for 1D or 2D data when the first two or more columns are
     //! coordinates.
-    void write_data_line(const std::vector<double> &a_data,
-                         const std::vector<double> &a_coords = {});
+    void write_data_line(const std::vector<amrex::Real> &a_data,
+                         const std::vector<amrex::Real> &a_coords = {});
 
     //! This just adds a double line break to the file.
     void line_break();
@@ -182,13 +182,13 @@ class SmallDataIO
 
     //! Get the data associated to specific coordinates from the file
     //! Note only the first line with the given coordinates is obtained
-    void get_specific_data_line(std::vector<double> &a_out_data,
-                                const std::vector<double> &a_coords);
+    void get_specific_data_line(std::vector<amrex::Real> &a_out_data,
+                                const std::vector<amrex::Real> &a_coords);
 
     //! Get the data associated to a specific coordinate (e.g. time) from the
     //! file
-    void get_specific_data_line(std::vector<double> &a_out_data,
-                                const double a_coord);
+    void get_specific_data_line(std::vector<amrex::Real> &a_out_data,
+                                const amrex::Real a_coord);
 
     // Set structure if known already (e.g. same as another file already
     // determined)
@@ -221,8 +221,8 @@ class SmallDataIO
                                          int a_data_column);
 
     // Returns a vector of numeric values from a header row
-    void get_data_from_header(std::vector<double> &out, int a_header_row_number,
-                              int a_block) const;
+    void get_data_from_header(std::vector<amrex::Real> &out,
+                              int a_header_row_number, int a_block) const;
 
     // Returns a vector of strings from a header row
     void get_header_strings(std::vector<std::string> &header,
@@ -242,21 +242,21 @@ class SmallDataIO
     //! returns the full filename of a file created in NEW mode at time=a_time
     //! with dt=a_dt
     static std::string get_new_filename(
-        const std::string &a_file_prefix, double a_dt, double a_time,
+        const std::string &a_file_prefix, amrex::Real a_dt, amrex::Real a_time,
         const std::string &a_file_extension = s_default_file_extension,
         int a_filename_steps_width          = s_default_filename_steps_width);
 
     //! returns m_data_epsilon
-    double get_data_epsilon() const;
+    amrex::Real get_data_epsilon() const;
 
     //! returns the default data_epsilon
-    static double get_default_data_epsilon();
+    static amrex::Real get_default_data_epsilon();
 
     //! returns m_coords_epsilon
-    double get_coords_epsilon() const;
+    amrex::Real get_coords_epsilon() const;
 
     //! returns the default coords epsilon
-    static double get_default_coords_epsilon();
+    static amrex::Real get_default_coords_epsilon();
 };
 
 #endif /* SMALLDATAIO_HPP_ */
