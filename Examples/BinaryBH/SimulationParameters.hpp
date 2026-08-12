@@ -57,10 +57,10 @@ class SimulationParameters : public SimulationParametersBase
         // Get the centers of the BHs either explicitly or as
         // an offset (not both, or they will be offset from center
         // provided)
-        std::array<double, AMREX_SPACEDIM> centerA{};
-        std::array<double, AMREX_SPACEDIM> centerB{};
-        std::array<double, AMREX_SPACEDIM> offsetA{};
-        std::array<double, AMREX_SPACEDIM> offsetB{};
+        std::array<amrex::Real, AMREX_SPACEDIM> centerA{};
+        std::array<amrex::Real, AMREX_SPACEDIM> centerB{};
+        std::array<amrex::Real, AMREX_SPACEDIM> offsetA{};
+        std::array<amrex::Real, AMREX_SPACEDIM> offsetB{};
         pp.load("centerA", centerA, center);
         pp.load("centerB", centerB, center);
         pp.load("offsetA", offsetA, {0.0, 0.0, 0.0});
@@ -177,8 +177,8 @@ class SimulationParameters : public SimulationParametersBase
             std::string nameA = "centerA[" + std::to_string(idir) + "]";
             std::string nameB = "centerB[" + std::to_string(idir) + "]";
             // NOLINTBEGIN(cppcoreguidelines-init-variables)
-            double center_A_dir = bh1_params.center[idir];
-            double center_B_dir = bh2_params.center[idir];
+            amrex::Real center_A_dir = bh1_params.center[idir];
+            amrex::Real center_B_dir = bh2_params.center[idir];
             // NOLINTEND(cppcoreguidelines-init-variables)
             warn_parameter(nameA, center_A_dir,
                            (center_A_dir >= 0.0) &&

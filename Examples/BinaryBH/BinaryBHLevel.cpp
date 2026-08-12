@@ -108,7 +108,7 @@ void BinaryBHLevel::initData()
 
 #else
     // Set up the compute class for the BinaryBH initial data
-    double dx = Geom().CellSize(0);
+    amrex::Real dx = Geom().CellSize(0);
     BinaryBHInitialData binary_initial_data(simParams().bh1_params,
                                             simParams().bh2_params, dx);
 
@@ -152,7 +152,7 @@ void BinaryBHLevel::initData()
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
-                                    const double /*a_time*/)
+                                    const amrex::Real /*a_time*/)
 {
     BL_PROFILE("BinaryBHLevel::specificEvalRHS()");
     const auto &soln_arrays       = a_soln.arrays();
