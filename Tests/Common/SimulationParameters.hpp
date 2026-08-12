@@ -12,16 +12,18 @@
 #include "PunctureTracker.hpp"
 #include "CCZ4RHS.hpp"
 
-class SimulationParameters : public BaseParameterChecker
+class SimulationParameters
 {
   public:
     // NOLINTNEXTLINE(readability-identifier-length)
-    SimulationParameters() : BaseParameterChecker() { check_params(); }
+    SimulationParameters() = delete;
 
     /// Read shared parameters
     // NOLINTNEXTLINE(readability-identifier-length)
-    void check_params()
+    static void check_params()
     {
+        BaseParameterChecker::check_params();
+
         GRParmParse pp;
         int formulation = CCZ4RHS<>::USE_CCZ4; // Whether to use BSSN or CCZ4
         pp.queryAdd("formulation", formulation);

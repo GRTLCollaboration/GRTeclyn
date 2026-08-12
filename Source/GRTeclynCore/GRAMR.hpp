@@ -38,10 +38,6 @@ class GRAMR : public amrex::Amr
 
     void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override;
 
-    static void
-    set_simulation_parameters(const SimulationParameters &a_sim_params);
-    static const SimulationParameters &get_simulation_parameters();
-
     double get_walltime_since_start() const;
 
     double get_restart_time() const;

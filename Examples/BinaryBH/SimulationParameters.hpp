@@ -19,27 +19,30 @@
 #include "TP_Parameters.hpp"
 #endif
 
-class SimulationParameters : public BaseParameterChecker
+class SimulationParameters
 {
   public:
     // NOLINTNEXTLINE(readability-identifier-length)
-    SimulationParameters() : BaseParameterChecker()
-    {
-        GRParmParse pp;
+    SimulationParameters() = delete;
 
+    static void check_params()
+    {
+        BaseParameterChecker::check_params();
+
+        GRParmParse pp;
         read_shared_params(pp);
 #ifdef USE_TWOPUNCTURES
         read_tp_params(pp);
+        check_tp_params(pp);
 #else
         BoostedBHInitialData::params_t::check_params(1);
         BoostedBHInitialData::params_t::check_params(2);
 #endif
-        check_params();
     }
 
     /// Read shared parameters
     // NOLINTNEXTLINE(readability-identifier-length)
-    void read_shared_params(GRParmParse &pp)
+    static void read_shared_params(GRParmParse &pp)
     {
 
         int formulation = CCZ4RHS<>::USE_CCZ4; // Whether to use BSSN or CCZ4
@@ -234,11 +237,9 @@ class SimulationParameters : public BaseParameterChecker
         tp_params.mp_adm                          = 0;
         tp_params.mm_adm                          = 0;
     }
-#endif /* USE_TWOPUNCTURES */
 
-    void check_params()
+    void check_tp_params()
     {
-#ifdef USE_TWOPUNCTURES
         // These checks are mostly taken from the Einstein Toolkit thorn
         // documentation:
         // https://einsteintoolkit.org/thornguide/EinsteinInitialData/TwoPunctures/documentation.html
@@ -289,15 +290,10 @@ class SimulationParameters : public BaseParameterChecker
                         "must be >= 0.0");
         check_parameter("TP_Extend_Radius", tp_params.TP_Extend_Radius,
                         tp_params.TP_Extend_Radius >= 0., "must be >= 0.0");
-#endif /* USE_TWOPUNCTURES */
     }
-
-#ifdef USE_TWOPUNCTURES
     double tp_offset_plus, tp_offset_minus;
     TP::Parameters tp_params;
 #endif
-    SphericalExtraction::params_t
-        extraction_params; // TODO: Remove once extraction is fixed
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP */

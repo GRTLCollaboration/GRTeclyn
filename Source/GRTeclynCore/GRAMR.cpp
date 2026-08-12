@@ -14,16 +14,6 @@ GRAMR::GRAMR(amrex::LevelBld *a_levelbld) : amrex::Amr(a_levelbld) {}
 
 GRAMR::~GRAMR() = default;
 
-void GRAMR::set_simulation_parameters(const SimulationParameters &a_sim_params)
-{
-    m_sim_params = &a_sim_params;
-}
-
-const SimulationParameters &GRAMR::get_simulation_parameters()
-{
-    return *m_sim_params;
-}
-
 void GRAMR::init(amrex::Real a_strt_time, amrex::Real a_stop_time)
 {
     amrex::Amr::init(a_strt_time, a_stop_time);

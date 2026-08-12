@@ -16,7 +16,6 @@ void GRAMRLevel::stateVariableSetUp()
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
                            &amrex::cell_quartic_interp);
 
-    BoundaryConditions::params_t boundary_params = simParams().boundary_params;
     BoundaryConditions boundary_conditions;
     boundary_conditions.define(amrex::DefaultGeometry());
 
@@ -91,11 +90,6 @@ GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
 }
 
 GRAMRLevel::~GRAMRLevel() = default;
-
-const SimulationParameters &GRAMRLevel::simParams()
-{
-    return GRAMR::get_simulation_parameters();
-}
 
 GRAMR *GRAMRLevel::get_gramr_ptr()
 {

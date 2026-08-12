@@ -269,8 +269,9 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     bool activate_extraction{};
     pp.get("activate_extraction", activate_extraction);
 
+    SphericalExtraction::params_t extraction_params; // TODO: Remove once extraction is fixed
     ExtractionTagger extraction_tagger(Geom().CellSize(0), Level(),
-                                       simParams().extraction_params,
+                                       extraction_params,
                                        activate_extraction);
 
     constexpr auto num_puncture_coords =

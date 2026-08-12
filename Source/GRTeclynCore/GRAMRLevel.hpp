@@ -40,8 +40,6 @@ class GRAMRLevel : public amrex::AmrLevel
 
     ~GRAMRLevel() override;
 
-    static const SimulationParameters &simParams();
-
     GRAMR *get_gramr_ptr();
 
     /**

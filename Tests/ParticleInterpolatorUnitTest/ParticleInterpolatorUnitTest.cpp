@@ -58,12 +58,10 @@ void run_particle_interpolator_test()
     char **new_argv = new_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(new_argc, new_argv);
+    amrex::Initialize(new_argc, new_argv, std::function<void()>(SimulationParameters::check_params));
     {
         // Simulation parameters
         GRParmParse pp;
-        SimulationParameters sim_params;
-        GRAMR::set_simulation_parameters(sim_params);
         ParticleInterpolatorLevel::variableSetUp();
 
         // Set the center
@@ -148,17 +146,21 @@ void run_particle_interpolator_test()
             .setCoords(2, interp_z_local.data())
             .addComp(0, B_local.data(), VariableType::state);
 
+        // TODO: Redo how this is filled/passed in
+        BoundaryConditions::params_t boundary_params;
+        boundary_params.fill_params();
+
         // set up interpolation using Particles for derived vars
         ParticleInterpolator<1> interpolator_derived;
 
-        interpolator_derived.setup(&gr_amr, sim_params.boundary_params,
+        interpolator_derived.setup(&gr_amr, boundary_params,
                                    verbosity);
         interpolator_derived.interp(query_derived,
                                     PolynomialDerivedQuantity::name, 0.0);
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;
-        interpolator_state.setup(&gr_amr, sim_params.boundary_params,
+        interpolator_state.setup(&gr_amr, boundary_params,
                                  verbosity);
         interpolator_state.interp(query_state);
 

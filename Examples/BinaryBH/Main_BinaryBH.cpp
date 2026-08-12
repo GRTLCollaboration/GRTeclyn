@@ -29,14 +29,12 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
     GRParmParse pp; // NOLINT(readability-identifier-length)
-    SimulationParameters sim_params;
 
     if (pp.contains("check_params"))
     {
         return 0;
     }
 
-    GRAMR::set_simulation_parameters(sim_params);
     DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
 
 #ifdef USE_TWOPUNCTURES

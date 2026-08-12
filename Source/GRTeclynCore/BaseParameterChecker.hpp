@@ -26,14 +26,15 @@ using extraction_params_t = SphericalExtraction::params_t;
 class BaseParameterChecker
 {
   public:
-    BaseParameterChecker()
+    BaseParameterChecker() = delete;
+    
+    static void check_params()
     {
         check_amrex_params();
-
         check_grteclyn_params();
     }
 
-    void check_amrex_params()
+    static void check_amrex_params()
     {
         GRParmParse amr_pp("amr");
 
@@ -174,12 +175,17 @@ class BaseParameterChecker
         geom_pp.queryAdd("is_periodic", is_periodic);
 
         // Periodicity and boundaries
+        // TODO: Improve so params don't need to be filled
         BoundaryConditions::params_t::check_params();
-
+        BoundaryConditions::params_t boundary_params;
         boundary_params.fill_params();
 
         // Work out the default center, factoring in reflective boundaries
-        // Assumes prob_lo = 0 0 0 (the default)
+        
+        if (geom_pp.contains("prob_lo") || geom_pp.contains("prob_hi"))
+        {
+            geom_pp.warning("prob_lo/hi", "not implemented, assumed to be (0,0,0) and prob_extent");
+        }
 
         std::array<double, AMREX_SPACEDIM> center{};
         FOR (idir)
@@ -265,7 +271,7 @@ class BaseParameterChecker
         // reflective_domain_lo/hi
     }
 
-    void check_grteclyn_params()
+    static void check_grteclyn_params()
     {
         GRParmParse pp;
         double dt_multiplier;
@@ -318,14 +324,9 @@ class BaseParameterChecker
 
     // boundaries.
 
-    // Boundary conditions
-    BoundaryConditions::params_t boundary_params; // set boundaries in each dir
-
   protected:
     // the low and high corners of the domain taking into account reflective BCs
     // only used in parameter checks hence protected
-    std::array<double, AMREX_SPACEDIM> reflective_domain_lo{},
-        reflective_domain_hi{};
 
     // use this error function instead of MayDay::error as this will only
     // print from rank 0

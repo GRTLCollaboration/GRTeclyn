@@ -10,12 +10,15 @@
 #include "BaseParameterChecker.hpp"
 #include "GRParmParse.hpp"
 
-class SimulationParameters : public BaseParameterChecker
+class SimulationParameters
 {
   public:
-    SimulationParameters(GRParmParse &pp) : BaseParameterChecker()
+    SimulationParameters(GRParmParse &pp) = delete;
+
+    static void check_params()
     {
-        pp.load("num_points", num_points, 2);
+       BaseParameterChecker::check_params();
+       pp.load("num_points", num_points, 2);
     }
 
     int num_points;

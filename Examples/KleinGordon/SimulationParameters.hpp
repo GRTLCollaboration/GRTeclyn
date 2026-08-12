@@ -15,22 +15,17 @@
 #include "Wave.hpp"
 #include "SineGordon.hpp"
 
-class SimulationParameters : public BaseParameterChecker
+class SimulationParameters
 {
   public:
     // NOLINTNEXTLINE(readability-identifier-length)
-    SimulationParameters() : BaseParameterChecker()
-    {
-        // These parameters normally get read in inside SimulationParametersBase
-        // but as this example doesn't use a lot of the other (CCZ4) parameters
-        // this particular SimulationParameters class doesn't inherit from it.
-
-        read_klein_gordon_params();
-    }
+    SimulationParameters() = delete;
 
     // NOLINTNEXTLINE(readability-identifier-length)
-    void read_klein_gordon_params()
+    static void check_params()
     {
+        BaseParameterChecker::check_params();
+
         GRParmParse kg_pp("klein_gordon");
 
         // If the wave number isn't found in the params file

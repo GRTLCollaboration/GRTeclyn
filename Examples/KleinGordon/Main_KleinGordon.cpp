@@ -20,9 +20,6 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
     GRParmParse pp; // NOLINT(readability-identifier-length)
-    SimulationParameters sim_params;
-
-    GRAMR::set_simulation_parameters(sim_params);
 
     std::string model{};
     pp.get("klein_gordon.model", model);

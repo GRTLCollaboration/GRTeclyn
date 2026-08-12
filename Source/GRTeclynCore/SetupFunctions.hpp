@@ -13,6 +13,8 @@
 #include "FilesystemTools.hpp"
 #include "GRAMR.hpp"
 #include "GRParmParse.hpp"
+#include "SimulationParameters.hpp"
+#include "GRTeclyn_Version.hpp"
 
 #ifdef EQUATION_DEBUG_MODE
 #include "DebuggingTools.hpp"
@@ -35,7 +37,15 @@ void mainSetup(int argc, char *argv[])
 {
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
     // NOLINTNEXTLINE(bugprone-casting-through-void)
-    amrex::Initialize(argc, argv);
+    amrex::Initialize(argc, argv, std::function<void()>(SimulationParameters::check_params));
+
+    if (amrex::ParallelDescriptor::IOProcessor())
+    {
+        std::ofstream ofs("parameters_and_version.txt");
+        ofs << "Using GRTeclyn version (" << GRTECLYN_GIT_VERSION << ")\n\n";
+        GRParmParse pp;
+        pp.prettyPrintTable(ofs);
+    }
 
 #ifdef EQUATION_DEBUG_MODE
     EquationDebugging::check_no_omp();
