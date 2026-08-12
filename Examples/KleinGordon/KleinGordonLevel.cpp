@@ -69,7 +69,7 @@ void KleinGordonLevel::initData()
 {
     BL_PROFILE("KleinGordonLevel::initData()");
 
-    std::array<double, AMREX_SPACEDIM> center{};
+    std::array<amrex::Real, AMREX_SPACEDIM> center{};
     std::string model{};
     amrex::Real initial_time{0.0};
 
@@ -108,7 +108,7 @@ void KleinGordonLevel::initData()
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                        amrex::MultiFab &a_rhs,
-                                       const double a_time)
+                                       const amrex::Real a_time)
 {
     BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
 
@@ -172,7 +172,7 @@ void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
     const amrex::Real dx         = Geom().CellSize(0);
     const int current_level      = Level();
     const amrex::Real box_length = Geom().ProbLength(0);
-    std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
+    std::array<amrex::Real, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
     GRParmParse pp;
     pp.query("center", center);
 
