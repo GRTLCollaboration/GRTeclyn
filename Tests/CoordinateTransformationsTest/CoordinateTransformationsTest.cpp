@@ -26,8 +26,9 @@
 
 namespace
 {
-constexpr int ulp             = 15; // units in the last place
-constexpr double real_epsilon = std::numeric_limits<amrex::Real>::epsilon();
+constexpr int ulp = 15; // units in the last place
+constexpr amrex::Real real_epsilon =
+    std::numeric_limits<amrex::Real>::epsilon();
 
 void check_tensor(const Tensor::Rank2 &tensor,
                   const Tensor::Rank2 &correct_tensor,

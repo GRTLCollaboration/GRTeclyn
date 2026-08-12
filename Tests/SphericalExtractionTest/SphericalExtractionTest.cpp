@@ -68,19 +68,23 @@ void run_spherical_extraction_test()
 
         bool broadcast_integral = true;
 
-        std::pair<std::vector<double>, std::vector<double>>
+        std::pair<std::vector<amrex::ParticleReal>,
+                  std::vector<amrex::ParticleReal>>
             integral_lo_trapezium, integral_hi_trapezium;
-        std::pair<std::vector<double>, std::vector<double>> integral_lo_simpson,
-            integral_hi_simpson;
-        std::pair<std::vector<double>, std::vector<double>> integral_lo_boole,
-            integral_hi_boole;
+        std::pair<std::vector<amrex::ParticleReal>,
+                  std::vector<amrex::ParticleReal>>
+            integral_lo_simpson, integral_hi_simpson;
+        std::pair<std::vector<amrex::ParticleReal>,
+                  std::vector<amrex::ParticleReal>>
+            integral_lo_boole, integral_hi_boole;
 
         std::vector<int> state_vars = {c_phi_Re, c_phi_Im};
 
         // Real part is the zeroth component and imaginary part is the first
         // component
         SphericalExtraction<2>::complex_function_t extracted_harmonic =
-            [](std::vector<double> &data, double, double, double)
+            [](std::vector<amrex::ParticleReal> &data, amrex::ParticleReal,
+               amrex::ParticleReal, amrex::ParticleReal)
         { return std::make_pair(data[0], data[1]); };
 
         {
@@ -160,37 +164,41 @@ void run_spherical_extraction_test()
              iradius < sim_params.extraction_params_lo.num_extraction_radii();
              ++iradius)
         {
-            double r =
+            amrex::ParticleReal r =
                 sim_params.extraction_params_lo.extraction_radii()[iradius];
 
             // NOLINTBEGIN(cppcoreguidelines-init-variables)
-            double integral_re_lo_trapezium =
+            amrex::ParticleReal integral_re_lo_trapezium =
                 integral_lo_trapezium.first[iradius];
-            double integral_re_hi_trapezium =
+            amrex::ParticleReal integral_re_hi_trapezium =
                 integral_hi_trapezium.first[iradius];
-            double integral_re_lo_simpson = integral_lo_simpson.first[iradius];
-            double integral_re_hi_simpson = integral_hi_simpson.first[iradius];
-            double integral_re_lo_boole   = integral_lo_boole.first[iradius];
-            double integral_re_hi_boole   = integral_hi_boole.first[iradius];
+            amrex::ParticleReal integral_re_lo_simpson =
+                integral_lo_simpson.first[iradius];
+            amrex::ParticleReal integral_re_hi_simpson =
+                integral_hi_simpson.first[iradius];
+            amrex::ParticleReal integral_re_lo_boole =
+                integral_lo_boole.first[iradius];
+            amrex::ParticleReal integral_re_hi_boole =
+                integral_hi_boole.first[iradius];
             // NOLINTEND(cppcoreguidelines-init-variables)
 
-            double analytic_integral = 1.0;
+            amrex::ParticleReal analytic_integral = 1.0;
 
-            double convergence_factor_trapezium =
+            amrex::ParticleReal convergence_factor_trapezium =
                 std::abs((integral_re_lo_trapezium - analytic_integral) /
                          (integral_re_hi_trapezium - analytic_integral));
-            double convergence_factor_simpson =
+            amrex::ParticleReal convergence_factor_simpson =
                 std::abs((integral_re_lo_simpson - analytic_integral) /
                          (integral_re_hi_simpson - analytic_integral));
-            double convergence_factor_boole =
+            amrex::ParticleReal convergence_factor_boole =
                 std::abs((integral_re_lo_boole - analytic_integral) /
                          (integral_re_hi_boole - analytic_integral));
 
-            double convergence_order_trapezium =
+            amrex::ParticleReal convergence_order_trapezium =
                 std::log2(convergence_factor_trapezium);
-            double convergence_order_simpson =
+            amrex::ParticleReal convergence_order_simpson =
                 std::log2(convergence_factor_simpson);
-            double convergence_order_boole =
+            amrex::ParticleReal convergence_order_boole =
                 std::log2(convergence_factor_boole);
 
             INFO("At r = " << r);

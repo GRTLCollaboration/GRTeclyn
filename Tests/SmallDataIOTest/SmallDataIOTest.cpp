@@ -9,11 +9,11 @@
 // Test header
 #include "SmallDataIOTest.hpp"
 
-std::vector<double> generate_random_numbers(const int Npts)
+std::vector<amrex::Real> generate_random_numbers(const int Npts)
 {
-    amrex::Gpu::DeviceVector<double> data_device(Npts);
+    amrex::Gpu::DeviceVector<amrex::Real> data_device(Npts);
     amrex::FillRandom(data_device.begin(), Npts);
-    std::vector<double> data_host(Npts);
+    std::vector<amrex::Real> data_host(Npts);
 
     amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, data_device.begin(),
                           data_device.end(), data_host.begin());
@@ -23,8 +23,8 @@ std::vector<double> generate_random_numbers(const int Npts)
     return data_host;
 }
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-bool check_almost_equal(std::vector<double> vector_1,
-                        std::vector<double> vector_2, double err_tol)
+bool check_almost_equal(std::vector<amrex::Real> vector_1,
+                        std::vector<amrex::Real> vector_2, amrex::Real err_tol)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // Check that the vector_1 is equal to vector_2 within err_tol
@@ -112,7 +112,7 @@ test_small_data_io_reader(const int a_min_col, const int a_max_col)
     return data;
 }
 
-std::vector<double> test_small_data_io_reader(const int a_col)
+std::vector<amrex::Real> test_small_data_io_reader(const int a_col)
 
 {
     SmallDataIO test_reader("test_000000");

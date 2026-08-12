@@ -69,7 +69,7 @@ class SphericalExtractionTestLevel : public GRAMRLevel
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const double a_time) override
+                         const amrex::Real a_time) override
     {
     }
 
@@ -85,7 +85,8 @@ class SphericalExtractionTestLevel : public GRAMRLevel
         const int current_level      = Level();
         const amrex::Real box_length = Geom().ProbLength(0);
 
-        std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
+        std::array<amrex::Real, AMREX_SPACEDIM> center{
+            AMREX_D_DECL(0., 0., 0.)};
         GRParmParse pp;
         pp.query("center", center);
 

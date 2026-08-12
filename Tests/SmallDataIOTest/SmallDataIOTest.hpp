@@ -25,10 +25,10 @@
 #include <vector>
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-bool check_almost_equal(std::vector<double> vector_1,
-                        std::vector<double> vector_2, double err_tol);
+bool check_almost_equal(std::vector<amrex::Real> vector_1,
+                        std::vector<amrex::Real> vector_2, amrex::Real err_tol);
 
-std::vector<double> generate_random_numbers(const int Npts);
+std::vector<amrex::Real> generate_random_numbers(const int Npts);
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void test_small_data_io_writer(const std::vector<SmallDataIO::column_t> &col,
@@ -42,7 +42,7 @@ test_small_data_io_reader(const std::vector<std::string> &column_names);
 std::vector<SmallDataIO::column_t>
 test_small_data_io_reader(const int a_min_col, const int a_max_col);
 
-std::vector<double> test_small_data_io_reader(const int a_col);
+std::vector<amrex::Real> test_small_data_io_reader(const int a_col);
 
 void run_small_data_io_test();
 

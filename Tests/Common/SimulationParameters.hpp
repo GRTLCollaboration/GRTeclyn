@@ -45,7 +45,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("num_extraction_radii",
                 extraction_params_lo.num_extraction_radii(), 1);
 
-        std::vector<double> extraction_radii_stdvect;
+        std::vector<amrex::ParticleReal> extraction_radii_stdvect;
         if (pp.contains("extraction_radii"))
         {
             pp.load("extraction_radii", extraction_radii_stdvect,

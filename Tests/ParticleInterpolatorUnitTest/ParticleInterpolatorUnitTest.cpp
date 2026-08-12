@@ -79,9 +79,9 @@ void run_particle_interpolator_test()
         gr_amr.init(0., sim_params.stop_time);
 
         // Read from params
-        const int num_points  = sim_params.num_points;
-        bool verbosity        = sim_params.verbosity;
-        double extract_radius = sim_params.L / 4;
+        const int num_points       = sim_params.num_points;
+        bool verbosity             = sim_params.verbosity;
+        amrex::Real extract_radius = sim_params.L / 4;
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();
@@ -104,17 +104,19 @@ void run_particle_interpolator_test()
             myproc * base + std::min(myproc, remainder); // global start index
 
         // Allocate vectors for writing
-        std::vector<double> A_local(n_local); // for storing derived polynomial
-        std::vector<double> B_local(n_local); // for storing state polynomial
-        std::vector<double> interp_x_local(n_local);
-        std::vector<double> interp_y_local(n_local);
-        std::vector<double> interp_z_local(n_local);
+        std::vector<amrex::Real> A_local(
+            n_local); // for storing derived polynomial
+        std::vector<amrex::Real> B_local(
+            n_local); // for storing state polynomial
+        std::vector<amrex::Real> interp_x_local(n_local);
+        std::vector<amrex::Real> interp_y_local(n_local);
+        std::vector<amrex::Real> interp_z_local(n_local);
 
         for (int j = 0; j < n_local; ++j)
         {
-            int ipoint   = start + j; // global index
-            double phi   = ipoint * 2. * M_PI / num_points;
-            double theta = ipoint * M_PI / num_points;
+            int ipoint        = start + j; // global index
+            amrex::Real phi   = ipoint * 2. * M_PI / num_points;
+            amrex::Real theta = ipoint * M_PI / num_points;
 
             interp_x_local[j] =
                 sim_params.center[0] + extract_radius * cos(phi) * sin(theta);
@@ -159,12 +161,12 @@ void run_particle_interpolator_test()
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {
-            double x = interp_x_local[ipoint] - sim_params.center[0];
-            double y = interp_y_local[ipoint] - sim_params.center[1];
-            double z = interp_z_local[ipoint] - sim_params.center[2];
+            amrex::Real x = interp_x_local[ipoint] - sim_params.center[0];
+            amrex::Real y = interp_y_local[ipoint] - sim_params.center[1];
+            amrex::Real z = interp_z_local[ipoint] - sim_params.center[2];
 
-            double A_known = 42. + x * x + y * y * z * z;
-            double B_known = pow(z, 3);
+            amrex::Real A_known = 42. + x * x + y * y * z * z;
+            amrex::Real B_known = pow(z, 3);
 
             INFO("Interpolated A is "
                  << A_local[ipoint] << " at point x = " << x << " y = " << y

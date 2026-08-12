@@ -57,7 +57,7 @@ void PunctureTrackerLevel::initData()
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void PunctureTrackerLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                            amrex::MultiFab &a_rhs,
-                                           const double /*a_time*/)
+                                           const amrex::Real /*a_time*/)
 {
     // We don't need any evolution in this test.
     a_rhs.setVal(0.0);
