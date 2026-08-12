@@ -19,10 +19,11 @@ amr.derive_plot_vars = ALL
 
 #################################################
 # TwoPunctures initial data parameters
+# commented out parameters show their default or suggested values
 
 two_punctures.verbose = true
 
-# two_punctures.calculate_target_masses = true
+# two_punctures.calculate_target_masses = false
 # two_punctures.target_mass_plus  = 0.5
 # two_punctures.target_mass_minus = 0.5
 # two_punctures.adm_tol           = 1.0e-10
