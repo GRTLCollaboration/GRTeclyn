@@ -21,11 +21,11 @@ class FixedGridsTagger
     std::array<double, AMREX_SPACEDIM> m_center;
 
   public:
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     FixedGridsTagger(const double dx, const int a_level, const double a_L,
                      const std::array<double, AMREX_SPACEDIM> a_center)
         : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center) {};
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::TagBox::TagType> &tags) const
