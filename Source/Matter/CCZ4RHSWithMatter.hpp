@@ -44,9 +44,9 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
        It allows the user to set the value of Newton's constant, which is set to
        one by default.
     */
-    CCZ4RHSWithMatter(params_t a_params, double a_dx, double a_sigma,
-                      int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                      double a_G_Newton = 1.0);
+    CCZ4RHSWithMatter(params_t a_params, amrex::Real a_dx, amrex::Real a_sigma,
+                      int a_formulation      = CCZ4RHS<>::USE_CCZ4,
+                      amrex::Real a_G_Newton = 1.0);
 
     //!  The compute member which calculates the RHS at each point in the box
     //!  \sa matter_rhs_equation()
@@ -68,8 +68,8 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
         const;
 
     // Class members
-    matter_t m_matter; //!< The matter object, e.g. a scalar field.
-    double m_G_Newton; //!< Newton's constant, set to one by default.
+    matter_t m_matter;      //!< The matter object, e.g. a scalar field.
+    amrex::Real m_G_Newton; //!< Newton's constant, set to one by default.
 };
 
 #include "CCZ4RHSWithMatter.impl.hpp"

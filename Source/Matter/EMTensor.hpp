@@ -40,7 +40,7 @@ template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
     static amrex::Vector<std::string> var_names();
 
     //! Constructor
-    EMTensor(double dx, int a_dcomp);
+    EMTensor(amrex::Real dx, int a_dcomp);
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void

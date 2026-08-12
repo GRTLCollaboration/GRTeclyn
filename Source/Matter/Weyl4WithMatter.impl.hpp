@@ -119,7 +119,7 @@ void Weyl4WithMatter<matter_t>::compute_mf(amrex::MultiFab &out_mf,
     const auto &src_arrays = src_mf.const_arrays();
 
     GRParmParse pp;
-    std::array<double, AMREX_SPACEDIM> center{};
+    std::array<amrex::Real, AMREX_SPACEDIM> center{};
     int formulation      = 0;
     amrex::Real G_Newton = 0;
 
