@@ -52,8 +52,8 @@ template <unsigned int num_punctures> class PunctureTagger
         // the top levels are well spaced)
 
         // we want each level to be double the innermost one in size
-        const int exponent  = std::min(m_max_level - m_level - 1, 1);
-        const double factor = std::pow(2.0, exponent);
+        const int exponent       = std::min(m_max_level - m_level - 1, 1);
+        const amrex::Real factor = std::pow(2.0, exponent);
 
         amrex::IntVect current_cell(AMREX_D_DECL(ix, iy, iz));
         // loop over puncture masses
