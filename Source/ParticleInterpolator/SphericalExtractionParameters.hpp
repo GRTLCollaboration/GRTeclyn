@@ -42,9 +42,9 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         return this->num_points_v;
     }
 
-    std::array<double, AMREX_SPACEDIM> center{}; //!< the center of the
-                                                 //!< spherical shells
-    std::array<double, AMREX_SPACEDIM> &extraction_center()
+    std::array<amrex::Real, AMREX_SPACEDIM> center{}; //!< the center of the
+                                                      //!< spherical shells
+    std::array<amrex::Real, AMREX_SPACEDIM> &extraction_center()
     {
         return this->center;
     }

@@ -19,13 +19,13 @@
 class IntegrationMethod
 {
   private:
-    std::vector<double> m_weights;
+    std::vector<amrex::ParticleReal> m_weights;
     size_t m_num_weights;
     bool m_is_closed;
 
   public:
     //! Constructor
-    IntegrationMethod(const std::vector<double> &a_weights,
+    IntegrationMethod(const std::vector<amrex::ParticleReal> &a_weights,
                       bool a_is_closed = true)
         : m_weights(a_weights), m_num_weights(a_weights.size()),
           m_is_closed(a_is_closed)
@@ -49,8 +49,8 @@ class IntegrationMethod
     [[nodiscard]] bool is_closed() const { return m_is_closed; }
 
     //! Returns the weight for a point with given index
-    [[nodiscard]] double weight(int a_index, int a_num_points,
-                                bool a_is_periodic) const
+    [[nodiscard]] amrex::ParticleReal weight(int a_index, int a_num_points,
+                                             bool a_is_periodic) const
     {
         const size_t weight_index = a_index % m_num_weights;
         const bool endpoint =

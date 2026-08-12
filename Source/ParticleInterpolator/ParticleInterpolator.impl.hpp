@@ -69,7 +69,7 @@ int ParticleInterpolator<num_components>::get_var_parity(
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
         // get the coords
-        const double x = query.m_coords[dir][point_idx];
+        const amrex::ParticleReal x = query.m_coords[dir][point_idx];
 
         // check where we are w.r.t to the problem domain
         const bool beyond_lo =
@@ -153,7 +153,7 @@ void ParticleInterpolator<num_components>::populate_from_query(
     auto particle_data = ptile.getParticleTileData();
 
     // get coords from query
-    amrex::GpuArray<const double *, AMREX_SPACEDIM> query_coords{
+    amrex::GpuArray<const amrex::ParticleReal *, AMREX_SPACEDIM> query_coords{
         query.m_coords[0], query.m_coords[1]
 #if (AMREX_SPACEDIM == 3)
         ,
@@ -164,7 +164,7 @@ void ParticleInterpolator<num_components>::populate_from_query(
     // Run a check on coords you are interpolating on
     for (int i = 0; i < int(query.m_num_points); ++i)
     {
-        amrex::GpuArray<double, AMREX_SPACEDIM> coords;
+        amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> coords;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             coords[d] = query_coords[d][i];
@@ -181,8 +181,9 @@ void ParticleInterpolator<num_components>::populate_from_query(
     const auto hi_reflect = m_hi_boundary_reflective;
 
     // coords on device
-    amrex::GpuArray<amrex::Gpu::DeviceVector<double>, AMREX_SPACEDIM> coords_d;
-    amrex::GpuArray<const double *, AMREX_SPACEDIM> coords_d_ptr{};
+    amrex::GpuArray<amrex::Gpu::DeviceVector<amrex::Real>, AMREX_SPACEDIM>
+        coords_d;
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> coords_d_ptr{};
 
     // copy coords to device vectors
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -297,7 +298,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 template <int num_components>
 void ParticleInterpolator<num_components>::interp(
     const InterpolationQueryParticle &query, bool a_refresh_particles,
-    const std::string &name_derived, double time_derived /*=0.0*/)
+    const std::string &name_derived, amrex::ParticleReal /*=0.0*/)
 {
     AMREX_ASSERT(m_initialized);
 
@@ -432,7 +433,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 
     // a temporary storage vector for component values, one entry per local
     // particle
-    std::array<std::vector<double>, num_components> comp_values;
+    std::array<std::vector<amrex::ParticleReal>, num_components> comp_values;
     // layout data for storing query ranks and indices
     std::vector<int> query_ranks;
     std::vector<int> query_indices;
@@ -507,7 +508,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
                 for (int k = 0; k < num_components; ++k)
                 {
                     comp_values[k][j] =
-                        static_cast<double>(host_soa_real[k][i]);
+                        static_cast<amrex::ParticleReal>(host_soa_real[k][i]);
                 }
             }
 
@@ -691,18 +692,21 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values(
 // A function to check whether the query point is inside the physical domain
 template <int num_components>
 void ParticleInterpolator<num_components>::check_domain(
-    amrex::GpuArray<double, AMREX_SPACEDIM> &x, int guard_cells) const
+    amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
+    int guard_cells) const
 {
     AMREX_ASSERT(guard_cells >= 0);
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
 
-        const double lo_g = m_prob_lo[d] - guard_cells * m_coarsest_dx[d];
-        const double hi_g = m_prob_hi[d] + guard_cells * m_coarsest_dx[d];
+        const amrex::ParticleReal lo_g =
+            m_prob_lo[d] - guard_cells * m_coarsest_dx[d];
+        const amrex::ParticleReal hi_g =
+            m_prob_hi[d] + guard_cells * m_coarsest_dx[d];
 
         // reflect into the required side if reflective
-        double xr = x[d];
+        amrex::ParticleReal xr = x[d];
         if (m_lo_boundary_reflective[d] && xr < m_prob_lo[d])
         {
             xr = 2.0 * m_prob_lo[d] - xr; // reflect across lo

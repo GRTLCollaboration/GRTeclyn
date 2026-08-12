@@ -19,9 +19,9 @@ class WeylExtraction : public SphericalExtraction<2>
 
     //! The constructor
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    WeylExtraction(const spherical_extraction_params_t &a_params, double a_dt,
-                   double a_time, bool a_first_step,
-                   double a_restart_time = 0.0)
+    WeylExtraction(const spherical_extraction_params_t &a_params,
+                   amrex::Real a_dt, amrex::Real a_time, bool a_first_step,
+                   amrex::Real a_restart_time = 0.0)
         : SphericalExtraction<2>(a_params, a_dt, a_time, a_first_step,
                                  a_restart_time)
     {
@@ -34,8 +34,9 @@ class WeylExtraction : public SphericalExtraction<2>
 
     //! The old constructor which assumes it is called in specificPostTimeStep
     //! so the first time step is when m_time == m_dt
-    WeylExtraction(const spherical_extraction_params_t &a_params, double a_dt,
-                   double a_time, double a_restart_time = 0.0)
+    WeylExtraction(const spherical_extraction_params_t &a_params,
+                   amrex::Real a_dt, amrex::Real a_time,
+                   amrex::Real a_restart_time = 0.0)
         : WeylExtraction(a_params, a_dt, a_time, (a_dt == a_time),
                          a_restart_time)
     {
@@ -53,15 +54,17 @@ class WeylExtraction : public SphericalExtraction<2>
         }
 
         // now calculate and write the requested spherical harmonic modes
-        std::vector<std::pair<std::vector<double>, std::vector<double>>>
+        std::vector<std::pair<std::vector<amrex::ParticleReal>,
+                              std::vector<amrex::ParticleReal>>>
             mode_integrals(m_num_modes);
 
         // note that this is normalised by multiplying by radius
         // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         auto normalised_Weyl4_complex =
-            [](std::vector<double> Weyl4_reim_parts, double r, double, double)
+            [](std::vector<amrex::ParticleReal> Weyl4_reim_parts,
+               amrex::ParticleReal r, amrex::ParticleReal, amrex::ParticleReal)
         {
-            // here the std::vector<double> passed will just have
+            // here the std::vector<amrex::ParticleReal> passed will just have
             // the real and imaginary parts of the Weyl4 scalar as its
             // only components
             return std::make_pair(r * Weyl4_reim_parts[0],
@@ -89,9 +92,10 @@ class WeylExtraction : public SphericalExtraction<2>
             std::string integrals_filename =
                 this->m_params.integral_file_prefix +
                 std::to_string(mode.first) + std::to_string(mode.second);
-            std::vector<std::vector<double>> integrals_for_writing = {
-                std::move(mode_integrals[imode].first),
-                std::move(mode_integrals[imode].second)};
+            std::vector<std::vector<amrex::ParticleReal>>
+                integrals_for_writing = {
+                    std::move(mode_integrals[imode].first),
+                    std::move(mode_integrals[imode].second)};
             std::vector<std::string> labels = {"integral Re", "integral Im"};
             this->write_integrals(integrals_filename, integrals_for_writing,
                                   labels);
