@@ -21,9 +21,12 @@ class TraceARemoval
     TraceARemoval() = default;
 
     // Compute function
+
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);

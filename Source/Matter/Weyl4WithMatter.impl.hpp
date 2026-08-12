@@ -24,7 +24,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void Weyl4WithMatter<matter_t>::operator()(
     const Tensor::Sym12Rank2 d2_chi =
         m_deriv.d2_scalar(ix, iy, iz, state, c_chi);
     const Tensor::Sym12Sym34Rank4 d2_h =
-        m_deriv.d2_tensor(ix, iy, iz, state, c_h11);
+        m_deriv.d2_sym_tensor(ix, iy, iz, state, c_h11);
 
     auto d1_h        = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
     const auto h_UU  = CCZ4Geometry::compute_inverse_metric(vars);

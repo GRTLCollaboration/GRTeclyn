@@ -11,6 +11,7 @@
 #include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
 #include "PolynomialDerivedQuantity.hpp"
+#include "StateTypes.hpp"
 
 // We basically need this to have a valid AMR hierarchy
 

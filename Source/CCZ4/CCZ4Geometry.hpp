@@ -122,103 +122,12 @@ compute_Aij_squared_with_A_UU(const CCZ4Vars &vars, const Tensor::Rank2 &A_UU)
     return Aij_squared;
 }
 
-/// Computes the conformal christoffel symbol - using AMReX Arrays
-
-// AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t compute_christoffel(
-//     const amrex::Array2D<amrex::Real, 0, NUM_SYM_IDXS - 1, 0, AMREX_SPACEDIM
-//     - 1>
-//         &d1_h,
-//     const TensorArray::Rank1Sym &h_UU)
-// {
-//     chris_t out{};
-
-//     FOR (i, j, k)
-//     {
-//         out.LLL(i, j, k) =
-//             0.5 * (d1_h(VAR_IDX0(j, i), k) + d1_h(VAR_IDX0(k, i), j) -
-//                    d1_h(VAR_IDX0(j, k), i));
-//     }
-
-//     // FOR (i)
-//     // {
-//     //     out.LLL(i, i, i) = 0.5 * d1_h(SYMM_IDX(i, i), i);
-//     // }
-
-//     // out.LLL(0, 0, 1) = 0.5 * d1_h(0, 1);
-//     // out.LLL(0, 0, 2) = 0.5 * d1_h(0, 2);
-
-//     // out.LLL(0, 1, 0) = 0.5 * d1_h(0, 1);
-//     // out.LLL(0, 2, 0) = 0.5 * d1_h(0, 2);
-
-//     // out.LLL(0, 1, 1) = d1_h(1, 1) - 0.5 * d1_h(4, 0);
-//     // out.LLL(0, 2, 2) = d1_h(2, 2) - 0.5 * d1_h(5, 0);
-
-//     // out.LLL(1, 0, 0) = d1_h(1, 0) - 0.5 * d1_h(0, 1);
-//     // out.LLL(1, 2, 2) = d1_h(4, 2) - 0.5 * d1_h(5, 1);
-
-//     // out.LLL(1, 0, 1) = 0.5 * d1_h(3, 0);
-//     // out.LLL(1, 1, 0) = 0.5 * d1_h(3, 0);
-
-//     // out.LLL(1, 1, 2) = 0.5 * d1_h(3, 2);
-//     // out.LLL(1, 2, 1) = 0.5 * d1_h(3, 2);
-
-//     // out.LLL(2, 0, 0) = d1_h(2, 0) - 0.5 * d1_h(0, 2);
-//     // out.LLL(2, 1, 1) = d1_h(4, 1) - 0.5 * d1_h(3, 2);
-
-//     // out.LLL(2, 1, 2) = 0.5 * d1_h(5, 1);
-//     // out.LLL(2, 2, 1) = 0.5 * d1_h(5, 1);
-
-//     // out.LLL(2, 2, 0) = 0.5 * d1_h(5, 0);
-//     // out.LLL(2, 0, 2) = 0.5 * d1_h(5, 0);
-
-//     // ////These have all different indices
-
-//     // out.LLL(0, 1, 2) = 0.5 * (d1_h(1, 2) + d1_h(2, 0) + d1_h(4, 0));
-//     // out.LLL(0, 2, 1) = out.LLL(0, 1, 2);
-
-//     // out.LLL(1, 0, 2) = 0.5 * (d1_h(1, 2) + d1_h(4, 0) - d1_h(2, 0));
-//     // out.LLL(1, 2, 0) = out.LLL(1, 0, 2);
-
-//     // out.LLL(2, 0, 1) = 0.5 * (d1_h(3, 1) + d1_h(4, 0) - d1_h(1, 2));
-//     // out.LLL(2, 1, 0) = out.LLL(2, 0, 1);
-
-//     FOR (i, j)
-//     {
-//         out.ULL(0, i, j) = h_UU(0) * out.LLL(0, i, j) +
-//                            h_UU(1) * out.LLL(1, i, j) +
-//                            h_UU(2) * out.LLL(2, i, j);
-//         out.ULL(1, i, j) = h_UU(1) * out.LLL(0, i, j) +
-//                            h_UU(3) * out.LLL(1, i, j) +
-//                            h_UU(4) * out.LLL(2, i, j);
-//         out.ULL(2, i, j) = h_UU(2) * out.LLL(0, i, j) +
-//                            h_UU(4) * out.LLL(1, i, j) +
-//                            h_UU(5) * out.LLL(2, i, j);
-//     }
-
-//     // FOR (i, j, k)
-//     // {
-//     //     out.ULL(i, j, k) = 0;
-//     //     FOR (l)
-//     //     {
-//     //         out.ULL(i, j, k) += h_UU(SYMM_IDX(i, l)) * out.LLL(l, j, k);
-//     //     }
-//     // }
-//     FOR (i)
-//     {
-//         out.contracted(i) =
-//             h_UU(0) * out.ULL(i, 0, 0) + h_UU(1) * out.ULL(i, 0, 1) +
-//             h_UU(2) * out.ULL(i, 0, 2) + h_UU(1) * out.ULL(i, 1, 0) +
-//             h_UU(3) * out.ULL(i, 1, 1) + h_UU(4) * out.ULL(i, 1, 2) +
-//             h_UU(2) * out.ULL(i, 2, 0) + h_UU(4) * out.ULL(i, 2, 1) +
-//             h_UU(5) * out.ULL(i, 2, 2);
-//     }
-
-//     return out;
-// }
-
 /// Computes the conformal christoffel symbol - using tensors
+
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t
 compute_christoffel(const Tensor::Sym12Rank3 &d1_h, const Tensor::Rank2 &h_UU)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     chris_t out{};
 
@@ -249,10 +158,13 @@ compute_christoffel(const Tensor::Sym12Rank3 &d1_h, const Tensor::Rank2 &h_UU)
 }
 
 /// Computes the conformal christoffel symbol
+
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE Tensor::Rank3
 compute_phys_chris(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
                    const Tensor::Rank2 &h_UU, const Tensor::Rank3 &chris_ULL)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     using namespace TensorAlgebra;
     Tensor::Rank3 chris_phys{};
@@ -308,15 +220,16 @@ compute_z_terms(const int i, const int j, const Tensor::Rank1 &Z_over_chi,
     return out;
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
                   const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
                   const Tensor::Sym12Sym34Rank4 &d2_h,
                   const Tensor::Rank2 &h_UU, const chris_t &chris)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
     amrex::Real ricci_hat = 0;
-    int idx1              = sym_var_idx(i, j);
 
     FOR (k)
     {
@@ -326,7 +239,7 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
         // order to avoid adding terms that cancel later on
         ricci_hat += 0.5 * (vars.h(k, i) * d1_Gamma(k, j) +
                             vars.h(k, j) * d1_Gamma(k, i));
-        ricci_hat += 0.5 * vars.Gamma(k) * d1_h(idx1, k);
+        ricci_hat += 0.5 * vars.Gamma(k) * d1_h(i, j, k);
 
         FOR (l)
         {
@@ -346,9 +259,7 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
                 chris_LLU_kjl += h_UU(l, m) * chris.LLL(k, j, m);
             }
 
-            int idx2 = sym_var_idx(k, l);
-
-            ricci_hat += -0.5 * h_UU(k, l) * d2_h(idx1, idx2) +
+            ricci_hat += -0.5 * h_UU(k, l) * d2_h(i, j, k, l) +
                          chris.ULL(k, l, i) * chris_LLU_jkl +
                          chris.ULL(k, l, j) * chris_LLU_ikl +
                          chris.ULL(k, i, l) * chris_LLU_kjl;
@@ -357,13 +268,14 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
 
     return ricci_hat;
 }
-
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t
 compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
                 const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
                 const Tensor::Sym12Sym34Rank4 &d2_h,
                 const Tensor::Sym12Rank2 &d2_chi, const Tensor::Rank2 &h_UU,
                 const chris_t &chris, const Tensor::Rank1 &Z_over_chi)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     ricci_t out;
 
@@ -409,10 +321,12 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
     return out;
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 compute_d1_chris_contracted(const Tensor::Rank2 &h_UU,
                             const Tensor::Sym12Rank3 &d1_h,
                             const Tensor::Sym12Sym34Rank4 &d2_h)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank2 d1_chris_contracted{};
 

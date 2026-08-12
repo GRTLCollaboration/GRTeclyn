@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - name: Checkout GRTeclyn
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         # Tip from https://stackoverflow.com/a/74268200
         fetch-depth: 2
@@ -17,17 +17,24 @@ jobs:
     - name: Check if any modified files match .lint-ignore
       id: modified-files
       run: |
-        git ls-files $(cat .lint-ignore | sed '/^[[:blank:]]*#/d;s/#.*//;/^$/d;') > lint_ignore_expanded
-        printf "lint_ignore_matches<<EOF\n%s\nEOF" "$(git diff --name-only HEAD^1 HEAD | grep -F -f lint_ignore_expanded)" >> "$GITHUB_OUTPUT"
+        # Expand .lint-ignore into tracked paths after dropping comments,
+        # blank lines, inline comments, and lint-only entries.
+        git ls-files $(sed \
+        '/^[[:blank:]]*#/d;s/#.*//;/^$/d;/^[[:blank:]]*lint-only:/d;' \
+        .lint-ignore) > lint_ignore_expanded
+        printf "lint_ignore_matches<<EOF\n%s\nEOF" \
+        "$(git diff --name-only HEAD^1 HEAD | grep -F -f lint_ignore_expanded)" \
+        >> "$GITHUB_OUTPUT"
 
     - name: Post comment on PR if there are matches
       if: steps.modified-files.outputs.lint_ignore_matches != ''
-      uses: thollander/actions-comment-pull-request@v3
+      uses: peter-evans/create-or-update-comment@v5
       with:
-        message: |
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
           This PR modifies the following files which are ignored by [.lint-ignore](.lint-ignore):
           ```
           ${{ steps.modified-files.outputs.lint_ignore_matches }}
           ```
-          Please consider removing the corresponding patterns from .lint-ignore so that these files can be linted.
-        comment_tag: lint_ignore
+          Please consider removing the corresponding patterns from
+          .lint-ignore so that these files can be linted.

@@ -15,6 +15,7 @@
 #include "GRParmParse.hpp"
 #include "SimulationParameters.hpp"
 #include "GRTeclyn_Version.hpp"
+#include "IntegrationMethodSetup.hpp"
 
 #ifdef EQUATION_DEBUG_MODE
 #include "DebuggingTools.hpp"

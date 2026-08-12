@@ -70,12 +70,42 @@ void BinaryBHLevel::initData()
         amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
     }
 #ifdef USE_TWOPUNCTURES
-    // xxxxx USE_TWOPUNCTURES todo
-    TwoPuncturesInitialData two_punctures_initial_data(
-        m_dx, m_p.center, m_tp_amr.m_two_punctures);
-    // Can't use simd with this initial data
-    BoxLoops::loop(two_punctures_initial_data, m_state_new, m_state_new,
-                   INCLUDE_GHOST_CELLS, disable_simd());
+    TwoPuncturesInitialData two_punctures_initial_data(Geom().CellSize(0),
+                                                       simParams().center);
+
+    two_punctures_initial_data.solve(); // only solves first time
+
+    amrex::MultiFab &state_new = get_new_data(state_index);
+#ifdef AMREX_USE_GPU
+    amrex::MFInfo mf_info;
+    mf_info.SetArena(amrex::The_Cpu_Arena());
+    amrex::MultiFab host_state(state_new.boxArray(),
+                               state_new.DistributionMap(), state_new.nComp(),
+                               state_new.nGrowVect(), mf_info);
+#else
+    amrex::MultiFab &host_state = state_new;
+#endif
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
+#endif
+    for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU()); mfi.isValid();
+         ++mfi)
+    {
+        const amrex::Box &grown_tile_box = mfi.growntilebox();
+        const auto &state_array          = host_state.array(mfi);
+
+        amrex::LoopOnCpu(
+            grown_tile_box, [=](int ix, int iy, int iz)
+            { two_punctures_initial_data(ix, iy, iz, state_array); });
+#ifdef AMREX_USE_GPU
+        // Copy to device
+        amrex::Gpu::htod_memcpy_async(
+            state_new[mfi].dataPtr(), host_state[mfi].dataPtr(),
+            host_state[mfi].size() * sizeof(amrex::Real));
+#endif
+    }
+
 #else
     // Set up the compute class for the BinaryBH initial data
     double dx = Geom().CellSize(0);
@@ -121,6 +151,7 @@ void BinaryBHLevel::initData()
 }
 
 // Calculate RHS during RK4 substeps
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const double /*a_time*/)
@@ -157,6 +188,9 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         // NB: These are split up to avoid having to pre-compute all the
         //  first and second derivatives in memory on the GPU at once.
 
+        // NB: These are split up to avoid having to pre-compute all the
+        //  first and second derivatives in memory on the GPU at once.
+
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -165,43 +199,50 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                              const_soln_arrays[box_no]);
             });
 
-        enum formulations : int
-        {
-            USE_CCZ4 = 0,
-            USE_BSSN = 1
-        };
+        amrex::ParmParse pp;
 
-        enum covariantZ4 : int
-        {
-            YES,
-            NO
-        };
+        int my_formulation{0};
+        int my_covariantZ4{1};
+        pp.query("formulation", my_formulation);
+        pp.query("covariantZ4", my_covariantZ4);
 
-        int use_bssn{0};
-        int use_covariantZ4{1};
-        pp.query("formulation", use_bssn);
-        pp.query("covariantZ4", use_covariantZ4);
+        // amrex::AnyCTO allows for runtime options to be evaluated at
+        // compile time via fold expressions.
+        // The compiler generates expressions for both options but only
+        // the relevent option is selected at runtime.
+        // This reduces branching inside GPU kernels which is bad for
+        // performance as it results in workgroup/warp divergence.
 
         amrex::AnyCTO(
             amrex::TypeList<
-                amrex::CompileTimeOptions<USE_CCZ4, USE_BSSN>,
-                amrex::CompileTimeOptions<covariantZ4::YES, covariantZ4::NO>>{},
-            {use_bssn, use_covariantZ4},
+                amrex::CompileTimeOptions<
+                    CCZ4RHS<MovingPunctureGauge,
+                            FourthOrderDerivatives>::formulations::USE_CCZ4,
+                    CCZ4RHS<MovingPunctureGauge,
+                            FourthOrderDerivatives>::formulations::USE_BSSN>,
+                amrex::CompileTimeOptions<
+                    CCZ4RHS<MovingPunctureGauge,
+                            FourthOrderDerivatives>::covariantZ4::YES,
+                    CCZ4RHS<MovingPunctureGauge,
+                            FourthOrderDerivatives>::covariantZ4::NO>>{},
+            {my_formulation, my_covariantZ4},
             [&](auto cto_func) { amrex::ParallelFor(a_rhs, cto_func); },
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz,
-                                 auto formulation, auto control)
+                                 auto formulation, auto covariantZ4)
             {
                 //
-                ccz4rhs.compute_A_ij_and_Theta_and_Gamma<formulation, control>(
-                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
+                ccz4rhs
+                    .compute_A_ij_and_Theta_and_Gamma<formulation, covariantZ4>(
+                        ix, iy, iz, rhs_arrays[box_no],
+                        const_soln_arrays[box_no]);
             });
 
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                ccz4rhs.apply_gauge(ix, iy, iz, rhs_arrays[box_no],
-                                    const_soln_arrays[box_no]);
+                ccz4rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                            const_soln_arrays[box_no]);
 
                 ccz4rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
                                           const_soln_arrays[box_no]);
@@ -359,6 +400,8 @@ void BinaryBHLevel::specificPostTimeStep()
     pp.get("puncture_tracking.writeout_level",
            puncture_tracking_writeout_level);
 
+    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
+
     // do puncture tracking on requested level
     if (get_bhamr_ptr()->puncture_tracking_enabled &&
         Level() == puncture_tracking_level)
@@ -373,9 +416,6 @@ void BinaryBHLevel::specificPostTimeStep()
         amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(current_time, dt, write_punctures);
     }
-#if 0
-//xxxxx specificPostTimeStep
-    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
     bool first_step =
         (m_time == 0.); // this form is used when 'specificPostTimeStep' was
@@ -386,36 +426,25 @@ void BinaryBHLevel::specificPostTimeStep()
     pp.get("activate_extraction", activate_extraction);
 
     if (activate_extraction == 1)
-    {
-        int min_level = m_p.extraction_params.min_extraction_level();
-        bool calculate_weyl = at_level_timestep_multiple(min_level);
-        if (calculate_weyl)
-        {
-            // Populate the Weyl Scalar values on the grid
-            fillAllGhosts();
-            BoxLoops::loop(
-                Weyl4(m_dx,),
-                m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
 
-            // Do the extraction on the min extraction level
-            if (m_level == min_level)
-            {
-                BL_PROFILE("WeylExtraction");
-                // Now refresh the interpolator and do the interpolation
-                // fill ghosts manually to minimise communication
-                bool fill_ghosts = false;
-                m_gr_amr.m_interpolator->refresh(fill_ghosts);
-                m_gr_amr.fill_multilevel_ghosts(
-                    VariableType::derived, Interval(c_Weyl4_Re, c_Weyl4_Im),
-                    min_level);
-                WeylExtraction my_extraction(m_p.extraction_params, m_dt,
-                                             m_time, first_step,
-                                             m_restart_time);
-                my_extraction.execute_query(m_gr_amr.m_interpolator);
-            }
+    {
+        int min_level = simParams().extraction_params.min_extraction_level();
+        bool calculate_weyl = at_level_timestep_multiple(min_level);
+
+        if (calculate_weyl && Level() == min_level)
+        {
+            amrex::Real m_time       = get_state_data(state_index).curTime();
+            amrex::Real m_dt         = get_gramr_ptr()->dtLevel(Level());
+            amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+            bool first_step          = (m_time <= m_dt);
+
+            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
+                                         m_time, first_step, restart_time);
+            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
         }
     }
 
+#if 0
     bool calculate_constraint_norms{};
     pp.get("calculate_constraint_norms", calculate_constraint_norms);
 

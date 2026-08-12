@@ -121,12 +121,14 @@ class MovingPunctureGauge
     MovingPunctureGauge() { m_params.fill_params(); }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters,
+    // readability-convert-member-functions-to-static)
     rhs_gauge(const amrex::CellData<amrex::Real> &rhs_cell_data,
               const CCZ4Vars &vars, const amrex::Real &advec_lapse,
               const Tensor::Rank1 &advec_shift, const Tensor::Rank1 &advec_B,
               const Tensor::Rank1 &advec_Gamma) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
+    // NOLINTEND(bugprone-easily-swappable-parameters,
+    // readability-convert-member-functions-to-static)
     {
         rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec_lapse -
                                  m_params.lapse_coeff *

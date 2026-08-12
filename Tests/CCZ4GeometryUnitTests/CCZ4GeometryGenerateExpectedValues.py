@@ -492,25 +492,19 @@ def emit_input_section(v):
             L.append("d1_Gamma({}, {}) = {};".format(
                 a, b, num(v["dgamma"][b][a])))
     L.append("")
-    L.append("// This is symmetric in that d2chi/dxdy is the same as "
-             "d^2chi/dydx")
-    L.append("//  Index mapping")
-    L.append("//  dx^2 = 0")
-    L.append("//  dy^2 = 3")
-    L.append("//  dz^2 = 5")
-    L.append("//  dxdy = 1")
-    L.append("//  dxdz = 2")
-    L.append("//  dydz = 4")
-    for p, (i, j) in enumerate(SYM_PAIRS):
-        L.append("d2_chi({}) = {};".format(p, num(v["d2chi"][i][j])))
+
+    for i in range(DIM):
+        for j in range(DIM):
+            L.append("d2_chi({}, {}) = {};".format(i, j, num(v["d2chi"][i][j])))
     L.append("")
-    L.append("// This is symmetric in the same way but h itself is also "
-             "symmetric as well")
-    for pm, (i, j) in enumerate(SYM_PAIRS):
-        for pd, (k, l) in enumerate(SYM_PAIRS):
-            L.append("d2_h({}, {}) = {};".format(
-                pm, pd, num(v["d2h"][k][l][i][j])))
+
+    for i in range(DIM):
+        for j in range(DIM):
+            for k in range(DIM):
+                for l in range(DIM):
+                    L.append("d2_h({}, {}, {}, {}) = {};".format(i, j, k, l, num(v["d2h"][k][l][i][j])))
     L.append("")
+
     for i in range(DIM):
         L.append("Z_over_chi({}) = {};".format(i, num(v["z_over_chi"][i])))
     L.append("")

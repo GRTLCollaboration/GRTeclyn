@@ -36,7 +36,7 @@ ConstraintsWithMatter<matter_t>::operator()(
     typename matter_t::Vars vars(state_cell_data);
 
     auto d2_chi = m_deriv.d2_scalar(ix, iy, iz, state, c_chi);
-    auto d2_h   = m_deriv.d2_tensor(ix, iy, iz, state, c_h11);
+    auto d2_h   = m_deriv.d2_sym_tensor(ix, iy, iz, state, c_h11);
 
     // Inverse metric and Christoffel symbol
     auto d1_h        = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);

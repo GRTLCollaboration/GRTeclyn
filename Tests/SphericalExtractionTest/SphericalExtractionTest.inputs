@@ -1,0 +1,47 @@
+#################################################
+# AMReX parameters
+
+amrex.the_arena_init_size = 0 # we run out of memomero otherwise since be default 3/4 of the system’s device memory is allocated
+
+#################################################
+# Filesystem parameters
+
+verbosity = 1
+
+output_path = .
+checkpoint_interval = -1
+plot_interval = -1
+
+#################################################
+# Grid parameters
+
+N_full = 32
+L_full = 16
+
+max_level = 1
+regrid_interval = 1 1
+num_ghosts = 3
+
+#################################################
+# Boundary Conditions parameters
+#Periodic directions - 0 = false, 1 = true
+
+isPeriodic = 1 1 1
+
+#################################################
+# Evolution parameters
+
+max_steps = 1
+
+#################################################
+# Extraction parameters
+
+num_extraction_radii = 2
+extraction_radii = 4. 6.
+num_points_phi_lo = 12
+num_points_theta_lo = 13
+
+# Spherical Harmonic to set and extract
+es = 0
+el = 2
+em = 0

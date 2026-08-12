@@ -29,7 +29,7 @@ namespace TensorAlgebra
 {
 /// Computes determinant of a symmetric 3x3 matrix
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_determinant_sym(const Tensor::Rank2 &matrix)
+compute_determinant_sym(const Tensor::Sym12Rank2 &matrix)
 {
     amrex::Real det = matrix(0, 0) * matrix(1, 1) * matrix(2, 2) +
                       2 * matrix(0, 1) * matrix(0, 2) * matrix(1, 2) -
@@ -56,12 +56,12 @@ compute_determinant(const Tensor::Rank2 &matrix)
 }
 
 /// Computes the inverse of a symmetric 3x3 matrix directly.
-[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
-compute_inverse_sym(const Tensor::Rank2 &matrix)
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
+compute_inverse_sym(const Tensor::Sym12Rank2 &matrix)
 {
     amrex::Real deth         = compute_determinant_sym(matrix);
     amrex::Real deth_inverse = 1. / deth;
-    Tensor::Rank2 h_UU{};
+    Tensor::Sym12Rank2 h_UU{};
     h_UU(0, 0) = (matrix(1, 1) * matrix(2, 2) - matrix(1, 2) * matrix(1, 2)) *
                  deth_inverse;
     h_UU(0, 1) = (matrix(0, 2) * matrix(1, 2) - matrix(0, 1) * matrix(2, 2)) *
@@ -74,9 +74,6 @@ compute_inverse_sym(const Tensor::Rank2 &matrix)
                  deth_inverse;
     h_UU(2, 2) = (matrix(0, 0) * matrix(1, 1) - matrix(0, 1) * matrix(0, 1)) *
                  deth_inverse;
-    h_UU(1, 0) = h_UU(0, 1);
-    h_UU(2, 0) = h_UU(0, 2);
-    h_UU(2, 1) = h_UU(1, 2);
 
     return h_UU;
 }
@@ -182,9 +179,8 @@ compute_dot_product(const Tensor::Rank1 &covector1_L,
     amrex::Real dot_product = 0.;
     FOR (m, n)
     {
-        int idx = m + n + ((m * n != 0) ? 1 : 0);
         dot_product +=
-            inverse_metric_sym(idx) * covector1_L(m) * covector2_L(n);
+            inverse_metric_sym(m, n) * covector1_L(m) * covector2_L(n);
     }
     return dot_product;
 }
@@ -192,15 +188,17 @@ compute_dot_product(const Tensor::Rank1 &covector1_L,
 /// Removes the trace of a 2-Tensor with lower indices given a metric and an
 /// inverse metric.  Or a Tensor with upper indices given an inverse metric and
 /// a metric.
+
+// NOLINTBEGIN
 template <int size = AMREX_SPACEDIM>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+
     void
-    make_trace_free(
-        Tensor::GeneralRank<2, size - 1, size - 1> &tensor_LL,
-        const Tensor::GeneralRank<2, size - 1, size - 1> &metric,
-        const Tensor::GeneralRank<2, size - 1, size - 1> &inverse_metric)
-// NOLINTEND(bugprone-easily-swappable-parameters)
+    make_trace_free(Tensor::GeneralRank<2, size, size> &tensor_LL,
+                    const Tensor::GeneralRank<2, size, size> &metric,
+                    const Tensor::GeneralRank<2, size, size> &inverse_metric)
+// NOLINTEND
+
 {
     auto trace                  = compute_trace(tensor_LL, inverse_metric);
     double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
@@ -211,9 +209,12 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 }
 
 /// Makes a 2-Tensor symmetric
+
+// NOLINTBEGIN(readability-named-parameter)
 template <int size>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 make_symmetric(Tensor::GeneralRank<2, size, size> &tensor_LL)
+// NOLINTEND(readability-named-parameter)
 {
     for (int i = 0; i < size; ++i)
     {
@@ -264,22 +265,32 @@ raise_all(const Tensor::Rank2 &tensor_LL, const Tensor::Rank2 &inverse_metric)
 
 /// Lowers the indices of a vector
 /// Note: same functionality as raise; included to improve readability
+
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 lower_all(const Tensor::Rank1 &tensor_U, const Tensor::Rank2 &metric)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_U, metric);
 }
 
 /// Lowers the indices of a 2-Tensor
 /// Note: same functionality as raise; included to improve readability
+
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 lower_all(const Tensor::Rank2 &tensor_UU, const Tensor::Rank2 &metric)
+
+// NOLINTEND(bugprone-easily-swappable-parameters)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_UU, metric);
 }
 
 /// Computes the (i,j) component of the Kronecker delta
+
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank3 epsilon()
 {
@@ -296,10 +307,10 @@ constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
 }
 
 /// Computes the levi-civita symbol (4D, NB, symbol, not the Tensor)
-[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::SpaceTime
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::SpacetimeRank4
 epsilon4D()
 {
-    Tensor::SpaceTime epsilon4D(0.);
+    Tensor::SpacetimeRank4 epsilon4D(0.);
 
     // Fortran order!
     epsilon4D(0, 1, 2, 3) = 1.0;
@@ -334,8 +345,11 @@ epsilon4D()
 }
 
 /// Computes the conformal christoffel symbol
+
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t
 compute_christoffel(const Tensor::Rank3 &d1_metric, const Tensor::Rank2 &h_UU)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     chris_t out{};
 

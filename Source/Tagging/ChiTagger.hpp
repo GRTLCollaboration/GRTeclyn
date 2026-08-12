@@ -32,10 +32,12 @@ class ChiTagger
     {
     }
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int i, int j, int k,
                const amrex::Array4<amrex::TagBox::TagType> &tags,
                const amrex::Array4<amrex::Real const> &state) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         const auto d2_chi      = m_deriv.d2_scalar(i, j, k, state, c_chi);
         amrex::Real mod_d2_chi = 0;

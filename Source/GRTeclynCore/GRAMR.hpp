@@ -24,8 +24,6 @@
 // Forward declaration for get_gramrlevels function declarations
 class GRAMRLevel;
 
-class SimulationParameters;
-
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class GRAMR : public amrex::Amr
 {
@@ -38,13 +36,11 @@ class GRAMR : public amrex::Amr
 
     void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override;
 
-    double get_walltime_since_start() const;
+    [[nodiscard]] double get_walltime_since_start() const;
 
-    double get_restart_time() const;
+    [[nodiscard]] double get_restart_time() const;
 
   private:
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    static const SimulationParameters *m_sim_params;
 
     void set_restart_time(double a_restart_time);
 

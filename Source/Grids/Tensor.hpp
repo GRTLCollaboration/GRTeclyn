@@ -16,29 +16,30 @@
 // A function to return the right index for the tensors based on the
 // ordering below 0: T11, 1: T12, 2: T13, 3: T22, 4: T23, 5: T33
 
-[[nodiscard]] constexpr inline int sym_var_idx(const int ivar, const int i,
-                                               const int j) noexcept
+[[nodiscard]] constexpr AMREX_FORCE_INLINE int
+sym_var_idx(const int ivar, const int i, const int j) noexcept
 {
     return ivar + i + j + ((i * j != 0) ? 1 : 0);
 }
 
-[[nodiscard]] constexpr inline int sym_var_idx(const int i,
-                                               const int j) noexcept
+[[nodiscard]] constexpr AMREX_FORCE_INLINE int sym_var_idx(const int i,
+                                                           const int j) noexcept
 {
     return i + j + ((i * j != 0) ? 1 : 0);
 }
 
-#define SPACETIME_DIM GR_SPACEDIM + 1
+#define SPACETIME_DIM (GR_SPACEDIM + 1)
 
 // Number of unique indices after accounting for symmetry
 #define NUM_SYM_IDXS (AMREX_SPACEDIM * (AMREX_SPACEDIM + 1) / 2)
 
 namespace Tensor
 {
-
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 template <int rank, int... DIMS>
 requires(sizeof...(DIMS) == rank && rank <= 4) AMREX_GPU_HOST_DEVICE
     struct GeneralRank;
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
 template <int DIM> AMREX_GPU_HOST_DEVICE struct GeneralRank<1, DIM>
 {
@@ -215,6 +216,20 @@ AMREX_GPU_HOST_DEVICE struct GeneralRank<3, DIM1, DIM2, DIM3>
         return m_tensor(idx1, idx2, idx3);
     }
 
+    AMREX_GPU_HOST_DEVICE amrex::Real &operator()(int idx1, int idx2, int idx3,
+                                                  int idx4)
+        requires(DIM3 == NUM_SYM_IDXS)
+    {
+        return m_tensor(idx1, idx2, sym_var_idx(idx3, idx4));
+    }
+
+    AMREX_GPU_HOST_DEVICE const amrex::Real &
+    operator()(int idx1, int idx2, int idx3, int idx4) const
+        requires(DIM3 == NUM_SYM_IDXS)
+    {
+        return m_tensor(idx1, idx2, sym_var_idx(idx3, idx4));
+    }
+
     AMREX_GPU_HOST_DEVICE GeneralRank<3, DIM1, DIM2, DIM3> &
     operator=(const amrex::Real a_value)
     {
@@ -297,9 +312,13 @@ using Sym12Rank2      = GeneralRank<1, NUM_SYM_IDXS>;
 using Sym12Sym34Rank4 = GeneralRank<2, NUM_SYM_IDXS, NUM_SYM_IDXS>;
 using Sym12Rank3      = GeneralRank<2, NUM_SYM_IDXS, AMREX_SPACEDIM>;
 using Sym23Rank3      = GeneralRank<2, AMREX_SPACEDIM, NUM_SYM_IDXS>;
+using Sym34Rank4 = GeneralRank<3, AMREX_SPACEDIM, AMREX_SPACEDIM, NUM_SYM_IDXS>;
 
-using SpaceTime =
+// These are for 4D tensors
+using SpacetimeRank4 =
     GeneralRank<4, SPACETIME_DIM, SPACETIME_DIM, SPACETIME_DIM, SPACETIME_DIM>;
+using SpacetimeRank1 = GeneralRank<1, SPACETIME_DIM>;
+
 } // namespace Tensor
 
 #endif /* TENSOR_HPP_ */

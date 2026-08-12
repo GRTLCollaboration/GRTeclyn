@@ -42,6 +42,19 @@ void check_tensor(const Tensor::Rank2 &tensor,
     }
 }
 
+void check_tensor(const Tensor::Sym12Rank2 &tensor,
+                  const Tensor::Sym12Rank2 &correct_tensor,
+                  const std::string &test_name)
+{
+    FOR (i, j)
+    {
+        INFO(test_name << ": component [" << i << "][" << j << "]");
+        CHECK(
+            tensor(i, j) ==
+            doctest::Approx(correct_tensor(i, j)).epsilon(ulp * real_epsilon));
+    }
+}
+
 void check_vector(const Tensor::Rank1 &vector,
                   const Tensor::Rank1 &correct_vector,
                   const std::string &test_name)
@@ -90,37 +103,29 @@ void run_coordinate_transformations_test()
         check_tensor(inv_jac, inv_jac_check, "inverse_jacobian");
 
         // Test tensor transformations
-        Tensor::Rank2 Mij_cart{};
-        FOR (i, j)
-        {
-            Mij_cart(i, j) = 0.;
-        }
+        Tensor::Sym12Rank2 Mij_cart{0.};
         Mij_cart(0, 0) = 1.;
         Mij_cart(1, 1) = 1.;
         Mij_cart(2, 2) = 1.;
 
-        Tensor::Rank2 Mij_spher{};
-        FOR (i, j)
-        {
-            Mij_spher(i, j) = 0.;
-        }
+        Tensor::Sym12Rank2 Mij_spher{0.};
         Mij_spher(0, 0) = 1.;
         Mij_spher(1, 1) = r * r;
         Mij_spher(2, 2) = r2sin2theta;
 
         // Test cartesian_to_spherical_LL
-        Tensor::Rank2 Mij_spher_check{};
+        Tensor::Sym12Rank2 Mij_spher_check{};
         Mij_spher_check = cartesian_to_spherical_LL(Mij_cart, x, y, z);
         check_tensor(Mij_spher_check, Mij_spher, "cartesian_to_spherical_LL");
 
         // Test spherical_to_cartesian_LL
-        Tensor::Rank2 Mij_cart_check{};
+        Tensor::Sym12Rank2 Mij_cart_check{};
         Mij_cart_check = spherical_to_cartesian_LL(Mij_spher, x, y, z);
         check_tensor(Mij_cart_check, Mij_cart, "spherical_to_cartesian_LL");
 
         // Test cartesian_to_spherical_UU
-        Tensor::Rank2 Mij_spher_UU{};
-        Tensor::Rank2 Mij_spher_UU_check{};
+        Tensor::Sym12Rank2 Mij_spher_UU{};
+        Tensor::Sym12Rank2 Mij_spher_UU_check{};
         Mij_spher_UU_check =
             cartesian_to_spherical_UU(compute_inverse_sym(Mij_cart), x, y, z);
         Mij_spher_UU = compute_inverse_sym(Mij_spher);
@@ -128,8 +133,8 @@ void run_coordinate_transformations_test()
                      "cartesian_to_spherical_UU");
 
         // Test spherical_to_cartesian_UU
-        Tensor::Rank2 Mij_cart_UU{};
-        Tensor::Rank2 Mij_cart_UU_check{};
+        Tensor::Sym12Rank2 Mij_cart_UU{};
+        Tensor::Sym12Rank2 Mij_cart_UU_check{};
         Mij_cart_UU_check =
             spherical_to_cartesian_UU(compute_inverse_sym(Mij_spher), x, y, z);
         Mij_cart_UU = compute_inverse_sym(Mij_cart);

@@ -45,7 +45,6 @@ class ScalarField
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
-
     [[nodiscard]]
     AMREX_GPU_DEVICE emtensor_t compute_emtensor(
         const int ix, const int iy, const int iz, //!< grid indicies
@@ -57,7 +56,6 @@ class ScalarField
 
     // ! The function which adds in the RHS for the matter field vars,
     // ! including the potential
-
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_matter_rhs(
         const int ix, const int iy, const int iz, //!< grid indicies
         const amrex::Array4<amrex::Real>

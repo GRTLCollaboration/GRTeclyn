@@ -28,9 +28,18 @@ enum
     c_d2_t11,
     c_d2_t12,
     c_d2_t13,
+    c_d2_t21,
     c_d2_t22,
     c_d2_t23,
+    c_d2_t31,
+    c_d2_t32,
     c_d2_t33,
+    c_d2_sym_t11,
+    c_d2_sym_t12,
+    c_d2_sym_t13,
+    c_d2_sym_t22,
+    c_d2_sym_t23,
+    c_d2_sym_t33,
     c_d2_mixed,
     c_diss,
     c_advec_up,
@@ -50,9 +59,11 @@ template <class deriv_t> class DerivativeTestsCompute
     {
     }
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &out,
                const amrex::Array4<amrex::Real const> &in) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         Tensor::Rank1 out_d1 = m_deriv.d1_scalar(ix, iy, iz, in, c_d1);
 
@@ -65,8 +76,11 @@ template <class deriv_t> class DerivativeTestsCompute
         Tensor::Sym23Rank3 out_d2_v =
             m_deriv.d2_vector(ix, iy, iz, in, c_d2_v1);
 
-        Tensor::Sym12Sym34Rank4 out_d2_t =
+        Tensor::Sym34Rank4 out_d2_t =
             m_deriv.d2_tensor(ix, iy, iz, in, c_d2_t11);
+
+        Tensor::Sym12Sym34Rank4 out_d2_sym_t =
+            m_deriv.d2_sym_tensor(ix, iy, iz, in, c_d2_sym_t11);
 
         Tensor::Rank1 shift_up   = {2., 0., 3.};
         Tensor::Rank1 shift_down = {-2., 0., -3.};
@@ -88,7 +102,8 @@ template <class deriv_t> class DerivativeTestsCompute
         out_cell_data[c_d1_t33]     = out_d1_t(2, 2, 2);
         out_cell_data[c_d2]         = out_d2(2, 2);
         out_cell_data[c_d2_v3]      = out_d2_v(2, 2, 2);
-        out_cell_data[c_d2_t33]     = out_d2_t(2, 2, 2, 2);
+        out_cell_data[c_d2_t31]     = out_d2_t(2, 0, 0, 2);
+        out_cell_data[c_d2_sym_t33] = out_d2_sym_t(2, 2, 2, 2);
         out_cell_data[c_d2_mixed]   = out_d2(0, 2);
         out_cell_data[c_diss]       = out_diss;
         out_cell_data[c_advec_down] = out_advec_down;

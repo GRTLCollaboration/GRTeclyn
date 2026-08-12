@@ -2,6 +2,8 @@ GRTECLYN_HOME = $(realpath ../..)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
+EBASE = KleinGordon
+
 AMREX_HOME ?= $(realpath ../../../amrex)
 
 
@@ -17,8 +19,7 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
-src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
-            $(GRTECLYN_SOURCE)/ParticleInterpolator \
+src_dirs := $(GRTECLYN_SOURCE)/ParticleInterpolator \
             $(GRTECLYN_SOURCE)/Grids \
             $(GRTECLYN_SOURCE)/GRTeclynCore \
             $(GRTECLYN_SOURCE)/IO \

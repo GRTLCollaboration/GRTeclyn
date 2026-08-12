@@ -75,10 +75,16 @@ template <class gauge_t = MovingPunctureGauge,
 class CCZ4RHS
 {
   public:
-    enum
+    enum formulations : int
     {
-        USE_CCZ4,
-        USE_BSSN
+        USE_CCZ4 = 0,
+        USE_BSSN = 1
+    };
+
+    enum covariantZ4 : int
+    {
+        YES,
+        NO
     };
 
     using params_t = CCZ4_params_t;
@@ -104,26 +110,26 @@ class CCZ4RHS
     /// Calculates the rhs for chi and h_ij
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_chi_and_h_ij(int ix, int iy, int iz,
-                         const amrex::Array4<amrex::Real> &rhs_state,
-                         const amrex::Array4<amrex::Real const> &state) const;
+                         const amrex::Array4<amrex::Real> &rhs,
+                         const amrex::Array4<const amrex::Real> &state) const;
 
     // Calculates rhs for A_ij and Theta and Gamma
     template <int formulation, int use_covariant_Z4>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void compute_A_ij_and_Theta_and_Gamma(
-        int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
-        const amrex::Array4<amrex::Real const> &state) const;
+        int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
+        const amrex::Array4<const amrex::Real> &state) const;
 
     // Apply gauage (no derivatives needed here!)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    apply_gauge(int ix, int iy, int iz,
-                const amrex::Array4<amrex::Real> &rhs_state,
-                const amrex::Array4<amrex::Real const> &state) const;
+    calculate_gauge_rhs(int ix, int iy, int iz,
+                        const amrex::Array4<amrex::Real> &rhs,
+                        const amrex::Array4<const amrex::Real> &state) const;
 
     // Apply dissipation (split for matter classes)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     apply_dissipation(int ix, int iy, int iz,
-                      const amrex::Array4<amrex::Real> &rhs_state,
-                      const amrex::Array4<amrex::Real const> &state) const;
+                      const amrex::Array4<amrex::Real> &rhs,
+                      const amrex::Array4<const amrex::Real> &state) const;
 };
 
 #include "CCZ4RHS.impl.hpp"
