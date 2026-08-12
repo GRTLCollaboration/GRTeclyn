@@ -17,7 +17,6 @@
 #include "AMReX_FArrayBox.H"
 
 // Other includes
-// #include "Cell.hpp"
 #include "HarmonicTest.hpp"
 
 enum
@@ -90,6 +89,7 @@ void run_spherical_harmonic_test()
         amrex::Real max_diff = 0.0;
         amrex::IntVect max_diff_index{};
 
+        // NOLINTNEXTLINE(bugprone-casting-through-void)
         diff_fab.maxIndex<amrex::RunOn::Device>(box, max_diff, max_diff_index,
                                                 c_phi);
 
