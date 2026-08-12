@@ -70,8 +70,9 @@ class Weyl4
         the formulation.
     */
     // TODO: Remove dependence on formulation?
-    Weyl4(const std::array<double, AMREX_SPACEDIM> &a_center, double a_dx,
-          int a_out_comp, int a_formulation = CCZ4RHS<>::USE_CCZ4)
+    Weyl4(const std::array<amrex::Real, AMREX_SPACEDIM> &a_center,
+          amrex::Real a_dx, int a_out_comp,
+          int a_formulation = CCZ4RHS<>::USE_CCZ4)
         : m_center(a_center), m_dx(a_dx), m_deriv(a_dx), m_out_comp(a_out_comp),
           m_formulation(a_formulation)
     {
@@ -93,8 +94,8 @@ class Weyl4
                amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 
   protected:
-    std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
-    double m_dx;                                 //!< the grid spacing
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center; //!< The grid center
+    amrex::Real m_dx;                                 //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
     int m_out_comp;    //!< Which commponent to store Weyl4_Re (Weyl4_Im will be
                        //!< m_out_comp+1)

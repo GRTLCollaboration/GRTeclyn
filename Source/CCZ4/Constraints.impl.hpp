@@ -17,10 +17,10 @@
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_FORCE_INLINE
-Constraints::Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
+Constraints::Constraints(amrex::Real dx, int a_c_Ham, const Interval &a_c_Moms,
                          int a_c_Ham_abs_terms /*defaulted*/,
                          const Interval &a_c_Moms_abs_terms /*defaulted*/,
-                         double cosmological_constant /*defaulted*/)
+                         amrex::Real cosmological_constant /*defaulted*/)
     : m_deriv(dx), m_c_Ham(a_c_Ham), m_c_Moms(a_c_Moms),
       m_c_Ham_abs_terms(a_c_Ham_abs_terms),
       m_c_Moms_abs_terms(a_c_Moms_abs_terms),

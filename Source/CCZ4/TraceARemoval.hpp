@@ -35,8 +35,9 @@ class TraceARemoval
         const CCZ4Vars vars(const_state_cell_data);
 
         using namespace CCZ4Geometry;
-        const auto trace_A                = compute_trace_A(vars);
-        const double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
+        const auto trace_A = compute_trace_A(vars);
+        const amrex::Real one_over_gr_spacedim =
+            1. / ((amrex::Real)GR_SPACEDIM);
         FOR2_SYM(i, j)
         {
             state_cell_data[sym_var_idx(c_A11, i, j)] -=

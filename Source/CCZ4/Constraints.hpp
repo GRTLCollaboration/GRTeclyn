@@ -58,10 +58,10 @@ class Constraints
     // a_c_moms_abs_terms then it must have length consistent with
     // s_calc_mom_norm
     AMREX_FORCE_INLINE
-    Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
+    Constraints(amrex::Real dx, int a_c_Ham, const Interval &a_c_Moms,
                 int a_c_Ham_abs_terms              = -1,
                 const Interval &a_c_Moms_abs_terms = Interval(),
-                double cosmological_constant       = 0.0);
+                amrex::Real cosmological_constant  = 0.0);
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
@@ -89,7 +89,7 @@ class Constraints
     Interval m_c_Moms;
     int m_c_Ham_abs_terms = -1;
     Interval m_c_Moms_abs_terms;
-    double m_cosmological_constant;
+    amrex::Real m_cosmological_constant;
 
     [[nodiscard]]
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE constraints_t constraint_equations(

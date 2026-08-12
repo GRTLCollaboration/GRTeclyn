@@ -16,8 +16,8 @@
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class gauge_t, class deriv_t>
 inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
-    CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
-    double a_sigma, int a_formulation, double a_cosmological_constant)
+    CCZ4_params_t<typename gauge_t::params_t> a_params, amrex::Real a_dx,
+    amrex::Real a_sigma, int a_formulation, amrex::Real a_cosmological_constant)
     : m_params(a_params), m_gauge(a_params), m_sigma(a_sigma),
       m_formulation(a_formulation),
       m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
@@ -58,7 +58,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
     amrex::Real divshift   = CCZ4Geometry::compute_divshift(d1_shift);
     amrex::Real advec_chi =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_chi);
-    rhs_cell_data[c_chi] = advec_chi + (2.0 / (double)GR_SPACEDIM) *
+    rhs_cell_data[c_chi] = advec_chi + (2.0 / (amrex::Real)GR_SPACEDIM) *
                                            vars.chi() *
                                            (vars.lapse() * vars.K() - divshift);
 
@@ -70,7 +70,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
             m_deriv.advection(ix, iy, iz, state, shift_vector,
                               sym_var_idx(c_h11, i, j)) -
             2.0 * vars.lapse() * vars.A(i, j) -
-            (2.0 / (double)GR_SPACEDIM) * vars.h(i, j) * divshift;
+            (2.0 / (amrex::Real)GR_SPACEDIM) * vars.h(i, j) * divshift;
 
         FOR (k)
         {
@@ -176,7 +176,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
                               sym_var_idx(c_A11, i, j)) +
             Adot_TF(i, j) +
             vars.A(i, j) * (vars.lapse() * (vars.K() - 2.0 * vars.Theta()) -
-                            (2.0 / (double)GR_SPACEDIM) * divshift);
+                            (2.0 / (amrex::Real)GR_SPACEDIM) * divshift);
         FOR (k)
         {
             rhs_cell_data[sym_var_idx(c_A11, i, j)] +=
@@ -198,7 +198,8 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     amrex::Real advec_K =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_K);
 
-    amrex::Real tr_covd2lapse = -((double)GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
+    amrex::Real tr_covd2lapse =
+        -((amrex::Real)GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
     FOR (i)
     {
         tr_covd2lapse -= vars.chi() * chris.contracted(i) * d1_lapse(i);
@@ -227,10 +228,10 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         rhs_cell_data[c_K] =
             advec_K +
             vars.lapse() *
-                (Aij_squared + vars.K() * vars.K() / (double)GR_SPACEDIM) -
+                (Aij_squared + vars.K() * vars.K() / (amrex::Real)GR_SPACEDIM) -
             tr_covd2lapse -
             2.0 * vars.lapse() * m_cosmological_constant /
-                ((double)GR_SPACEDIM - 1.0);
+                ((amrex::Real)GR_SPACEDIM - 1.0);
     }
     else
     {
@@ -241,23 +242,23 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
             advec_Theta +
             0.5 * vars.lapse() *
                 (ricci.scalar - Aij_squared +
-                 (((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
+                 (((amrex::Real)GR_SPACEDIM - 1.0) / (amrex::Real)GR_SPACEDIM) *
                      vars.K() * vars.K() -
                  2.0 * vars.Theta() * vars.K()) -
             0.5 * vars.Theta() * kappa1_times_lapse *
-                (((double)GR_SPACEDIM + 1) +
-                 m_params.kappa2 * ((double)GR_SPACEDIM - 1.0)) -
+                (((amrex::Real)GR_SPACEDIM + 1) +
+                 m_params.kappa2 * ((amrex::Real)GR_SPACEDIM - 1.0)) -
             Z_dot_d1lapse - vars.lapse() * m_cosmological_constant;
 
         rhs_cell_data[c_K] =
             advec_K +
             vars.lapse() *
                 (ricci.scalar + vars.K() * (vars.K() - 2.0 * vars.Theta())) -
-            kappa1_times_lapse * (double)GR_SPACEDIM * (1.0 + m_params.kappa2) *
-                vars.Theta() -
+            kappa1_times_lapse * (amrex::Real)GR_SPACEDIM *
+                (1.0 + m_params.kappa2) * vars.Theta() -
             tr_covd2lapse -
-            2.0 * vars.lapse() * (double)GR_SPACEDIM /
-                ((double)GR_SPACEDIM - 1.0) * m_cosmological_constant;
+            2.0 * vars.lapse() * (amrex::Real)GR_SPACEDIM /
+                ((amrex::Real)GR_SPACEDIM - 1.0) * m_cosmological_constant;
     }
 
     // Gamma specific parts:
@@ -269,7 +270,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     FOR (i)
     {
         rhs_cell_data[c_Gamma1 + i] =
-            (2.0 / (double)GR_SPACEDIM) *
+            (2.0 / (amrex::Real)GR_SPACEDIM) *
                 (divshift * (chris.contracted(i) +
                              2.0 * m_params.kappa3 * Z_over_chi(i)) -
                  2.0 * vars.lapse() * vars.K() * Z_over_chi(i)) -
@@ -281,11 +282,11 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
                 2.0 * h_UU(i, j) *
                     (vars.lapse() * d1_Theta(j) - vars.Theta() * d1_lapse(j)) -
                 2.0 * A_UU(i, j) * d1_lapse(j) -
-                vars.lapse() *
-                    ((2.0 * ((double)GR_SPACEDIM - 1.0) / (double)GR_SPACEDIM) *
-                         h_UU(i, j) * d1_K(j) +
-                     (double)GR_SPACEDIM * A_UU(i, j) * d1_chi(j) /
-                         vars.chi()) -
+                vars.lapse() * ((2.0 * ((amrex::Real)GR_SPACEDIM - 1.0) /
+                                 (amrex::Real)GR_SPACEDIM) *
+                                    h_UU(i, j) * d1_K(j) +
+                                (amrex::Real)GR_SPACEDIM * A_UU(i, j) *
+                                    d1_chi(j) / vars.chi()) -
                 (chris.contracted(j) + 2.0 * m_params.kappa3 * Z_over_chi(j)) *
                     d1_shift(i, j);
 
@@ -296,7 +297,8 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
                         A_UU(j, k) +
                     h_UU(j, k) * d2_shift(i, j, k) +
-                    (((double)GR_SPACEDIM - 2.0) / (double)GR_SPACEDIM) *
+                    (((amrex::Real)GR_SPACEDIM - 2.0) /
+                     (amrex::Real)GR_SPACEDIM) *
                         h_UU(i, j) * d2_shift(k, j, k);
             }
         }

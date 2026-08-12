@@ -22,11 +22,11 @@
  */
 struct CCZ4_base_params_t
 {
-    double kappa1;    //!< Damping parameter kappa1 as in arXiv:1106.2254
-    double kappa2;    //!< Damping parameter kappa2 as in arXiv:1106.2254
-    double kappa3;    //!< Damping parameter kappa3 as in arXiv:1106.2254
-    bool covariantZ4; //!< if true, replace kappa1->kappa1/lapse as in
-                      //!<  arXiv:1307.7391 eq. 27
+    amrex::Real kappa1; //!< Damping parameter kappa1 as in arXiv:1106.2254
+    amrex::Real kappa2; //!< Damping parameter kappa2 as in arXiv:1106.2254
+    amrex::Real kappa3; //!< Damping parameter kappa3 as in arXiv:1106.2254
+    bool covariantZ4;   //!< if true, replace kappa1->kappa1/lapse as in
+                        //!<  arXiv:1307.7391 eq. 27
 };
 
 /// Parameter struct for CCZ4
@@ -63,21 +63,21 @@ class CCZ4RHS
     using params_t = CCZ4_params_t<typename gauge_t::params_t>;
 
   protected:
-    params_t m_params; //!< CCZ4 parameters
-    gauge_t m_gauge;   //!< Class to compute gauge in rhs_equation
-    double m_sigma;    //!< Coefficient for Kreiss-Oliger dissipation
+    params_t m_params;   //!< CCZ4 parameters
+    gauge_t m_gauge;     //!< Class to compute gauge in rhs_equation
+    amrex::Real m_sigma; //!< Coefficient for Kreiss-Oliger dissipation
     int m_formulation;
-    double m_cosmological_constant;
+    amrex::Real m_cosmological_constant;
     deriv_t m_deriv;
 
   public:
     /// Constructor
-    CCZ4RHS(
-        params_t a_params,            //!< The CCZ4 parameters
-        double a_dx,                  //!< The grid spacing
-        double a_sigma,               //!< Kreiss-Oliger dissipation coefficient
-        int a_formulation = USE_CCZ4, //!< Switches between CCZ4, BSSN,...
-        double a_cosmological_constant = 0 //!< Value of the cosmological const.
+    CCZ4RHS(params_t a_params,   //!< The CCZ4 parameters
+            amrex::Real a_dx,    //!< The grid spacing
+            amrex::Real a_sigma, //!< Kreiss-Oliger dissipation coefficient
+            int a_formulation = USE_CCZ4, //!< Switches between CCZ4, BSSN,...
+            amrex::Real a_cosmological_constant =
+                0 //!< Value of the cosmological const.
     );
 
     /// Compute function
