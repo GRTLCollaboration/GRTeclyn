@@ -21,9 +21,9 @@ class BoostedBHInitialData
   public:
     struct params_t
     {
-        double mass{};
-        std::array<double, AMREX_SPACEDIM> center;
-        std::array<double, AMREX_SPACEDIM> momentum;
+        amrex::Real mass{};
+        std::array<amrex::Real, AMREX_SPACEDIM> center;
+        std::array<amrex::Real, AMREX_SPACEDIM> momentum;
     };
 
     AMREX_FORCE_INLINE BoostedBHInitialData(params_t a_params);

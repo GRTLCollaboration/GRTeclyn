@@ -210,9 +210,9 @@ void PunctureTracker<num_punctures>::write_initial_punctures() const
         return;
     }
     // now the write out to a new file
-    bool first_step = true;
-    double dt       = 1.; // doesn't matter
-    double time     = 0.;
+    bool first_step  = true;
+    amrex::Real dt   = 1.; // doesn't matter
+    amrex::Real time = 0.;
     SmallDataIO punctures_file(m_punctures_filename, dt, time, m_restart_time,
                                SmallDataIO::APPEND, first_step);
     std::vector<std::string> header1_strings(
@@ -232,7 +232,7 @@ void PunctureTracker<num_punctures>::write_initial_punctures() const
 
 //! track the punctures and write out if requested
 template <unsigned int num_punctures>
-void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
+void PunctureTracker<num_punctures>::track(amrex::Real a_time, amrex::Real a_dt,
                                            const bool a_write_punctures)
 {
     BL_PROFILE("PunctureTracker::track");

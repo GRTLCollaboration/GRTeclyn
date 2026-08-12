@@ -34,7 +34,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     bool m_puncture_coords_set{false};
     bool m_started{false};
 
-    double m_restart_time{0.0};
+    amrex::Real m_restart_time{0.0};
 
   public:
     //! The constructor
@@ -57,7 +57,8 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     void write_plotfile(const std::string &a_dir);
 
     //! Track the punctures and write out if requested
-    void track(double a_time, double a_dt, const bool a_write_punctures = true);
+    void track(amrex::Real a_time, amrex::Real a_dt,
+               const bool a_write_punctures = true);
 
     //! Set the puncture coordinates (for the initial coordinates)
     void

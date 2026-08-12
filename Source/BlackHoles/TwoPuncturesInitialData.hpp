@@ -21,8 +21,8 @@
 class TwoPuncturesInitialData
 {
   private:
-    double m_dx;
-    std::array<double, AMREX_SPACEDIM> m_center;
+    amrex::Real m_dx;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
     // Let's assume we only need one TwoPunctures object for the whole
     // simulation
     static inline TP::TwoPunctures s_two_punctures;
@@ -31,7 +31,7 @@ class TwoPuncturesInitialData
 
   public:
     TwoPuncturesInitialData(
-        const double a_dx,
+        const amrex::Real a_dx,
         const std::array<amrex::Real, AMREX_SPACEDIM> a_center)
         : m_dx(a_dx), m_center(a_center)
     {
@@ -285,8 +285,8 @@ class TwoPuncturesInitialData
         s_two_punctures.swap_xz = false;
         pp.queryAdd("swap_xz", s_two_punctures.swap_xz);
 
-        double center_offset_xz = 0.5 * (offset_plus + offset_minus);
-        int offset_dir          = (s_two_punctures.swap_xz) ? 2 : 0;
+        amrex::Real center_offset_xz = 0.5 * (offset_plus + offset_minus);
+        int offset_dir               = (s_two_punctures.swap_xz) ? 2 : 0;
         s_two_punctures.center_offset[offset_dir] = center_offset_xz;
         s_two_punctures.par_b = 0.5 * (offset_plus - offset_minus);
 

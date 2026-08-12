@@ -22,7 +22,7 @@ enum Lapse
 class BinaryBHInitialData
 {
   protected:
-    double m_dx;
+    amrex::Real m_dx;
     BoostedBHInitialData bh1;
     BoostedBHInitialData bh2;
     int m_initial_lapse;
@@ -32,7 +32,7 @@ class BinaryBHInitialData
     AMREX_FORCE_INLINE
     BinaryBHInitialData(BoostedBHInitialData::params_t a_bh1_params,
                         BoostedBHInitialData::params_t a_bh2_params,
-                        double a_dx,
+                        amrex::Real a_dx,
                         int a_initial_lapse = Lapse::PRE_COLLAPSED);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
