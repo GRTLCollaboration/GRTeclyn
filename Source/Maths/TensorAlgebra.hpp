@@ -199,8 +199,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 // NOLINTEND
 
 {
-    auto trace                  = compute_trace(tensor_LL, inverse_metric);
-    double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
+    auto trace                       = compute_trace(tensor_LL, inverse_metric);
+    amrex::Real one_over_gr_spacedim = 1. / ((amrex::Real)GR_SPACEDIM);
     FOR (i, j)
     {
         tensor_LL(i, j) -= one_over_gr_spacedim * metric(i, j) * trace;
