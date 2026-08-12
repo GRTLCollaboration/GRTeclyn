@@ -8,7 +8,6 @@
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
-#include "Cell.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 

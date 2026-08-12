@@ -8,7 +8,6 @@
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4RHSWithMatter.hpp"
-#include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"
 

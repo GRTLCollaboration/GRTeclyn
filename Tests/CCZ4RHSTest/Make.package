@@ -15,6 +15,7 @@ GRTECLYN_CEXE_headers += InitialData.hpp \
                          simd.hpp \
                          simdify.hpp \
                          simd_base.hpp \
-                         CCZ4RHSTest.hpp
+                         CCZ4RHSTest.hpp \
+                         AlwaysInline.hpp
 
 GRTECLYN_CEXE_sources += CCZ4RHSTest.cpp

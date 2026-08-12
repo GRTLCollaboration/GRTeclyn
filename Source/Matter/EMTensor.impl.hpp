@@ -13,7 +13,6 @@
 #include <AMReX_AmrLevel.H>
 
 #include "CCZ4Geometry.hpp"
-#include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "Interval.hpp"

@@ -6,7 +6,6 @@
 #ifndef TENSOR_HPP_
 #define TENSOR_HPP_
 
-#include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 
 // AMReX includes

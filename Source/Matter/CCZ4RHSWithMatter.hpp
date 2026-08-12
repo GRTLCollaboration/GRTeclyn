@@ -9,7 +9,6 @@
 #include "CCZ4Geometry.hpp"
 #include "CCZ4RHS.hpp"
 #include "CCZ4Vars.hpp"
-#include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components

@@ -10,7 +10,6 @@
 #ifndef BOOSTEDBHINITIALDATA_IMPL_HPP_
 #define BOOSTEDBHINITIALDATA_IMPL_HPP_
 
-#include "AlwaysInline.hpp"
 #include "DimensionDefinitions.hpp"
 #include <cmath>
 
