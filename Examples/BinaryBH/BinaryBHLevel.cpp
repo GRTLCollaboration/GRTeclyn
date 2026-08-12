@@ -70,12 +70,42 @@ void BinaryBHLevel::initData()
         amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
     }
 #ifdef USE_TWOPUNCTURES
-    // xxxxx USE_TWOPUNCTURES todo
-    TwoPuncturesInitialData two_punctures_initial_data(
-        m_dx, m_p.center, m_tp_amr.m_two_punctures);
-    // Can't use simd with this initial data
-    BoxLoops::loop(two_punctures_initial_data, m_state_new, m_state_new,
-                   INCLUDE_GHOST_CELLS, disable_simd());
+    TwoPuncturesInitialData two_punctures_initial_data(Geom().CellSize(0),
+                                                       simParams().center);
+
+    two_punctures_initial_data.solve(); // only solves first time
+
+    amrex::MultiFab &state_new = get_new_data(state_index);
+#ifdef AMREX_USE_GPU
+    amrex::MFInfo mf_info;
+    mf_info.SetArena(amrex::The_Cpu_Arena());
+    amrex::MultiFab host_state(state_new.boxArray(),
+                               state_new.DistributionMap(), state_new.nComp(),
+                               state_new.nGrowVect(), mf_info);
+#else
+    amrex::MultiFab &host_state = state_new;
+#endif
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
+#endif
+    for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU()); mfi.isValid();
+         ++mfi)
+    {
+        const amrex::Box &grown_tile_box = mfi.growntilebox();
+        const auto &state_array          = host_state.array(mfi);
+
+        amrex::LoopOnCpu(
+            grown_tile_box, [=](int ix, int iy, int iz)
+            { two_punctures_initial_data(ix, iy, iz, state_array); });
+#ifdef AMREX_USE_GPU
+        // Copy to device
+        amrex::Gpu::htod_memcpy_async(
+            state_new[mfi].dataPtr(), host_state[mfi].dataPtr(),
+            host_state[mfi].size() * sizeof(amrex::Real));
+#endif
+    }
+
 #else
     // Set up the compute class for the BinaryBH initial data
     double dx = Geom().CellSize(0);
