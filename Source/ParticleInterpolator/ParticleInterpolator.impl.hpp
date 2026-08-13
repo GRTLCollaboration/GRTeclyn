@@ -147,6 +147,8 @@ void ParticleInterpolator<num_components>::populate_from_query(
 {
     AMREX_ASSERT(m_initialized);
 
+    m_num_query_points = query.numPoints(); // register number of query points
+
     // Some ranks can have zero points queried, so return here
     if (query.m_num_points == 0)
     {
@@ -319,8 +321,6 @@ void ParticleInterpolator<num_components>::interp(
                 << "ParticleInterpolator: populating particles from query\n";
         }
 
-        m_num_query_points =
-            query.numPoints(); // register number of query points
         populate_from_query(query);
     }
 
@@ -743,9 +743,9 @@ int ParticleInterpolator<num_components>::get_start_comp(
     AMREX_ASSERT(it != query.compsEnd());
 
     const auto &vec = it->second;
-    int start_comp  = vec.front().comp;
-
     AMREX_ASSERT(!vec.empty());
+
+    int start_comp = vec.front().comp;
 
     return start_comp;
 }
