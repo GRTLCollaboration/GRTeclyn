@@ -6,7 +6,6 @@
 #ifndef OSCILLATONINITIALDATA_HPP_
 #define OSCILLATONINITIALDATA_HPP_
 
-#include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"

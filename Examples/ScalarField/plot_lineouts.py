@@ -7,7 +7,7 @@ import numpy as np
 
 # Edit these plotting options as needed.
 data_path = Path("data")
-dt = 0.25
+dt = 0.2
 output_file = "lineouts.png"
 
 xlim = (0, 50)
