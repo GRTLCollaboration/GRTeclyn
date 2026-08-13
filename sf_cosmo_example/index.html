@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Running the scalar field example - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Running the scalar field example";
+        var mkdocs_page_input_path = "sf_cosmo_example.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../img/grteclyn-logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Running and modifying examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../bbh_example/">Running the binary black hole example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../sf_example/">Running the scalar field example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../visualising_outputs/">Visualising outputs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../kg_example/">Testing with the Klein Gordon example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../parameters/">Parameters guide</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developing code</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../updating_docs/">Updating the docs</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Other features and tools</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../two_punctures/">TwoPunctures</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../extraction/">Extraction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Misc resources</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Running the scalar field example</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="running-the-scalar-field-example">Running the scalar field example</h1>
+<hr />
+<p>NOTE: THE FOLLOWING EXAMPLE HAS NOT YET BEEN PORTED... UNDER CONSTRUCTION...</p>
+<hr />
+<p>Here we explain the cosmological scalar field example found in the code.</p>
+<h2 id="physical-scenario">Physical scenario</h2>
+<p>This page describes running the Cosmo example using the parameters found in <a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/params_cheap.txt">this parameter file</a>.</p>
+<p>The example is not very physically motivated but provides a good starting point for developing cosmological examples with some useful examples of how to implement diagnostics. It simulates an expanding spacetime with a scalar field that has a sinusoidal dependence in the x direction and a quadratic potential. The mass of scalar field is chosen to be equal to the wave number such that the constraints are satisfied initially (in a more general case one would need to solve the constraints numerically).</p>
+<h3 id="initial-data">Initial data</h3>
+<p>In this example, we are choosing the scalar field profile (see, <a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/InitialScalarData.hpp"><code>InitialScalarData.hpp</code></a>) as</p>
+<div class="arithmatex">\[ A \sin(2 n \pi x/L) \]</div>
+<p>where <span class="arithmatex">\(A\)</span>, <span class="arithmatex">\(n\)</span> and <span class="arithmatex">\(L\)</span> are the amplitude, mode and length of the simulation box, respectively.</p>
+<p>With the quadratic potential (see <a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/Potential.hpp"><code>Potential.hpp</code></a>)</p>
+<div class="arithmatex">\[ V(\phi) = \frac{1}{2} m^2 \phi^2 \]</div>
+<p>and the choice where <span class="arithmatex">\(n = m\)</span>, the energy density,</p>
+<div class="arithmatex">\[ \rho = \frac{1}{2} (\partial_x \phi)^2 + V(\phi) = \frac{A^2 m^2}{2} \]</div>
+<p>This is spatially constant, which makes it easier to make sure that the constraints are initially satisfied.</p>
+<p>The example is set up by solving <span class="arithmatex">\(A\)</span> from Friedmann's equation in an FLRW spacetime</p>
+<div class="arithmatex">\[ H^2 = \frac{8  \pi G \rho}{3} = \frac{8  \pi G}{3} \left(\frac{A^2 m^2}{2}\right)  \]</div>
+<p>where <span class="arithmatex">\(n=1\)</span>, the Hubble length <span class="arithmatex">\(L_H \sim 1/H = 1\)</span>.</p>
+<p>The initial data for extrinsic curvature <span class="arithmatex">\(K\)</span> that satisfies the Hamiltonian constraint is calculated from this (note that <span class="arithmatex">\(K=-3H\)</span> and stored on the grid as can be seen in <code>InitialK.hpp</code>. Note that we also assign values of initial <code>Pi = 0</code>, <code>lapse = chi = h11 = h22 = h33 = 1</code> in <code>InitialScalarData.hpp</code>.</p>
+<h3 id="diagnostics">Diagnostics</h3>
+<p>All diagnostics for this particular cosmological simulation are specified in <a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/CosmoDiagnostics.hpp"><code>CosmoDiagnostics.hpp</code></a>. As a guide of how a lineout could be done (extracting data on points along a line), the example also shows how to extract values of energy density along the x-axis of the grid.</p>
+<p>A class called <code>CustomExtraction</code> has been added to do the extraction of the values of components at specified points using the <code>AMRInterpolator</code> which interpolates data at any coordinates on the grid, using data from the finest available AMR level (see <a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/CustomExtraction.hpp"><code>CustomExtraction.hpp</code></a>). The given class is written to extract the data along x-axis and output it to <code>lineout.dat</code>. One could do a fancier lineout rather than just along an axis by modifying the class. It is possible to specify a starting point of the extraction in <code>CosmoLevel.cpp</code> at <code>specificPostTimeStep()</code>. The number of extracted points, <code>lineout_num_points</code>, can be specified in <code>params.txt</code>.</p>
+<h3 id="regridding">Regridding</h3>
+<p>Note that with the default parameters regriding should not happen, but an example of a possible tagging criteria is already provided with this example at <a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Source/TaggingCriteria/CosmoHamTaggingCriterion.hpp"><code>Source/TaggingCriteria/CosmoHamTaggingCriterion.hpp</code></a>. This tagging criterion tags the value of the sum of the magnitude of every term in the Hamiltonian constraint - this is usually a good choice to focus regridding in areas of strong curvature or high density. If one wants to turn the regridding on, one could change relevant parameter(s) under the Grid parameters section in params file, or modify this tagging criterion. In this example, the density and curvature are quite uniform, and so it doesn't make sense to regrid any particular areas.</p>
+<h2 id="running-the-example">Running the example</h2>
+<p>Go to <code>Examples/ScalarFieldCosmo</code> and type:</p>
+<p><code>make all</code></p>
+<p>If the example compiles with no errors, there should be an executable will have been produced with a name which depends on your compiler options but will look something like:</p>
+<p><code>Main_ScalarFieldCosmo3d_ch.Linux.64.mpiicpc.ifort.OPTHIGH.MPI.OPENMPCC.COSMA8.Intel2022.ex</code></p>
+<p>Normally you will not want to output the resulting hdf5 files to your home directory (where you would normally store the code), so you should uncomment and amend the following line in the params.txt file to give the (full, not relative) path to your data directory, where large output files are stored, e.g.</p>
+<pre class="highlight"><code>output_path = "/full/path/to/your/data/directory/"</code></pre>
+<p>To run the example, you are required to submit a batch job so that the simulation is queued and run on the compute nodes. The jobscript should be written and submitted to the queue. There should be examples for MPI and hybrid OpenMP/MPI jobs in your cluster documentation. Note that you may also need to reload the module files within the jobscript, depending on how your cluster works. Some examples of systems we use can be found <a href="https://github.com/GRChombo/GRChombo/wiki/Jobscript-tips-and-examples">here</a>. The number of cores you need will depend on the job and the memory per core on your cluster. If you run out of memory, you may want to switch to using several OpenMP threads per task, rather than running a pure MPI job.</p>
+<p>Here is an example jobscript for the Cosma8 machine (see your cluster docs for a template for your own system):</p>
+<pre class="highlight"><code class="language-bash">#!/bin/bash -l
+
+#! How many nodes
+#SBATCH --nodes 1
+### NB cosma8 has 128 cores per node so product of these = 128
+#SBATCH --ntasks-per-node=64 ## Total tasks will be this * number of nodes
+#SBATCH --cpus-per-task=2 ## Equal to number of OMP threads per task (set below)
+#! How many CPUs per tasks should be allocated (for OpenMP threading)
+#SBATCH -J CosmoEx_cheap
+#SBATCH -o out_%J.out
+#SBATCH -e err_%J.err
+#SBATCH -p cosma8
+#SBATCH -A &lt;account name&gt;
+#SBATCH --exclusive
+#SBATCH -t 01:00:00
+#SBATCH --mail-type=NONE                          # notifications for job done &amp; fail
+#SBATCH --mail-user=NONE
+
+module purge
+## Cosma 8
+module load gnu_comp/7.3.0
+module load intel_comp/2022.1.2
+module load compiler/2022.0.2 mkl/2022.0.2 mpi/2021.5.1
+module load parallel_hdf5/1.12.0
+
+#!Print info
+module list
+pwd
+date
+
+#! Are you using OpenMP?
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+#! Number of nodes and tasks per node allocated by SLURM (do not change):
+mpi_tasks_per_node=$(echo "$SLURM_TASKS_PER_NODE" | sed -e  's/^\([0-9][0-9]*\).*$/\1/')
+
+#! Number of nodes and tasks per node allocated by SLURM (do not change):
+numnodes=$SLURM_JOB_NUM_NODES
+numtasks=$SLURM_NTASKS
+
+#! Number of MPI tasks to be started by the application per node and in total (do not change):
+np=$[${numnodes}*${mpi_tasks_per_node}]
+
+#! Full path to application executable:
+application="Main_ScalarFieldCosmo3d_ch.Linux.64.mpiicpc.ifort.OPTHIGH.MPI.OPENMPCC.COSMA8.Intel2022.ex"
+#! Run options for the application:
+options="params_cheap.txt"
+
+#! Work directory (i.e. where the job will run):
+workdir="$SLURM_SUBMIT_DIR"
+
+# Run the program
+
+mpirun -ppn $mpi_tasks_per_node -np $SLURM_NTASKS $application $options</code></pre>
+<p>The job can be submitted with a command which depends on the scheduler, again for example:</p>
+<p><code>sbatch jobscript.sh</code></p>
+<h2 id="checking-the-outputs">Checking the outputs</h2>
+<h3 id="viewing-data-in-visit">Viewing data in VisIt</h3>
+<p>The example should produce a series of hdf5 files, which you can then view to check what has been simulated (see [[Visualising outputs|Visualising outputs]] for further details).</p>
+<p>One can check the evolution of chi, the conformal factor of the metric, which can be converted to e-folding number <span class="arithmatex">\(\text{ln}(a) = \text{ln}\left(\frac{1}{\sqrt{\chi}}\right)\)</span>.</p>
+<h3 id="plots-from-data-files">Plots from data files</h3>
+<p>Some simple plots can also be generated using Python script provided in the directory via the command</p>
+<p><code>$ python3 plot.py</code></p>
+<p>If one runs the example with <code>parmas_cheap.txt</code>, the resulting plots should be as shown below.</p>
+<p>The first graph (<a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/plot_efold.pdf">plot_efold.pdf</a>) is a plot of the e-folding number over time in the code unit. The plot shows that the example simulates a decelerated expanding universe.</p>
+<p><img alt="plot_efold" src="https://github.com/user-attachments/assets/b49d27e4-5403-40ba-a558-15d31139bbd7" /></p>
+<p>The second plot (<a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/plot_rho_mean.pdf">plot_rho_mean.pdf</a>) is the mean energy density across the grid as a function of e-folding number.</p>
+<p><img alt="plot_rho_mean" src="https://github.com/user-attachments/assets/4973281f-4b70-4238-a767-cdae01622473" /></p>
+<p>The last figure (<a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/plot_lineout.pdf">plot_lineout.pdf</a>) is a lineout extraction of energy density along x-axis of the simulation grid. The plot extracts 10 data points using AMRInterpolator to interpolate the data.</p>
+<p><img alt="plot_lineout" src="https://github.com/user-attachments/assets/9f1a382e-7b57-4dfa-9547-faa15a6ff5fd" /></p>
+<h2 id="load-balancing">Load balancing</h2>
+<p>Note that your job will output files like pout.0 for each processor. Looking at these files during the run allows you to see how fast it is going. More output can be produced by setting</p>
+<pre><code>verbose = 1
+</code></pre>
+<p>in the params.txt file. These files will also tell you how many boxes are being processed by each processor - for good load balancing and to avoid using more processors than you need, ideally all the processors should have one (or several) boxes each, and there should be at least one per processor.</p>
+<p><strong>Note that Chombo does not adjust the box sizes automatically based on the number of processes you choose so you almost certainly need to adjust them for your specific application and job configuration to avoid wasting resources and/or achieve good speeds.</strong></p>
+<p>More information on load balancing is given in the section on <a href="https://github.com/GRChombo/GRChombo/wiki/Performance-optimisation">performance optimisation</a> in the main GRChombo wiki. This is highly recommended reading.</p>
+<h3 id="expected-performance">Expected performance</h3>
+<p>The following examples are taken from the jobs running on the <a href="https://dirac.ac.uk/memory-intensive-durham">Cosma8</a> system.</p>
+<ul>
+<li>Running with <a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/params_cheap.txt">params_cheap.txt</a></li>
+</ul>
+<p>This params file specifies the grid size as <span class="arithmatex">\(16^3\)</span> with <code>max_</code> and <code>min_box_size = 8</code>. Therefore, the grid is divided into <span class="arithmatex">\((16/8)^3 = 8\)</span> boxes. Running this on 8 processes we will have one box per rank, and if we check <code>pout.0</code>, we should have a running speed of around 1000 M/hr. With this speed, the job will finish within a couple of minutes - this is not a realistic job size but provides a quick test that everything is working ok.</p>
+<ul>
+<li>Running with <a href="https://github.com/GRTLCollaboration/GRChombo/blob/main/Examples/ScalarFieldCosmo/params.txt">params.txt</a></li>
+</ul>
+<p>This params file specifies the grid size as <span class="arithmatex">\(128^3\)</span> with <code>max_</code> and <code>min_box_size = 16</code>. Therefore, the grid is divided into <span class="arithmatex">\((128/16)^3 = 512\)</span> boxes. Running this on 512 processes will assign one box to each rank. If we check <code>pout.0</code>, we should find a running speed of around 100 M/hr. With this speed, the job will finish within an hour. Using half the number of processes would mean there would be twice as many boxes per rank, and so we would expect the speed to roughly halve too (although this is only approximate).</p>
+<p>It is well worth checking that you can get these expected speeds on any new system in order to check that things are working properly. Cosma8 is a very fast system, but most systems should give the same order of magnitude. If you are getting speeds of 1-10M/hr with a similar number of processes, something is wrong (probably a memory bottleneck, or a bad compiler option).</p>
+<hr />
+<h2 id="restarting-from-grtresna-runningrestarting-from-the-initial-data-solver">Restarting from GRTresna - running/restarting from the initial data solver</h2>
+<p>If one wants to use <a href="https://github.com/GRTLCollaboration/GRTresna"><code>GRTresna</code></a> to solve the initial data, please see GRTresna's <a href="https://github.com/GRTLCollaboration/GRTresna/wiki">wiki page</a>. Once the solver successfully runs and outputs the final hdf5 file (usually named <code>InitialDataFinal.3d.hdf5</code>), the example can then be run starting from this initial data by using <code>InitialDataFinal.3d.hdf5</code> as a checkpoint file to restart the simulation from. To do so, make sure that all relevant parameters are consistent between GRChombo and GRTresna, uncomment and specify the path to the checkpoint file in the params file</p>
+<pre class="highlight"><code># If restarting from the IC Solver or checkpoint, uncomment this and put the
+# file into the hdf5 folder (need to create this if not there)
+restart_file = /path/to/your/InitialDataFinal.3d.hdf5/</code></pre>
+<p>Params files and results of the example using GRTresna can be found in <a href="https://github.com/GRTLCollaboration/GRChombo/tree/main/Examples/ScalarFieldCosmo/GRTresna_restart_setup"><code>/ScalarFieldCosmo/GRTresna_restart_setup</code></a>.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+      <script src="../javascripts/katex-render.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
