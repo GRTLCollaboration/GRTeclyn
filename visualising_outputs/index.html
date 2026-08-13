@@ -188,11 +188,10 @@ native <code>plt*</code> format for both grid and particle data.</p>
   <pre class="highlight"><code class="language-bash">cd /path/to/ParaView-5.9.1-MPI-Linux-Python3.8-64bit/bin
 ./paraview</code></pre></li>
 </ul>
-<hr />
-<p>It is very important that you download the <strong>exact</strong> same version of
-ParaView as what is installed on the cluster if you want to run it
-remotely in a server/client configuration. </p>
-<hr />
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is very important that you download the <strong>exact</strong> same version of ParaView as what is installed on the cluster if you want to run it remotely in a server/client configuration. </p>
+</div>
 <h3 id="remote-visualisation">Remote visualisation</h3>
 <p>Assuming you have just performed a simulation on a remote HPC cluster and wish
 to visualise the outputted files, the best way to do this is to set up
@@ -329,11 +328,10 @@ will plot the values of <code>chi</code> from the regression test output from th
 
 <h2 id="using-visit">Using Visit</h2>
 <p>Download Visit to your local machine from their <a href="https://visit-dav.github.io/visit-website/releases-as-tables/">current releases</a>.</p>
-<hr />
-<p>It is very important that you download the <strong>exact</strong> same version of
-VisIt as what is installed on the cluster if you want to run it
-remotely in a server/client configuration. </p>
-<hr />
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is very important that you download the <strong>exact</strong> same version of VisIt as what is installed on the cluster if you want to run it remotely in a server/client configuration. </p>
+</div>
 <p>For Mac and Windows there are installers, for Linux you should download the tar file, plus the "Visit Install Script" (in the bullets above the executable) and follow the instructions in "Visit Install Notes". The tar file for Ubuntu 14.04 seems to work on Ubuntu 16.04 too.</p>
 <p>Assuming your plot files are on a remote cluster, you have three options:</p>
 <ol>
@@ -349,12 +347,12 @@ remotely in a server/client configuration. </p>
 <h3 id="setting-up-a-remote-host">Setting up a remote host</h3>
 <p>To set up a remote host, launch VisIt on your local machine, then go to "Options-&gt;Host profiles". Click on "New Host" and configure it by setting:</p>
 <ul>
-<li>The Host nickname e.g. cosmos</li>
-<li>The remote hostname, e.g. cosmos.damtp.cam.ac.uk</li>
+<li>The Host nickname e.g. <code>cosmos</code></li>
+<li>The remote hostname, e.g. <code>cosmos.damtp.cam.ac.uk</code></li>
 <li>If you can run in parallel on the cluster nodes, set the max number of nodes and processors to use</li>
-<li>Path to visit installation (where you put it on the cluster), e.g. ~/visit</li>
-<li>Username (your username on the remote host), e.g. kclough</li>
-<li>Select "Tunnel data connections through ssh" and set the ssh command to "ssh -C"</li>
+<li>Path to visit installation (where you put it on the cluster), e.g. <code>~/visit</code></li>
+<li>Username (your username on the remote host), e.g. <code>kclough</code></li>
+<li>Select "Tunnel data connections through ssh" and set the ssh command to <code>ssh -C</code></li>
 </ul>
 <p>VisIt can sometimes be "difficult" when it comes to getting it to remember the configuration. After you've configured the host, click "Apply", then click on the "i" button on the bottom-right of the main Visit window. Return to the host configuration dialog and hit "Export host" you should then see a confirmation that VisIt has saved it for you.</p>
 <p>A useful tutorial on running VisIt in parallel in client server mode, where one needs to submit a batch job to reserve the compute nodes, can be found <a href="https://www.youtube.com/watch?v=IPekLxRJxJ0">here</a>. (Note that for this you need to download a version which includes parallel VisIt - ie redhat not ubuntu).</p>
@@ -362,7 +360,7 @@ remotely in a server/client configuration. </p>
 <p>VisIt has a GUI interface, so it is (sort of) intuitive. Opening a file should allow you to view the series of hdf5 outputs as a time series, without having to select any special options.</p>
 <p>The most useful plots for our data are Pseudocolour plots, using the Operators-&gt;Slice operators to view a slice (adjust the intercept to the centre of the grid) and Operators-&gt;Elevate to make the plot 3D, but the things you can do with VisIt are pretty limitless.</p>
 <p>There are VisIt tutorials which will help to discover all the functionality, see for example the ATPESC 2016 workshop which also has a <a href="http://www.visitusers.org/index.php?title=Short_Tutorial">YouTube video</a>.</p>
-<p>See our tips for making good visualisations in [[Visualisation tips | Visualisation tips]]. Feel free to add to them!</p>
+<p>See our (still relevant!) tips for making good visualisations in the <a href="https://github.com/GRTLCollaboration/GRChombo/wiki/Visualisation-tips">GRChombo wiki</a>. Feel free to add to them!</p>
 <p>There are a number of example scripts for processing GRChombo files using the VisIt command line <a href="https://github.com/GRTLCollaboration/Postprocessing_tools/tree/master/VisItTools">here</a></p>
 <h2 id="using-yt">Using yt</h2>
 <p><code>yt</code> is an alternative python based visualisation software which is very good for processing and analysing data. Instructions on downloading and using yt can be found <a href="http://yt-project.org/doc/index.html">here</a>.</p>

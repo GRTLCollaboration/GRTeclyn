@@ -72,6 +72,14 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Testing with the Klein Gordon example</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#how-to-run-the-code">How to run the code</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#looking-at-the-outputs">Looking at the outputs</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#aside-how-to-add-a-derived-variable">(Aside) How to add a derived variable</a>
+    </li>
+        </ul>
+    </li>
     </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../parameters/">Parameters guide</a>
@@ -140,13 +148,83 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="a-testing-with-the-klein-gordon-example">A Testing with the Klein Gordon example</h1>
+                <h1 id="testing-with-the-klein-gordon-example">Testing with the Klein Gordon example</h1>
 <p>The repository includes an example which solves the Klein Gordon equation in flat spacetime (i.e. without GR, or any non trivial metric background). It casts the equation as first order in time, and therefore only contains two variables - the field <code>phi</code> and its conjugate momentum <code>Pi</code>.</p>
-<p>This can be useful if you:</p>
+<p>It runs three models:</p>
 <ul>
-<li>want a simpler example from which to learn the structure of the code and how it interacts with AMReX, before diving into the full CCZ4 equations</li>
-<li>want to work on optimizating the code (sometimes the register pressure may be too high on the PVCs for an analysis using the BinaryBH example)</li>
+<li>1D Wave equation with potential
+<pre class="highlight"><code class="language-math">\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi + \frac{1}{2} m^2 \phi^2</code></pre></li>
+<li>1D Sine-Gordon breather equation
+<pre class="highlight"><code class="language-math">\frac{\partial^2 \phi}{\partial t^2} = \frac{\partial^2 \phi}{\partial x^2} - \sin \phi</code></pre></li>
+<li>
+<p>3D Sine-Gordon breather solution
+<pre class="highlight"><code class="language-math">\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi - \sin \phi</code></pre>
+This example can be useful if you:</p>
+</li>
+<li>
+<p>want a simpler example from which to learn the structure of the code and how it interacts with AMReX, before diving into the full CCZ4 equations</p>
+</li>
+<li>want to work on optimizating the code</li>
+<li>need an example with an analytic solution for testing</li>
+<li>need an example of how to change models at runtime</li>
 </ul>
+<h2 id="how-to-run-the-code">How to run the code</h2>
+<ol>
+<li><code>git clone</code> GRTeclyn and AMReX as usual. Navigate to <code>Examples/KleinGordon</code>.</li>
+<li>Build using
+<pre class="highlight"><code class="language-bash">make -j 8 COMP=&lt;your favourite toolchain&gt; </code></pre>
+See the <a href="https://grtlcollaboration.github.io/GRTeclyn/example_configs/">example configs</a> for some common setups.</li>
+<li>
+<p>Take a look inside the parameter file, <code>params_test.txt</code>:
+<pre class="highlight"><code>#Klein Gordon Parameters
+# Choose from "Wave" or "SineGordon1D" or "SineGordon3D"
+
+# Example parameters for SineGordon models
+# NB: alpha must be defined
+# If SineGordon3D is specified then the initial time
+# can't be 0 because then the solution is uniformly 0
+
+klein_gordon.model = SineGordon3D
+klein_gordon.alpha = 0.7
+klein_gordon.initial_time = -5.4;
+
+
+# Example parameters for Wave model
+# NB: wave_vector must be defined
+#klein_gordon.model = Wave
+#klein_gordon.wave_vector = 10.
+#klein_gordon.scalar_mass = 1      # potential is scalar_mass^2 phi^2 - only relevant for Wave models
+</code></pre>
+All Klein Gordon parameters are prefaced by <code>klein-gordon</code>:</p>
+<ul>
+<li><code>klein_gordon.model</code>: Choose from <code>Wave</code>, <code>SineGordon1D</code> or <code>SineGordon3D</code></li>
+<li><strong>(Sine Gordon models only)</strong> <code>klein_gordon.alpha</code>: The breather solutions oscillate and this controls the frequency of the oscillation. Must be less than 1!</li>
+<li><code>klein_gordon.initial_time</code>: This sets the initial state/phase of the solution.</li>
+<li><strong>(Wave models only)</strong> <code>klein_gordon.wave_vector</code>: The characteristic wave number, <span class="arithmatex">\(k_r\)</span>. The solution is in the form <span class="arithmatex">\(\cos(k_r r - \omega t)\)</span>. </li>
+<li><strong>(Wave models only)</strong> <code>klein_gordon.scalar_mass</code>: The potential is in the form <span class="arithmatex">\(m^2 \phi^2\)</span>, where <span class="arithmatex">\(m\)</span> is the mass of the scalar field.</li>
+</ul>
+</li>
+<li>
+<p>Run the code using
+<pre class="highlight"><code class="language-bash">mpirun -np 2 ./KleinGordon3d.XXX.MPI.ex ./params_test.txt</code></pre>
+where the <code>XXX</code> represents the toolchain that you've chosen in Step 2.
+This example is very small, so 2 MPI ranks is more than sufficient. </p>
+</li>
+</ol>
+<h2 id="looking-at-the-outputs">Looking at the outputs</h2>
+<p>Set <code>amr.plot_vars = ALL</code> and <code>amr.derive_plot_vars = ALL</code> to print all the state (<code>phi</code>, <code>Pi</code>) and derived variables (<code>phi_analytic</code>, <code>Pi_analytic</code>, <code>rho</code>). </p>
+<p>There are three derived variables:</p>
+<ul>
+<li><code>phi_analytic</code> - the analytic solution to the field value at each cell</li>
+<li><code>Pi_analytic</code> - the analytic solution to the first derivative of the field value at each cell</li>
+<li><code>rho</code> - the value of the energy density at each cell.</li>
+</ul>
+<h3 id="aside-how-to-add-a-derived-variable">(Aside) How to add a derived variable</h3>
+<ol>
+<li>Define their compute functions, e.g. <code>calc_energy_density</code>. This is done inside <code>DerivedVariables.hpp</code> and <code>DerivedVariables.impl.hpp</code>.</li>
+<li>Add the variable to the list of derived variables, <code>derive_lst</code>, managed by AMReX. This happens within the <code>KleinGordonLevel</code> class, inside the member function called <code>variableSetUp()</code>. Notice that the compute function defined in Step 1 is passed into <code>deriv_lst.add</code> and that the variables are named e.g. <code>rho</code>.</li>
+<li>When <code>writePlotFile</code> is called (at the AMReX level), it will cycle through the names of the variables in <code>derive_lst</code> and the ones that you have selected (using <code>amr.derive_plot_vars</code> in the parameter file) will be written to file. </li>
+</ol>
               
             </div>
           </div><footer>
