@@ -15,35 +15,35 @@
 #include "GRAMR.hpp"
 #include "ParticleInterpolator.hpp"
 #include "TensorAlgebra.hpp"
+#include <filesystem>
+#include <fstream>
 
 template <int num_components>
 void AHFinder<num_components>::init(
     GRAMR *gramr_ptr, const BoundaryConditions::params_t &a_bc_params,
     bool a_verbosity)
 {
-    m_tol = 1e-4;
-    m_eta = 5;
-    m_c   = 1.0;
-    m_dt  = 0.01;
+    m_tol    = 1e-4;
+    m_c      = 1.0;
+    m_min_dt = 1e-4;
+    m_r      = 1.15;
+    m_eta    = 5;
 
-    // Create InterpolationQueryParticle
-    // of n coordinates based on
-    // centre and radius of guess
+    m_dt_shrink   = 0.8;
+    m_dt_grow     = 1.25;
+    m_theta_floor = 1e-12;
+
     this->generate_spherical_query();
     this->setup_metric_query();
 
     // Set up interpolator
     this->setup(gramr_ptr, a_bc_params, a_verbosity);
 
-    // Add comps for h and v
-    this->AddRealComp(true);
-    this->AddRealComp(true);
-
     // Populate so we can access the particle data
     this->populate_from_query();
 
-    // Initialise h and v values for particles
-    this->init_h_v();
+    // Initialise h, v and dt values for particles
+    this->init_particle_vals();
 }
 
 template <int num_components> void AHFinder<num_components>::find()
@@ -51,48 +51,69 @@ template <int num_components> void AHFinder<num_components>::find()
     amrex::Real theta_old;
     amrex::Real theta_new;
 
-    amrex::Real r      = 1.15;
-    amrex::Real min_dt = 1e-4;
-    amrex::Real max_dt = 1e2;
-
     int n_iter = 0;
 
     h_derivs();
     h_hessian();
     compute_theta();
 
-    theta_new = inf_norm(m_theta_vals);
+    theta_old    = inf_norm(m_theta_vals);
+    m_theta_prev = m_theta_vals;
 
+    // Temp logging
     amrex::AllPrint() << "\n AHFinder expansion Theta inf "
                          "norm = "
                       << inf_norm(m_theta_vals) << "\n";
 
-    this->move_radial();
+    std::ofstream theta_log("theta_vs_iter.csv");
+    theta_log << n_iter << "," << theta_old << std::endl;
 
-    while (theta_new > m_tol)
+    std::ofstream dt_log("dt_vs_iter.csv");
+    dt_log << n_iter << "," << m_dt[0] << std::endl;
+
+    std::filesystem::create_directory("particles");
+    auto write_particles = [&](int iter)
     {
-        theta_old = theta_new;
+        std::ofstream pfile("particles/particles_" + std::to_string(iter) +
+                            ".csv");
+        pfile << "x,y,z\n";
+        for (int ip = 0; ip < m_num_particles; ++ip)
+            pfile << interp_coords_x[ip] << "," << interp_coords_y[ip] << ","
+                  << interp_coords_z[ip] << "\n";
+    };
+    write_particles(n_iter);
+
+    while (theta_old > m_tol)
+    {
         this->update_v();
         this->move_radial();
+
         h_derivs();
         h_hessian();
         compute_theta();
 
         theta_new = inf_norm(m_theta_vals);
 
-        // Update time step based on ratio of old to new theta
-        // As we converge to theta = 0 we can increase the timestep
-        m_dt = r * m_dt * theta_new / theta_old;
+        amrex::AllPrint() << "\n theta_old = " << theta_old << "\n";
 
-        // Ensure timestep doesn't grow too large or small
-        m_dt = std::max(m_dt, min_dt);
-        m_dt = std::min(m_dt, max_dt);
+        amrex::AllPrint() << "\n theta_new = " << theta_new << "\n";
+
+        amrex::AllPrint() << "-------------------------\n";
+
+        theta_old = theta_new;
 
         n_iter++;
+
+        theta_log << n_iter << "," << theta_old << std::endl;
+        dt_log << n_iter << "," << m_dt[0] << std::endl;
+        write_particles(n_iter);
     }
 
+    theta_log.close();
+    dt_log.close();
+
     amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "
-                      << theta_new << " in " << n_iter << " iterations\n";
+                      << theta_old << " in " << n_iter << " iterations\n";
 }
 
 template <int num_components>
@@ -123,16 +144,17 @@ void AHFinder<num_components>::generate_spherical_query()
             double phi = j * 2. * M_PI / m_ring_size;
             int idx    = i * m_ring_size + j;
 
-            interp_coords_x[idx] = m_center[0] + cos(phi) * sin(theta);
-            interp_coords_y[idx] = m_center[1] + sin(phi) * sin(theta);
-            interp_coords_z[idx] = m_center[2] + cos(theta);
+            interp_coords_x[idx] =
+                m_center[0] + m_guess_radius * cos(phi) * sin(theta);
+            interp_coords_y[idx] =
+                m_center[1] + m_guess_radius * sin(phi) * sin(theta);
+            interp_coords_z[idx] = m_center[2] + m_guess_radius * cos(theta);
         }
     }
 
     query.setCoords(0, interp_coords_x.data())
         .setCoords(1, interp_coords_y.data())
-        .setCoords(2, interp_coords_z.data())
-        .addComp(0, interp_vals.data(), VariableType::state);
+        .setCoords(2, interp_coords_z.data());
 
     this->m_query = &query;
 }
@@ -178,131 +200,108 @@ amrex::GpuArray<int, 4> AHFinder<num_components>::neighbours(int j) const
     return {north, south, east, west};
 }
 
-template <int num_components> void AHFinder<num_components>::init_h_v()
+template <int num_components>
+void AHFinder<num_components>::init_particle_vals()
 {
-    for (int lev = 0; lev <= this->m_gramr_ptr->finestLevel(); ++lev)
+    for (int id = 0; id < m_num_particles; ++id)
     {
-        if (this->NumberOfParticlesAtLevel(lev) == 0)
-            continue;
+        // Height from centre
+        m_h[id] = std::sqrt(std::pow(interp_coords_x[id] - m_center[0], 2) +
+                            std::pow(interp_coords_y[id] - m_center[1], 2) +
+                            std::pow(interp_coords_z[id] - m_center[2], 2));
 
-        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
-        {
-            // Get AoS data for particles at this level
-            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
-            auto &soa             = particle_tile.GetStructOfArrays();
-            auto &aos             = particle_tile.GetArrayOfStructs();
-            ParticleType *pstruct = aos().dataPtr();
-
-            double *h_ptr = soa.GetRealData(m_h_idx).dataPtr();
-            double *v_ptr = soa.GetRealData(m_v_idx).dataPtr();
-
-            amrex::ParallelFor(m_num_particles,
-                               [=] AMREX_GPU_DEVICE(int ip)
-                               {
-                                   auto &p = pstruct[ip];
-
-                                   h_ptr[ip] =
-                                       sqrt(pow(p.pos(0) - m_center[0], 2) +
-                                            pow(p.pos(1) - m_center[1], 2) +
-                                            pow(p.pos(2) - m_center[2],
-                                                2)); // Height from centre
-
-                                   v_ptr[ip] = 0.0; // Velocity
-                               });
-        }
-
-        amrex::Gpu::streamSynchronize();
+        // Since h = v - eta * h, start velocity at eta * h so we don't
+        // immediately collapse inwards
+        m_v[id]  = m_eta * m_h[id];
+        m_dt[id] = 1e-2;
     }
 }
 
 template <int num_components> void AHFinder<num_components>::move_radial()
 {
-    for (int lev = 0; lev <= this->m_gramr_ptr->finestLevel(); ++lev)
+    for (int id = 0; id < m_num_particles; ++id)
     {
+        const double h = m_h[id];
+        const double v = m_v[id];
+        double dt      = m_dt[id];
 
-        if (this->NumberOfParticlesAtLevel(lev) == 0)
-            continue;
+        double *pos[AMREX_SPACEDIM] = {
+            &interp_coords_x[id], &interp_coords_y[id], &interp_coords_z[id]};
 
-        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
+        amrex::GpuArray<double, AMREX_SPACEDIM> coords;
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
-            // Get AoS data for particles at this level
-            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
-            auto &soa             = particle_tile.GetStructOfArrays();
-            auto &aos             = particle_tile.GetArrayOfStructs();
-            ParticleType *pstruct = aos().dataPtr();
+            // Get normalised direction to m_center
+            const double center_direction = (*pos[i] - m_center[i]) / h;
 
-            double *h_ptr = soa.GetRealData(m_h_idx).dataPtr();
-            double *v_ptr = soa.GetRealData(m_v_idx).dataPtr();
+            // Update position
+            *pos[i] += dt * (center_direction * (v - m_eta * h));
 
-            amrex::ParallelFor(
-                m_num_particles,
-                [=] AMREX_GPU_DEVICE(int ip)
-                {
-                    double center_direction;
-
-                    auto &p = pstruct[ip];
-
-                    amrex::GpuArray<double, AMREX_SPACEDIM> coords;
-
-                    for (size_t i = 0; i < AMREX_SPACEDIM; i++)
-                    {
-                        // Get normalised direction to m_center
-                        center_direction = (p.pos(i) - m_center[i]) / h_ptr[ip];
-
-                        // Update position
-                        p.pos(i) += m_dt * (center_direction *
-                                            (v_ptr[ip] - m_eta * h_ptr[ip]));
-
-                        coords[i] = p.pos(i);
-                    }
-
-                    this->check_domain(coords);
-
-                    // Update h
-                    h_ptr[ip] = sqrt(pow(p.pos(0) - m_center[0], 2) +
-                                     pow(p.pos(1) - m_center[1], 2) +
-                                     pow(p.pos(2) - m_center[2], 2));
-
-                    // Update query position
-                    interp_coords_x[ip] = p.pos(0);
-                    interp_coords_y[ip] = p.pos(1);
-                    interp_coords_z[ip] = p.pos(2);
-                });
+            coords[i] = *pos[i];
         }
 
-        amrex::Gpu::streamSynchronize();
+        m_theta_prev[id] = m_theta_vals[id];
 
-        // Update query
-        query.setCoords(0, interp_coords_x.data())
-            .setCoords(1, interp_coords_y.data())
-            .setCoords(2, interp_coords_z.data());
+        this->check_domain(coords);
+
+        // Update h
+        m_h[id] = std::sqrt(std::pow(interp_coords_x[id] - m_center[0], 2) +
+                            std::pow(interp_coords_y[id] - m_center[1], 2) +
+                            std::pow(interp_coords_z[id] - m_center[2], 2));
     }
+
+    // Push positions to particles
+    this->m_query = &query;
+    this->update_particle_positions();
 }
 
 template <int num_components> void AHFinder<num_components>::update_v()
 {
-    for (int lev = 0; lev <= this->m_gramr_ptr->finestLevel(); ++lev)
+    for (int id = 0; id < m_num_particles; ++id)
     {
+        // Calculate new timestep
+        double dt      = m_dt[id];
+        const double h = m_h[id];
 
-        if (this->NumberOfParticlesAtLevel(lev) == 0)
-            continue;
+        // Expansion (big) theta from the previous iteration
+        const double p_theta = m_theta_prev[id];
 
-        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
+        // // Get CFL number for max stable step
+        double cfl_factor = 1.;
+
+        int ring_num = id / m_ring_size;
+
+        // Angular (little) theta
+        double theta = (ring_num + 0.5) * M_PI / m_n_rings;
+
+        double d_theta = h * M_PI / m_n_rings;
+        double d_phi   = h * sin(theta) * 2.0 * M_PI / m_ring_size;
+
+        double max_dt = cfl_factor * std::min(d_theta, d_phi);
+
+        // Update time step based on ratio of old to new theta,
+        // making sure it doesn't grow or shrink too fast
+        const double theta_now = m_theta_vals[id];
+        double ratio           = (std::abs(theta_now) > m_theta_floor)
+                                     ? m_r * p_theta / theta_now
+                                     : m_r;
+        ratio                  = std::max(ratio, m_dt_shrink);
+        ratio                  = std::min(ratio, m_dt_grow);
+
+        dt *= ratio;
+
+        // Ensure timestep doesn't grow too large or small
+        dt = std::max(dt, m_min_dt);
+        dt = std::min(dt, max_dt);
+
+        if (id == 0)
         {
-            auto &particle_tile = this->ParticlesAt(lev, par_iter);
-            auto &soa           = particle_tile.GetStructOfArrays();
-            double *v_ptr       = soa.GetRealData(m_v_idx).dataPtr();
-
-            amrex::ParallelFor(m_num_particles,
-                               [=] AMREX_GPU_DEVICE(int ip)
-                               {
-                                   // Update v
-                                   v_ptr[ip] -=
-                                       m_dt * pow(m_c, 2) * interp_vals[ip];
-                               });
+            amrex::Print() << "dt at p0 = " << dt << "\n";
         }
 
-        amrex::Gpu::streamSynchronize();
+        m_dt[id] = dt;
+
+        m_v[id] -= m_dt[id] * std::pow(m_c, 2) * m_theta_vals[id];
     }
 }
 
@@ -327,7 +326,7 @@ AHFinder<num_components>::ring_gradient(const double *field_ptr, int north_idx,
                                         double d_phi, double theta, double phi,
                                         double r)
 {
-    // Perform (central) finite differences with a particle and its
+    // Perform finite differences with a particle and its
     // neighbours in spherical (theta/phi) coordinates and convert
     // them to cartesian (x/y/z)
     amrex::Real d_dtheta =
@@ -353,72 +352,30 @@ AHFinder<num_components>::ring_gradient(const double *field_ptr, int north_idx,
 template <int num_components> void AHFinder<num_components>::h_derivs()
 {
     // Calculate dh/dx, dh/dy, dh/dz for all particles.
-    for (int lev = 0; lev <= this->m_gramr_ptr->finestLevel(); ++lev)
+    const double *h_ptr = m_h.data();
+    double *dhdx_ptr    = m_dhdx.data();
+    double *dhdy_ptr    = m_dhdy.data();
+    double *dhdz_ptr    = m_dhdz.data();
+
+    const double d_theta = M_PI / m_n_rings;
+    const double d_phi   = 2.0 * M_PI / m_ring_size;
+
+    for (int id = 0; id < m_num_particles; ++id)
     {
+        const int self_ring_num = id / m_ring_size;
+        const int self_ring_pos = id % m_ring_size;
+        const double theta      = (self_ring_num + 0.5) * M_PI / m_n_rings;
+        const double phi        = self_ring_pos * 2.0 * M_PI / m_ring_size;
+        const double r          = h_ptr[id];
 
-        if (this->NumberOfParticlesAtLevel(lev) == 0)
-            continue;
+        const amrex::GpuArray<int, 4> nb = this->neighbours(id);
 
-        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
-        {
-            // Get AoS data for particles at this level
-            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
-            auto &soa             = particle_tile.GetStructOfArrays();
-            auto &aos             = particle_tile.GetArrayOfStructs();
-            ParticleType *pstruct = aos().dataPtr();
+        const amrex::GpuArray<amrex::Real, 3> grad_h = ring_gradient(
+            h_ptr, nb[0], nb[1], nb[2], nb[3], d_theta, d_phi, theta, phi, r);
 
-            double *h_ptr    = soa.GetRealData(m_h_idx).dataPtr();
-            double *dhdx_ptr = m_dhdx.data();
-            double *dhdy_ptr = m_dhdy.data();
-            double *dhdz_ptr = m_dhdz.data();
-
-            // Map from id (constant) to idx in particle array
-            // (changes on redistribute)
-            amrex::Gpu::DeviceVector<int> id_to_idx(m_num_particles);
-            int *id_to_idx_ptr = id_to_idx.dataPtr();
-
-            amrex::ParallelFor(m_num_particles, [=] AMREX_GPU_DEVICE(int ip)
-                               { id_to_idx_ptr[pstruct[ip].id()] = ip; });
-            amrex::Gpu::streamSynchronize();
-
-            const double d_theta = M_PI / m_n_rings;
-            const double d_phi   = 2.0 * M_PI / m_ring_size;
-
-            amrex::ParallelFor(
-                m_num_particles,
-                [=] AMREX_GPU_DEVICE(int ip)
-                {
-                    int id            = pstruct[ip].id();
-                    int self_ring_num = id / m_ring_size;
-                    int self_ring_pos = id % m_ring_size;
-                    double theta = (self_ring_num + 0.5) * M_PI / m_n_rings;
-                    double phi   = self_ring_pos * 2.0 * M_PI / m_ring_size;
-                    double r     = h_ptr[ip];
-
-                    amrex::GpuArray<int, 4> neighbour_ids =
-                        this->neighbours(id);
-
-                    int north_idx = id_to_idx_ptr[neighbour_ids[0]];
-                    int south_idx = id_to_idx_ptr[neighbour_ids[1]];
-                    int east_idx  = id_to_idx_ptr[neighbour_ids[2]];
-                    int west_idx  = id_to_idx_ptr[neighbour_ids[3]];
-
-                    amrex::GpuArray<amrex::Real, 3> grad_h =
-                        ring_gradient(h_ptr, north_idx, south_idx, east_idx,
-                                      west_idx, d_theta, d_phi, theta, phi, r);
-
-                    dhdx_ptr[ip] = grad_h[0];
-                    dhdy_ptr[ip] = grad_h[1];
-                    dhdz_ptr[ip] = grad_h[2];
-                });
-        }
-
-        amrex::Gpu::streamSynchronize();
-
-        // Update query
-        query.setCoords(0, interp_coords_x.data())
-            .setCoords(1, interp_coords_y.data())
-            .setCoords(2, interp_coords_z.data());
+        dhdx_ptr[id] = grad_h[0];
+        dhdy_ptr[id] = grad_h[1];
+        dhdz_ptr[id] = grad_h[2];
     }
 }
 
@@ -426,81 +383,49 @@ template <int num_components> void AHFinder<num_components>::h_hessian()
 {
     // Calculate the Hessian of h
     // Must be called after h_derivs() has populated m_dhdx/m_dhdy/m_dhdz.
-    for (int lev = 0; lev <= this->m_gramr_ptr->finestLevel(); ++lev)
+    const double *h_ptr    = m_h.data();
+    const double *dhdx_ptr = m_dhdx.data();
+    const double *dhdy_ptr = m_dhdy.data();
+    const double *dhdz_ptr = m_dhdz.data();
+
+    double *d2h_xx_ptr = m_d2h_xx.data();
+    double *d2h_yy_ptr = m_d2h_yy.data();
+    double *d2h_zz_ptr = m_d2h_zz.data();
+    double *d2h_xy_ptr = m_d2h_xy.data();
+    double *d2h_xz_ptr = m_d2h_xz.data();
+    double *d2h_yz_ptr = m_d2h_yz.data();
+
+    const double d_theta = M_PI / m_n_rings;
+    const double d_phi   = 2.0 * M_PI / m_ring_size;
+
+    for (int id = 0; id < m_num_particles; ++id)
     {
-        if (this->NumberOfParticlesAtLevel(lev) == 0)
-            continue;
+        const int self_ring_num = id / m_ring_size;
+        const int self_ring_pos = id % m_ring_size;
+        const double theta      = (self_ring_num + 0.5) * M_PI / m_n_rings;
+        const double phi        = self_ring_pos * 2.0 * M_PI / m_ring_size;
+        const double r          = h_ptr[id];
 
-        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
-        {
-            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
-            auto &soa             = particle_tile.GetStructOfArrays();
-            auto &aos             = particle_tile.GetArrayOfStructs();
-            ParticleType *pstruct = aos().dataPtr();
+        const amrex::GpuArray<int, 4> nb = this->neighbours(id);
 
-            double *h_ptr    = soa.GetRealData(m_h_idx).dataPtr();
-            double *dhdx_ptr = m_dhdx.data();
-            double *dhdy_ptr = m_dhdy.data();
-            double *dhdz_ptr = m_dhdz.data();
+        // d/dx_j(dh/dx), d/dx_j(dh/dy), d/dx_j(dh/dz)
+        const amrex::GpuArray<amrex::Real, 3> grad_x =
+            ring_gradient(dhdx_ptr, nb[0], nb[1], nb[2], nb[3], d_theta, d_phi,
+                          theta, phi, r);
+        const amrex::GpuArray<amrex::Real, 3> grad_y =
+            ring_gradient(dhdy_ptr, nb[0], nb[1], nb[2], nb[3], d_theta, d_phi,
+                          theta, phi, r);
+        const amrex::GpuArray<amrex::Real, 3> grad_z =
+            ring_gradient(dhdz_ptr, nb[0], nb[1], nb[2], nb[3], d_theta, d_phi,
+                          theta, phi, r);
 
-            double *d2h_xx_ptr = m_d2h_xx.data();
-            double *d2h_yy_ptr = m_d2h_yy.data();
-            double *d2h_zz_ptr = m_d2h_zz.data();
-            double *d2h_xy_ptr = m_d2h_xy.data();
-            double *d2h_xz_ptr = m_d2h_xz.data();
-            double *d2h_yz_ptr = m_d2h_yz.data();
+        d2h_xx_ptr[id] = grad_x[0];
+        d2h_yy_ptr[id] = grad_y[1];
+        d2h_zz_ptr[id] = grad_z[2];
 
-            amrex::Gpu::DeviceVector<int> id_to_idx(m_num_particles);
-            int *id_to_idx_ptr = id_to_idx.dataPtr();
-
-            amrex::ParallelFor(m_num_particles, [=] AMREX_GPU_DEVICE(int ip)
-                               { id_to_idx_ptr[pstruct[ip].id()] = ip; });
-            amrex::Gpu::streamSynchronize();
-
-            const double d_theta = M_PI / m_n_rings;
-            const double d_phi   = 2.0 * M_PI / m_ring_size;
-
-            amrex::ParallelFor(
-                m_num_particles,
-                [=] AMREX_GPU_DEVICE(int ip)
-                {
-                    int id            = pstruct[ip].id();
-                    int self_ring_num = id / m_ring_size;
-                    int self_ring_pos = id % m_ring_size;
-                    double theta = (self_ring_num + 0.5) * M_PI / m_n_rings;
-                    double phi   = self_ring_pos * 2.0 * M_PI / m_ring_size;
-                    double r     = h_ptr[ip];
-
-                    amrex::GpuArray<int, 4> neighbour_ids =
-                        this->neighbours(id);
-
-                    int north_idx = id_to_idx_ptr[neighbour_ids[0]];
-                    int south_idx = id_to_idx_ptr[neighbour_ids[1]];
-                    int east_idx  = id_to_idx_ptr[neighbour_ids[2]];
-                    int west_idx  = id_to_idx_ptr[neighbour_ids[3]];
-
-                    // d/dx_j(dh/dx), d/dx_j(dh/dy), d/dx_j(dh/dz)
-                    amrex::GpuArray<amrex::Real, 3> grad_x =
-                        ring_gradient(dhdx_ptr, north_idx, south_idx, east_idx,
-                                      west_idx, d_theta, d_phi, theta, phi, r);
-                    amrex::GpuArray<amrex::Real, 3> grad_y =
-                        ring_gradient(dhdy_ptr, north_idx, south_idx, east_idx,
-                                      west_idx, d_theta, d_phi, theta, phi, r);
-                    amrex::GpuArray<amrex::Real, 3> grad_z =
-                        ring_gradient(dhdz_ptr, north_idx, south_idx, east_idx,
-                                      west_idx, d_theta, d_phi, theta, phi, r);
-
-                    d2h_xx_ptr[ip] = grad_x[0];
-                    d2h_yy_ptr[ip] = grad_y[1];
-                    d2h_zz_ptr[ip] = grad_z[2];
-
-                    d2h_xy_ptr[ip] = 0.5 * (grad_x[1] + grad_y[0]);
-                    d2h_xz_ptr[ip] = 0.5 * (grad_x[2] + grad_z[0]);
-                    d2h_yz_ptr[ip] = 0.5 * (grad_y[2] + grad_z[1]);
-                });
-        }
-
-        amrex::Gpu::streamSynchronize();
+        d2h_xy_ptr[id] = 0.5 * (grad_x[1] + grad_y[0]);
+        d2h_xz_ptr[id] = 0.5 * (grad_x[2] + grad_z[0]);
+        d2h_yz_ptr[id] = 0.5 * (grad_y[2] + grad_z[1]);
     }
 }
 
@@ -586,209 +511,185 @@ template <int num_components> void AHFinder<num_components>::compute_theta()
     amrex::GpuArray<amrex::GpuArray<const double *, 7>, 3> d1_metric_ptr{
         dx_ptr, dy_ptr, dz_ptr};
 
-    for (int lev = 0; lev <= this->m_gramr_ptr->finestLevel(); ++lev)
+    const double *h_ptr = m_h.data();
+
+    const double *pos_ptr[AMREX_SPACEDIM] = {
+        interp_coords_x.data(), interp_coords_y.data(), interp_coords_z.data()};
+
+    const double *dhdx_ptr = m_dhdx.data();
+    const double *dhdy_ptr = m_dhdy.data();
+    const double *dhdz_ptr = m_dhdz.data();
+
+    const double *d2h_xx_ptr = m_d2h_xx.data();
+    const double *d2h_yy_ptr = m_d2h_yy.data();
+    const double *d2h_zz_ptr = m_d2h_zz.data();
+    const double *d2h_xy_ptr = m_d2h_xy.data();
+    const double *d2h_xz_ptr = m_d2h_xz.data();
+    const double *d2h_yz_ptr = m_d2h_yz.data();
+
+    double *theta_ptr = m_theta_vals.data();
+
+    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> center = {
+        m_center[0], m_center[1], m_center[2]};
+
+    for (int ip = 0; ip < m_num_particles; ++ip)
     {
-        if (this->NumberOfParticlesAtLevel(lev) == 0)
-            continue;
+        using namespace TensorAlgebra;
 
-        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
+        double r   = h_ptr[ip];
+        double chi = state_ptr[c_chi][ip];
+        double K   = state_ptr[c_K][ip];
+
+        // Physical metric and extrinsic curvature from CCZ4
+        // variables: gamma_ij = h_ij/chi,
+        // K_ij = (A_ij + (1/3) h_ij K)/chi.
+        Tensor<2, amrex::Real> gamma_LL;
+        Tensor<2, amrex::Real> K_LL;
+        FOR (i, j)
         {
-            auto &particle_tile   = this->ParticlesAt(lev, par_iter);
-            auto &soa             = particle_tile.GetStructOfArrays();
-            auto &aos             = particle_tile.GetArrayOfStructs();
-            ParticleType *pstruct = aos().dataPtr();
+            int h_comp     = VAR_IDX(c_h11, i, j);
+            int A_comp     = VAR_IDX(c_A11, i, j);
+            double h_ij    = state_ptr[h_comp][ip];
+            double A_ij    = state_ptr[A_comp][ip];
+            gamma_LL[i][j] = h_ij / chi;
+            K_LL[i][j]     = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
+        }
+        Tensor<2, amrex::Real> gamma_UU = compute_inverse_sym(gamma_LL);
 
-            double *h_ptr = soa.GetRealData(m_h_idx).dataPtr();
-
-            double *dhdx_ptr = m_dhdx.data();
-            double *dhdy_ptr = m_dhdy.data();
-            double *dhdz_ptr = m_dhdz.data();
-
-            double *d2h_xx_ptr = m_d2h_xx.data();
-            double *d2h_yy_ptr = m_d2h_yy.data();
-            double *d2h_zz_ptr = m_d2h_zz.data();
-            double *d2h_xy_ptr = m_d2h_xy.data();
-            double *d2h_xz_ptr = m_d2h_xz.data();
-            double *d2h_yz_ptr = m_d2h_yz.data();
-
-            double *theta_ptr = m_theta_vals.data();
-
-            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> center = {
-                m_center[0], m_center[1], m_center[2]};
-
-            amrex::ParallelFor(
-                m_num_particles,
-                [=] AMREX_GPU_DEVICE(int ip)
-                {
-                    using namespace TensorAlgebra;
-
-                    auto &p    = pstruct[ip];
-                    double r   = h_ptr[ip];
-                    double chi = state_ptr[c_chi][ip];
-                    double K   = state_ptr[c_K][ip];
-
-                    // Physical metric and extrinsic curvature from CCZ4
-                    // variables: gamma_ij = h_ij/chi,
-                    // K_ij = (A_ij + (1/3) h_ij K)/chi.
-                    Tensor<2, amrex::Real> gamma_LL;
-                    Tensor<2, amrex::Real> K_LL;
-                    FOR (i, j)
-                    {
-                        int h_comp     = VAR_IDX(c_h11, i, j);
-                        int A_comp     = VAR_IDX(c_A11, i, j);
-                        double h_ij    = state_ptr[h_comp][ip];
-                        double A_ij    = state_ptr[A_comp][ip];
-                        gamma_LL[i][j] = h_ij / chi;
-                        K_LL[i][j]     = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
-                    }
-                    Tensor<2, amrex::Real> gamma_UU =
-                        compute_inverse_sym(gamma_LL);
-
-                    // d_k(gamma_ij) from d1(chi), d1(h_ij) (product rule on
-                    // gamma_ij = h_ij/chi).
-                    Tensor<1, amrex::Real> d1_chi;
-                    FOR (k)
-                    {
-                        d1_chi[k] = d1_metric_ptr[k][c_chi][ip];
-                    }
-
-                    Tensor<3, amrex::Real>
-                        d1_gamma_LL; // [k][i][j] = d_k gamma_ij
-                    FOR (k, i, j)
-                    {
-                        int h_comp     = VAR_IDX(c_h11, i, j);
-                        double d1h_kij = d1_metric_ptr[k][h_comp][ip];
-                        d1_gamma_LL[k][i][j] =
-                            d1h_kij / chi - gamma_LL[i][j] * d1_chi[k] / chi;
-                    }
-
-                    // d_k(gamma^ij) = -gamma^im gamma^jn d_k(gamma_mn).
-                    Tensor<3, amrex::Real> d1_gamma_UU;
-                    FOR (k, i, j)
-                    {
-                        d1_gamma_UU[k][i][j] = 0.0;
-                        FOR (m, n)
-                        {
-                            d1_gamma_UU[k][i][j] -= gamma_UU[i][m] *
-                                                    gamma_UU[j][n] *
-                                                    d1_gamma_LL[k][m][n];
-                        }
-                    }
-
-                    // V^j = sum_k d_k(gamma^kj) (divergence of the inverse
-                    // metric).
-                    Tensor<1, amrex::Real> V_U;
-                    FOR (j)
-                    {
-                        V_U[j] = 0.0;
-                        FOR (k)
-                        {
-                            V_U[j] += d1_gamma_UU[k][k][j];
-                        }
-                    }
-
-                    // Level-set gradient F_i = n_i - (grad h)_i, with
-                    // n_i = (x_i - center_i)/r the flat radial covector.
-                    Tensor<1, amrex::Real> n_L;
-                    FOR (i)
-                    {
-                        n_L[i] = (p.pos(i) - center[i]) / r;
-                    }
-                    Tensor<1, amrex::Real> grad_h_L = {
-                        dhdx_ptr[ip], dhdy_ptr[ip], dhdz_ptr[ip]};
-                    Tensor<1, amrex::Real> F_L;
-                    FOR (i)
-                    {
-                        F_L[i] = n_L[i] - grad_h_L[i];
-                    }
-
-                    // Hess(F) = Hess(r) - Hess(h), with
-                    // Hess(r)_ij = (delta_ij - n_i n_j)/r (flat identity).
-                    Tensor<2, amrex::Real> hess_h_LL;
-                    hess_h_LL[0][0] = d2h_xx_ptr[ip];
-                    hess_h_LL[1][1] = d2h_yy_ptr[ip];
-                    hess_h_LL[2][2] = d2h_zz_ptr[ip];
-                    hess_h_LL[0][1] = hess_h_LL[1][0] = d2h_xy_ptr[ip];
-                    hess_h_LL[0][2] = hess_h_LL[2][0] = d2h_xz_ptr[ip];
-                    hess_h_LL[1][2] = hess_h_LL[2][1] = d2h_yz_ptr[ip];
-
-                    Tensor<2, amrex::Real> hess_F_LL;
-                    FOR (i, j)
-                    {
-                        hess_F_LL[i][j] = (delta(i, j) - n_L[i] * n_L[j]) / r -
-                                          hess_h_LL[i][j];
-                    }
-
-                    // lambda = sqrt(gamma^ij F_i F_j); s_i = F_i/lambda;
-                    // s^i = gamma^ij s_j.
-                    amrex::Real lambda_sq =
-                        compute_dot_product(F_L, F_L, gamma_UU);
-                    amrex::Real lambda = std::sqrt(lambda_sq);
-
-                    Tensor<1, amrex::Real> s_L;
-                    FOR (i)
-                    {
-                        s_L[i] = F_L[i] / lambda;
-                    }
-                    Tensor<1, amrex::Real> s_U = raise_all(s_L, gamma_UU);
-
-                    // d_k(lambda), from differentiating
-                    // lambda^2 = gamma^mn F_m F_n.
-                    Tensor<1, amrex::Real> d_lambda;
-                    FOR (k)
-                    {
-                        amrex::Real term1 = 0.0;
-                        FOR (m, n)
-                        {
-                            term1 += d1_gamma_UU[k][m][n] * F_L[m] * F_L[n];
-                        }
-                        amrex::Real term2 = 0.0;
-                        FOR (m, n)
-                        {
-                            term2 += gamma_UU[m][n] * hess_F_LL[m][k] * F_L[n];
-                        }
-                        d_lambda[k] = (term1 + 2.0 * term2) / (2.0 * lambda);
-                    }
-
-                    // d_i(ln sqrt(gamma)) = (1/2) gamma^jk d_i(gamma_jk)
-                    // (Jacobi's formula).
-                    Tensor<1, amrex::Real> d_ln_sqrt_gamma;
-                    FOR (k)
-                    {
-                        d_ln_sqrt_gamma[k] = 0.0;
-                        FOR (i, j)
-                        {
-                            d_ln_sqrt_gamma[k] +=
-                                0.5 * gamma_UU[i][j] * d1_gamma_LL[k][i][j];
-                        }
-                    }
-
-                    // d_i s^i = (1/lambda)[V^j F_j + gamma^ij Hess(F)_ij
-                    //           - lambda (d_i lambda) s^i]
-                    amrex::Real V_dot_F = compute_dot_product(V_U, F_L);
-                    amrex::Real trace_hess_F =
-                        compute_trace(hess_F_LL, gamma_UU);
-                    amrex::Real lambda_dot_s =
-                        compute_dot_product(s_U, d_lambda);
-                    amrex::Real div_s =
-                        (V_dot_F + trace_hess_F - lambda * lambda_dot_s) /
-                        lambda;
-
-                    amrex::Real s_dot_dlnsqrtgamma =
-                        compute_dot_product(s_U, d_ln_sqrt_gamma);
-
-                    amrex::Real s_K_s = 0.0;
-                    FOR (i, j)
-                    {
-                        s_K_s += s_U[i] * s_U[j] * K_LL[i][j];
-                    }
-
-                    // Theta = D_i s^i - K + s^i s^j K_ij
-                    theta_ptr[ip] = div_s + s_dot_dlnsqrtgamma - K + s_K_s;
-                });
+        // d_k(gamma_ij) from d1(chi), d1(h_ij) (product rule on
+        // gamma_ij = h_ij/chi).
+        Tensor<1, amrex::Real> d1_chi;
+        FOR (k)
+        {
+            d1_chi[k] = d1_metric_ptr[k][c_chi][ip];
         }
 
-        amrex::Gpu::streamSynchronize();
+        Tensor<3, amrex::Real> d1_gamma_LL; // [k][i][j] = d_k gamma_ij
+        FOR (k, i, j)
+        {
+            int h_comp     = VAR_IDX(c_h11, i, j);
+            double d1h_kij = d1_metric_ptr[k][h_comp][ip];
+            d1_gamma_LL[k][i][j] =
+                d1h_kij / chi - gamma_LL[i][j] * d1_chi[k] / chi;
+        }
+
+        // d_k(gamma^ij) = -gamma^im gamma^jn d_k(gamma_mn).
+        Tensor<3, amrex::Real> d1_gamma_UU;
+        FOR (k, i, j)
+        {
+            d1_gamma_UU[k][i][j] = 0.0;
+            FOR (m, n)
+            {
+                d1_gamma_UU[k][i][j] -=
+                    gamma_UU[i][m] * gamma_UU[j][n] * d1_gamma_LL[k][m][n];
+            }
+        }
+
+        // V^j = sum_k d_k(gamma^kj) (divergence of the inverse
+        // metric).
+        Tensor<1, amrex::Real> V_U;
+        FOR (j)
+        {
+            V_U[j] = 0.0;
+            FOR (k)
+            {
+                V_U[j] += d1_gamma_UU[k][k][j];
+            }
+        }
+
+        // Level-set gradient F_i = n_i - (grad h)_i, with
+        // n_i = (x_i - center_i)/r the flat radial covector
+        Tensor<1, amrex::Real> n_L;
+        FOR (i)
+        {
+            n_L[i] = (pos_ptr[i][ip] - center[i]) / r;
+        }
+        Tensor<1, amrex::Real> grad_h_L = {dhdx_ptr[ip], dhdy_ptr[ip],
+                                           dhdz_ptr[ip]};
+        Tensor<1, amrex::Real> F_L;
+        FOR (i)
+        {
+            F_L[i] = n_L[i] - grad_h_L[i];
+        }
+
+        // Hess(F) = Hess(r) - Hess(h), with
+        // Hess(r)_ij = (delta_ij - n_i n_j)/r (flat identity).
+        Tensor<2, amrex::Real> hess_h_LL;
+        hess_h_LL[0][0] = d2h_xx_ptr[ip];
+        hess_h_LL[1][1] = d2h_yy_ptr[ip];
+        hess_h_LL[2][2] = d2h_zz_ptr[ip];
+        hess_h_LL[0][1] = hess_h_LL[1][0] = d2h_xy_ptr[ip];
+        hess_h_LL[0][2] = hess_h_LL[2][0] = d2h_xz_ptr[ip];
+        hess_h_LL[1][2] = hess_h_LL[2][1] = d2h_yz_ptr[ip];
+
+        Tensor<2, amrex::Real> hess_F_LL;
+        FOR (i, j)
+        {
+            hess_F_LL[i][j] =
+                (delta(i, j) - n_L[i] * n_L[j]) / r - hess_h_LL[i][j];
+        }
+
+        // lambda = sqrt(gamma^ij F_i F_j); s_i = F_i/lambda;
+        // s^i = gamma^ij s_j.
+        amrex::Real lambda_sq = compute_dot_product(F_L, F_L, gamma_UU);
+        amrex::Real lambda    = std::sqrt(lambda_sq);
+
+        Tensor<1, amrex::Real> s_L;
+        FOR (i)
+        {
+            s_L[i] = F_L[i] / lambda;
+        }
+        Tensor<1, amrex::Real> s_U = raise_all(s_L, gamma_UU);
+
+        // d_k(lambda), from differentiating
+        // lambda^2 = gamma^mn F_m F_n.
+        Tensor<1, amrex::Real> d_lambda;
+        FOR (k)
+        {
+            amrex::Real term1 = 0.0;
+            FOR (m, n)
+            {
+                term1 += d1_gamma_UU[k][m][n] * F_L[m] * F_L[n];
+            }
+            amrex::Real term2 = 0.0;
+            FOR (m, n)
+            {
+                term2 += gamma_UU[m][n] * hess_F_LL[m][k] * F_L[n];
+            }
+            d_lambda[k] = (term1 + 2.0 * term2) / (2.0 * lambda);
+        }
+
+        // d_i(ln sqrt(gamma)) = (1/2) gamma^jk d_i(gamma_jk)
+        // (Jacobi's formula).
+        Tensor<1, amrex::Real> d_ln_sqrt_gamma;
+        FOR (k)
+        {
+            d_ln_sqrt_gamma[k] = 0.0;
+            FOR (i, j)
+            {
+                d_ln_sqrt_gamma[k] +=
+                    0.5 * gamma_UU[i][j] * d1_gamma_LL[k][i][j];
+            }
+        }
+
+        // d_i s^i = (1/lambda)[V^j F_j + gamma^ij Hess(F)_ij
+        //           - (d_i lambda) s^i]
+        amrex::Real V_dot_F      = compute_dot_product(V_U, F_L);
+        amrex::Real trace_hess_F = compute_trace(hess_F_LL, gamma_UU);
+        amrex::Real lambda_dot_s = compute_dot_product(s_U, d_lambda);
+        amrex::Real div_s = (V_dot_F + trace_hess_F - lambda_dot_s) / lambda;
+
+        amrex::Real s_dot_dlnsqrtgamma =
+            compute_dot_product(s_U, d_ln_sqrt_gamma);
+
+        amrex::Real s_K_s = 0.0;
+        FOR (i, j)
+        {
+            s_K_s += s_U[i] * s_U[j] * K_LL[i][j];
+        }
+
+        // Theta = D_i s^i - K + s^i s^j K_ij
+        theta_ptr[ip] = div_s + s_dot_dlnsqrtgamma - K + s_K_s;
     }
 }
 

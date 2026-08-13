@@ -8,6 +8,7 @@
 
 // General includes
 #include "BaseParameterChecker.hpp"
+#include "BoostedBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
 #include "GRParmParse.hpp"
 #include "PunctureTagger.hpp"
@@ -31,6 +32,10 @@ class SimulationParameters
         CCZ4_params_t::check_params();
         PunctureTagger<2>::check_params();
         puncture_tracker_params_t::check_params();
+
+        // For the AHFinder test, which uses BinaryBH initial data
+        BoostedBHInitialData::params_t::check_params(1);
+        BoostedBHInitialData::params_t::check_params(2);
 
         GRParmParse test_pp("test");
 
