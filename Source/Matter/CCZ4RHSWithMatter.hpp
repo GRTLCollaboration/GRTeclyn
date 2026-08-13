@@ -42,16 +42,14 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
        Inputs are the grid spacing, plus the CCZ4 evolution parameters and a
        matter object. It also takes the dissipation parameter sigma, and allows
        the formulation to be toggled between CCZ4 and BSSN. The default is CCZ4.
-       It allows the user to set the value of Newton's constant, which is set to
-       one by default.
+       The matter object supplies stress-energy sources with their gravitational
+       coupling already applied.
     */
     CCZ4RHSWithMatter(params_t a_params, double a_dx, double a_sigma,
-                      int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                      double a_G_Newton = 1.0);
+                      int a_formulation = CCZ4RHS<>::USE_CCZ4);
 
     CCZ4RHSWithMatter(matter_t a_matter, params_t a_params, double a_dx,
-                      double a_sigma, int a_formulation = CCZ4RHS<>::USE_CCZ4,
-                      double a_G_Newton = 1.0);
+                      double a_sigma, int a_formulation = CCZ4RHS<>::USE_CCZ4);
 
     //! Add the stress-energy tensor terms to the CCZ4 and gauge RHS.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
@@ -77,7 +75,6 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
   protected:
     // Class members
     matter_t m_matter; //!< The matter object, e.g. a scalar field.
-    double m_G_Newton; //!< Newton's constant, set to one by default.
 };
 
 #include "CCZ4RHSWithMatter.impl.hpp"

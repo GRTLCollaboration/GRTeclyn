@@ -112,10 +112,11 @@ void run_bssn_matter_test()
         GRParmParse pp;
         pp.queryAdd("G_Newton", G_Newton);
 
+        const DefaultScalarField scalar_field(DefaultPotential{}, G_Newton);
         CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGaugeWithMatter,
                           FourthOrderDerivatives>
-            current_ccz4_rhs{ccz4_params, dx, sigma, CCZ4RHS<>::USE_BSSN,
-                             G_Newton};
+            current_ccz4_rhs{scalar_field, ccz4_params, dx, sigma,
+                             CCZ4RHS<>::USE_BSSN};
 
         // Set up the constraints
         constexpr int dcomp = NUM_VARS;

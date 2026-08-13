@@ -109,12 +109,13 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     }
 
     const Potential potential(simParams().potential_params);
-    const ScalarFieldWithPotential scalar_field(potential);
+    const ScalarFieldWithPotential scalar_field(potential,
+                                                simParams().G_Newton);
     const CCZ4RHSWithMatter<ScalarFieldWithPotential,
                             MovingPunctureGaugeWithMatter,
                             FourthOrderDerivatives>
         ccz4_rhs(scalar_field, simParams().ccz4_params, Geom().CellSize(0),
-                 simParams().sigma, CCZ4RHS<>::USE_CCZ4, simParams().G_Newton);
+                 simParams().sigma, CCZ4RHS<>::USE_CCZ4);
 
     amrex::ParallelFor(a_rhs,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -124,6 +125,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                const_soln_arrays[box_no]);
                        });
 
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     amrex::ParallelFor(
         a_rhs,
         [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -132,6 +134,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                 .compute_A_ij_and_Theta_and_Gamma<CCZ4RHS<>::USE_CCZ4, true>(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
         });
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     amrex::ParallelFor(
         a_rhs,

@@ -35,6 +35,7 @@ class ScalarField
   protected:
     potential_t m_potential;
     //! The local copy of the potential
+    amrex::Real m_G_Newton{1.0};
 
   public:
 
@@ -42,8 +43,9 @@ class ScalarField
     ScalarField() = default;
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE explicit ScalarField(potential_t a_potential)
-        : m_potential(a_potential)
+    AMREX_FORCE_INLINE explicit ScalarField(potential_t a_potential,
+                                            amrex::Real a_G_Newton = 1.0)
+        : m_potential(a_potential), m_G_Newton(a_G_Newton)
     {
     }
 
@@ -59,6 +61,13 @@ class ScalarField
         const deriv_t &a_deriv, //!< the object that calculates the derivative
         const Tensor::Rank2 &h_UU) //!< the inverse metric (raised indices)
         const;
+
+    //! Calculate the stress-energy sources including the factor 8 pi G.
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE einstein_sources_t
+    compute_einstein_sources(int ix, int iy, int iz,
+                             const amrex::Array4<const amrex::Real> &state,
+                             const deriv_t &a_deriv,
+                             const Tensor::Rank2 &h_UU) const;
 
     // ! The function which adds in the RHS for the matter field vars,
     // ! including the potential

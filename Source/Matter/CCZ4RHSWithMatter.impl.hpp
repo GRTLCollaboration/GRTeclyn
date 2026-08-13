@@ -14,19 +14,18 @@
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
     CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
-    double a_sigma, int a_formulation, double a_G_Newton)
-    : CCZ4RHSWithMatter(matter_t{}, a_params, a_dx, a_sigma, a_formulation,
-                        a_G_Newton)
+    double a_sigma, int a_formulation)
+    : CCZ4RHSWithMatter(matter_t{}, a_params, a_dx, a_sigma, a_formulation)
 {
 }
 
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
     matter_t a_matter, CCZ4_params_t<typename gauge_t::params_t> a_params,
-    double a_dx, double a_sigma, int a_formulation, double a_G_Newton)
+    double a_dx, double a_sigma, int a_formulation)
     : CCZ4RHS<gauge_t, deriv_t>(a_params, a_dx, a_sigma, a_formulation,
                                 0.0 /*No cosmological constant*/),
-      m_matter(a_matter), m_G_Newton(a_G_Newton)
+      m_matter(a_matter)
 {
 }
 
@@ -47,36 +46,32 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
 
     const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
 
-    // Calculate elements of the decomposed stress energy tensor
-
-    const auto emtensor =
-        m_matter.compute_emtensor(ix, iy, iz, state, this->m_deriv, h_UU);
+    const auto source = m_matter.compute_einstein_sources(ix, iy, iz, state,
+                                                          this->m_deriv, h_UU);
 
     // Update RHS for K and Theta depending on formulation
     if (this->m_formulation == CCZ4RHS<>::USE_BSSN)
     {
-        rhs_cell_data[c_K] += 4.0 * M_PI * m_G_Newton * vars.lapse() *
-                              (emtensor.trS + emtensor.rho);
+        rhs_cell_data[c_K] += 0.5 * vars.lapse() * (source.trS + source.rho);
         rhs_cell_data[c_Theta] = 0.0;
     }
     else
     {
-        rhs_cell_data[c_K] += 4.0 * M_PI * m_G_Newton * vars.lapse() *
-                              (emtensor.trS - 3 * emtensor.rho);
-        rhs_cell_data[c_Theta] +=
-            -8.0 * M_PI * m_G_Newton * vars.lapse() * emtensor.rho;
+        rhs_cell_data[c_K] +=
+            0.5 * vars.lapse() * (source.trS - 3.0 * source.rho);
+        rhs_cell_data[c_Theta] -= vars.lapse() * source.rho;
     }
 
     // Update RHS for other variables
-    Tensor::Rank2 S_TF = emtensor.S;
+    Tensor::Rank2 S_TF = source.S;
 
     CCZ4Geometry::make_trace_free(S_TF, vars, h_UU);
 
     FOR2_SYM(i, j)
     {
 
-        rhs_cell_data[sym_var_idx(c_A11, i, j)] +=
-            -8.0 * M_PI * m_G_Newton * vars.chi() * vars.lapse() * S_TF(i, j);
+        rhs_cell_data[sym_var_idx(c_A11, i, j)] -=
+            vars.chi() * vars.lapse() * S_TF(i, j);
     }
 
     FOR (i)
@@ -84,15 +79,13 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
         amrex::Real matter_term_Gamma = 0.0;
         FOR (j)
         {
-            matter_term_Gamma += -16.0 * M_PI * m_G_Newton * vars.lapse() *
-                                 h_UU(i, j) * emtensor.j(j);
+            matter_term_Gamma -= 2.0 * vars.lapse() * h_UU(i, j) * source.j(j);
         }
         rhs_cell_data[c_Gamma1 + i] += matter_term_Gamma;
     }
 
     // Add matter contribution to RHS of gauge evolution
-    this->m_gauge.rhs_gauge_add_matter_terms(rhs_cell_data, vars, h_UU,
-                                             emtensor, m_G_Newton);
+    this->m_gauge.rhs_gauge_add_matter_terms(rhs_cell_data, vars, h_UU, source);
 }
 
 template <class matter_t, class gauge_t, class deriv_t>

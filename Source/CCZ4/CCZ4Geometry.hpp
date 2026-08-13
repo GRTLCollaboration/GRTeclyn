@@ -22,6 +22,15 @@ struct emtensor_t
     amrex::Real rho{}; //!< rho = T_ab n^a n^b
 };
 
+//! Stress-energy sources including the gravitational coupling, 8 pi G T_ab.
+struct einstein_sources_t
+{
+    Tensor::Rank2 S{}; //!< 8 pi G S_ij
+    Tensor::Rank1 j{}; //!< 8 pi G j_i
+    amrex::Real trS{}; //!< 8 pi G S^i_i
+    amrex::Real rho{}; //!< 8 pi G rho
+};
+
 struct ricci_t
 {
     Tensor::Rank2 LL{};   // Ricci with two indices down

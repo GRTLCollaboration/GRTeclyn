@@ -64,6 +64,30 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t, deriv_t>::compute_emtensor(
     return out;
 }
 
+template <class potential_t, class deriv_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE einstein_sources_t
+ScalarField<potential_t, deriv_t>::compute_einstein_sources(
+    int ix, int iy, int iz, const amrex::Array4<const amrex::Real> &state,
+    const deriv_t &a_deriv, const Tensor::Rank2 &h_UU) const
+{
+    const emtensor_t emtensor =
+        compute_emtensor(ix, iy, iz, state, a_deriv, h_UU);
+    const amrex::Real coupling = 8.0 * M_PI * m_G_Newton;
+
+    einstein_sources_t out;
+    out.rho = coupling * emtensor.rho;
+    out.trS = coupling * emtensor.trS;
+    FOR (i)
+    {
+        out.j(i) = coupling * emtensor.j(i);
+    }
+    FOR (i, j)
+    {
+        out.S(i, j) = coupling * emtensor.S(i, j);
+    }
+    return out;
+}
+
 // Adds in the RHS for the matter vars
 template <class potential_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
