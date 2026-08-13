@@ -42,7 +42,7 @@ class ScalarField
     ScalarField() = default;
 
     AMREX_GPU_HOST_DEVICE
-        AMREX_FORCE_INLINE explicit ScalarField(potential_t a_potential)
+    AMREX_FORCE_INLINE explicit ScalarField(potential_t a_potential)
         : m_potential(a_potential)
     {
     }

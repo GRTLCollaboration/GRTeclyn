@@ -15,16 +15,16 @@
 
 #include <cmath>
 
-AMREX_FORCE_INLINE OscillatonInitialData::OscillatonInitialData(
-    params_t a_params, double a_dx)
+AMREX_FORCE_INLINE
+OscillatonInitialData::OscillatonInitialData(params_t a_params, double a_dx)
     : m_dx(a_dx), m_params(a_params)
 {
 }
 
 template <std::size_t N>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-OscillatonInitialData::evaluate_chebyshev(amrex::Real x,
-    const std::array<amrex::Real, N> &coefficients) const
+OscillatonInitialData::evaluate_chebyshev(
+    amrex::Real x, const std::array<amrex::Real, N> &coefficients) const
 {
     // Clenshaw recurrence for sum_k coefficients[k] T_k(x).
     amrex::Real b_k_plus_1 = 0.0;
@@ -39,30 +39,29 @@ OscillatonInitialData::evaluate_chebyshev(amrex::Real x,
     return coefficients[0] + x * b_k_plus_1 - b_k_plus_2;
 }
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void OscillatonInitialData::operator()(
-    int ix, int iy, int iz,
-    const amrex::Array4<amrex::Real> &state) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+OscillatonInitialData::operator()(int ix, int iy, int iz,
+                                  const amrex::Array4<amrex::Real> &state) const
 {
     const amrex::CellData<amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx,
-                             m_params.center);
+    const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_params.center);
 
-    const std::array<amrex::Real, GR_SPACEDIM> position{
-        coords.x, coords.y, coords.z};
-    const amrex::Real r2 = coords.x * coords.x + coords.y * coords.y +
-                           coords.z * coords.z;
+    const std::array<amrex::Real, GR_SPACEDIM> position{coords.x, coords.y,
+                                                        coords.z};
+    const amrex::Real r2 =
+        coords.x * coords.x + coords.y * coords.y + coords.z * coords.z;
 
     // Compactified coordinate used by the metric and lapse fits.
-    const amrex::Real geometry_scale2 = geometry_scale * geometry_scale;
+    const amrex::Real geometry_scale2      = geometry_scale * geometry_scale;
     const amrex::Real geometry_denominator = r2 + geometry_scale2;
-    const amrex::Real geometry_s = r2 / geometry_denominator;
+    const amrex::Real geometry_s           = r2 / geometry_denominator;
     const amrex::Real geometry_root =
         geometry_scale / std::sqrt(geometry_denominator);
     const amrex::Real geometry_x = 2.0 * geometry_s - 1.0;
 
-    const amrex::Real compactness_polynomial = evaluate_chebyshev(
-        geometry_x, m_compactness_coefficients);
+    const amrex::Real compactness_polynomial =
+        evaluate_chebyshev(geometry_x, m_compactness_coefficients);
     const amrex::Real compactness =
         geometry_s * geometry_root * compactness_polynomial;
     const amrex::Real grr = 1.0 / (1.0 - compactness);
@@ -70,20 +69,19 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void OscillatonInitialData::operator()(
 
     const amrex::Real lapse_correction =
         geometry_root * geometry_root * geometry_root *
-        evaluate_chebyshev(geometry_x,
-                           m_lapse_correction_coefficients);
+        evaluate_chebyshev(geometry_x, m_lapse_correction_coefficients);
     const amrex::Real lapse =
         std::sqrt(1.0 - compactness) * std::exp(lapse_correction);
 
     // The scalar profile uses a different compactification scale.
-    const amrex::Real scalar_scale2 = scalar_scale * scalar_scale;
+    const amrex::Real scalar_scale2      = scalar_scale * scalar_scale;
     const amrex::Real scalar_denominator = r2 + scalar_scale2;
-    const amrex::Real scalar_s = r2 / scalar_denominator;
+    const amrex::Real scalar_s           = r2 / scalar_denominator;
     const amrex::Real scalar_root =
         scalar_scale / std::sqrt(scalar_denominator);
     const amrex::Real scalar_x = 2.0 * scalar_s - 1.0;
-    const amrex::Real scalar_polynomial = evaluate_chebyshev(
-        scalar_x, m_scalar_exponent_coefficients);
+    const amrex::Real scalar_polynomial =
+        evaluate_chebyshev(scalar_x, m_scalar_exponent_coefficients);
     const amrex::Real scalar_momentum =
         scalar_central_value *
         std::exp(-(scalar_s / scalar_root) * scalar_polynomial);
@@ -98,9 +96,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void OscillatonInitialData::operator()(
         (geometry_denominator * (1.0 - compactness));
     FOR2_SYM(i, j)
     {
-        const amrex::Real gamma_ij =
-            TensorAlgebra::delta(i, j) +
-            radial_factor * position[i] * position[j];
+        const amrex::Real gamma_ij = TensorAlgebra::delta(i, j) +
+                                     radial_factor * position[i] * position[j];
         state_cell_data[sym_var_idx(c_h11, i, j)] = chi * gamma_ij;
     }
 

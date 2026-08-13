@@ -15,6 +15,7 @@ jobs:
       AMREX_HOME: ${{ github.workspace }}/amrex
       BINARYBH_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/BinaryBH
       KG_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/KleinGordon
+      SCALARFIELD_EXAMPLE_DIR: ${{ github.workspace }}/GRTeclyn/Examples/ScalarField
       TESTS_DIR: ${{ github.workspace }}/GRTeclyn/Tests
       TMP_BUILD_DIR: ${{ github.workspace }}/GRTeclyn/tmp_build_dir
       COMPILATION_DATABASE: ${{ github.workspace }}/GRTeclyn/compile_commands.json
@@ -60,6 +61,8 @@ jobs:
         make ${{ env.BUILD_ARGS }} AMReX_Config.H
         compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
         cd ${{ env.KG_EXAMPLE_DIR }}
+        compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
+        cd ${{ env.SCALARFIELD_EXAMPLE_DIR }}
         compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
         cd ${{ env.TESTS_DIR }}
         compiledb -o ${{ env.COMPILATION_DATABASE }} -n make ${{ env.BUILD_ARGS }}
@@ -109,4 +112,3 @@ jobs:
     - name: Fail job if checks fail
       if: steps.linter.outputs.checks-failed > 0
       run: exit 1
-

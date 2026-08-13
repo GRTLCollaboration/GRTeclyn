@@ -150,15 +150,14 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                 ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
         });
 
-    amrex::ParallelFor(a_rhs,
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           ccz4_rhs.calculate_gauge_rhs(
-                               ix, iy, iz, rhs_arrays[box_no],
-                               const_soln_arrays[box_no]);
-                           ccz4_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                   const_soln_arrays[box_no]);
-                       });
+    amrex::ParallelFor(
+        a_rhs,
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        {
+            ccz4_rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                         const_soln_arrays[box_no]);
+            ccz4_rhs(ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
+        });
 
     amrex::Gpu::streamSynchronize();
 }

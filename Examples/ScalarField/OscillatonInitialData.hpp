@@ -37,10 +37,9 @@ class OscillatonInitialData
     params_t m_params;
 
     // These parameters come from fitting a known oscillaton solution
-    static constexpr amrex::Real geometry_scale = 7.0;
-    static constexpr amrex::Real scalar_scale   = 10.0;
-    static constexpr amrex::Real scalar_central_value =
-        -0.044159713033393284;
+    static constexpr amrex::Real geometry_scale       = 7.0;
+    static constexpr amrex::Real scalar_scale         = 10.0;
+    static constexpr amrex::Real scalar_central_value = -0.044159713033393284;
 
     std::array<amrex::Real, 13> m_compactness_coefficients{
         2.8958846304099733e-01,  -1.3137514414560530e-01,
@@ -60,19 +59,16 @@ class OscillatonInitialData
         -3.3347291268122290e-05};
 
     std::array<amrex::Real, 13> m_scalar_exponent_coefficients{
-        3.0843643066252771e00, 2.8024295695301471e-01,
-        1.7478099724814108e-01, 1.4662523126960619e-01,
-        9.7285887654544018e-02, 6.8961110591586425e-02,
-        4.8276770778464026e-02, 3.0232533883913594e-02,
-        1.8394483397716436e-02, 9.3598232915395006e-03,
-        4.5638233137690540e-03, 1.5222932582614564e-03,
+        3.0843643066252771e00,  2.8024295695301471e-01, 1.7478099724814108e-01,
+        1.4662523126960619e-01, 9.7285887654544018e-02, 6.8961110591586425e-02,
+        4.8276770778464026e-02, 3.0232533883913594e-02, 1.8394483397716436e-02,
+        9.3598232915395006e-03, 4.5638233137690540e-03, 1.5222932582614564e-03,
         4.9664880641856293e-04};
 
     template <std::size_t N>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-    evaluate_chebyshev(
-        amrex::Real x, const std::array<amrex::Real, N> &coefficients) const;
-
+    evaluate_chebyshev(amrex::Real x,
+                       const std::array<amrex::Real, N> &coefficients) const;
 };
 
 #include "OscillatonInitialData.impl.hpp"
