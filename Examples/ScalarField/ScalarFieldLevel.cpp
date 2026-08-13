@@ -114,8 +114,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                             MovingPunctureGaugeWithMatter,
                             FourthOrderDerivatives>
         ccz4_rhs(scalar_field, simParams().ccz4_params, Geom().CellSize(0),
-                 simParams().sigma, simParams().formulation,
-                 simParams().G_Newton);
+                 simParams().sigma, CCZ4RHS<>::USE_CCZ4, simParams().G_Newton);
 
     amrex::ParallelFor(a_rhs,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -125,29 +124,13 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                const_soln_arrays[box_no]);
                        });
 
-    amrex::ParmParse pp; // NOLINT(readability-identifier-length)
-    int formulation{0};
-    int covariant_Z4{1};
-    pp.query("formulation", formulation);
-    pp.query("covariantZ4", covariant_Z4);
-
-    using MatterRHS = CCZ4RHSWithMatter<ScalarFieldWithPotential,
-                                        MovingPunctureGaugeWithMatter,
-                                        FourthOrderDerivatives>;
-    amrex::AnyCTO(
-        amrex::TypeList<
-            amrex::CompileTimeOptions<MatterRHS::formulations::USE_CCZ4,
-                                      MatterRHS::formulations::USE_BSSN>,
-            amrex::CompileTimeOptions<MatterRHS::covariantZ4::YES,
-                                      MatterRHS::covariantZ4::NO>>{},
-        {formulation, covariant_Z4},
-        [&](auto cto_func) { amrex::ParallelFor(a_rhs, cto_func); },
-        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz,
-                             auto formulation_option, auto covariant_Z4_option)
+    amrex::ParallelFor(
+        a_rhs,
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
         {
-            ccz4_rhs.template compute_A_ij_and_Theta_and_Gamma<
-                formulation_option, covariant_Z4_option>(
-                ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
+            ccz4_rhs
+                .compute_A_ij_and_Theta_and_Gamma<CCZ4RHS<>::USE_CCZ4, true>(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
         });
 
     amrex::ParallelFor(
@@ -156,7 +139,12 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         {
             ccz4_rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
                                          const_soln_arrays[box_no]);
-            ccz4_rhs(ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
+            ccz4_rhs.add_emtensor_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                      const_soln_arrays[box_no]);
+            ccz4_rhs.add_matter_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                    const_soln_arrays[box_no]);
+            ccz4_rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
+                                       const_soln_arrays[box_no]);
         });
 
     amrex::Gpu::streamSynchronize();

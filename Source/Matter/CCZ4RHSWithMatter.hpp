@@ -53,16 +53,7 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
                       double a_sigma, int a_formulation = CCZ4RHS<>::USE_CCZ4,
                       double a_G_Newton = 1.0);
 
-    //!  The compute member which calculates the RHS at each point in the box
-    //!  \sa matter_rhs_equation()
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(const int ix, const int iy, const int iz,
-               const amrex::Array4<amrex::Real> &rhs_state,
-               const amrex::Array4<amrex::Real const> &state) const;
-
-  protected:
-    //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
-    //! compute()
+    //! Add the stress-energy tensor terms to the CCZ4 and gauge RHS.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
         const int ix, const int iy, const int iz,
         const amrex::Array4<amrex::Real>
@@ -71,6 +62,19 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
             &state) //!< the current value of the variables at the point.
         const;
 
+    //! Add the evolution equations for the matter variables.
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_matter_rhs(int ix, int iy, int iz,
+                   const amrex::Array4<amrex::Real> &rhs_state,
+                   const amrex::Array4<const amrex::Real> &state) const;
+
+    //! Add dissipation to the CCZ4 and matter variables.
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    apply_dissipation(int ix, int iy, int iz,
+                      const amrex::Array4<amrex::Real> &rhs_state,
+                      const amrex::Array4<const amrex::Real> &state) const;
+
+  protected:
     // Class members
     matter_t m_matter; //!< The matter object, e.g. a scalar field.
     double m_G_Newton; //!< Newton's constant, set to one by default.

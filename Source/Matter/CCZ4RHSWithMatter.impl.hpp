@@ -30,33 +30,6 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
 {
 }
 
-template <class matter_t, class gauge_t, class deriv_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::operator()(
-    const int ix, const int iy, const int iz,
-    const amrex::Array4<amrex::Real> &rhs_state,
-    const amrex::Array4<amrex::Real const> &state) const
-{
-    const amrex::CellData<amrex::Real> &rhs_cell_data =
-        rhs_state.cellData(ix, iy, iz);
-    const amrex::CellData<const amrex::Real> &state_cell_data =
-        state.cellData(ix, iy, iz);
-
-    const typename matter_t::Vars vars(state_cell_data);
-
-    // NB: the vacuum solution needs to be computed elsewhere!
-    // This will only compute the matter contribution
-
-    add_emtensor_rhs(ix, iy, iz, rhs_state, state);
-
-    // add evolution of matter fields themselves
-    m_matter.add_matter_rhs(ix, iy, iz, rhs_state, state, this->m_deriv);
-
-    // Add dissipation to all terms
-    this->m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state,
-                                  this->m_sigma, NUM_VARS);
-}
-
 // Function to add in EM Tensor matter terms to CCZ4 rhs
 template <class matter_t, class gauge_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
@@ -120,6 +93,27 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     // Add matter contribution to RHS of gauge evolution
     this->m_gauge.rhs_gauge_add_matter_terms(rhs_cell_data, vars, h_UU,
                                              emtensor, m_G_Newton);
+}
+
+template <class matter_t, class gauge_t, class deriv_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_matter_rhs(
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
+    const amrex::Array4<const amrex::Real> &state) const
+{
+    m_matter.add_matter_rhs(ix, iy, iz, rhs_state, state, this->m_deriv);
+}
+
+template <class matter_t, class gauge_t, class deriv_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::apply_dissipation(
+    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
+    const amrex::Array4<const amrex::Real> &state) const
+{
+    const amrex::CellData<amrex::Real> &rhs_cell_data =
+        rhs_state.cellData(ix, iy, iz);
+    this->m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state,
+                                  this->m_sigma, NUM_VARS);
 }
 
 #endif /* CCZ4RHSWITHMATTER_IMPL_HPP_ */
