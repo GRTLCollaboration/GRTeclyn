@@ -14,21 +14,19 @@ amr.plot_file = ScalarFieldPlot_
 checkpoint_interval = 500
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 1
+plot_interval = 10
 amr.plot_vars = chi phi
 amr.derive_plot_vars = constraints
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)
-hdf5_subpath = "hdf5"
-pout_subpath = "pout"
 data_subpath = "data"
 
 # Write phi and rho along the positive x=y=z diagonal every level-0 timestep.
 # The radius is the Euclidean coordinate distance from the simulation center.
 activate_line_extraction = 1
 line_extraction_num_points = 128
-line_extraction_max_radius = 200.0
+line_extraction_max_radius = 50.0
 
 # change the name of output files
 # pout_prefix = "pout"
@@ -59,7 +57,7 @@ scalar_mass = 1.0
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
 N_full = 128
-L_full = 256
+L_full = 128
 
 # Maximum number of times you can regrid above coarsest level
 max_level = 6 # There are (max_level+1) grids, so min is zero
@@ -69,7 +67,7 @@ max_level = 6 # There are (max_level+1) grids, so min is zero
 # Generally you do not need to regrid frequently on every level
 # in this example turn off regridding on all levels
 # Level Regridding: 0   1   2   3   4   5
-regrid_interval   = 0   0   0   0   0   0
+regrid_interval   = -1  -1  -1  -1  -1  -1
 # regrid_threshold  = 0.5
 
 # Max and min box sizes
@@ -108,8 +106,8 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 # Evolution parameters
 
 # dt will be dx*dt_multiplier on each grid level
-dt_multiplier = 0.25
-stop_time = 100.0
+dt_multiplier = 0.2
+stop_time = 40.0
 # max_steps = 4
 
 # Spatial derivative order (only affects CCZ4 RHS)
@@ -133,7 +131,7 @@ kappa2 = 0.
 kappa3 = 0.
 
 # coefficient for KO numerical dissipation
-sigma = 0.3
+sigma = 0.5
 
 # min_chi = 1.e-4
 # min_lapse = 1.e-4
