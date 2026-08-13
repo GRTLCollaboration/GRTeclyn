@@ -7,6 +7,7 @@
 #define SPHERICALGEOMETRY_HPP_
 
 #include <AMReX.H>
+#include <AMReX_REAL.H>
 
 // Other includes
 #include <array>
@@ -81,6 +82,7 @@ class SphericalGeometry
     //! returns the area element on a sphere with radius a_radius at the point
     //! (a_theta, a_phi)
     [[nodiscard]] static amrex::ParticleReal
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     area_element(amrex::ParticleReal a_radius, amrex::ParticleReal a_theta,
                  amrex::ParticleReal /*a_phi*/)
     {

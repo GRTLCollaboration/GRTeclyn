@@ -110,6 +110,7 @@ void run_matter_weyl4_test()
         int level        = 0;
 
         GRParmParse pp;
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         int formulation = CCZ4RHS<>::USE_BSSN;
         pp.queryAdd("extraction_center", center);
         pp.queryAdd("formulation", formulation);

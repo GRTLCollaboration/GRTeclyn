@@ -21,7 +21,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
         num_punctures * AMREX_SPACEDIM;
 
   private:
-    amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords;
+    amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords{};
 
     std::string m_punctures_filename;
     bool m_disable_writeout{false}; // if true, don't write .dat file (doesn't
@@ -66,7 +66,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
                             &a_puncture_coords);
 
     //! Get the puncture coordinates
-    const amrex::Array<amrex::Real, num_puncture_coords> &
+    [[nodiscard]] const amrex::Array<amrex::Real, num_puncture_coords> &
     get_puncture_coords() const;
 
 #ifndef AMREX_USE_CUDA
@@ -94,7 +94,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     void write_initial_punctures() const;
 
     //! SmallDataIO requires a std::vector to write the coords
-    std::vector<amrex::Real> get_puncture_vector() const;
+    [[nodiscard]] std::vector<amrex::Real> get_puncture_vector() const;
 };
 
 #include "PunctureTracker.impl.hpp"

@@ -49,7 +49,6 @@ class InterpolationQueryParticle
     InterpolationQueryParticle(int num_points) : m_num_points(num_points) {}
 
     // Returns the pointer that was passed to setCoords
-
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     [[nodiscard]] const amrex::ParticleReal *coords(int dim) const
 

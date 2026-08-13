@@ -52,7 +52,7 @@ class BoundaryConditions
         bool mixed_boundaries_exist{};
 
         std::array<amrex::Real, NUM_VARS> vars_asymptotic_values{};
-        std::map<int, int> mixed_bc_vars_map;
+        std::map<int, int> mixed_bc_vars_map{};
         int extrapolation_order{1};
         params_t(); // sets the defaults
         void set_is_periodic(
@@ -72,7 +72,7 @@ class BoundaryConditions
     amrex::Geometry m_geom;   // the problem domain (excludes boundary cells)
     bool is_defined{
         false}; // whether the BoundaryConditions class members are defined
-    mutable amrex::Gpu::DeviceVector<amrex::Real> m_asymptotic_values;
+    mutable amrex::Gpu::DeviceVector<amrex::Real> m_asymptotic_values{};
 
   public:
     /// Default constructor - need to call define afterwards
@@ -103,7 +103,7 @@ class BoundaryConditions
     static int get_state_var_parity(int a_comp, int a_dir);
 
     /// Get the boundary condition for given face
-    int get_boundary_condition(amrex::Orientation face) const;
+    [[nodiscard]] int get_boundary_condition(amrex::Orientation face) const;
 
     /// Apply Sommerfeld BC to RHS
     void apply_sommerfeld_boundaries(amrex::MultiFab &a_rhs,

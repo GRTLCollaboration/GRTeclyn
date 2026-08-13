@@ -14,6 +14,7 @@
 #include <numeric>
 #include <string>
 
+// NOLINTNEXTLINE(modernize-use-equals-default)
 BoundaryConditions::params_t::params_t()
 {
     // set defaults
@@ -675,6 +676,7 @@ void BoundaryConditions::fill_boundary_cells_dir(
 }
 #endif
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void BoundaryConditions::fill_sommerfeld_cell(
     amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
     const amrex::IntVect a_iv, const std::vector<int> &sommerfeld_comps)

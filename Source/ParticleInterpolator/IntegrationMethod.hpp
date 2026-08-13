@@ -7,6 +7,7 @@
 #define INTEGRATIONMETHOD_HPP_
 
 #include <AMReX_BLassert.H>
+#include <AMReX_REAL.H>
 
 // Other includes
 #include <utility>

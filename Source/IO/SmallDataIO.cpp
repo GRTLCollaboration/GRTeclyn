@@ -175,6 +175,7 @@ SmallDataIO::~SmallDataIO()
 
 // ------------ Writing Functions ------------
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::write_header_line(
     const std::vector<std::string> &a_header_strings,
     const std::string &a_pre_header_string)
@@ -219,6 +220,7 @@ void SmallDataIO::write_header_line(
     }
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::write_data_line(const std::vector<amrex::Real> &a_data,
                                   const amrex::Real a_coord)
 {
@@ -655,6 +657,7 @@ void SmallDataIO::get_all_data_columns(std::vector<SmallDataIO::column_t> &out,
     get_columns(out, min_data_column, max_data_column, a_block);
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::get_column(std::vector<SmallDataIO::column_t> &out,
                              int a_column, int a_block)
 {
@@ -684,6 +687,7 @@ void SmallDataIO::get_data_from_header(std::vector<amrex::Real> &out,
 
         // find numbers in header using regex
         // I think this takes a long time to compile...
+        // NOLINTNEXTLINE(bugprone-unused-local-non-trivial-variable)
         std::regex number("[+-]?([0-9]*\\.)?[0-9]+");
         auto numbers_begin =
             std::sregex_iterator(line.begin(), line.end(), number);
@@ -793,6 +797,7 @@ void SmallDataIO::get_specific_data_line(
     // xxxxx    a_out_data = data_Vect;
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::get_specific_data_line(std::vector<amrex::Real> &a_out_data,
                                          const amrex::Real a_coord)
 {
@@ -846,6 +851,7 @@ amrex::Real SmallDataIO::get_default_coords_epsilon()
 }
 
 // Helper function to redistribute data amongst all ranks
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::broadcast_data(std::vector<SmallDataIO::column_t> &data)
 {
     int nrows{0};
