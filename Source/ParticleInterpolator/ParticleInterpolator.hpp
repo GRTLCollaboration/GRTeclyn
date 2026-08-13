@@ -68,10 +68,15 @@ class ParticleInterpolator
     // copy of BC params
     BoundaryConditions::params_t m_bc_params;
 
-    // store the query here
-    InterpolationQueryParticle *m_query{};
     // for getting the starting component of query
-    int get_start_comp();
+    int get_start_comp(InterpolationQueryParticle &query);
+    int m_num_query_points{}; // for storing number of query points (later used
+                              // in the minimal check to verify that the query
+                              // has not changed).
+    // it is possible that the user uses the same number of points, but the
+    // actuall query coords are different, but this would require a more complex
+    // infrastructre we also do not really carefully check for ordering of comps
+    // and assume the user knows what they are doing
 
     // mpi stuff
     MPIContextParticle m_mpi;
@@ -104,7 +109,7 @@ class ParticleInterpolator
 
     // A helper function that aggregates all the points together from senders
     // and receivers, collects the them into out arrays and applies parity
-    void aggregate_points();
+    void aggregate_points(InterpolationQueryParticle &query);
 
     // A helper function to prepare send buffers, packs m_answer_idx and
     // m_answer_data
@@ -118,7 +123,7 @@ class ParticleInterpolator
     void exchange_answers();
 
     // Apply parities and store interpolated values in out arrays
-    void apply_parity_and_store_values();
+    void apply_parity_and_store_values(InterpolationQueryParticle &query);
 
   public:
 
@@ -135,11 +140,11 @@ class ParticleInterpolator
                bool a_verbosity = false);
 
     // allocate particles at the query points
-    void populate_from_query();
+    void populate_from_query(InterpolationQueryParticle &query);
 
     // A helper function that does interpolation from grid onto particles
     void interpolate_to_particle(int lev, amrex::MultiFab &mfab,
-                                 const amrex::Geometry &geom);
+                                 const amrex::Geometry &geom, int start_comp);
 
     // final interpolation routine exposed to the users
     void interp(InterpolationQueryParticle &query,
