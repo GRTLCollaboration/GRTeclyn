@@ -58,7 +58,9 @@ void run_particle_interpolator_test()
     char **new_argv = new_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(new_argc, new_argv, std::function<void()>(SimulationParameters::check_params));
+    amrex::Initialize(
+        new_argc, new_argv,
+        std::function<void()>(SimulationParameters::check_params));
     {
         // Simulation parameters
         GRParmParse pp;
@@ -153,15 +155,13 @@ void run_particle_interpolator_test()
         // set up interpolation using Particles for derived vars
         ParticleInterpolator<1> interpolator_derived;
 
-        interpolator_derived.setup(&gr_amr, boundary_params,
-                                   verbosity);
+        interpolator_derived.setup(&gr_amr);
         interpolator_derived.interp(query_derived,
                                     PolynomialDerivedQuantity::name, 0.0);
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;
-        interpolator_state.setup(&gr_amr, boundary_params,
-                                 verbosity);
+        interpolator_state.setup(&gr_amr);
         interpolator_state.interp(query_state);
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)

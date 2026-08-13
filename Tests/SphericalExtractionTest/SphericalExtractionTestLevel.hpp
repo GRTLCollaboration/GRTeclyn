@@ -35,12 +35,16 @@ class SphericalExtractionTestLevel : public GRAMRLevel
         auto const dx          = geom.CellSizeArray();
 
         GRParmParse pp;
-        SimulationParameters sim_params(pp);
 
-        const int es      = sim_params.es;
-        const int el      = sim_params.el;
-        const int em      = sim_params.em;
-        const auto center = sim_params.center;
+        int es{0};
+        int el{2};
+        int em{0}; // spherical harmonic params
+        pp.queryAdd("es", es);
+        pp.queryAdd("el", el);
+        pp.queryAdd("em", em);
+
+        std::array<double, AMREX_SPACEDIM> center{};
+        pp.get("amr.center", center);
 
         // Fill the state
         amrex::ParallelFor(

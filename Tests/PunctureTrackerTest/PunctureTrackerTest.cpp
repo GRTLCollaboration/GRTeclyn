@@ -42,7 +42,9 @@ void run_puncture_tracker_test()
     char **new_argv = new_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(new_argc, new_argv, std::function<void()>(SimulationParameters::check_params));
+    amrex::Initialize(
+        new_argc, new_argv,
+        std::function<void()>(SimulationParameters::check_params));
     {
         GRParmParse pp; // NOLINT(readability-identifier-length)
 

@@ -78,7 +78,7 @@ jobs:
     - name: Compare plotfile from final step with saved plotfile
       run: >
         mpiexec -n 1 ./fcompare.gnu.MPI.ex ${{ env.TOLERANCES }}
-        ${{ env.COMPARE_DIR }}/plt00008_compare plt00008
+        ${{ env.COMPARE_DIR }}/plt00008_compare plots/plt00008
       working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
 
     - name: Download particle_compare tool
@@ -94,7 +94,7 @@ jobs:
         chmod +x particle_compare.exe
         export OLD_PLT_FILES=${{ env.COMPARE_DIR }}/plt00008_compare
         export OPT="particles"
-        ./particle_compare.exe ${{ env.TOLERANCES }} $OLD_PLT_FILES plt00008 $OPT
+        ./particle_compare.exe ${{ env.TOLERANCES }} $OLD_PLT_FILES plots/plt00008 $OPT
       working-directory: ${{ github.workspace }}/Examples/${{ inputs.example_name }}
 
     - name: Restart from last checkpoint and evolve for a few more steps

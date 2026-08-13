@@ -26,7 +26,7 @@ class BaseParameterChecker
 {
   public:
     BaseParameterChecker() = delete;
-    
+
     static void check_params()
     {
         check_amrex_params();
@@ -180,10 +180,12 @@ class BaseParameterChecker
         boundary_params.fill_params();
 
         // Work out the default center, factoring in reflective boundaries
-        
+
         if (geom_pp.contains("prob_lo") || geom_pp.contains("prob_hi"))
         {
-            geom_pp.warning("prob_lo/hi", "not implemented, assumed to be (0,0,0) and prob_extent");
+            geom_pp.warning(
+                "prob_lo/hi",
+                "not implemented, assumed to be (0,0,0) and prob_extent");
         }
 
         std::array<double, AMREX_SPACEDIM> center{};
@@ -265,9 +267,6 @@ class BaseParameterChecker
                 amr_pp.error("n_cell", "must divide blocking_factor");
             }
         }
-
-        // TODO: Check extraction (and interpolation) params e.g. origin and
-        // reflective_domain_lo/hi
     }
 
     static void check_grteclyn_params()
@@ -303,92 +302,28 @@ class BaseParameterChecker
         // 0.0"); check_parameter("min_lapse", min_lapse, (min_lapse >= 0.0)
         // "must be >= 0.0");
 
+        std::string output_path = ".";
+        pp.queryAdd("output_path", output_path);
+
+        std::string plot_directory = output_path+"/"+"plots";
+        if (!FilesystemTools::directory_exists(plot_directory))
+        {
+            FilesystemTools::mkdir_recursive(plot_directory);
+        }
+
+        std::string plot_file = plot_directory+"/plt";
+        std::string check_file = plot_directory+"/chk"; 
+        pp.add("amr.plot_file", plot_file);
+        pp.add("amr.check_file", check_file);
+
         // Extraction params
         bool activate_extraction = false;
         pp.queryAdd("activate_extraction", activate_extraction);
 
         if (activate_extraction)
         {
-            SphericalExtraction::params_t::check_params();
+            spherical_extraction_params_t::check_params();
         }
-
-        // TODO: Remove once extraction is fixed
-        std::array<double, AMREX_SPACEDIM> center{};
-        pp.get("amr.center", center);
-        std::array<double, AMREX_SPACEDIM> extraction_center = center;
-        pp.queryAdd("extraction_center", extraction_center);
-    }
-
-    // General parameters
-
-    // boundaries.
-
-  protected:
-    // the low and high corners of the domain taking into account reflective BCs
-    // only used in parameter checks hence protected
-
-    // use this error function instead of MayDay::error as this will only
-    // print from rank 0
-    static void error(const std::string &a_error_message)
-    {
-        if (amrex::ParallelDescriptor::MyProc() == 0)
-        {
-            amrex::Abort(a_error_message.c_str());
-        }
-    }
-
-    template <typename T>
-    void check_parameter(const std::string &a_name, const T &a_value,
-                         const bool a_valid,
-                         const std::string &a_invalid_explanation)
-    {
-        if (a_valid)
-        {
-            return;
-        }
-        std::ostringstream error_message_ss;
-        error_message_ss << "Parameter: " << a_name << " = " << a_value
-                         << " is invalid: " << a_invalid_explanation;
-        error(error_message_ss.str());
-    }
-
-    template <typename T>
-    void warn_parameter(const std::string &a_name, T a_value,
-                        const bool a_nowarn,
-                        const std::string &a_warning_explanation)
-    {
-        if (a_nowarn)
-        {
-            return;
-        }
-        // only print the warning from rank 0
-        if (amrex::ParallelDescriptor::MyProc() == 0)
-        {
-            std::ostringstream warning_message_ss;
-            warning_message_ss << "Parameter: " << a_name << " = " << a_value
-                               << " warning: " << a_warning_explanation;
-            amrex::Warning(warning_message_ss.str().c_str());
-        }
-    }
-
-    template <typename T, size_t N>
-    void check_array_parameter(const std::string &a_name,
-                               const std::array<T, N> &a_value,
-                               const bool a_valid,
-                               const std::string &a_invalid_explanation)
-    {
-        std::string value_str = ArrayTools::to_string(a_value);
-        check_parameter(a_name, value_str, a_valid, a_invalid_explanation);
-    }
-
-    template <typename T, size_t N>
-    void warn_array_parameter(const std::string &a_name,
-                              const std::array<T, N> &a_value,
-                              const bool a_nowarn,
-                              const std::string &a_warning_explanation)
-    {
-        std::string value_str = ArrayTools::to_string(a_value);
-        check_parameter(a_name, value_str, a_nowarn, a_warning_explanation);
     }
 };
 

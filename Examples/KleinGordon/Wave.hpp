@@ -12,8 +12,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 // KleinGordon includes
-#include "StateVariables.hpp"
 #include "GRParmParse.hpp"
+#include "StateVariables.hpp"
 
 class Wave
 {
@@ -23,14 +23,16 @@ class Wave
     {
         amrex::Real k_r{1.0};
         amrex::Real scalar_mass{0.0};
-        
+
         static void check_params()
         {
             GRParmParse wave_pp("wave");
             amrex::Real k_r{1.0};
             wave_pp.queryAdd("wave_vector", k_r);
             amrex::Real scalar_mass{0.0};
-            wave_pp.queryAdd("scalar_mass", scalar_mass); // What is the mass of the scalar particle?
+            wave_pp.queryAdd(
+                "scalar_mass",
+                scalar_mass); // What is the mass of the scalar particle?
         }
 
         void fill_params()
@@ -90,7 +92,8 @@ class Wave
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
-        V_of_phi = 0.5 * m_params.scalar_mass * m_params.scalar_mass * phi * phi;
+        V_of_phi =
+            0.5 * m_params.scalar_mass * m_params.scalar_mass * phi * phi;
 
         dVdphi = m_params.scalar_mass * m_params.scalar_mass * phi;
     }

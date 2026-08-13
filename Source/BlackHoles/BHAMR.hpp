@@ -44,8 +44,7 @@ template <int num_punctures> class BHAMR : public GRAMR
     {
         GRAMR::init(a_strt_time, a_stop_time);
 
-        const auto &params = get_simulation_parameters();
-        m_weyl_interpolator.setup(this, params.boundary_params, true);
+        m_weyl_interpolator.setup(this);
     }
 
     PunctureTracker<num_punctures> &get_puncture_tracker()
@@ -53,7 +52,7 @@ template <int num_punctures> class BHAMR : public GRAMR
         return m_puncture_tracker;
     }
 
-    bool puncture_tracking_enabled;
+    bool puncture_tracking_enabled{};
 };
 
 #endif /* BHAMR_HPP_ */

@@ -35,6 +35,8 @@ struct surface_extraction_params_t
         return *(std::min_element(extraction_levels.begin(),
                                   extraction_levels.end()));
     }
+
+    virtual void fill_params() {}
 };
 
 #endif /* SURFACEEXTRACTIONPARAMETERS_HPP_ */

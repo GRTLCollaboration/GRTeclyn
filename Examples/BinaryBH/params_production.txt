@@ -5,6 +5,7 @@
 
 #################################################
 # Filesystem parameters
+# output_path = "" # Main path for all files. Must exist!
 
 amrex.verbose = 1
 amr.verbose = 1

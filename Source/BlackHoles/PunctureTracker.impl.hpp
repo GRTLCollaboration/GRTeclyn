@@ -27,20 +27,24 @@
 void puncture_tracker_params_t::check_params()
 {
     GRParmParse puncture_tracking_pp("puncture_tracking");
+    GRParmParse pp;
 
     bool enabled = false; // default
     puncture_tracking_pp.queryAdd("enabled", enabled);
 
-    std::string output_path = ".";
-    puncture_tracking_pp.queryAdd("output_path", output_path);
+    std::string output_path;
+    pp.get("output_path", output_path);
 
-    if (!FilesystemTools::directory_exists(output_path))
+    std::string pt_output_path = output_path+"/punctures_output";
+
+    if (!FilesystemTools::directory_exists(pt_output_path))
     {
-        FilesystemTools::mkdir_recursive(output_path);
+        FilesystemTools::mkdir_recursive(pt_output_path);
     }
-
-    std::string filename{"punctures"}; // default
-    puncture_tracking_pp.queryAdd("filename", filename);
+    puncture_tracking_pp.add("output_path", pt_output_path);
+    
+    std::string filename = "punctures";
+    puncture_tracking_pp.add("filename", filename);
 
     bool disable_writeout = false;
     puncture_tracking_pp.queryAdd("disable_writeout", disable_writeout);

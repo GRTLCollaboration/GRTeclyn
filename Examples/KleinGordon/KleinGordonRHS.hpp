@@ -9,8 +9,8 @@
 // GRTeclyn includes
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "TensorAlgebra.hpp"
 #include "GRParmParse.hpp"
+#include "TensorAlgebra.hpp"
 
 // Problem specific includes
 #include "StateVariables.hpp"
@@ -22,7 +22,7 @@ class KleinGordonRHS
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     KleinGordonRHS(amrex::Real a_dx, model_t a_model)
-        : m_deriv(a_dx), m_model(a_model) 
+        : m_deriv(a_dx), m_model(a_model)
     {
         GRParmParse pp;
         pp.get("sigma", m_sigma);

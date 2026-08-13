@@ -22,9 +22,10 @@ class SphericalGeometry
     std::array<double, AMREX_SPACEDIM> m_center;
 
   public:
-    SphericalGeometry(const std::array<double, AMREX_SPACEDIM> &a_center)
-        : m_center(a_center)
+    SphericalGeometry()
     {
+        GRParmParse pp;
+        pp.get("amr.center", m_center);
     }
 
     //! returns the grid spacing in theta

@@ -24,15 +24,14 @@
 
 // initialise everything and perform some sanity checks
 template <int num_components>
-void ParticleInterpolator<num_components>::setup(
-    GRAMR *gramr_ptr, const BoundaryConditions::params_t &a_bc_params,
-    bool a_verbosity)
+void ParticleInterpolator<num_components>::setup(GRAMR *gramr_ptr)
 {
     // is GRAMR properly set?
     AMREX_ASSERT(gramr_ptr != nullptr);
     m_gramr_ptr = gramr_ptr;
-    m_bc_params = a_bc_params;
-    m_verbosity = a_verbosity;
+    m_bc_params.fill_params();
+    GRParmParse pp;
+    pp.get("amrex.verbose", m_verbosity);
 
     this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gramr_ptr->GetParGDB()));
     m_initialized = true;

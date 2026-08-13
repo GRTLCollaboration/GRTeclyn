@@ -31,13 +31,17 @@ class ExtractionTagger
     // Constructor takes only what it needs for extraction tagging
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     ExtractionTagger(const double dx, const int a_level,
-                     const spherical_extraction_params_t &a_params,
                      const bool activate_extraction = false)
-        : m_dx(dx), m_num_extraction_radii(a_params.num_extraction_radii()),
-          m_extraction_radii_ptr(a_params.extraction_radii().data()),
-          m_extraction_levels_ptr(a_params.extraction_levels.data()),
-          m_center(a_params.center), m_level(a_level)
+        : m_dx(dx), m_level(a_level)
     {
+        spherical_extraction_params_t extraction_params;
+        extraction_params.fill_params();
+
+        m_num_extraction_radii  = extraction_params.num_extraction_radii();
+        m_extraction_radii_ptr  = extraction_params.extraction_radii().data();
+        m_extraction_levels_ptr = extraction_params.extraction_levels.data();
+        m_center                = extraction_params.center;
+
         if (!activate_extraction)
         {
             // Avoids conditionals in the kernel by setting num to 0

@@ -70,8 +70,7 @@ void BinaryBHLevel::initData()
         amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
     }
 #ifdef USE_TWOPUNCTURES
-    TwoPuncturesInitialData two_punctures_initial_data(Geom().CellSize(0),
-                                                       simParams().center);
+    TwoPuncturesInitialData two_punctures_initial_data(Geom().CellSize(0));
 
     two_punctures_initial_data.solve(); // only solves first time
 
@@ -177,7 +176,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                        });
 
     // Calculate CCZ4 right hand side
-    int max_spatial_derivative_order;
+    int max_spatial_derivative_order{};
     pp.get("amr.max_spatial_derivative_order", max_spatial_derivative_order);
 
     if (max_spatial_derivative_order == 4)
@@ -310,9 +309,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     bool activate_extraction{};
     pp.get("activate_extraction", activate_extraction);
 
-    SphericalExtraction::params_t extraction_params; // TODO: Remove once extraction is fixed
     ExtractionTagger extraction_tagger(Geom().CellSize(0), Level(),
-                                       extraction_params,
                                        activate_extraction);
 
     constexpr auto num_puncture_coords =
@@ -324,10 +321,12 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         puncture_coords = get_puncture_tracker().get_puncture_coords();
     }
 
-    double bh1_mass;
-    double bh2_mass;
+    double bh1_mass{};
+    double bh2_mass{};
     pp.get("bh1.mass", bh1_mass);
     pp.get("bh2.mass", bh2_mass);
+
+    bool puncture_tracking_enabled = get_bhamr_ptr()->puncture_tracking_enabled;
 
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
@@ -341,7 +340,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
                            extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
 
-                           if (get_bhamr_ptr()->puncture_tracking_enabled)
+                           if (puncture_tracking_enabled)
                            {
                                puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
                            }
@@ -394,9 +393,9 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 void BinaryBHLevel::specificPostTimeStep()
 {
     GRParmParse pp;
-    int puncture_tracking_level;
+    int puncture_tracking_level{};
     pp.get("puncture_tracking.level", puncture_tracking_level);
-    int puncture_tracking_writeout_level;
+    int puncture_tracking_writeout_level{};
     pp.get("puncture_tracking.writeout_level",
            puncture_tracking_writeout_level);
 
@@ -417,18 +416,13 @@ void BinaryBHLevel::specificPostTimeStep()
         get_puncture_tracker().track(current_time, dt, write_punctures);
     }
 
-    bool first_step =
-        (m_time == 0.); // this form is used when 'specificPostTimeStep' was
-                        // called during setup at t=0 from Main
-    // bool first_step = (m_time == m_dt); // if not called in Main
-
     bool activate_extraction{};
     pp.get("activate_extraction", activate_extraction);
 
-    if (activate_extraction == 1)
-
+    if (activate_extraction)
     {
-        int min_level = simParams().extraction_params.min_extraction_level();
+        int min_level{};
+        pp.get("min_extraction_level", min_level);
         bool calculate_weyl = at_level_timestep_multiple(min_level);
 
         if (calculate_weyl && Level() == min_level)
@@ -438,8 +432,10 @@ void BinaryBHLevel::specificPostTimeStep()
             amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
             bool first_step          = (m_time <= m_dt);
 
-            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
-                                         m_time, first_step, restart_time);
+            spherical_extraction_params_t extraction_params;
+            extraction_params.fill_params();
+            WeylExtraction my_extraction(extraction_params, m_dt, m_time,
+                                         first_step, restart_time);
             my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
         }
     }

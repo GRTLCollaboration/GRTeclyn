@@ -12,8 +12,8 @@
 
 // Problem specific includes:
 #include "ArrayTools.hpp"
-#include "Wave.hpp"
 #include "SineGordon.hpp"
+#include "Wave.hpp"
 
 class SimulationParameters
 {
@@ -45,7 +45,6 @@ class SimulationParameters
         else if (model.find("SineGordon") == 0)
         {
             SineGordon::params_t::check_params();
-
         }
         else
         {
