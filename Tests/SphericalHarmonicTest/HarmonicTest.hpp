@@ -10,7 +10,6 @@
 #include "AMReX_Array.H"
 
 // #include "BoxLoops.hpp"
-#include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "Tensor.hpp"
 // #include "StateVariables.hpp" //This files needs NUM_VARS - total number of

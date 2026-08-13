@@ -8,7 +8,6 @@
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
-#include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "TensorAlgebra.hpp"

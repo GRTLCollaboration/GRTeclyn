@@ -8,6 +8,7 @@
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
+#include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 

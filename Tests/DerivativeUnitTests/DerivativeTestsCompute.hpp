@@ -6,7 +6,6 @@
 #ifndef DERIVATIVETESTSCOMPUTE_HPP_
 #define DERIVATIVETESTSCOMPUTE_HPP_
 
-#include "Cell.hpp"
 #include "Tensor.hpp"
 
 enum

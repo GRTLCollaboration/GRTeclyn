@@ -6,7 +6,6 @@
 #ifndef CHITAGGER_HPP_
 #define CHITAGGER_HPP_
 
-#include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"

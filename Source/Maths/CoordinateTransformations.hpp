@@ -63,7 +63,6 @@ static Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
     r                = std::max(r, 1e-6);
 
     // And the sines and cosines of phi and theta
-    // data_t sin_theta = rho / r;
     amrex::Real cos_phi = x / rho;
     amrex::Real sin_phi = y / rho;
 
