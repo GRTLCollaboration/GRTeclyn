@@ -24,6 +24,12 @@ hdf5_subpath = "hdf5"
 pout_subpath = "pout"
 data_subpath = "data"
 
+# Write phi and rho along the positive x=y=z diagonal every level-0 timestep.
+# The radius is the Euclidean coordinate distance from the simulation center.
+activate_line_extraction = 1
+line_extraction_num_points = 128
+line_extraction_max_radius = 200.0
+
 # change the name of output files
 # pout_prefix = "pout"
 print_progress_only_to_rank_0 = 1
@@ -86,7 +92,7 @@ isPeriodic = 0 0 0
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # 3 = extrapolating, 4 = mixed
 # (see BoundaryConditions.hpp for details)
-hi_boundary = 4 4 4
+hi_boundary = 1 1 1
 lo_boundary = 2 2 2
 
 # if sommerfeld boundaries selected, must select
@@ -95,8 +101,8 @@ nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # if you are using extrapolating BC:
-extrapolation_order = 1
-extrapolating_vars = phi Pi
+# extrapolation_order = 1
+# extrapolating_vars = phi Pi
 
 #################################################
 # Evolution parameters

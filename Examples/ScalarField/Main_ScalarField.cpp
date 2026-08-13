@@ -9,6 +9,7 @@
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"
 
+#include "ScalarFieldAMR.hpp"
 #include "ScalarFieldLevel.hpp"
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
@@ -26,7 +27,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
 
     GRAMR::set_simulation_parameters(sim_params);
     DefaultLevelFactory<ScalarFieldLevel> scalar_field_level_bld;
-    GRAMR gr_amr(&scalar_field_level_bld);
+    ScalarFieldAMR gr_amr(&scalar_field_level_bld);
 
     gr_amr.init(0.0, sim_params.stop_time);
 

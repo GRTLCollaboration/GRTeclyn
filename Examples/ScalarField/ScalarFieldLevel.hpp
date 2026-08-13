@@ -10,6 +10,7 @@
 #include "GRAMRLevel.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
+#include "ScalarFieldAMR.hpp"
 
 /// Evolution level for a real scalar field minimally coupled to gravity.
 class ScalarFieldLevel : public GRAMRLevel
@@ -18,6 +19,8 @@ class ScalarFieldLevel : public GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
     using ScalarFieldWithPotential = ScalarField<Potential>;
+
+    ScalarFieldAMR *get_scalar_field_amr_ptr();
 
     static void variableSetUp();
 
@@ -29,6 +32,8 @@ class ScalarFieldLevel : public GRAMRLevel
                          double a_time) override;
 
     void specificUpdateODE(amrex::MultiFab &a_soln) override;
+
+    void specificPostTimeStep() override;
 
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;

@@ -307,6 +307,10 @@ void ParticleInterpolator<num_components>::interp(
     InterpolationQueryParticle &query, const std::string &name_derived,
     double time_derived /*=0.0*/)
 {
+    // Particles can be reused for repeated queries at the same points, but the
+    // query owns the output arrays and is commonly reconstructed each step.
+    m_query = &query;
+
     // Populate particles
     if (!m_particles_populated)
     {
@@ -315,9 +319,6 @@ void ParticleInterpolator<num_components>::interp(
             amrex::AllPrint()
                 << "ParticleInterpolator: populating particles from query\n";
         }
-
-        // pass the query over
-        m_query = &query;
 
         populate_from_query();
     }
@@ -350,7 +351,8 @@ void ParticleInterpolator<num_components>::interp(
             // single-level operation only! There is a nice explanation on this
             // issue here: https://github.com/AMReX-Codes/amrex/issues/391
             amrex::AmrLevel::FillPatch(level, state, s_num_ghosts, cur_time,
-                                       state_index, start_comp, ncomp);
+                                       state_index, start_comp, ncomp,
+                                       start_comp);
 
             interpolate_to_particle(lev, state, geom);
         }

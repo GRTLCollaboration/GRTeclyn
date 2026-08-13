@@ -6,20 +6,33 @@
 #include "ScalarFieldLevel.hpp"
 
 #include "CCZ4RHSWithMatter.hpp"
+#include "EMTensor.hpp"
 #include "FixedGridsTagger.hpp"
 #include "GammaCalculator.hpp"
+#include "LineExtraction.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
 #include "OscillatonInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "StateTypes.hpp"
 #include "TraceARemoval.hpp"
 
+#include <cmath>
 #include <type_traits>
+
+using ScalarFieldEnergyDensity =
+    EMTensor<ScalarFieldLevel::ScalarFieldWithPotential,
+             EMTensorOptions::justEnergyDensity>;
+
+ScalarFieldAMR *ScalarFieldLevel::get_scalar_field_amr_ptr()
+{
+    return dynamic_cast<ScalarFieldAMR *>(get_gramr_ptr());
+}
 
 void ScalarFieldLevel::variableSetUp()
 {
     BL_PROFILE("ScalarFieldLevel::variableSetUp()");
     stateVariableSetUp();
+    ScalarFieldEnergyDensity::set_up(state_index);
 }
 
 void ScalarFieldLevel::specificAdvance()
@@ -40,6 +53,45 @@ void ScalarFieldLevel::specificAdvance()
                                                   state_arrays[box_no]);
                        });
     amrex::Gpu::streamSynchronize();
+}
+
+void ScalarFieldLevel::specificPostTimeStep()
+{
+    BL_PROFILE("ScalarFieldLevel::specificPostTimeStep()");
+
+    if (Level() == 0 && simParams().activate_line_extraction)
+    {
+        const amrex::Real time         = get_state_data(state_index).curTime();
+        const amrex::Real dt           = get_gramr_ptr()->dtLevel(0);
+        const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+        const bool first_step          = (time <= dt);
+
+        const auto start_coords = simParams().center;
+        auto end_coords         = start_coords;
+        const amrex::Real coordinate_offset =
+            simParams().line_extraction_max_radius /
+            std::sqrt(static_cast<amrex::Real>(AMREX_SPACEDIM));
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+        {
+            end_coords[dir] += coordinate_offset;
+        }
+
+        const LineExtraction<1> phi_extraction(
+            c_phi, simParams().line_extraction_num_points, start_coords,
+            end_coords, dt, time, restart_time, first_step);
+        phi_extraction.execute_query(
+            &get_scalar_field_amr_ptr()->phi_interpolator,
+            simParams().data_path + "phi_profile_");
+
+        const LineExtraction<1> rho_extraction(
+            0, simParams().line_extraction_num_points, start_coords, end_coords,
+            dt, time, restart_time, first_step);
+        const LineExtraction<1>::derived_vars_t rho_vars{
+            ScalarFieldEnergyDensity::name, {"rho"}, {BCParity::even}};
+        rho_extraction.execute_query(
+            &get_scalar_field_amr_ptr()->rho_interpolator,
+            simParams().data_path + "rho_profile_", rho_vars);
+    }
 }
 
 void ScalarFieldLevel::initData()

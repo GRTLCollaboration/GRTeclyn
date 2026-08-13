@@ -4,6 +4,9 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 EBASE = ScalarField
 
+# Line extraction uses the particle interpolator.
+USE_PARTICLES = TRUE
+
 AMREX_HOME ?= $(realpath ../../../amrex)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
@@ -13,6 +16,7 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/Particle/Make.package
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
