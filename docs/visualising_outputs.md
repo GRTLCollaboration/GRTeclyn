@@ -22,11 +22,11 @@ You can download a prebuilt version of ParaView for your local machine
   cd /path/to/ParaView-5.9.1-MPI-Linux-Python3.8-64bit/bin
   ./paraview
   ```
----
-It is very important that you download the **exact** same version of
-ParaView as what is installed on the cluster if you want to run it
-remotely in a server/client configuration. 
----
+
+!!! warning
+
+    It is very important that you download the **exact** same version of ParaView as what is installed on the cluster if you want to run it remotely in a server/client configuration. 
+
 
 
 ### Remote visualisation
@@ -198,11 +198,9 @@ There are other very useful tools in that directory! More information on the AMR
 
 Download Visit to your local machine from their [current releases](https://visit-dav.github.io/visit-website/releases-as-tables/).
 
----
-It is very important that you download the **exact** same version of
-VisIt as what is installed on the cluster if you want to run it
-remotely in a server/client configuration. 
----
+!!! warning
+    It is very important that you download the **exact** same version of VisIt as what is installed on the cluster if you want to run it remotely in a server/client configuration. 
+
 
 For Mac and Windows there are installers, for Linux you should download the tar file, plus the "Visit Install Script" (in the bullets above the executable) and follow the instructions in "Visit Install Notes". The tar file for Ubuntu 14.04 seems to work on Ubuntu 16.04 too.
 
@@ -220,12 +218,12 @@ If you chose option 3, read the next section carefully!
 
 To set up a remote host, launch VisIt on your local machine, then go to "Options->Host profiles". Click on "New Host" and configure it by setting:
 
-* The Host nickname e.g. cosmos
-* The remote hostname, e.g. cosmos.damtp.cam.ac.uk
+* The Host nickname e.g. `cosmos`
+* The remote hostname, e.g. `cosmos.damtp.cam.ac.uk`
 * If you can run in parallel on the cluster nodes, set the max number of nodes and processors to use
-* Path to visit installation (where you put it on the cluster), e.g. ~/visit
-* Username (your username on the remote host), e.g. kclough
-* Select "Tunnel data connections through ssh" and set the ssh command to "ssh -C"
+* Path to visit installation (where you put it on the cluster), e.g. `~/visit`
+* Username (your username on the remote host), e.g. `kclough`
+* Select "Tunnel data connections through ssh" and set the ssh command to `ssh -C`
 
 VisIt can sometimes be "difficult" when it comes to getting it to remember the configuration. After you've configured the host, click "Apply", then click on the "i" button on the bottom-right of the main Visit window. Return to the host configuration dialog and hit "Export host" you should then see a confirmation that VisIt has saved it for you.
 
@@ -239,7 +237,7 @@ The most useful plots for our data are Pseudocolour plots, using the Operators->
 
 There are VisIt tutorials which will help to discover all the functionality, see for example the ATPESC 2016 workshop which also has a [YouTube video](http://www.visitusers.org/index.php?title=Short_Tutorial).
 
-See our tips for making good visualisations in [[Visualisation tips | Visualisation tips]]. Feel free to add to them!
+See our (still relevant!) tips for making good visualisations in the [GRChombo wiki](https://github.com/GRTLCollaboration/GRChombo/wiki/Visualisation-tips). Feel free to add to them!
 
 There are a number of example scripts for processing GRChombo files using the VisIt command line [here](https://github.com/GRTLCollaboration/Postprocessing_tools/tree/master/VisItTools)
 
