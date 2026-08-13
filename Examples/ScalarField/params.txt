@@ -15,8 +15,8 @@ checkpoint_interval = 500
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
 plot_interval = 1
-num_plot_vars = 2
-plot_vars = chi phi
+amr.plot_vars = chi phi
+amr.derive_plot_vars = constraints
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)

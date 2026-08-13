@@ -6,6 +6,7 @@
 #include "ScalarFieldLevel.hpp"
 
 #include "CCZ4RHSWithMatter.hpp"
+#include "ConstraintsWithMatter.hpp"
 #include "EMTensor.hpp"
 #include "FixedGridsTagger.hpp"
 #include "GammaCalculator.hpp"
@@ -22,6 +23,8 @@
 using ScalarFieldEnergyDensity =
     EMTensor<ScalarFieldLevel::ScalarFieldWithPotential,
              EMTensorOptions::justEnergyDensity>;
+using ScalarFieldConstraints =
+    ConstraintsWithMatter<ScalarFieldLevel::ScalarFieldWithPotential>;
 
 ScalarFieldAMR *ScalarFieldLevel::get_scalar_field_amr_ptr()
 {
@@ -32,6 +35,7 @@ void ScalarFieldLevel::variableSetUp()
 {
     BL_PROFILE("ScalarFieldLevel::variableSetUp()");
     stateVariableSetUp();
+    ScalarFieldConstraints::set_up(state_index);
     ScalarFieldEnergyDensity::set_up(state_index);
 }
 
