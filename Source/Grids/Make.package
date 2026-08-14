@@ -4,6 +4,7 @@ GRTECLYN_CEXE_headers += BCParity.hpp \
                          BoundaryConditions.hpp \
                          Coordinates.hpp \
                          DerivativeBase.hpp \
+                         Derivatives.hpp \
                          DimensionDefinitions.hpp \
                          FourthOrderDerivatives.hpp \
                          NullBCFill.hpp \
