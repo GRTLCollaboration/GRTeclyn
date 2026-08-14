@@ -283,8 +283,8 @@ void run_derivative_unit_tests()
                     const auto &cell_data = out_c_array.cellData(ix, iy, iz);
 
                     CHECK_MESSAGE(cell_data[c_diss] ==
-                                      doctest::Approx((1. + z * (z - 1.)) *
-                                                      pow(dx, 5) / 64.)
+                                      doctest::Approx(-(1. + z * (z - 1.)) *
+                                                      pow(dx, 7) / 256.)
                                           .epsilon(test_threshold),
                                   "Failed dissipation (sixth order) at ", iv);
 
