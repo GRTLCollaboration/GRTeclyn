@@ -24,6 +24,92 @@
 #include "FourthOrderDerivatives.hpp"
 #include "SixthOrderDerivatives.hpp"
 
+// Helper function to validate derivative results for different orders
+void validate_derivatives(const amrex::Box &box,
+                          const amrex::FArrayBox &out_fab, const amrex::Real dx,
+                          const char *order_name, amrex::Real diss_factor,
+                          int diss_power)
+{
+    constexpr amrex::Real test_threshold = 1e-10;
+    const auto &out_c_array              = out_fab.const_array();
+
+    amrex::LoopOnCpu(
+        box,
+        [=](int ix, int iy, int iz)
+        {
+            // only 1 cell in the y direction
+            const amrex::Real x = (0.5 + ix) * dx;
+            const amrex::Real z = (0.5 + iz) * dx;
+
+            amrex::IntVect iv(ix, iy, iz);
+            const auto &cell_data = out_c_array.cellData(ix, iy, iz);
+
+            // First order derivative tests
+            CHECK_MESSAGE(
+                cell_data[c_d1] ==
+                    doctest::Approx(2. * x * (z - 0.5)).epsilon(test_threshold),
+                "Failed diff1 scalar (", order_name, ") at ", iv);
+
+            CHECK_MESSAGE(
+                cell_data[c_d1_v3] ==
+                    doctest::Approx(2. * x * (z - 0.5)).epsilon(test_threshold),
+                "Failed diff1 vector (", order_name, ") at ", iv);
+
+            CHECK_MESSAGE(
+                cell_data[c_d1_t33] ==
+                    doctest::Approx(2. * x * (z - 0.5)).epsilon(test_threshold),
+                "Failed diff1 tensor (", order_name, ") at ", iv);
+
+            // Second order derivative tests
+            CHECK_MESSAGE(cell_data[c_d2] ==
+                              doctest::Approx(2. * x).epsilon(test_threshold),
+                          "Failed diff2 scalar (", order_name, ") at ", iv);
+
+            CHECK_MESSAGE(cell_data[c_d2_v3] ==
+                              doctest::Approx(2. * x).epsilon(test_threshold),
+                          "Failed diff2 vector (", order_name, ") at ", iv);
+
+            CHECK_MESSAGE(
+                cell_data[c_d2_t31] ==
+                    doctest::Approx(2. * (z - 0.5)).epsilon(test_threshold),
+                "Failed diff2 tensor (", order_name, ") at ", iv);
+
+            CHECK_MESSAGE(cell_data[c_d2_sym_t33] ==
+                              doctest::Approx(2. * x).epsilon(test_threshold),
+                          "Failed diff2 symmetric tensor (", order_name,
+                          ") at ", iv);
+
+            CHECK_MESSAGE(
+                cell_data[c_d2_mixed] ==
+                    doctest::Approx(2. * (z - 0.5)).epsilon(test_threshold),
+                "Failed mixed diff2 (", order_name, ") at ", iv);
+
+            // Advection and dissipation tests
+            // diss_factor and diss_power are different between Fourth and Sixth
+            // Order Derivatives The SixthOrderDerivatives use 8th order
+            // dissipation
+            amrex::Real expected_diss =
+                diss_factor * (1. + z * (z - 1.)) * pow(dx, diss_power);
+
+            CHECK_MESSAGE(
+                cell_data[c_diss] ==
+                    doctest::Approx(expected_diss).epsilon(test_threshold),
+                "Failed dissipation (", order_name, ") at ", iv);
+
+            CHECK_MESSAGE(
+                cell_data[c_advec_down] ==
+                    doctest::Approx(-2. * z * (z - 1.) - 3. * x * (2. * z - 1.))
+                        .epsilon(test_threshold),
+                "Failed advection down (", order_name, ") at ", iv);
+
+            CHECK_MESSAGE(
+                cell_data[c_advec_up] ==
+                    doctest::Approx(2. * z * (z - 1.) + 3. * x * (2. * z - 1.))
+                        .epsilon(test_threshold),
+                "Failed advection up (", order_name, ") at ", iv);
+        });
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void run_derivative_unit_tests()
 {
@@ -87,107 +173,8 @@ void run_derivative_unit_tests()
             amrex::Gpu::streamSynchronize();
             AMREX_GPU_ERROR_CHECK();
 
-            constexpr amrex::Real test_threshold = 1e-10;
-
-            const auto &out_c_array = out_fab.const_array();
-
-            // First order derivative tests
-            amrex::LoopOnCpu(
-                box,
-                [=](int ix, int iy, int iz)
-                {
-                    // only 1 cell in the y direction
-                    const amrex::Real x = (0.5 + ix) * dx;
-                    const amrex::Real z = (0.5 + iz) * dx;
-
-                    amrex::IntVect iv(ix, iy, iz);
-                    const auto &cell_data = out_c_array.cellData(ix, iy, iz);
-
-                    CHECK_MESSAGE(cell_data[c_d1] ==
-                                      doctest::Approx(2. * x * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed diff1 scalar (fourth order) at", iv);
-
-                    CHECK_MESSAGE(cell_data[c_d1_v3] ==
-                                      doctest::Approx(2. * x * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed diff1 vector (fourth order) at ", iv);
-
-                    CHECK_MESSAGE(cell_data[c_d1_t33] ==
-                                      doctest::Approx(2. * x * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed diff1 tensor (fourth order) at ", iv);
-                });
-
-            // Second order derivative tests
-            amrex::LoopOnCpu(
-                box,
-                [=](int ix, int iy, int iz)
-                {
-                    // only 1 cell in the y direction
-                    const amrex::Real x = (0.5 + ix) * dx;
-                    const amrex::Real z = (0.5 + iz) * dx;
-
-                    amrex::IntVect iv(ix, iy, iz);
-                    const auto &cell_data = out_c_array.cellData(ix, iy, iz);
-
-                    CHECK_MESSAGE(
-                        cell_data[c_d2] ==
-                            doctest::Approx(2. * x).epsilon(test_threshold),
-                        "Failed diff2 scalar (fourth order) at ", iv);
-
-                    CHECK_MESSAGE(
-                        cell_data[c_d2_v3] ==
-                            doctest::Approx(2. * x).epsilon(test_threshold),
-                        "Failed diff2 vector (fourth order) at ", iv);
-
-                    CHECK_MESSAGE(cell_data[c_d2_t31] ==
-                                      doctest::Approx(2. * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed diff2 tensor (fourth order) at ", iv);
-
-                    CHECK_MESSAGE(
-                        cell_data[c_d2_sym_t33] ==
-                            doctest::Approx(2. * x).epsilon(test_threshold),
-                        "Failed diff2 symmetric tensor (fourth order) at ", iv);
-
-                    CHECK_MESSAGE(cell_data[c_d2_mixed] ==
-                                      doctest::Approx(2. * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed mixed diff2 (fourth order) at ", iv);
-                });
-
-            // Advection and dissipation tests
-            amrex::LoopOnCpu(
-                box,
-                [=](int ix, int iy, int iz)
-                {
-                    // only 1 cell in the y direction
-                    const amrex::Real x = (0.5 + ix) * dx;
-                    const amrex::Real z = (0.5 + iz) * dx;
-
-                    amrex::IntVect iv(ix, iy, iz);
-                    const auto &cell_data = out_c_array.cellData(ix, iy, iz);
-
-                    CHECK_MESSAGE(cell_data[c_diss] ==
-                                      doctest::Approx((1. + z * (z - 1.)) *
-                                                      pow(dx, 5) / 64.)
-                                          .epsilon(test_threshold),
-                                  "Failed dissipation (fourth order) at ", iv);
-
-                    CHECK_MESSAGE(cell_data[c_advec_down] ==
-                                      doctest::Approx(-2. * z * (z - 1.) -
-                                                      3. * x * (2. * z - 1.))
-                                          .epsilon(test_threshold),
-                                  "Failed advection down (fourth order) at ",
-                                  iv);
-
-                    CHECK_MESSAGE(cell_data[c_advec_up] ==
-                                      doctest::Approx(2. * z * (z - 1.) +
-                                                      3. * x * (2. * z - 1.))
-                                          .epsilon(test_threshold),
-                                  "Failed advection up (fourth order) at ", iv);
-                });
+            validate_derivatives(box, out_fab, dx, "fourth order", 1.0 / 64.0,
+                                 5);
         }
 
         SUBCASE("Sixth order derivatives")
@@ -204,103 +191,8 @@ void run_derivative_unit_tests()
             amrex::Gpu::streamSynchronize();
             AMREX_GPU_ERROR_CHECK();
 
-            constexpr amrex::Real test_threshold = 1e-10;
-            const auto &out_c_array              = out_fab.const_array();
-
-            // First order derivative tests
-            amrex::LoopOnCpu(
-                box,
-                [=](int ix, int iy, int iz)
-                {
-                    const amrex::Real x = (0.5 + ix) * dx;
-                    const amrex::Real z = (0.5 + iz) * dx;
-
-                    amrex::IntVect iv(ix, iy, iz);
-                    const auto &cell_data = out_c_array.cellData(ix, iy, iz);
-
-                    CHECK_MESSAGE(cell_data[c_d1] ==
-                                      doctest::Approx(2. * x * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed diff1 scalar (sixth order) at", iv);
-
-                    CHECK_MESSAGE(cell_data[c_d1_v3] ==
-                                      doctest::Approx(2. * x * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed diff1 vector (sixth order) at ", iv);
-
-                    CHECK_MESSAGE(cell_data[c_d1_t33] ==
-                                      doctest::Approx(2. * x * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed diff1 tensor (sixth order) at ", iv);
-                });
-
-            // Second order derivative tests
-            amrex::LoopOnCpu(
-                box,
-                [=](int ix, int iy, int iz)
-                {
-                    const amrex::Real x = (0.5 + ix) * dx;
-                    const amrex::Real z = (0.5 + iz) * dx;
-
-                    amrex::IntVect iv(ix, iy, iz);
-                    const auto &cell_data = out_c_array.cellData(ix, iy, iz);
-
-                    CHECK_MESSAGE(
-                        cell_data[c_d2] ==
-                            doctest::Approx(2. * x).epsilon(test_threshold),
-                        "Failed diff2 scalar (sixth order) at ", iv);
-
-                    CHECK_MESSAGE(
-                        cell_data[c_d2_v3] ==
-                            doctest::Approx(2. * x).epsilon(test_threshold),
-                        "Failed diff2 vector (sixth order) at ", iv);
-
-                    CHECK_MESSAGE(cell_data[c_d2_t31] ==
-                                      doctest::Approx(2. * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed diff2 tensor (sixth order) at ", iv);
-
-                    CHECK_MESSAGE(
-                        cell_data[c_d2_sym_t33] ==
-                            doctest::Approx(2. * x).epsilon(test_threshold),
-                        "Failed diff2 symmetric tensor (sixth order) at ", iv);
-
-                    CHECK_MESSAGE(cell_data[c_d2_mixed] ==
-                                      doctest::Approx(2. * (z - 0.5))
-                                          .epsilon(test_threshold),
-                                  "Failed mixed diff2 (sixth order) at ", iv);
-                });
-
-            // Advection and dissipation tests
-            amrex::LoopOnCpu(
-                box,
-                [=](int ix, int iy, int iz)
-                {
-                    const amrex::Real x = (0.5 + ix) * dx;
-                    const amrex::Real z = (0.5 + iz) * dx;
-
-                    amrex::IntVect iv(ix, iy, iz);
-                    const auto &cell_data = out_c_array.cellData(ix, iy, iz);
-
-                    CHECK_MESSAGE(cell_data[c_diss] ==
-                                      doctest::Approx(-(1. + z * (z - 1.)) *
-                                                      pow(dx, 7) / 256.)
-                                          .epsilon(test_threshold),
-                                  "Failed dissipation (sixth order) at ", iv);
-
-                    CHECK_MESSAGE(cell_data[c_advec_down] ==
-                                      doctest::Approx(-2. * z * (z - 1.) -
-                                                      3. * x * (2. * z - 1.))
-                                          .epsilon(test_threshold),
-                                  "Failed advection down (sixth order) at ",
-                                  iv);
-
-                    CHECK_MESSAGE(cell_data[c_advec_up] ==
-                                      doctest::Approx(2. * z * (z - 1.) +
-                                                      3. * x * (2. * z - 1.))
-                                          .epsilon(test_threshold),
-                                  "Failed advection up (sixth order) at ", iv);
-                });
+            validate_derivatives(box, out_fab, dx, "sixth order", -1.0 / 256.0,
+                                 7);
         }
     }
     amrex::Finalize();
