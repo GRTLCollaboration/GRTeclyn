@@ -168,16 +168,13 @@
 <p>The values for <span class="arithmatex">\(Gamma^i\)</span> could be calculated analytically from derivatives of the conformal metric, but instead we calculate it numerically using the <code>GammaCalculator.hpp</code> tool.</p>
 <p>Time-symmetric metric data for the fitted ground-state oscillaton profile.</p>
 <p>The source solution is supplied in areal-polar coordinates,</p>
-<pre><code>$$ dl^2 = g_{rr}(r) dr^2 + r^2 d\Omega^2. $$
-</code></pre>
+<div class="arithmatex">\[ dl^2 = g_{rr}(r) dr^2 + r^2 d\Omega^2. \]</div>
 <p>In Cartesian coordinates this is</p>
-<pre><code>$$ gamma_ij = delta_ij + (g_rr - 1) n_i n_j. $$
-</code></pre>
+<div class="arithmatex">\[ \gamma_{ij} = \delta_{ij} + (g_rr - 1) n_i n_j. \]</div>
 <p>The CCZ4 variables are <code>chi = det(gamma)^(-1/3) = g_rr^(-1/3)</code> and <code>h_ij = chi gamma_ij</code>.  <code>K</code> and <code>A_ij</code> are zero.  At the initial oscillaton phase the field profile <code>phi=0</code> and its conjugate momentum <code>Pi</code> is nonzero. </p>
 <p>The conformal connection Gamma^i is evaluated numerically from <code>h_ij</code> using a separate class <code>GammaCalculator</code>, which is required for consistency since the metric is not conformally flat.</p>
 <p>The fitted profiles are finite Chebyshev expansions in</p>
-<pre><code>$$s = r^2 / (r^2 + L^2), \quad   x = 2s - 1.$$
-</code></pre>
+<div class="arithmatex">\[s = r^2 / (r^2 + L^2), \quad   x = 2s - 1.\]</div>
 <p>They are smooth and even at the origin.  </p>
 <p>The geometry approaches a Schwarzschild solution of mass <span class="arithmatex">\(M=0.52459888\)</span> at large r.</p>
 <p>Note that this profile uses a scalar mass <span class="arithmatex">\(\mu=1\)</span> and Newton's constant <span class="arithmatex">\(G=1\)</span>.</p>

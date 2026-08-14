@@ -152,18 +152,20 @@
 <p>The repository includes an example which solves the Klein Gordon equation in flat spacetime (i.e. without GR, or any non trivial metric background). It casts the equation as first order in time, and therefore only contains two variables - the field <code>phi</code> and its conjugate momentum <code>Pi</code>.</p>
 <p>It runs three models:</p>
 <ul>
-<li>1D Wave equation with potential
-<pre class="highlight"><code class="language-math">\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi + \frac{1}{2} m^2 \phi^2</code></pre></li>
-<li>1D Sine-Gordon breather equation
-<pre class="highlight"><code class="language-math">\frac{\partial^2 \phi}{\partial t^2} = \frac{\partial^2 \phi}{\partial x^2} - \sin \phi</code></pre></li>
-<li>
-<p>3D Sine-Gordon breather solution
-<pre class="highlight"><code class="language-math">\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi - \sin \phi</code></pre>
-This example can be useful if you:</p>
-</li>
-<li>
-<p>want a simpler example from which to learn the structure of the code and how it interacts with AMReX, before diving into the full CCZ4 equations</p>
-</li>
+<li>1D Wave equation with potential:</li>
+</ul>
+<div class="arithmatex">\[ \frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi + \frac{1}{2} m^2 \phi^2 \]</div>
+<ul>
+<li>1D Sine-Gordon breather equation</li>
+</ul>
+<div class="arithmatex">\[ \frac{\partial^2 \phi}{\partial t^2} = \frac{\partial^2 \phi}{\partial x^2} - \sin \phi \]</div>
+<ul>
+<li>3D Sine-Gordon breather solution</li>
+</ul>
+<div class="arithmatex">\[ \frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi - \sin \phi \]</div>
+<p>This example can be useful if you:</p>
+<ul>
+<li>want a simpler example from which to learn the structure of the code and how it interacts with AMReX, before diving into the full CCZ4 equations</li>
 <li>want to work on optimizating the code</li>
 <li>need an example with an analytic solution for testing</li>
 <li>need an example of how to change models at runtime</li>
@@ -212,13 +214,18 @@ This example is very small, so 2 MPI ranks is more than sufficient. </p>
 </li>
 </ol>
 <h2 id="looking-at-the-outputs">Looking at the outputs</h2>
-<p>Set <code>amr.plot_vars = ALL</code> and <code>amr.derive_plot_vars = ALL</code> to print all the state (<code>phi</code>, <code>Pi</code>) and derived variables (<code>phi_analytic</code>, <code>Pi_analytic</code>, <code>rho</code>). </p>
+<p>There are two state variables:</p>
+<ul>
+<li><code>phi</code> - the scalar field value at each cell</li>
+<li><code>Pi</code> - the first derivative of the scalar field at each cell</li>
+</ul>
 <p>There are three derived variables:</p>
 <ul>
 <li><code>phi_analytic</code> - the analytic solution to the field value at each cell</li>
 <li><code>Pi_analytic</code> - the analytic solution to the first derivative of the field value at each cell</li>
 <li><code>rho</code> - the value of the energy density at each cell.</li>
 </ul>
+<p>Set <code>amr.plot_vars = ALL</code> and <code>amr.derive_plot_vars = ALL</code> to print all the state (<code>phi</code>, <code>Pi</code>) and derived variables (<code>phi_analytic</code>, <code>Pi_analytic</code>, <code>rho</code>). </p>
 <h3 id="aside-how-to-add-a-derived-variable">(Aside) How to add a derived variable</h3>
 <ol>
 <li>Define their compute functions, e.g. <code>calc_energy_density</code>. This is done inside <code>DerivedVariables.hpp</code> and <code>DerivedVariables.impl.hpp</code>.</li>
