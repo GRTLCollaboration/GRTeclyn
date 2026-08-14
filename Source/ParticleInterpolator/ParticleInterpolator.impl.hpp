@@ -44,22 +44,6 @@ void ParticleInterpolator<num_components>::setup(
     m_prob_lo = geom0.RoundOffLo(); // use rounded-off low boundary
     m_prob_hi = geom0.RoundOffHi(); // use rounded-off high boundary
 
-    const int num_levels = m_gramr_ptr->finestLevel() + 1;
-
-    // Now write in the number of cells on each level (this is needed for
-    // handling the higher boundary with symmetric BC in Lagrange interpolation)
-    m_domain_ncell.resize(num_levels);
-
-    for (int lev = 0; lev < num_levels; ++lev)
-    {
-        const amrex::Geometry &geom = m_gramr_ptr->getLevel(lev).Geom();
-
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        {
-            m_domain_ncell[lev][d] = geom.Domain().length(d);
-        }
-    }
-
     // set the reflective flags from BC params
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
@@ -143,7 +127,7 @@ ParticleInterpolator<num_components>::reflect_particle(amrex::Real x,
 // allocate particles at the query points
 template <int num_components>
 void ParticleInterpolator<num_components>::populate_from_query(
-    InterpolationQueryParticle &query)
+    const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
 
@@ -259,7 +243,16 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
     const auto dxi               = geom.InvCellSizeArray();
     const auto lo_reflective     = m_lo_boundary_reflective;
     const auto hi_reflective     = m_hi_boundary_reflective;
-    const auto domain_ncell      = m_domain_ncell[lev];
+
+    // number of cells on the current level
+    // (this is needed for handling the higher boundary with symmetric BC in
+    // Lagrange interpolation)
+    amrex::GpuArray<int, AMREX_SPACEDIM> domain_ncell{};
+
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        domain_ncell[d] = geom.Domain().length(d);
+    }
 
     // loop over tiles and interpolate now
     for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
@@ -268,10 +261,6 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         auto particle_tile_data = particle_tile.getParticleTileData();
         const int num_particles = par_iter.numParticles();
         auto fab_array          = mfab[par_iter].const_array();
-
-        amrex::AllPrint() << "lev = " << lev << ", grid = " << par_iter.index()
-                          << ", valid box = " << par_iter.validbox()
-                          << ", FAB box = " << mfab[par_iter].box() << "\n";
 
         amrex::ParallelFor(
             num_particles,
@@ -307,17 +296,35 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 // It uses/collates together all the methods defined in this class
 template <int num_components>
 void ParticleInterpolator<num_components>::interp(
-    InterpolationQueryParticle &query, const std::string &name_derived,
-    double time_derived /*=0.0*/)
+    const InterpolationQueryParticle &query, const std::string &name_derived,
+    double time_derived /*=0.0*/, bool a_refresh_particles /*=false*/)
 {
     AMREX_ASSERT(m_initialized);
 
     // Populate particles
-    if (!m_particles_populated)
+    // here we need to cover various scenarious:
+    // (1) first call, refresh=false -> populate once + redistribute (automatic
+    // since we start with m_need_redistribute=true) (2) first call,
+    // refresh=true -> populate once + redistribute (3) later call, refresh=true
+    // -> clear + repopulate + redistribute (need to force
+    // m_need_redistribute=true)
+    if (!m_particles_populated || a_refresh_particles)
     {
-        if (m_verbosity)
+        if (a_refresh_particles && m_particles_populated)
         {
-            amrex::AllPrint()
+            if (m_verbosity)
+            {
+                amrex::Print() << "ParticleInterpolator: refreshing particles "
+                                  "from query\n";
+            }
+
+            this->clearParticles();
+            force_redistribute(true); // force a redistribution since we have
+                                      // cleared the particles
+        }
+        else if (m_verbosity)
+        {
+            amrex::Print()
                 << "ParticleInterpolator: populating particles from query\n";
         }
 
@@ -401,7 +408,7 @@ void ParticleInterpolator<num_components>::interp(
 // prepares the final out arrays from interpolation
 template <int num_components>
 void ParticleInterpolator<num_components>::aggregate_points(
-    InterpolationQueryParticle &query)
+    const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
 
@@ -607,7 +614,7 @@ void ParticleInterpolator<num_components>::exchange_answers()
 // Build values at particle positions and apply parities
 template <int num_components>
 void ParticleInterpolator<num_components>::apply_parity_and_store_values(
-    InterpolationQueryParticle &query)
+    const InterpolationQueryParticle &query)
 {
 
     int start_comp = get_start_comp(query);
@@ -652,8 +659,7 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values(
     for (auto deriv_it = query.compsBegin(); deriv_it != query.compsEnd();
          ++deriv_it)
     {
-        using comps_t = std::vector<typename InterpolationQueryParticle::out_t>;
-        comps_t &comps = deriv_it->second;
+        const auto &comps = deriv_it->second;
 
         const Derivative &dkey = deriv_it->first;
 
@@ -737,7 +743,7 @@ void ParticleInterpolator<num_components>::check_domain(
 // A getter function to get the starting component from the query
 template <int num_components>
 int ParticleInterpolator<num_components>::get_start_comp(
-    InterpolationQueryParticle &query)
+    const InterpolationQueryParticle &query)
 {
     auto it = query.compsBegin();
     AMREX_ASSERT(it != query.compsEnd());
@@ -762,19 +768,6 @@ void ParticleInterpolator<num_components>::ensure_redistributed()
     {
         m_last_redistribute_step.resize(
             nlev, -1); // put -1s to indicate no redistribute has happened yet
-        m_domain_ncell.resize(nlev); // resize m_domain_ncell in case number of
-                                     // levels changed upon initialisation this
-                                     // would automatically trigger a regrid
-
-        for (int lev = 0; lev < nlev; ++lev)
-        {
-            const amrex::Geometry &geom = m_gramr_ptr->getLevel(lev).Geom();
-
-            for (int d = 0; d < AMREX_SPACEDIM; ++d)
-            {
-                m_domain_ncell[lev][d] = geom.Domain().length(d);
-            }
-        }
 
         m_need_redistribute = true;
     }

@@ -31,7 +31,7 @@ class InterpolationQueryParticle
 
     using comp_map_t = std::map<Derivative, std::vector<out_t>>;
     using iterator =
-        typename std::map<Derivative, std::vector<out_t>>::iterator;
+        typename std::map<Derivative, std::vector<out_t>>::const_iterator;
 
   private:
     template <int num_components> friend class ParticleInterpolator;
@@ -143,9 +143,9 @@ class InterpolationQueryParticle
 
     [[nodiscard]] size_t numPoints() const { return m_num_points; }
 
-    iterator compsBegin() { return m_comps.begin(); }
+    iterator compsBegin() const { return m_comps.cbegin(); }
 
-    iterator compsEnd() { return m_comps.end(); }
+    iterator compsEnd() const { return m_comps.cend(); }
 };
 
 #endif /* INTERPOLATIONQUERYPARTICLE_HPP_ */
