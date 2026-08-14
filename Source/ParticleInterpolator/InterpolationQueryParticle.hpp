@@ -22,8 +22,8 @@ class InterpolationQueryParticle
   public:
     struct out_t
     {
-        int comp;
-        amrex::ParticleReal *out_data_ptr;
+        int comp{};
+        amrex::ParticleReal *out_data_ptr{};
         BCParity parity{
             BCParity::undefined}; // default parity is undefined, but should be
                                   // set for diagnostic variables
@@ -38,7 +38,7 @@ class InterpolationQueryParticle
 
     size_t m_num_points;
     std::array<const double *, AMREX_SPACEDIM> m_coords{};
-    comp_map_t m_comps;
+    comp_map_t m_comps{};
     VariableType m_variable_type{}; // for a given InterpolationQueryParticle
                                     // the variable type must be the same!
     bool m_variable_type_set =
@@ -48,6 +48,7 @@ class InterpolationQueryParticle
     InterpolationQueryParticle(int num_points) : m_num_points(num_points) {}
 
     // Returns the pointer that was passed to setCoords
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     [[nodiscard]] const double *coords(int dim) const
     {
         AMREX_ASSERT(dim >= 0 && dim < AMREX_SPACEDIM);
@@ -129,6 +130,7 @@ class InterpolationQueryParticle
         return m_variable_type;
     }
 
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     int numComps()
     {
         int accum = 0;
@@ -143,9 +145,9 @@ class InterpolationQueryParticle
 
     [[nodiscard]] size_t numPoints() const { return m_num_points; }
 
-    iterator compsBegin() const { return m_comps.cbegin(); }
+    [[nodiscard]] iterator compsBegin() const { return m_comps.cbegin(); }
 
-    iterator compsEnd() const { return m_comps.cend(); }
+    [[nodiscard]] iterator compsEnd() const { return m_comps.cend(); }
 };
 
 #endif /* INTERPOLATIONQUERYPARTICLE_HPP_ */
