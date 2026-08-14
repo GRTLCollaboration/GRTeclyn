@@ -20,7 +20,7 @@ class SixthOrderDerivatives : protected DerivativeBase
 {
   public:
     AMREX_GPU_HOST_DEVICE
-    SixthOrderDerivatives(double dx) : DerivativeBase(dx) {}
+    SixthOrderDerivatives(amrex::Real dx) : DerivativeBase(dx) {}
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 
@@ -501,7 +501,7 @@ class SixthOrderDerivatives : protected DerivativeBase
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate_dissipation(int ix, int iy, int iz,
                           const amrex::Array4<const amrex::Real> &state,
-                          const double sigma_coeff, const int ivar) const
+                          const amrex::Real sigma_coeff, const int ivar) const
     {
         amrex::Real diss          = 0.0;
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
@@ -522,7 +522,8 @@ class SixthOrderDerivatives : protected DerivativeBase
     add_dissipation(int ix, int iy, int iz,
                     const amrex::CellData<amrex::Real> &rhs_cell_data,
                     const amrex::Array4<const amrex::Real> &state,
-                    const double sigma_coeff, int num_vars = NUM_VARS) const
+                    const amrex::Real sigma_coeff,
+                    int num_vars = NUM_VARS) const
 
     {
         amrex::Real diss = 0.0;
