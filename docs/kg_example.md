@@ -4,18 +4,20 @@ The repository includes an example which solves the Klein Gordon equation in fla
 
 It runs three models:
 
-- 1D Wave equation with potential
-```math
-\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi + \frac{1}{2} m^2 \phi^2
-```
+- 1D Wave equation with potential:
+
+$$ \frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi + \frac{1}{2} m^2 \phi^2 $$
+
 - 1D Sine-Gordon breather equation
-```math
-\frac{\partial^2 \phi}{\partial t^2} = \frac{\partial^2 \phi}{\partial x^2} - \sin \phi
-```
+
+$$ \frac{\partial^2 \phi}{\partial t^2} = \frac{\partial^2 \phi}{\partial x^2} - \sin \phi $$
+
 - 3D Sine-Gordon breather solution
-```math
-\frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi - \sin \phi
-```
+
+$$ \frac{\partial^2 \phi}{\partial t^2} = \nabla^2 \phi - \sin \phi $$
+
+
+
 This example can be useful if you:
 
 - want a simpler example from which to learn the structure of the code and how it interacts with AMReX, before diving into the full CCZ4 equations
@@ -69,13 +71,19 @@ This example is very small, so 2 MPI ranks is more than sufficient.
 
 ## Looking at the outputs
 
-Set `amr.plot_vars = ALL` and `amr.derive_plot_vars = ALL` to print all the state (`phi`, `Pi`) and derived variables (`phi_analytic`, `Pi_analytic`, `rho`). 
+There are two state variables:
+
+* `phi` - the scalar field value at each cell
+* `Pi` - the first derivative of the scalar field at each cell
 
 There are three derived variables:
 
 * `phi_analytic` - the analytic solution to the field value at each cell
 * `Pi_analytic` - the analytic solution to the first derivative of the field value at each cell
 * `rho` - the value of the energy density at each cell.
+
+Set `amr.plot_vars = ALL` and `amr.derive_plot_vars = ALL` to print all the state (`phi`, `Pi`) and derived variables (`phi_analytic`, `Pi_analytic`, `rho`). 
+
 
 ### (Aside) How to add a derived variable
 

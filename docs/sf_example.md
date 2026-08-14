@@ -18,11 +18,11 @@ Time-symmetric metric data for the fitted ground-state oscillaton profile.
 
 The source solution is supplied in areal-polar coordinates,
 
-    $$ dl^2 = g_{rr}(r) dr^2 + r^2 d\Omega^2. $$
+$$ dl^2 = g_{rr}(r) dr^2 + r^2 d\Omega^2. $$
 
 In Cartesian coordinates this is
 
-    $$ gamma_ij = delta_ij + (g_rr - 1) n_i n_j. $$
+$$ \gamma_{ij} = \delta_{ij} + (g_rr - 1) n_i n_j. $$
 
 The CCZ4 variables are `chi = det(gamma)^(-1/3) = g_rr^(-1/3)` and `h_ij = chi gamma_ij`.  `K` and `A_ij` are zero.  At the initial oscillaton phase the field profile `phi=0` and its conjugate momentum `Pi` is nonzero. 
 
@@ -30,7 +30,7 @@ The conformal connection Gamma^i is evaluated numerically from `h_ij` using a se
 
 The fitted profiles are finite Chebyshev expansions in
 
-    $$s = r^2 / (r^2 + L^2), \quad   x = 2s - 1.$$
+$$s = r^2 / (r^2 + L^2), \quad   x = 2s - 1.$$
 
 They are smooth and even at the origin.  
 
