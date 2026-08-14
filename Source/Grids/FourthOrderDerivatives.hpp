@@ -20,7 +20,7 @@ class FourthOrderDerivatives : protected DerivativeBase
 {
   public:
     AMREX_GPU_HOST_DEVICE
-    FourthOrderDerivatives(double dx) : DerivativeBase(dx) {}
+    FourthOrderDerivatives(amrex::Real dx) : DerivativeBase(dx) {}
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 
@@ -438,7 +438,7 @@ class FourthOrderDerivatives : protected DerivativeBase
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    dissipation_term(const double *in_ptr, const int stride,
+    dissipation_term(const amrex::Real *in_ptr, const int stride,
                      const int idx = 0) const
     {
         amrex::Real weight_vfar  = 1.56250e-2_rt;
@@ -459,7 +459,7 @@ class FourthOrderDerivatives : protected DerivativeBase
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate_dissipation(int ix, int iy, int iz,
                           const amrex::Array4<const amrex::Real> &state,
-                          const double sigma_coeff, const int ivar) const
+                          const amrex::Real sigma_coeff, const int ivar) const
     {
         amrex::Real diss          = 0.0;
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
@@ -480,7 +480,8 @@ class FourthOrderDerivatives : protected DerivativeBase
     add_dissipation(int ix, int iy, int iz,
                     const amrex::CellData<amrex::Real> &rhs_cell_data,
                     const amrex::Array4<const amrex::Real> &state,
-                    const double sigma_coeff, int num_vars = NUM_VARS) const
+                    const amrex::Real sigma_coeff,
+                    int num_vars = NUM_VARS) const
 
     {
         amrex::Real diss = 0.0;

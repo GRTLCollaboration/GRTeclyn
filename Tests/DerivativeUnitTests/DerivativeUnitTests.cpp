@@ -45,7 +45,7 @@ void run_derivative_unit_tests()
         amrex::FArrayBox out_fab(box, NUM_DERIVATIVES_VARS,
                                  amrex::The_Managed_Arena());
 
-        const double dx = 1.0 / num_cells;
+        const amrex::Real dx = 1.0 / num_cells;
 
         const amrex::Array4<amrex::Real> &in_array = in_fab.array();
 
@@ -54,8 +54,8 @@ void run_derivative_unit_tests()
                            {
                                // no point having data varying wrt y as we only
                                // 1 true cell in that dimension
-                               const double x = (0.5 + ix) * dx;
-                               const double z = (0.5 + iz) * dx;
+                               const amrex::Real x = (0.5 + ix) * dx;
+                               const amrex::Real z = (0.5 + iz) * dx;
                                for (int ivar = 0; ivar < in_array.nComp();
                                     ++ivar)
                                {
@@ -97,8 +97,8 @@ void run_derivative_unit_tests()
                 [=](int ix, int iy, int iz)
                 {
                     // only 1 cell in the y direction
-                    const double x = (0.5 + ix) * dx;
-                    const double z = (0.5 + iz) * dx;
+                    const amrex::Real x = (0.5 + ix) * dx;
+                    const amrex::Real z = (0.5 + iz) * dx;
 
                     amrex::IntVect iv(ix, iy, iz);
                     const auto &cell_data = out_c_array.cellData(ix, iy, iz);
@@ -125,8 +125,8 @@ void run_derivative_unit_tests()
                 [=](int ix, int iy, int iz)
                 {
                     // only 1 cell in the y direction
-                    const double x = (0.5 + ix) * dx;
-                    const double z = (0.5 + iz) * dx;
+                    const amrex::Real x = (0.5 + ix) * dx;
+                    const amrex::Real z = (0.5 + iz) * dx;
 
                     amrex::IntVect iv(ix, iy, iz);
                     const auto &cell_data = out_c_array.cellData(ix, iy, iz);
@@ -163,8 +163,8 @@ void run_derivative_unit_tests()
                 [=](int ix, int iy, int iz)
                 {
                     // only 1 cell in the y direction
-                    const double x = (0.5 + ix) * dx;
-                    const double z = (0.5 + iz) * dx;
+                    const amrex::Real x = (0.5 + ix) * dx;
+                    const amrex::Real z = (0.5 + iz) * dx;
 
                     amrex::IntVect iv(ix, iy, iz);
                     const auto &cell_data = out_c_array.cellData(ix, iy, iz);
@@ -212,8 +212,8 @@ void run_derivative_unit_tests()
                 box,
                 [=](int ix, int iy, int iz)
                 {
-                    const double x = (0.5 + ix) * dx;
-                    const double z = (0.5 + iz) * dx;
+                    const amrex::Real x = (0.5 + ix) * dx;
+                    const amrex::Real z = (0.5 + iz) * dx;
 
                     amrex::IntVect iv(ix, iy, iz);
                     const auto &cell_data = out_c_array.cellData(ix, iy, iz);
@@ -239,8 +239,8 @@ void run_derivative_unit_tests()
                 box,
                 [=](int ix, int iy, int iz)
                 {
-                    const double x = (0.5 + ix) * dx;
-                    const double z = (0.5 + iz) * dx;
+                    const amrex::Real x = (0.5 + ix) * dx;
+                    const amrex::Real z = (0.5 + iz) * dx;
 
                     amrex::IntVect iv(ix, iy, iz);
                     const auto &cell_data = out_c_array.cellData(ix, iy, iz);
@@ -276,8 +276,8 @@ void run_derivative_unit_tests()
                 box,
                 [=](int ix, int iy, int iz)
                 {
-                    const double x = (0.5 + ix) * dx;
-                    const double z = (0.5 + iz) * dx;
+                    const amrex::Real x = (0.5 + ix) * dx;
+                    const amrex::Real z = (0.5 + iz) * dx;
 
                     amrex::IntVect iv(ix, iy, iz);
                     const auto &cell_data = out_c_array.cellData(ix, iy, iz);
