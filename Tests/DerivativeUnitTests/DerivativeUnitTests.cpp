@@ -29,7 +29,7 @@
 void validate_derivatives(const amrex::Box &box,
                           const amrex::FArrayBox &out_fab, const amrex::Real dx,
                           const char *order_name, amrex::Real diss_factor,
-                          int diss_power)
+                          amrex::Real diss_power)
 {
     constexpr amrex::Real test_threshold = 1e-10;
     const auto &out_c_array              = out_fab.const_array();
@@ -176,7 +176,7 @@ void run_derivative_unit_tests()
             AMREX_GPU_ERROR_CHECK();
 
             validate_derivatives(box, out_fab, dx, "fourth order", 1.0 / 64.0,
-                                 5);
+                                 5.0);
         }
 
         SUBCASE("Sixth order derivatives")
@@ -194,7 +194,7 @@ void run_derivative_unit_tests()
             AMREX_GPU_ERROR_CHECK();
 
             validate_derivatives(box, out_fab, dx, "sixth order", -1.0 / 256.0,
-                                 7);
+                                 7.0);
         }
     }
     amrex::Finalize();
