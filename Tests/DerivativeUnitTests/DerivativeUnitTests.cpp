@@ -25,6 +25,7 @@
 #include "SixthOrderDerivatives.hpp"
 
 // Helper function to validate derivative results for different orders
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void validate_derivatives(const amrex::Box &box,
                           const amrex::FArrayBox &out_fab, const amrex::Real dx,
                           const char *order_name, amrex::Real diss_factor,
@@ -35,6 +36,7 @@ void validate_derivatives(const amrex::Box &box,
 
     amrex::LoopOnCpu(
         box,
+        // NOLINTNEXTLINE(readability-function-cognitive-complexity)
         [=](int ix, int iy, int iz)
         {
             // only 1 cell in the y direction
