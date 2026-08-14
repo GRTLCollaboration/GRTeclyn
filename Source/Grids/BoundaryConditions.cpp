@@ -50,28 +50,28 @@ void BoundaryConditions::params_t::fill_params()
         is_periodic[idir] = static_cast<bool>(is_periodic_int[idir]);
     }
 
-    pp.get("hi_boundary", hi_boundary);
-    pp.get("lo_boundary", lo_boundary);
+    boundary_pp.get("hi_boundary", hi_boundary);
+    boundary_pp.get("lo_boundary", lo_boundary);
 
     if (boundary_exists(SOMMERFELD_BC))
     {
         size_t num_values = 0;
         std::vector<int> nonzero_asymptotic_vars;
         StateVariablesParmParse::load_vars_to_vector(
-            pp, "nonzero_asymptotic_vars", nonzero_asymptotic_vars);
+            boundary_pp, "nonzero_asymptotic_vars", nonzero_asymptotic_vars);
         const double default_value = 0.0;
         StateVariablesParmParse::load_values_to_array(
-            pp, "nonzero_asymptotic_values", nonzero_asymptotic_vars,
+            boundary_pp, "nonzero_asymptotic_values", nonzero_asymptotic_vars,
             vars_asymptotic_values, default_value);
     }
     if (boundary_exists(EXTRAPOLATING_BC))
     {
-        pp.get("extrapolation_order", extrapolation_order);
+        boundary_pp.get("extrapolation_order", extrapolation_order);
     }
     if (boundary_exists(MIXED_BC))
     {
         std::vector<int> extrapolating_vars;
-        StateVariablesParmParse::load_vars_to_vector(pp, "extrapolating_vars",
+        StateVariablesParmParse::load_vars_to_vector(boundary_pp, "extrapolating_vars",
                                                      extrapolating_vars);
         for (int icomp = 0; icomp < NUM_VARS; icomp++)
         {
@@ -106,11 +106,11 @@ void BoundaryConditions::params_t::check_params()
     // set defaults
     std::array<int, AMREX_SPACEDIM> hi_boundary{};
     hi_boundary.fill(STATIC_BC);
-    pp.queryAdd("hi_boundary", hi_boundary);
+    boundary_pp.queryAdd("hi_boundary", hi_boundary);
 
     std::array<int, AMREX_SPACEDIM> lo_boundary{};
     lo_boundary.fill(STATIC_BC);
-    pp.queryAdd("lo_boundary", lo_boundary);
+    boundary_pp.queryAdd("lo_boundary", lo_boundary);
 
     bool nonperiodic_boundaries_exist{false};
     std::array<int, AMREX_SPACEDIM> is_periodic_int{};
@@ -145,10 +145,10 @@ void BoundaryConditions::define(const amrex::Geometry &a_geom)
 {
     m_params.fill_params();
     GRParmParse pp;
-    pp.get("amr.num_ghosts", m_num_ghosts);
+    pp.get("grteclyn.num_ghosts", m_num_ghosts);
 
     std::array<double, AMREX_SPACEDIM> center{};
-    pp.get("amr.center", center);
+    pp.get("grteclyn.center", center);
 
     FOR (i)
     {

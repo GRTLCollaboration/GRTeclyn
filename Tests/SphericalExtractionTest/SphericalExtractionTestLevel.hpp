@@ -44,7 +44,7 @@ class SphericalExtractionTestLevel : public GRAMRLevel
         pp.queryAdd("em", em);
 
         std::array<double, AMREX_SPACEDIM> center{};
-        pp.get("amr.center", center);
+        pp.get("grteclyn.center", center);
 
         // Fill the state
         amrex::ParallelFor(
@@ -91,7 +91,7 @@ class SphericalExtractionTestLevel : public GRAMRLevel
 
         std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
         GRParmParse pp;
-        pp.query("center", center);
+        pp.query("grteclyn.center", center);
 
         FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
                                               center};

@@ -68,7 +68,7 @@ void run_particle_interpolator_test()
 
         // Set the center
         std::array<double, AMREX_SPACEDIM> center{};
-        pp.get("amr.center", center);
+        pp.get("grteclyn.center", center);
         PolynomialDerivedQuantity::set_center(center);
 
         // Set up the AMR object
@@ -77,7 +77,7 @@ void run_particle_interpolator_test()
         GRAMR gr_amr(&interpolator_test_level_fact);
 
         double stop_time{};
-        pp.get("amr.stop_time", stop_time);
+        pp.get("grteclyn.stop_time", stop_time);
         gr_amr.init(0., stop_time);
 
         // Read from params

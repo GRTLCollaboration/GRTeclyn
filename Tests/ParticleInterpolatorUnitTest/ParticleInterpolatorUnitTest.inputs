@@ -4,7 +4,7 @@
 amrex.verbose = 1
 amr.verbose = 1
 
-output_path = .
+grteclyn.output_path = .
 amr.check_int = -1
 amr.plot_int = -1
 
@@ -16,7 +16,7 @@ geometry.prob_extent = 16.0 16.0 8.0
 
 amr.max_level = 1
 amr.regrid_int = 1
-amr.num_ghosts = 3
+grteclyn.num_ghosts = 3
 
 #################################################
 # Boundary Conditions parameters
@@ -25,16 +25,15 @@ geometry.is_periodic = 0 0 0
 # if not periodic, then specify the boundary type
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
-hi_boundary = 1 1 1
-lo_boundary = 1 1 2
+boundary.hi_boundary = 1 1 1
+boundary.lo_boundary = 1 1 2
 
 #################################################
 # Evolution parameters
 
-amr.max_steps = 1
+grteclyn.max_steps = 1
 
 #################################################
 # Extraction parameters
 
-# Breaks if run with more MPI ranks than num_points
 num_points = 30

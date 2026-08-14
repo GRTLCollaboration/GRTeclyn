@@ -13,6 +13,8 @@
 #include <cmath>
 #include <string>
 
+#include "GRParmParse.hpp"
+
 //! This SurfaceGeometry template class provides spherical shell geometry
 //! implementation for the SurfaceExtraction class
 //! u = theta, v = phi
@@ -25,7 +27,7 @@ class SphericalGeometry
     SphericalGeometry()
     {
         GRParmParse pp;
-        pp.get("amr.center", m_center);
+        pp.get("grteclyn.center", m_center);
     }
 
     //! returns the grid spacing in theta

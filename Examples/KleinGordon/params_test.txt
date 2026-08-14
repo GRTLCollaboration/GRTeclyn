@@ -1,12 +1,12 @@
-amr.max_steps = 8
-amr.stop_time = 2
+grteclyn.max_steps = 8
+grteclyn.stop_time = 2
 
 #################################################
 # Geometry and Boundary Conditions parameters
 
 # Periodic directions - 0 = false, 1 = true
 geometry.is_periodic    =  1   1   1
-amr.center              =  16 16 16
+grteclyn.center              =  16 16 16
 
 geometry.prob_extent    =  32 32 32     # geometric extent (same for all directions)
 amr.n_cell              =  64 64 64     # size of coarse grid
@@ -40,9 +40,9 @@ amr.derive_plot_vars = ALL   #also write out derived parameters
 amr.plot_file = plt
 amr.check_file =chk
 
-amr.dt_multiplier = 0.2
-sigma = 0.3 #coefficient for KO dissipation
-nan_check=True
+grteclyn.dt_multiplier = 0.2
+grteclyn.sigma = 0.3 #coefficient for KO dissipation
+grteclyn.nan_check=True
 
 amr.n_error_buf=1
 

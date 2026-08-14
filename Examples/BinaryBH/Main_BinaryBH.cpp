@@ -37,9 +37,9 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     BHAMR<BinaryBHLevel::num_punctures> bh_amr(&bh_level_bld);
 
     double stop_time{};
-    pp.get("amr.stop_time", stop_time);
+    pp.get("grteclyn.stop_time", stop_time);
     int max_steps{};
-    pp.get("amr.max_steps", max_steps);
+    pp.get("grteclyn.max_steps", max_steps);
 
     bh_amr.init(0., stop_time);
 

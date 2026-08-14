@@ -36,15 +36,15 @@ void BoostedBHInitialData::params_t::check_params(int id)
     }
 
     GRParmParse pp;
-    std::array<double, AMREX_SPACEDIM> amr_center{};
-    pp.load("amr.center", amr_center);
+    std::array<double, AMREX_SPACEDIM> center{};
+    pp.load("grteclyn.center", center);
     std::array<double, AMREX_SPACEDIM> prob_extent{};
     pp.get("geometry.prob_extent", prob_extent);
 
     // Get the centers of the BH either explicitly or as
     // an offset (not both)
 
-    std::array<double, AMREX_SPACEDIM> bh_center = amr_center;
+    std::array<double, AMREX_SPACEDIM> bh_center = center;
 
     if (bh_pp.contains("center") && bh_pp.contains("offset"))
     {

@@ -33,7 +33,7 @@ class TwoPuncturesInitialData
     TwoPuncturesInitialData(const double a_dx) : m_dx(a_dx)
     {
         GRParmParse pp;
-        pp.get("amr.center", m_center);
+        pp.get("grteclyn.center", m_center);
         read_parameters();
     }
 
@@ -143,23 +143,23 @@ class TwoPuncturesInitialData
         {
             return;
         }
-        GRParmParse pp("two_punctures");
+        GRParmParse tp_pp("two_punctures");
 
         s_two_punctures.verbose = false;
-        pp.queryAdd("verbose", s_two_punctures.verbose);
+        tp_pp.queryAdd("verbose", s_two_punctures.verbose);
 
         // default to using bare masses rather than solving for target masses
         bool calculate_target_masses = false;
-        pp.queryAdd("calculate_target_masses", calculate_target_masses);
+        tp_pp.queryAdd("calculate_target_masses", calculate_target_masses);
         s_two_punctures.give_bare_mass = !calculate_target_masses;
 
         if (calculate_target_masses)
         {
-            pp.get("target_mass_plus", s_two_punctures.target_M_plus);
-            pp.get("target_mass_minus", s_two_punctures.target_M_minus);
+            tp_pp.get("target_mass_plus", s_two_punctures.target_M_plus);
+            tp_pp.get("target_mass_minus", s_two_punctures.target_M_minus);
 
             s_two_punctures.adm_tol = 1.0e-10;
-            pp.queryAdd("adm_tol", s_two_punctures.adm_tol);
+            tp_pp.queryAdd("adm_tol", s_two_punctures.adm_tol);
             if (s_two_punctures.verbose)
             {
                 amrex::Print()
@@ -172,8 +172,8 @@ class TwoPuncturesInitialData
         }
         else
         {
-            pp.get("mass_plus", s_two_punctures.par_m_plus);
-            pp.get("mass_minus", s_two_punctures.par_m_minus);
+            tp_pp.get("mass_plus", s_two_punctures.par_m_plus);
+            tp_pp.get("mass_minus", s_two_punctures.par_m_minus);
             if (s_two_punctures.verbose)
             {
                 amrex::Print()
@@ -187,13 +187,13 @@ class TwoPuncturesInitialData
 
         std::array<amrex::Real, AMREX_SPACEDIM> momentum_plus{};
         std::array<amrex::Real, AMREX_SPACEDIM> momentum_minus{};
-        pp.get("momentum_plus", momentum_plus);
-        pp.get("momentum_minus", momentum_minus);
+        tp_pp.get("momentum_plus", momentum_plus);
+        tp_pp.get("momentum_minus", momentum_minus);
 
         std::array<amrex::Real, AMREX_SPACEDIM> spin_plus{};
         std::array<amrex::Real, AMREX_SPACEDIM> spin_minus{};
-        pp.get("spin_plus", spin_plus);
-        pp.get("spin_minus", spin_minus);
+        tp_pp.get("spin_plus", spin_plus);
+        tp_pp.get("spin_minus", spin_minus);
 
         FOR (i)
         {
@@ -232,12 +232,12 @@ class TwoPuncturesInitialData
 
         // default to Taylor expansion interpolation as it is much faster
         bool use_spectral_interpolation = false;
-        pp.queryAdd("use_spectral_interpolation", use_spectral_interpolation);
+        tp_pp.queryAdd("use_spectral_interpolation", use_spectral_interpolation);
         s_two_punctures.grid_setup_method =
             (use_spectral_interpolation) ? "evaluation" : "Taylor expansion";
 
         std::string initial_lapse = "psi^n";
-        pp.queryAdd("initial_lapse", s_two_punctures.initial_lapse);
+        tp_pp.queryAdd("initial_lapse", s_two_punctures.initial_lapse);
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             s_two_punctures.initial_lapse == "twopunctures-antisymmetric" ||
@@ -250,39 +250,39 @@ class TwoPuncturesInitialData
         if (s_two_punctures.initial_lapse == "psi^n")
         {
             s_two_punctures.initial_lapse_psi_exponent = -2.0;
-            pp.queryAdd("initial_lapse_psi_exponent",
+            tp_pp.queryAdd("initial_lapse_psi_exponent",
                         s_two_punctures.initial_lapse_psi_exponent);
         }
 
         // spectral grid parameters
         s_two_punctures.npoints_A = 30;
-        pp.queryAdd("num_points_A", s_two_punctures.npoints_A);
+        tp_pp.queryAdd("num_points_A", s_two_punctures.npoints_A);
         s_two_punctures.npoints_B = 30;
-        pp.queryAdd("num_points_B", s_two_punctures.npoints_B);
+        tp_pp.queryAdd("num_points_B", s_two_punctures.npoints_B);
         s_two_punctures.npoints_phi = 16;
-        pp.queryAdd("num_points_phi", s_two_punctures.npoints_phi);
+        tp_pp.queryAdd("num_points_phi", s_two_punctures.npoints_phi);
         AMREX_ALWAYS_ASSERT(s_two_punctures.npoints_phi % 4 == 0);
 
         // solver parameters
         s_two_punctures.Newton_tol = 1.0e-10;
-        pp.queryAdd("solver_tol", s_two_punctures.Newton_tol);
+        tp_pp.queryAdd("solver_tol", s_two_punctures.Newton_tol);
         s_two_punctures.Newton_maxit = 5;
-        pp.queryAdd("solver_maxit", s_two_punctures.Newton_maxit);
+        tp_pp.queryAdd("solver_maxit", s_two_punctures.Newton_maxit);
         s_two_punctures.TP_epsilon = 1.0e-6;
-        pp.queryAdd("epsilon", s_two_punctures.TP_epsilon);
+        tp_pp.queryAdd("epsilon", s_two_punctures.TP_epsilon);
         s_two_punctures.TP_Tiny = 0.0;
-        pp.queryAdd("tiny", s_two_punctures.TP_Tiny);
+        tp_pp.queryAdd("tiny", s_two_punctures.TP_Tiny);
         s_two_punctures.TP_Extend_Radius = 0.0;
-        pp.queryAdd("extend_radius", s_two_punctures.TP_Extend_Radius);
+        tp_pp.queryAdd("extend_radius", s_two_punctures.TP_Extend_Radius);
 
         // BH positions
         amrex::Real offset_plus{};
         amrex::Real offset_minus{};
-        pp.get("offset_plus", offset_plus);
-        pp.get("offset_minus", offset_minus);
+        tp_pp.get("offset_plus", offset_plus);
+        tp_pp.get("offset_minus", offset_minus);
 
         s_two_punctures.swap_xz = false;
-        pp.queryAdd("swap_xz", s_two_punctures.swap_xz);
+        tp_pp.queryAdd("swap_xz", s_two_punctures.swap_xz);
 
         double center_offset_xz = 0.5 * (offset_plus + offset_minus);
         int offset_dir          = (s_two_punctures.swap_xz) ? 2 : 0;
@@ -291,10 +291,10 @@ class TwoPuncturesInitialData
 
         // debug output
         s_two_punctures.do_residuum_debug_output = false;
-        pp.queryAdd("do_residuum_debug_output",
+        tp_pp.queryAdd("do_residuum_debug_output",
                     s_two_punctures.do_residuum_debug_output);
         s_two_punctures.do_initial_debug_output = false;
-        pp.queryAdd("do_initial_debug_output",
+        tp_pp.queryAdd("do_initial_debug_output",
                     s_two_punctures.do_initial_debug_output);
 
         // Irrelevant parameters set to default value
@@ -346,7 +346,7 @@ class TwoPuncturesInitialData
 
         int offset_dir = (!tp_params.swap_xz) ? 0 : 2;
         std::array<double, AMREX_SPACEDIM> center{};
-        pp.get("amr.center", center);
+        pp.get("grteclyn.center", center);
         warn_parameter("TP_offset_minus", tp_offset_minus,
                        tp_offset_minus < (ivN[offset_dir] + 1) * coarsest_dx -
                                              center[offset_dir],

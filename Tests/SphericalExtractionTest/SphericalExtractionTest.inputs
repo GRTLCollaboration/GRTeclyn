@@ -20,7 +20,7 @@ geometry.prob_extent = 16 16 16
 
 amr.max_level = 1
 amr.regrid_int = 1 1
-amr.num_ghosts = 3
+grteclyn.num_ghosts = 3
 
 #################################################
 # Boundary Conditions parameters
@@ -31,19 +31,19 @@ geometry.is_periodic = 1 1 1
 #################################################
 # Evolution parameters
 
-amr.max_steps = 1
+grteclyn.max_steps = 1
 
 #################################################
 # Extraction parameters
 
-activate_extraction = 1
+extraction.activate_extraction = 1
 
-num_surfaces = 2
-extraction_radii = 4. 6.
-num_points_phi_lo = 12
-num_points_theta_lo = 13
+extraction.num_surfaces = 2
+extraction.extraction_radii = 4. 6.
+extraction.num_points_phi_lo = 12
+extraction.num_points_theta_lo = 13
 
 # Spherical Harmonic to set and extract
-es = 0
-el = 2
-em = 0
+extraction.es = 0
+extraction.el = 2
+extraction.em = 0

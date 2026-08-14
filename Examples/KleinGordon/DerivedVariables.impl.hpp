@@ -85,7 +85,7 @@ AMREX_FORCE_INLINE void calc_analytic_mf_3d(amrex::MultiFab &mf_out, int dcomp,
     const auto dx = geom.CellSizeArray();
 
     std::array<amrex::Real, AMREX_SPACEDIM> center{};
-    pp.query("amr.center", center);
+    pp.query("grteclyn.center", center);
 
     model_t model;
 
@@ -117,7 +117,7 @@ AMREX_FORCE_INLINE void calc_analytic_mf_1d(amrex::MultiFab &mf_out, int dcomp,
     const auto dx = geom.CellSizeArray();
 
     std::array<amrex::Real, AMREX_SPACEDIM> center{};
-    pp.query("center", center);
+    pp.query("grteclyn.center", center);
 
     model_t model;
 

@@ -33,25 +33,24 @@ void puncture_tracker_params_t::check_params()
     puncture_tracking_pp.queryAdd("enabled", enabled);
 
     std::string output_path;
-    pp.get("output_path", output_path);
+    pp.get("grteclyn.output_path", output_path);
 
-    std::string pt_output_path = output_path+"/punctures_output";
+    std::string pt_output_path = output_path + "/punctures_output";
 
     if (!FilesystemTools::directory_exists(pt_output_path))
     {
         FilesystemTools::mkdir_recursive(pt_output_path);
     }
     puncture_tracking_pp.add("output_path", pt_output_path);
-    
+
     std::string filename = "punctures";
     puncture_tracking_pp.add("filename", filename);
 
     bool disable_writeout = false;
     puncture_tracking_pp.queryAdd("disable_writeout", disable_writeout);
 
-    GRParmParse amr_pp("amr");
     int max_level;
-    amr_pp.get("max_level", max_level);
+    pp.get("amr.max_level", max_level);
     int level = max_level;
     puncture_tracking_pp.queryAdd("level", level);
     if (level < 0 || level > max_level)
@@ -64,7 +63,7 @@ void puncture_tracker_params_t::check_params()
     puncture_tracking_pp.queryAdd("writeout_level", writeout_level);
 
     std::array<double, AMREX_SPACEDIM> center{};
-    amr_pp.get("center", center);
+    pp.get("grteclyn.center", center);
 
     std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_coords{
         center[0], center[1] - 1.0, center[2],

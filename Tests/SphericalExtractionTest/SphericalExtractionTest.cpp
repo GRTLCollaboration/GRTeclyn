@@ -62,14 +62,14 @@ void run_spherical_extraction_test()
         GRAMR gr_amr(&surface_extraction_test_level_fact);
 
         double stop_time{};
-        pp.get("amr.stop_time", stop_time);
+        pp.get("grteclyn.stop_time", stop_time);
         gr_amr.init(0., stop_time);
 
         double coarsest_dx;
         double dt_multiplier;
 
-        pp.get("amr.dt_multiplier", dt_multiplier);
-        pp.get("amr.coarsest_dx", coarsest_dx);
+        pp.get("grteclyn.dt_multiplier", dt_multiplier);
+        pp.get("grteclyn.coarsest_dx", coarsest_dx);
         bool broadcast_integral = true;
 
         std::pair<std::vector<double>, std::vector<double>>
@@ -89,13 +89,13 @@ void run_spherical_extraction_test()
         int es{0};
         int el{2};
         int em{0}; // spherical harmonic params
-        pp.queryAdd("es", es);
-        pp.queryAdd("el", el);
-        pp.queryAdd("em", em);
+        pp.queryAdd("extraction.es", es);
+        pp.queryAdd("extraction.el", el);
+        pp.queryAdd("extraction.em", em);
 
         int num_points_theta_lo{};
-        pp.get("num_points_theta_lo", num_points_theta_lo);
-        pp.add("num_points_theta", num_points_theta_lo);
+        pp.get("extraction.num_points_theta_lo", num_points_theta_lo);
+        pp.add("extraction.num_points_theta", num_points_theta_lo);
         {
             // Initiate ParticleInterpolator
             ParticleInterpolator<2> interpolator;
@@ -141,7 +141,7 @@ void run_spherical_extraction_test()
             // Need to subtract a point as it's the number of subintervals we
             // want to double for theta
             num_points_theta_hi -= 1;
-            pp.add("num_points_theta", num_points_theta_hi);
+            pp.add("extraction.num_points_theta", num_points_theta_hi);
 
             spherical_extraction_params_t extraction_params;
             extraction_params.fill_params();
@@ -169,9 +169,9 @@ void run_spherical_extraction_test()
         amrex::Print() << std::setprecision(10);
 
         int num_extraction_radii{};
-        pp.get("num_extraction_radii", num_extraction_radii);
+        pp.get("extraction.num_extraction_radii", num_extraction_radii);
         std::vector<int> extraction_radii_stdvect(num_extraction_radii);
-        pp.queryAdd("extraction_radii", extraction_radii_stdvect);
+        pp.queryAdd("extraction.extraction_radii", extraction_radii_stdvect);
 
         for (int iradius = 0; iradius < num_extraction_radii; ++iradius)
         {

@@ -25,7 +25,7 @@ class KleinGordonRHS
         : m_deriv(a_dx), m_model(a_model)
     {
         GRParmParse pp;
-        pp.get("sigma", m_sigma);
+        pp.get("grteclyn.sigma", m_sigma);
     };
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
@@ -34,7 +34,7 @@ class KleinGordonRHS
                const amrex::Array4<amrex::Real const> &state) const;
 
   private:
-    amrex::Real m_sigma;
+    amrex::Real m_sigma{};
     deriv_t m_deriv;
     model_t m_model;
 

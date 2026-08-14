@@ -23,7 +23,7 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(double a_dx,
     m_params.fill_params();
 
     GRParmParse pp;
-    pp.get("sigma", m_sigma);
+    pp.get("grteclyn.sigma", m_sigma);
 }
 
 template <class gauge_t, class deriv_t>

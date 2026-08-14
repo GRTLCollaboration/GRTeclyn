@@ -177,7 +177,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     // Calculate CCZ4 right hand side
     int max_spatial_derivative_order{};
-    pp.get("amr.max_spatial_derivative_order", max_spatial_derivative_order);
+    pp.get("grteclyn.max_spatial_derivative_order",
+           max_spatial_derivative_order);
 
     if (max_spatial_derivative_order == 4)
     {
@@ -307,7 +308,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     GRParmParse pp;
     bool activate_extraction{};
-    pp.get("activate_extraction", activate_extraction);
+    pp.get("extraction.activate_extraction", activate_extraction);
 
     ExtractionTagger extraction_tagger(Geom().CellSize(0), Level(),
                                        activate_extraction);
@@ -417,12 +418,12 @@ void BinaryBHLevel::specificPostTimeStep()
     }
 
     bool activate_extraction{};
-    pp.get("activate_extraction", activate_extraction);
+    pp.get("extraction.activate_extraction", activate_extraction);
 
     if (activate_extraction)
     {
         int min_level{};
-        pp.get("min_extraction_level", min_level);
+        pp.get("extraction.min_extraction_level", min_level);
         bool calculate_weyl = at_level_timestep_multiple(min_level);
 
         if (calculate_weyl && Level() == min_level)

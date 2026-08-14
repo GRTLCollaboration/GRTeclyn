@@ -105,7 +105,7 @@ void run_bssn_matter_test()
         pp.add("gauge.shift_advec_coeff", 0.0);
         pp.add("gauge.eta", 1.0);
 
-        pp.add("sigma", 0.1);
+        pp.add("grteclyn.sigma", 0.1);
         pp.add("formulation", formulation);
 
         using DefaultScalarField =

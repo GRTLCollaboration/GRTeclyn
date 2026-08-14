@@ -29,24 +29,20 @@ class BaseParameterChecker
 
     static void check_params()
     {
-        check_amrex_params();
-        check_grteclyn_params();
-    }
-
-    static void check_amrex_params()
-    {
         GRParmParse amr_pp("amr");
+        GRParmParse grteclyn_pp("grteclyn");
+        GRParmParse pp;
 
         // Grid setup
 
         int max_spatial_derivative_order = 4;
-        amr_pp.queryAdd("max_spatial_derivative_order",
-                        max_spatial_derivative_order);
-        if (!(max_spatial_derivative_order == 4 ||
-              max_spatial_derivative_order == 6))
+        grteclyn_pp.queryAdd("max_spatial_derivative_order",
+                             max_spatial_derivative_order);
+        if (max_spatial_derivative_order != 4 &&
+              max_spatial_derivative_order != 6)
         {
-            amr_pp.error("max_spatial_derivative_order",
-                         "only 4 and 6 are supported");
+            grteclyn_pp.error("max_spatial_derivative_order",
+                              "only 4 and 6 are supported");
         }
 
         int max_grid_size = 64;
@@ -72,7 +68,7 @@ class BaseParameterChecker
         }
 
         int num_ghosts = (max_spatial_derivative_order == 6) ? 4 : 3;
-        amr_pp.queryAdd("num_ghosts", num_ghosts);
+        grteclyn_pp.queryAdd("num_ghosts", num_ghosts);
 
         // the following check assumes you will be taking one-sided derivatives
         // of the order given by max_spatial_derivative_order
@@ -80,9 +76,10 @@ class BaseParameterChecker
         if ((num_ghosts < ((max_spatial_derivative_order == 6) ? 4 : 3)) ||
             (num_ghosts > blocking_factor))
         {
-            amr_pp.error("num_ghosts",
-                         "must be >= 3 (4th order derivatives) or 4 (6th order "
-                         "derivatives) and <= blocking_factor");
+            grteclyn_pp.error(
+                "num_ghosts",
+                "must be >= 3 (4th order derivatives) or 4 (6th order "
+                "derivatives) and <= blocking_factor");
         }
 
         // check the restart_file exists and can be read if restarting from a
@@ -123,19 +120,19 @@ class BaseParameterChecker
         }
 
         double dt_multiplier = 0.25;
-        amr_pp.queryAdd("dt_multiplier", dt_multiplier);
+        grteclyn_pp.queryAdd("dt_multiplier", dt_multiplier);
         if (dt_multiplier <= 0.0)
         {
-            amr_pp.error("dt_multiplier", "must be > 0.0");
+            grteclyn_pp.error("dt_multiplier", "must be > 0.0");
         }
         else if (dt_multiplier >= 1.0)
         {
-            amr_pp.error("dt_multiplier", "must be < 1.0 for stability");
+            grteclyn_pp.error("dt_multiplier", "must be < 1.0 for stability");
         }
         else if (dt_multiplier > 0.5)
         {
-            amr_pp.warning("dt_multiplier",
-                           "is unlikely to be stable for > 0.5");
+            grteclyn_pp.warning("dt_multiplier",
+                                "is unlikely to be stable for > 0.5");
         }
 
         // For n_cell and prob_extent, must factor in reflective boundaries
@@ -168,7 +165,7 @@ class BaseParameterChecker
         }
         double coarsest_dx = prob_extent[0] / n_cell[0];
 
-        amr_pp.add("coarsest_dx", coarsest_dx);
+        grteclyn_pp.add("coarsest_dx", coarsest_dx);
 
         std::array<int, AMREX_SPACEDIM> is_periodic = {0, 0, 0};
         geom_pp.queryAdd("is_periodic", is_periodic);
@@ -210,7 +207,7 @@ class BaseParameterChecker
                 center[idir] = 0.5 * prob_extent[idir];
             }
         }
-        amr_pp.queryAdd("center", center);
+        grteclyn_pp.queryAdd("center", center);
 
         int max_level = 0; // the max number of regriddings to do
         amr_pp.queryAdd("max_level", max_level);
@@ -232,7 +229,7 @@ class BaseParameterChecker
                                       2); // steps between regrid at each level
         amr_pp.queryAdd("regrid_int", regrid_int);
 
-        if (amr_pp.contains("regrid_thresholds"))
+        if (grteclyn_pp.contains("regrid_thresholds"))
         {
             amrex::Print() << "Using multiple regrid thresholds." << '\n';
         }
@@ -241,11 +238,11 @@ class BaseParameterChecker
             amrex::Print() << "Using single regrid threshold." << '\n';
 
             double regrid_threshold = 0.5;
-            amr_pp.queryAdd("regrid_threshold", regrid_threshold);
+            grteclyn_pp.queryAdd("regrid_threshold", regrid_threshold);
 
             amrex::Vector<double> regrid_thresholds(max_level + 1,
                                                     regrid_threshold);
-            amr_pp.queryAdd("regrid_thresholds", regrid_thresholds);
+            grteclyn_pp.queryAdd("regrid_thresholds", regrid_thresholds);
         }
 
         int check_int = 1; // Steps between checkpoint file outputs
@@ -255,10 +252,10 @@ class BaseParameterChecker
         amr_pp.queryAdd("plot_int", plot_int);
 
         double stop_time = 1.; // The stop time
-        amr_pp.queryAdd("stop_time", stop_time);
+        grteclyn_pp.queryAdd("stop_time", stop_time);
 
         int max_steps = 1000000;
-        amr_pp.queryAdd("max_steps", max_steps);
+        grteclyn_pp.queryAdd("max_steps", max_steps);
 
         FOR (idir)
         {
@@ -267,29 +264,23 @@ class BaseParameterChecker
                 amr_pp.error("n_cell", "must divide blocking_factor");
             }
         }
-    }
-
-    static void check_grteclyn_params()
-    {
-        GRParmParse pp;
-        double dt_multiplier;
-        pp.get("amr.dt_multiplier", dt_multiplier);
 
         double sigma = 0.1; // Kreiss-Oliger dissipation parameter
         // Dissipation
-        pp.queryAdd("sigma", sigma);
+        grteclyn_pp.queryAdd("sigma", sigma);
         if (sigma < 0.0 || sigma > 2.0 / dt_multiplier)
         {
-            pp.warning("sigma", "must be >= 0.0 and <= 2 / dt_multiplier for "
+            grteclyn_pp.warning("sigma",
+                                "must be >= 0.0 and <= 2 / dt_multiplier for "
                                 "stability (see Alcubierre p344)");
         }
 
         // Nan Check and min chi and lapse values
         bool nan_check = true;
-        pp.queryAdd("nan_check", nan_check);
+        grteclyn_pp.queryAdd("nan_check", nan_check);
         if (!nan_check)
         {
-            pp.warning("nan_check", "should not normally be disabled");
+            grteclyn_pp.warning("nan_check", "should not normally be disabled");
         }
 
         double min_chi   = 1e-4;
@@ -303,22 +294,22 @@ class BaseParameterChecker
         // "must be >= 0.0");
 
         std::string output_path = ".";
-        pp.queryAdd("output_path", output_path);
+        grteclyn_pp.queryAdd("output_path", output_path);
 
-        std::string plot_directory = output_path+"/"+"plots";
+        std::string plot_directory = output_path + "/" + "plots";
         if (!FilesystemTools::directory_exists(plot_directory))
         {
             FilesystemTools::mkdir_recursive(plot_directory);
         }
 
-        std::string plot_file = plot_directory+"/plt";
-        std::string check_file = plot_directory+"/chk"; 
+        std::string plot_file  = plot_directory + "/plt";
+        std::string check_file = plot_directory + "/chk";
         pp.add("amr.plot_file", plot_file);
         pp.add("amr.check_file", check_file);
 
         // Extraction params
         bool activate_extraction = false;
-        pp.queryAdd("activate_extraction", activate_extraction);
+        pp.queryAdd("extraction.activate_extraction", activate_extraction);
 
         if (activate_extraction)
         {

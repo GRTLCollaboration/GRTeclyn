@@ -5,7 +5,7 @@
 
 #################################################
 # Filesystem parameters
-# output_path = "" # Main path for all files. Must exist!
+# grteclyn.output_path = "" # Main path for all files. Must exist!
 
 amrex.verbose = 1
 amr.verbose = 1
@@ -93,7 +93,7 @@ amr.max_level = 9 # There are (max_level+1) grids, so min is zero
 
 # -1 disables regridding
 amr.regrid_int = -1   -1   -1   2   4   8   16   32   64
-amr.regrid_threshold = 0.014
+grteclyn.regrid_threshold = 0.014
 
 # Max and min box sizes
 amr.max_grid_size = 64
@@ -102,8 +102,8 @@ amr.blocking_factor = 16
 # Tag buffer size
 amr.n_error_buf = 3 3 3
 #amr.n_proper = 1
-amr.num_ghosts = 4
-# amr.center = 8 8 8 # defaults to center of the grid
+grteclyn.num_ghosts = 4
+# grteclyn.center = 8 8 8 # defaults to center of the grid
 
 #################################################
 # Boundary Conditions parameters
@@ -113,30 +113,30 @@ geometry.is_periodic = 0 0 0
 # if not periodic, then specify the boundary type
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
-hi_boundary = 1 1 1
-lo_boundary = 1 1 2
+boundary.hi_boundary = 1 1 1
+boundary.lo_boundary = 1 1 2
 
 # if sommerfeld boundaries selected, must select
 # non zero asymptotic values
-nonzero_asymptotic_vars = chi h11 h22 h33 lapse
-nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+boundary.nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+boundary.nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # if you are using extrapolating BC:
-# extrapolation_order = 1
-# extrapolating_vars =
+# extraction.extrapolation_order = 1
+# extraction.extrapolating_vars =
 
 #################################################
 # Evolution parameters
 
 # dt will be dx*dt_multiplier on each grid level
-amr.dt_multiplier = 0.25
-amr.stop_time = 2500.0
-#amr.max_steps = 1
+grteclyn.dt_multiplier = 0.25
+grteclyn.stop_time = 2500.0
+#grteclyn.max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
-amr.max_spatial_derivative_order = 6 # only 4 currently implemented
+grteclyn.max_spatial_derivative_order = 6 # only 4 currently implemented
 
-nan_check = 1
+grteclyn.nan_check = 1
 
 # Lapse evolution
 gauge.lapse_advec_coeff = 1.0
@@ -156,7 +156,7 @@ ccz4.kappa3 = 1.0
 ccz4.covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
 
 # coefficient for KO numerical dissipation
-sigma = 0.5
+grteclyn.sigma = 0.5
 
 # min_chi = 1.e-4
 # min_lapse = 1.e-4
@@ -166,11 +166,11 @@ sigma = 0.5
 
 # We don't have any extraction yet but the extraction spheres are used for
 # tagging cells
-activate_extraction = true
-num_extraction_radii = 2
-extraction_radii = 50.0 100.0
-extraction_levels = 3 2
-num_points_phi = 160
-num_points_theta = 80
-num_modes = 3
-modes = 2 0  2 1  2 2
+extraction.activate_extraction = true
+extraction.num_extraction_radii = 2
+extraction.extraction_radii = 50.0 100.0
+extraction.extraction_levels = 3 2
+extraction.num_points_phi = 160
+extraction.num_points_theta = 80
+extraction.num_modes = 3
+extraction.modes = 2 0  2 1  2 2
