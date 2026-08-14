@@ -84,10 +84,18 @@ There are three derived variables:
 
 Set `amr.plot_vars = ALL` and `amr.derive_plot_vars = ALL` to print all the state (`phi`, `Pi`) and derived variables (`phi_analytic`, `Pi_analytic`, `rho`). 
 
+If you plot the outputs using AMReXplorer, you will get something like this:
+
+![KleinGordonBlob](img/KleinGordon.png "KleinGordonBlob")
+
+You can then use the "Field" button to scroll through the different variables.
+
 
 ### (Aside) How to add a derived variable
 
- 1. Define their compute functions, e.g. `calc_energy_density`. This is done inside `DerivedVariables.hpp` and `DerivedVariables.impl.hpp`.
+Since the way GRTeclyn handles derived variables is quite different to GRChombo and the derived variables are quite straightforward in this example, this is a good place to start learning how to add your own derived quantities. 
+
+ 1. Define their compute functions, e.g. `calc_energy_density`. Take a look at how this is done inside `DerivedVariables.hpp` and `DerivedVariables.impl.hpp`.
  2. Add the variable to the list of derived variables, `derive_lst`, managed by AMReX. This happens within the `KleinGordonLevel` class, inside the member function called `variableSetUp()`. Notice that the compute function defined in Step 1 is passed into `deriv_lst.add` and that the variables are named e.g. `rho`.
  3. When `writePlotFile` is called (at the AMReX level), it will cycle through the names of the variables in `derive_lst` and the ones that you have selected (using `amr.derive_plot_vars` in the parameter file) will be written to file. 
 
