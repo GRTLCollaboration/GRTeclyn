@@ -10,7 +10,7 @@ EBASE = Tests
 
 AMREX_HOME ?= $(realpath ../../amrex)
 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
@@ -74,4 +74,3 @@ DOCTEST_OPTIONS := -dt-d=yes
 run: $(executable)
 	$(info Running tests for configuration: $(optionsSuffix))
 	$(SILENT) $(LAUNCH)$(executable) $(DOCTEST_OPTIONS)
-
