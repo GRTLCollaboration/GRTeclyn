@@ -473,12 +473,12 @@ class SixthOrderDerivatives : protected DerivativeBase
         return advec_state;
     }
 
-    /*
-    // Eighth order dissipation: remember to change sign in front of factor in
-    // add_dissipation functions below if using this
+    // Eighth order dissipation
+    // Note the sign change before sigma_coeff, minus for 8th order and plus for
+    // 6th order
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    dissipation_term_8th(const amrex::Real *in_ptr, const int stride,
-                         const int idx = 0) const
+    dissipation_term(const amrex::Real *in_ptr, const int stride,
+                     const int idx = 0) const
     {
         amrex::Real weight_vvfar = 3.906250e-3_rt;
         amrex::Real weight_vfar  = 3.125000e-2_rt;
@@ -489,30 +489,12 @@ class SixthOrderDerivatives : protected DerivativeBase
         return (weight_vvfar * in_ptr[idx - 4 * stride] -
                 weight_vfar * in_ptr[idx - 3 * stride] +
                 weight_far * in_ptr[idx - 2 * stride] -
-                weight_near * in_ptr[idx - stride] + weight_local * in_ptr[idx]
-    - weight_near * in_ptr[idx + stride] + weight_far * in_ptr[idx + 2 * stride]
-    - weight_vfar * in_ptr[idx + 3 * stride] + weight_vvfar * in_ptr[idx + 4 *
-    stride]) * m_one_over_dx;
-    }
-    */
-
-    // Sixth order dissipation
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    dissipation_term(const double *in_ptr, const int stride,
-                     const int idx = 0) const
-    {
-        amrex::Real weight_vfar  = 1.56250e-2_rt;
-        amrex::Real weight_far   = 9.37500e-2_rt;
-        amrex::Real weight_near  = 2.34375e-1_rt;
-        amrex::Real weight_local = 3.12500e-1_rt;
-
-        return (weight_vfar * in_ptr[idx - 3 * stride] -
-                weight_far * in_ptr[idx - 2 * stride] +
-                weight_near * in_ptr[idx - stride] -
-                weight_local * in_ptr[idx] +
-                weight_near * in_ptr[idx + stride] -
-                weight_far * in_ptr[idx + 2 * stride] +
-                weight_vfar * in_ptr[idx + 3 * stride]) *
+                weight_near * in_ptr[idx - stride] +
+                weight_local * in_ptr[idx] -
+                weight_near * in_ptr[idx + stride] +
+                weight_far * in_ptr[idx + 2 * stride] -
+                weight_vfar * in_ptr[idx + 3 * stride] +
+                weight_vvfar * in_ptr[idx + 4 * stride]) *
                m_one_over_dx;
     }
 
@@ -528,7 +510,7 @@ class SixthOrderDerivatives : protected DerivativeBase
         FOR (idir)
         {
             const auto stride  = strides[idir];
-            diss              += sigma_coeff *
+            diss              -= sigma_coeff *
                     dissipation_term(get_var_ptr(ivar, state_ptr_xyz, strides),
                                      stride);
         }
