@@ -55,9 +55,18 @@ Bondi observed in 1957 that bodies whose active gravitational masses have opposi
 \section{Introduction}
 \label{sec:intro}
 
-Bondi~\cite{bondi1957} gave negative mass its modern treatment, distinguishing inertial, passive, and active gravitational mass and noting the striking consequence of mixing signs: a negative-mass body is \emph{attracted} by a positive one, the positive body is \emph{repelled} by the negative one, and the pair runs off together---momentum conserved, because the negative body's contribution is negative. Bonnor and Swaminarayan~\cite{bonnor_swami1964} found exact solutions for uniformly accelerated opposite-mass pairs, later generalized in Ref.~\cite{bicak1983}; Bonnor~\cite{bonnor1989} asked why mass is positive and found no answer in the theory. Forward~\cite{forward1990} analyzed the Newtonian two-body problem exhaustively---for equal and unequal mass magnitudes alike---showing ``in tedious detail'' that the self-accelerating pair violates neither momentum nor energy conservation; objections to negative mass must be sought elsewhere~\cite{hoffmann1966,martins1980}.
+Bondi~\cite{bondi1957} gave negative mass its modern treatment, distinguishing inertial, passive, and active gravitational mass and noting the striking consequence of mixing signs: a negative-mass body is \emph{attracted} by a positive one, the positive body is \emph{repelled} by the negative one, and the pair runs off together (Fig.~\ref{fig:schematic})---momentum conserved, because the negative body's contribution is negative. Bonnor and Swaminarayan~\cite{bonnor_swami1964} found exact solutions for uniformly accelerated opposite-mass pairs, later generalized in Ref.~\cite{bicak1983}; Bonnor~\cite{bonnor1989} asked why mass is positive and found no answer in the theory. Forward~\cite{forward1990} analyzed the Newtonian two-body problem exhaustively---for equal and unequal mass magnitudes alike---showing ``in tedious detail'' that the self-accelerating pair violates neither momentum nor energy conservation; objections to negative mass must be sought elsewhere~\cite{hoffmann1966,martins1980}.
 
-All of this work treats point particles, prescribed metrics, or frozen mass parameters. It cannot say whether such a configuration can be posed as a \emph{consistent initial-value problem}---constraint-satisfying initial data for dynamical matter---or whether the runaway survives full nonlinear evolution with backreaction, radiation, and finite body size. That is the gap this paper closes; we are not aware of any previous $3{+}1$ evolution of a gravitationally bound positive--negative active-mass pair with dynamical, constraint-solved matter.
+\begin{figure}[t]
+\centering
+\includegraphics{fig_schematic.pdf}
+\caption{Bondi's sign rules for two bodies released at rest, in the style of Forward's analysis~\cite{forward1990}. Every body here has positive inertial and passive mass; only the \emph{active} (source) mass carries a sign---negative for the dashed bodies. (a)~Two positive-mass stars attract each other and fall together; (b)~two negative-mass stars repel each other and push apart. In both cases the forces oppose, and the pair's centre stays put. (c)~The mixed pair---the Bondi dipole: the positive star is repelled by the negative one, the negative star is attracted by the positive one, so both forces point the \emph{same} way and the pair runs off together, carrying zero total momentum in the signed bookkeeping. Each row is realized as a run of the matrix in Table~\ref{tab:matrix}.}
+\label{fig:schematic}
+\end{figure}
+
+Why does this deserve a full numerical-relativity campaign? Because nothing in Einstein's equations forces mass to be positive---positivity is imposed through energy conditions on matter---and modern physics keeps producing sources that strain those conditions: Casimir energies, quantum fields in curved spacetime, a dark-energy sector whose observational fits tolerate phantom equations of state~\cite{caldwell2002}. Every traversable wormhole~\cite{morris_thorne1988} and warp spacetime~\cite{alcubierre1994} requires matter of exactly this kind, and the standing objection to all of them is Bondi's runaway itself: matter that accelerates for free looks like a perpetual-motion machine, hence absurd~\cite{hoffmann1966,martins1980}. That objection has only ever been examined for point particles and special exact metrics. Whether the runaway actually happens in full nonlinear general relativity---with finite bodies, backreaction, and radiation---and whether momentum conservation really survives it, is a concrete, checkable question. Answering it also requires learning to evolve energy-condition-violating matter stably in numerical relativity at all, a capability any quantitative study of exotic spacetimes will need.
+
+All of the analyses above, seven decades of them, treat point particles, prescribed metrics, or frozen mass parameters. They cannot say whether such a configuration can be posed as a \emph{consistent initial-value problem}---constraint-satisfying initial data for dynamical matter---or whether the runaway survives full nonlinear evolution with backreaction, radiation, and finite body size. That is the gap this paper closes; we are not aware of any previous $3{+}1$ evolution of a gravitationally bound positive--negative active-mass pair with dynamical, constraint-solved matter.
 
 Our contributions:
 \begin{itemize}
@@ -68,17 +77,21 @@ Our contributions:
     \item[(v)] An honest accounting of failure modes and diagnostic biases that mimic or mask the physics under test (Secs.~\ref{sec:failures}, \ref{sec:caveats}).
 \end{itemize}
 
+One more first rode along with the physics: every evolution here ran on a single GPU, with \texttt{GRTeclyn}~\cite{grteclyn}, the AMReX-based~\cite{amrex} GPU port of \texttt{GRChombo}~\cite{grchombo}. To our knowledge these are the first evolutions of energy-condition-violating matter in GPU-native numerical relativity, and the fact that the campaign---initial data, nine production runs, and their diagnostics---fit on one multi-GPU node is itself a statement about how accessible this class of question has become.
+
 Throughout, $G=c=1$ and the scalar mass sets the unit, $m=1$. Drifts along the pair axis are quoted as $\Delta x = x(t)-x(0)$, and $d$ denotes the instantaneous barycentre separation. The paper follows the build order: Sec.~\ref{sec:model} defines the matter model, Sec.~\ref{sec:initialdata} constructs the stars and the initial data---including the failed attempts that shaped the recipe---Sec.~\ref{sec:setup} lays out the runs, Sec.~\ref{sec:results} the measurements, and Secs.~\ref{sec:caveats}--\ref{sec:discussion} their limits and meaning.
 
 \section{The bicomplex scalar model}
 \label{sec:model}
 
-We first need matter that can realize Bondi's sign structure while remaining an honest field theory. The minimal choice is two independent complex scalar fields, $\Phi_+$ (\emph{canonical}) and $\Phi_-$ (\emph{phantom}), living on one spacetime. Both are governed by the same potential,
+We first need matter that can realize Bondi's sign structure while remaining an honest field theory, and the requirements are stiffer than they look. The bodies must keep canonical \emph{dynamics}---positive inertial and passive mass---while only their gravitational \emph{source} changes sign; they must form stable, localized stars; and the negative-mass star must be held together by something other than gravity, because its own gravity pushes it apart. Each obvious alternative fails one of these tests. The negative-mass Schwarzschild spacetime is a naked singularity with unstable perturbations~\cite{gleiser2006}, and contains no matter from which to build constraint-satisfying initial data. A negative-energy fluid has no equilibrium to sit in: a fluid star is bound by the very attraction being flipped. A ghost scalar---kinetic term reversed in the Lagrangian---does source gravity negatively, but its field dynamics reverse too, so its inertial and passive masses flip along with the active one (Forward's all-negative matter~\cite{forward1990}, not the active-only signature under test), and such fields, evolved in numerical relativity as wormhole support, either collapse or explode~\cite{shinkai2002}.
+
+What passes is a \emph{soliton}: matter self-bound by its own interactions, for which gravity is a dressing rather than the binding agent. We therefore take two independent complex scalar fields, $\Phi_+$ (\emph{canonical}) and $\Phi_-$ (\emph{phantom}), living on one spacetime. Both are governed by the same potential, the standard sextic form of Q-ball and solitonic boson-star studies~\cite{friedberg1976,coleman1985,friedberg1987},
 \begin{equation}
 V(|\Phi|^2)=\tfrac12 m^2|\Phi|^2-\tfrac14\lambda|\Phi|^4+\tfrac16\mu|\Phi|^6 ,
 \label{eq:potential}
 \end{equation}
-where $m$ is the field mass and $\lambda,\mu>0$ are self-coupling constants. Each term has a fixed job: the mass term makes the field oscillate, the attractive quartic ($-\lambda$) lets the field clump into localized, self-bound lumps, and the repulsive sextic ($+\mu$) stops the clumping short of collapse---with the quartic alone, which is critical in three dimensions, a lump either collapses or disperses. With all three terms the flat-space theory supports Q-ball--type solitons~\cite{friedberg1976,coleman1985}. (``Lump'' is our generic word for such a self-bound blob of field; it becomes a ``star'' once gravity dresses it.) Sharing one potential is deliberate, not economy: it makes the matter physics of the two sectors \emph{identical}, so that the single sign introduced next is the only difference between them---and therefore the only possible cause of any asymmetry the simulations show.
+where $m$ is the field mass and $\lambda,\mu>0$ are self-coupling constants. Each term has a fixed job: the mass term makes the field oscillate, the attractive quartic ($-\lambda$) lets the field clump into localized, self-bound lumps, and the repulsive sextic ($+\mu$) stops the clumping short of collapse---with the quartic alone, which is critical in three dimensions, a lump either collapses or disperses. With all three terms the flat-space theory supports Q-ball--type solitons. (``Lump'' is our generic word for such a self-bound blob of field; it becomes a ``star'' once gravity dresses it.) Self-binding is what lets the phantom star exist at all: a gravity-bound body cannot survive having its gravity reversed, but a field-bound lump merely gets dressed---compressed by attractive gravity in one sector, dilated by repulsive gravity in the other (Sec.~\ref{sec:initialdata}). Sharing one potential is deliberate, not economy: it makes the matter physics of the two sectors \emph{identical}, so that the single sign introduced next is the only difference between them---and therefore the only possible cause of any asymmetry the simulations show.
 
 The entire sign structure lives in one place: the Einstein equations are sourced by the \emph{signed} sum of two canonical stress tensors,
 \begin{equation}
@@ -109,7 +122,7 @@ The model is implemented in \texttt{GRTeclyn}~\cite{grteclyn,grchombo,amrex}, ev
 \section{Initial data: gravitationally dressed solitons}
 \label{sec:initialdata}
 
-The task of this section is to turn the model into two stars on one initial slice: fix the couplings, solve each star as a spherical equilibrium, transfer the solved profiles onto the evolution grid, and solve the constraints for the pair. The failed campaigns that forced each of these choices close the section.
+The task of this section is to turn the model into two stars on one initial slice: fix the couplings, solve each star as a spherical equilibrium, transfer the solved profiles onto the evolution grid, and solve the constraints for the pair. None of these steps is optional---the potential alone, without the gravitational dressing and the exact seeding below, produces no star that survives evolution. The failed campaigns that established this the hard way close the section.
 
 \subsection{Couplings}
 
@@ -118,6 +131,8 @@ The potential~\eqref{eq:potential} has three parameters: the mass $m=1$ (our uni
 Two combinations of the couplings control the physics. The dimensionless ratio $\lambda^2/\mu$ sets the \emph{shape} of the potential and, through it, the lowest frequency a flat-space soliton can have: the classic Q-ball existence bound $\omega_{\min}^2=\min_{|\Phi|}\bigl[2V/|\Phi|^2\bigr]$~\cite{coleman1985} evaluates, for the potential~\eqref{eq:potential}, to $\omega_{\min}=\sqrt{1-3\lambda^2/16\mu}$, attained at the field value $\sqrt{3\lambda/4\mu}$---which is also the interior (``thin-wall'') amplitude of a large soliton. All runs use $\lambda^2/\mu=4.8$, so $\omega_{\min}=0.316$ and the working frequency $\omega=0.55$ sits comfortably inside the allowed range, at $45\%$ binding. With the shape fixed, the remaining freedom---the overall strength of the couplings---sets that amplitude, and with it how strongly the lump gravitates: scaling $\lambda$ and $\mu$ up together at fixed $\lambda^2/\mu$ makes the field fainter and its self-gravity weaker. The values used everywhere, $\lambda=10240$ and $\mu\simeq2.18\times10^{7}$ (amplitude ${\simeq}0.019$), were forced on us: every more strongly gravitating choice produced stars that collapsed or dispersed (Sec.~\ref{sec:failures}), and these couplings are the first at which a dressed $\omega=0.55$ star exists at all.
 
 \subsection{The dressed-star problem}
+
+The problem, stated plainly: a flat-space soliton solves the field equation with gravity switched off, and such an object cannot simply be placed on an initial slice. It fails as initial data, because the Hamiltonian and momentum constraints know about the field's energy and are violated by a bare Q-ball; and it fails as an equilibrium, because once its own gravity acts the profile is no longer an eigenstate---seeded anyway, the star breathes, sheds, and dies (Sec.~\ref{sec:failures} documents exactly this). The star we need is solved with its gravity \emph{on}: field and metric adjusted together until the profile is the eigenstate of the very spacetime it curves. That is what ``dressed'' means here.
 
 Dressing the soliton in its own gravity is the boson-star problem~\cite{kaup1968,ruffini1969} with a sextic self-interaction (see Ref.~\cite{liebling2023} for a review), posed for both source signs. Inserting the harmonic ansatz $\Phi=\varphi_0(r)\,e^{-i\omega t}$ and a conformally flat, maximally sliced metric $ds^2=-\alpha^2dt^2+\psi^4\delta_{ij}dx^idx^j$ into Eqs.~\eqref{eq:einstein}--\eqref{eq:kg} reduces the problem to three coupled ordinary differential equations in $r$ (the standard boson-star reduction~\cite{liebling2023}),
 \begin{align}
@@ -217,24 +232,24 @@ Table~\ref{tab:matrix} is the experiment: each row is a falsifiable prediction o
 
 Figures~\ref{fig:frames} and \ref{fig:traj} carry the headline. In \texttt{PM}---canonical star at $x=+4$, phantom at $x=-4$, both at rest---\emph{both} barycentres move in $+x$: by $t=60$ the canonical star has moved $+3.35$ and the phantom $+9.56$, closing the gap from $8.00$ to $1.79$. The four controls, run under identical numerics, do not move ($+0.16$ and $+0.04$ for the same-sector pairs, $+0.06$/$+0.07$ for the singles), setting the noise floor; the mixed pair's drift exceeds it by $50$ to $150$ times, with constraint norms at the level of the non-drifting controls throughout the window (Appendix~\ref{app:constraints}).
 
-The barycentre \emph{speeds} (Fig.~\ref{fig:velocity}) say the same thing kinematically: both bodies accelerate together from rest---a sustained pull, not an impulse. The canonical star reaches $v_x\approx0.06$ at the window edge $t=30$ and peaks near $0.12$; the phantom passes $0.11$ at $t=30$ and reaches $v_x\approx0.44$, a genuinely relativistic infall, as the pair nears contact. (The late decline of the canonical curve is the halo bias of Sec.~\ref{sec:caveats}, not a deceleration.)
+The barycentre \emph{speeds} (Fig.~\ref{fig:velocity}) say the same thing kinematically: both bodies accelerate together from rest---a sustained pull, not an impulse. (Speeds, like everything else, are in code units with $c=1$, so $v_x=0.44$ means $0.44c$.) The canonical star reaches $v_x\approx0.06$ at the window edge $t=30$ and peaks near $0.12$; the phantom passes $0.11$ at $t=30$ and reaches $v_x\approx0.44$, a genuinely relativistic infall, as the pair nears contact. (The late decline of the canonical curve is the halo bias of Sec.~\ref{sec:caveats}, not a deceleration.)
 
-Why does the phantom cover almost three times the distance? Not because of the mass imbalance: each body is accelerated by the \emph{other's} active mass, and $|M_-|>M_+$, so the point-mass model actually gives the \emph{canonical} star the larger early drift (Table~\ref{tab:pointmass}). The equal-$|M|$ run closes the question empirically: with the magnitudes matched to one part in $10^5$, the phantom still covers $3.3$ times the distance ($+2.94$ against $+9.59$; Table~\ref{tab:matrix}). The asymmetry is an extended-body effect, quantified in Secs.~\ref{sec:scaling} and~\ref{sec:sepscaling}: the push on the canonical star stays Newtonian in the phantom's mass to $0.6\%$, while the phantom's fall runs up to $3\times$ ahead of the point-mass rate because its envelope sits deep inside the canonical star's near field from $t=0$---a well that deepens further as the canonical star re-accretes its shed field ($\chi_{\min}$: $0.98\rightarrow0.44$)---whereas the phantom's own shallow, self-diluting hill ($\chi\approx1.001$) hands the canonical star no matching boost.
+Why does the phantom cover almost three times the distance? Not because of the mass imbalance---the run matrix contains the direct test. In \texttt{PM-eq} the mass magnitudes are matched to one part in $10^5$, and the phantom \emph{still} covers $3.3$ times the distance ($+2.94$ against $+9.59$; Table~\ref{tab:matrix}). Theory agrees that the imbalance points the wrong way: each body is accelerated by the \emph{other's} active mass, and $|M_-|>M_+$, so the point-mass model actually gives the \emph{canonical} star the larger early drift (Table~\ref{tab:pointmass}). The asymmetry is an extended-body effect, quantified in Secs.~\ref{sec:scaling} and~\ref{sec:sepscaling}: the push on the canonical star stays Newtonian in the phantom's mass to $0.6\%$, while the phantom's fall runs up to $3\times$ ahead of the point-mass rate because its envelope sits deep inside the canonical star's near field from $t=0$---a well that deepens further as the canonical star re-accretes its shed field ($\chi_{\min}$: $0.98\rightarrow0.44$)---whereas the phantom's own shallow, self-diluting hill ($\chi\approx1.001$) hands the canonical star no matching boost.
 
 \begin{figure}[t]
 \centering
 \includegraphics{fig_velocity.pdf}
-\caption{Barycentre velocities in run \texttt{PM}: centred differences of the continuously sampled barycentre stream over $\pm2$ time units (canonical solid, phantom dashed; light gray: the matched point-mass model). The dotted line marks the clean-window edge $t=30$; beyond it the halo bias (Sec.~\ref{sec:caveats}) depresses the canonical curve.}
+\caption{Barycentre velocities in run \texttt{PM}, in code units ($c=1$): centred differences of the continuously sampled barycentre stream over $\pm2$ time units (canonical solid, phantom dashed; light gray: the matched point-mass model). The dotted line marks the clean-window edge $t=30$; beyond it the halo bias (Sec.~\ref{sec:caveats}) depresses the canonical curve.}
 \label{fig:velocity}
 \end{figure}
 
 \begin{table}[t]
-\caption{Run \texttt{PM} against a point-mass Bondi integration with the measured ADM masses (each body accelerated by the \emph{other's} active mass). The clean window is $t\lesssim30$ (Sec.~\ref{sec:caveats}).}
+\caption{The measured run against the Newtonian idealization. ``NR'' columns: run \texttt{PM} as measured. ``model'' columns: a point-mass Bondi integration---two point particles carrying the stars' ADM masses ($+0.0640$ and $-0.0770$), released at rest at the same separation, each accelerated by the \emph{other's} active mass per Sec.~\ref{sec:model}. Agreement at early times and the growing excess after $t\approx30$ are discussed in Sec.~\ref{sec:sepscaling}; the clean window is $t\lesssim30$ (Sec.~\ref{sec:caveats}).}
 \label{tab:pointmass}
 \begin{ruledtabular}
 \begin{tabular}{lcccccc}
 & \multicolumn{2}{c}{drift $\Phi_+$} & \multicolumn{2}{c}{drift $\Phi_-$} & \multicolumn{2}{c}{separation} \\
-$t$ & NR & pm & NR & pm & NR & pm \\
+$t$ & NR & model & NR & model & NR & model \\
 \hline
 $10$ & $+0.01$ & $+0.06$ & $+0.05$ & $+0.05$ & $7.96$ & $8.01$ \\
 $20$ & $+0.14$ & $+0.24$ & $+0.30$ & $+0.20$ & $7.84$ & $8.04$ \\
@@ -266,7 +281,7 @@ The strongest quantitative tests compare runs that differ in exactly one quantit
 \emph{The fall depends only on the other body.} In the same pair of runs the canonical source is unchanged, and the phantom's trajectory with it: drift ratio $1.002$ at $t=20$ and $t=60$ ($1.02$--$1.03$ between). Two independent solves and evolutions, differing in the phantom's own mass by $17\%$, reproduce its trajectory at the percent level---a physics statement and a reproducibility check at once.
 
 \begin{table}[t]
-\caption{Mass-scaling test: canonical-star drift ratio between \texttt{PM-eq} and the reference run \texttt{PM}, against the same ratio in the point-mass model and the bare mass ratio $0.06395/0.07696=0.831$.}
+\caption{Does the push scale with its source? Between runs \texttt{PM-eq} and \texttt{PM} exactly one physical input changes: the phantom's mass magnitude, smaller by the factor $0.06395/0.07696=0.831$. If the canonical star's motion is gravity sourced by the phantom, its drift must shrink by that same factor. ``NR ratio'': the measured canonical-star drift of \texttt{PM-eq} divided by that of \texttt{PM}; next to it, the same ratio predicted by the matched point-mass integrations, and the bare mass ratio itself.}
 \label{tab:massscaling}
 \begin{ruledtabular}
 \begin{tabular}{lccc}
@@ -418,6 +433,26 @@ R.~R.~Caldwell,
 \newblock ``A phantom menace? Cosmological consequences of a dark energy component with super-negative equation of state,''
 \newblock Phys.\ Lett.\ B \textbf{545}, 23 (2002).
 
+\bibitem{morris_thorne1988}
+M.~S.~Morris and K.~S.~Thorne,
+\newblock ``Wormholes in spacetime and their use for interstellar travel: A tool for teaching general relativity,''
+\newblock Am.\ J.\ Phys.\ \textbf{56}, 395 (1988).
+
+\bibitem{alcubierre1994}
+M.~Alcubierre,
+\newblock ``The warp drive: hyper-fast travel within general relativity,''
+\newblock Class.\ Quantum Grav.\ \textbf{11}, L73 (1994).
+
+\bibitem{gleiser2006}
+R.~J.~Gleiser and G.~Dotti,
+\newblock ``Instability of the negative mass Schwarzschild naked singularity,''
+\newblock Class.\ Quantum Grav.\ \textbf{23}, 5063 (2006).
+
+\bibitem{shinkai2002}
+H.~Shinkai and S.~A.~Hayward,
+\newblock ``Fate of the first traversible wormhole: Black-hole collapse or inflationary expansion,''
+\newblock Phys.\ Rev.\ D \textbf{66}, 044005 (2002).
+
 \bibitem{friedberg1976}
 R.~Friedberg, T.~D.~Lee, and A.~Sirlin,
 \newblock ``Class of scalar-field soliton solutions in three space dimensions,''
@@ -427,6 +462,11 @@ R.~Friedberg, T.~D.~Lee, and A.~Sirlin,
 S.~Coleman,
 \newblock ``Q-balls,''
 \newblock Nucl.\ Phys.\ B \textbf{262}, 263 (1985).
+
+\bibitem{friedberg1987}
+R.~Friedberg, T.~D.~Lee, and Y.~Pang,
+\newblock ``Mini-soliton stars,''
+\newblock Phys.\ Rev.\ D \textbf{35}, 3658 (1987).
 
 \bibitem{kaup1968}
 D.~J.~Kaup,

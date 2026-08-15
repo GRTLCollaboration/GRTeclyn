@@ -247,19 +247,21 @@ def fig_trajectories():
     ax.fill_between(t, xp, xc, color="0.93", lw=0)
     ax.plot(t, xc, color="k", ls="-", lw=1.0)
     ax.plot(t, xp, color="k", ls="--", lw=1.0)
-    ax.text(7, 6.1, r"canonical, $M_+>0$", color="k", fontsize=7.3)
+    ax.text(4, 6.5, r"canonical, $M_+>0$", color="k", fontsize=7.3)
     ax.text(3, -6.4, r"phantom, $M_-<0$", color="k", fontsize=7.3)
-    for tt, side in ((2.0, "r"), (40.0, "r"), (58.0, "l")):
+    # (t, side, dy): dy drops the t=58 label into the wedge interior so it
+    # clears the canonical worldline
+    for tt, side, dy in ((2.0, "r", 0.0), (40.0, "r", 0.0), (58.0, "l", -1.1)):
         a = float(np.interp(tt, t, xc))
         b = float(np.interp(tt, t, xp))
         ax.annotate("", xy=(tt, b), xytext=(tt, a),
                     arrowprops=dict(arrowstyle="<->", lw=0.6, color="0.35",
                                     shrinkA=0, shrinkB=0))
         if side == "r":
-            ax.annotate(f"${a - b:.1f}$", xy=(tt + 1.6, (a + b) / 2),
+            ax.annotate(f"${a - b:.1f}$", xy=(tt + 1.6, (a + b) / 2 + dy),
                         fontsize=7.0, color="0.35", va="center", ha="left")
         else:
-            ax.annotate(f"${a - b:.1f}$", xy=(tt - 1.6, (a + b) / 2),
+            ax.annotate(f"${a - b:.1f}$", xy=(tt - 1.6, (a + b) / 2 + dy),
                         fontsize=7.0, color="0.35", va="center", ha="right")
     ax.set_xlim(0, 63)
     ax.set_ylim(-7.5, 9.5)
@@ -286,10 +288,9 @@ def fig_trajectories():
     bx.text(49.5, 1.15, r"$\Phi_+$", color="k", fontsize=8.5)
     bx.text(2.5, 9.15, r"gray: equal-$|M|$ rerun", fontsize=7.0,
             color="0.35", va="top")
-    bx.annotate("controls", xy=(25, 0.14), xytext=(14.0, 1.45),
-                fontsize=7.0, color="0.35",
-                arrowprops=dict(arrowstyle="-", lw=0.6, color="0.45",
-                                shrinkA=2, shrinkB=1))
+    # label the controls by proximity, late, where the flat gray lines are the
+    # only curves in the neighbourhood (a leader would have to cross curves)
+    bx.text(53.0, 0.42, "controls", fontsize=7.0, color="0.35")
     bx.set_xlim(0, 62)
     bx.set_ylim(-0.6, 10)
     bx.set_xlabel("$t$")
@@ -363,7 +364,8 @@ def fig_family():
     ax.axhline(0, color="0.5", lw=0.5)
     ax.axvspan(0.500, 0.5265, color="0.90", zorder=0, lw=0)
     ax.text(0.5133, -0.012, "no dressed star", rotation=90, ha="center",
-            va="center", fontsize=7.0, color="0.4")
+            va="center", fontsize=7.0, color="0.4", zorder=4,
+            bbox=dict(facecolor="0.90", edgecolor="none", pad=1.2))
 
     ax.plot([0.550, 0.56598], [0.063951, -0.063950], marker="*", ms=9,
             color="k", ls="none", zorder=5)
@@ -377,6 +379,75 @@ def fig_family():
     ax.set_xlabel(r"$\omega$")
     ax.set_ylabel(r"$M_{\rm ADM}$")
     fig.savefig(os.path.join(OUT, "fig_family.pdf"))
+    plt.close(fig)
+
+
+# ------------------------------------------------------------ fig: schematic
+def fig_schematic():
+    """Bondi's sign rules, Forward-style: the three pairings of active mass."""
+    import matplotlib.patches as mpatches
+
+    fig, ax = plt.subplots(figsize=(SINGLE, 2.1))
+    ax.set_aspect("equal")
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 6.25)
+    ax.axis("off")
+
+    R = 0.52
+    XL, XR = 2.0, 5.0
+    Y = {"a": 5.2, "b": 3.15, "c": 1.05}
+
+    def body(x, y, sector):
+        if sector == "+":
+            fc, ec, lab, ls = "#E9F2F9", C_CANON, "$+M$", "-"
+        else:
+            fc, ec, lab, ls = "#FDF0E6", C_PHANT, "$-M$", (0, (3, 1.6))
+        ax.add_patch(mpatches.Circle((x, y), R, facecolor=fc, edgecolor=ec,
+                                     lw=1.0, linestyle=ls))
+        ax.text(x, y, lab, ha="center", va="center", fontsize=6.8, color=ec)
+
+    def force(x0, x1, y):
+        ax.annotate("", xy=(x1, y), xytext=(x0, y),
+                    arrowprops=dict(arrowstyle="-|>", color="k", lw=0.9,
+                                    shrinkA=0, shrinkB=0, mutation_scale=8))
+
+    def verdict(y, text, bold=False):
+        ax.text(7.15, y, text, ha="left", va="center", fontsize=7.3,
+                fontweight="bold" if bold else "normal")
+
+    def letter(y, s):
+        ax.text(0.1, y + 0.75, s, ha="left", va="center", fontsize=7.5)
+
+    # (a) + + : each attracted by the other
+    y = Y["a"]
+    letter(y, "(a)")
+    body(XL, y, "+"); body(XR, y, "+")
+    force(XL + R + 0.1, XL + R + 0.78, y)
+    force(XR - R - 0.1, XR - R - 0.78, y)
+    verdict(y, "fall together")
+
+    # (b) - - : each repelled by the other
+    y = Y["b"]
+    letter(y, "(b)")
+    body(XL, y, "-"); body(XR, y, "-")
+    force(XL - R - 0.1, XL - R - 1.0, y)
+    force(XR + R + 0.1, XR + R + 1.0, y)
+    verdict(y, "push apart")
+
+    # (c) - + : the Bondi dipole; both forces point the same way
+    y = Y["c"]
+    ax.axhspan(y - 0.95, y + 0.95, color="0.955", zorder=0, lw=0)
+    letter(y, "(c)")
+    body(XL, y, "-"); body(XR, y, "+")
+    force(XL + R + 0.1, XL + R + 1.0, y)
+    force(XR + R + 0.1, XR + R + 1.0, y)
+    ax.text(XL + R + 0.68, y + 0.62, "attracted", ha="center", va="bottom",
+            fontsize=6.0, color="0.25")
+    ax.text(XR + R + 0.68, y + 0.62, "repelled", ha="center", va="bottom",
+            fontsize=6.0, color="0.25")
+    verdict(y, "run away", bold=True)
+
+    fig.savefig(os.path.join(OUT, "fig_schematic.pdf"))
     plt.close(fig)
 
 
@@ -529,6 +600,7 @@ if __name__ == "__main__":
     fig_chase_frames()
     fig_trajectories()
     fig_mirror()
+    fig_schematic()
     fig_family()
     fig_sepscaling()
     fig_velocity()
