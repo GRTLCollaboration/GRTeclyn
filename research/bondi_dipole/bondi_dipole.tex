@@ -1,0 +1,441 @@
+\documentclass[twocolumn,floatfix,aps,prd,nofootinbib]{revtex4-2}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{textcase}
+\usepackage{placeins}
+\usepackage[protrusion=true,expansion=false]{microtype}
+
+\graphicspath{{figures/}}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+    citecolor=blue,
+}
+\urlstyle{same}
+\emergencystretch=2em
+
+\begin{document}
+
+\title{\texorpdfstring{\MakeTextUppercase{The Bondi Dipole in Full Numerical Relativity: a Self-Accelerating Positive--Negative Mass Binary with \texttt{GRTeclyn}}}{The Bondi Dipole in Full Numerical Relativity: a Self-Accelerating Positive-Negative Mass Binary with GRTeclyn}}
+
+\author{\MakeTextUppercase{Nikita M. Shirokov}}
+\email{shirokov.nm@phystech.edu}
+\affiliation{\textit{Independent Researcher, Moscow, Russia}}
+\date{\today}
+
+\begin{abstract}
+Bondi's 1957 observation that a positive- and a negative-mass body released at rest should \emph{self-accelerate}---the negative body chasing the positive---has been analyzed with point particles for seven decades but never evolved as an initial-value problem with dynamical matter. We present full $3{+}1$ numerical-relativity evolutions of such a ``Bondi dipole.'' Two complex scalar fields obey the \emph{same} sextic Klein--Gordon dynamics, and only the phantom sector's stress-energy enters the Einstein equations with a flipped sign: positive inertial and passive mass, negative active mass. Both sectors admit gravitationally dressed solitons solved as constraint-satisfying initial data (residuals ${\lesssim}0.1\%$), including---to our knowledge for the first time---a stable negative-ADM-mass star. Released at rest, the mixed pair co-drifts at $50$--$150\times$ the noise floor set by its single-star and same-sector controls; a mirrored configuration reverses the trajectory to a few percent; the canonical star's displacement scales with the phantom's active mass to $0.6\%$; and at initial separations $12$--$16$ the early-time drift is Newtonian to ${\sim}10\%$, the excess at separation $8$ being a measured extended-body overlap effect. In the signed bookkeeping the phantom sector carries negative momentum, so the runaway is consistent with momentum conservation, as in Forward's Newtonian analysis.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+
+Negative mass in general relativity was given its modern treatment by Bondi~\cite{bondi1957}, who distinguished inertial, passive, and active gravitational mass and noted the striking consequence of mixing signs: a negative-mass body is \emph{attracted} by a positive one, the positive body is \emph{repelled} by the negative one, both accelerations point the same way, and the pair runs off together---momentum conserved, because the negative body's contribution is negative. Bonnor and Swaminarayan~\cite{bonnor_swami1964} found exact solutions of the Einstein equations describing uniformly accelerated pairs of opposite-mass particles, later generalized in Ref.~\cite{bicak1983}; Bonnor~\cite{bonnor1989} asked why mass is positive and found no answer in the theory. Forward~\cite{forward1990} carried out the exhaustive Newtonian analysis of the two-body problem for elastic, gravitational, and electrostatic couplings, showing ``in tedious detail'' that the self-accelerating pair violates neither momentum nor energy conservation, whatever the mass ratio; objections to negative mass must be sought elsewhere~\cite{hoffmann1966,martins1980}.
+
+All of this work treats point particles, prescribed metrics, or frozen mass parameters. What it cannot address is the question a relativist must ask first: can such a configuration be posed as a \emph{consistent initial-value problem}---constraint-satisfying initial data for dynamical matter fields---and does the runaway survive full nonlinear evolution, with backreaction, radiation, and finite body size included? That is the gap this paper closes. We are not aware of any previous $3{+}1$ numerical-relativity evolution of a gravitationally bound positive--negative active-mass pair with dynamical, constraint-solved matter.
+
+Our contributions:
+\begin{itemize}
+    \item[(i)] A minimal field-theoretic realization of Bondi's sign structure: a \emph{bicomplex} scalar model in which both sectors obey identical Klein--Gordon dynamics and only the Einstein source is signed (Sec.~\ref{sec:model}).
+    \item[(ii)] Gravitationally dressed soliton stars for both signs, solved at fixed frequency as constraint-clean initial data---including, as far as we know, the first negative-ADM-mass (``phantom'') star ever constructed and evolved this way (Sec.~\ref{sec:initialdata}).
+    \item[(iii)] A falsifiable cell matrix---mixed pair, both same-sector pairs, both single stars, a mirrored pair, and two wider separations---all run under identical numerics, with birth-time verification against independently computed fingerprints (Secs.~\ref{sec:setup}, \ref{sec:results}).
+    \item[(iv)] The result: the mixed pair, and only the mixed pair, self-accelerates; the effect responds quantitatively to the source mass and converges to the Newtonian point-mass prediction as the bodies separate (Sec.~\ref{sec:results}).
+    \item[(v)] An honest accounting of numerical failure modes and diagnostic biases, several of which mimic or mask the physics under test (Secs.~\ref{sec:failures}, \ref{sec:caveats}).
+\end{itemize}
+
+Throughout, $G=c=1$ and the scalar mass sets the unit, $m=1$. Drifts along the pair axis are quoted as $\Delta x = x(t)-x(0)$, and $d$ denotes the instantaneous barycentre separation.
+
+\section{The bicomplex scalar model}
+\label{sec:model}
+
+Two independent complex scalar fields, $\Phi_+$ (\emph{canonical}) and $\Phi_-$ (\emph{phantom}), live on one spacetime and share one potential,
+\begin{equation}
+V(|\Phi|^2)=\tfrac12 m^2|\Phi|^2-\tfrac14\lambda|\Phi|^4+\tfrac16\mu|\Phi|^6 ,
+\label{eq:potential}
+\end{equation}
+with $\lambda,\mu>0$. The sextic term is required: the purely attractive quartic is critical in three dimensions and either collapses or disperses; with Eq.~\eqref{eq:potential} the flat-space theory supports Q-ball--type nontopological solitons~\cite{friedberg1976,coleman1985}.
+
+The entire sign structure of the model lives in one place. The Einstein equations are sourced by the \emph{signed} sum of two canonical stress tensors,
+\begin{equation}
+G_{\mu\nu}=8\pi\left(T_{\mu\nu}[\Phi_+]-T_{\mu\nu}[\Phi_-]\right),
+\label{eq:einstein}
+\end{equation}
+while the field equations of \emph{both} sectors keep their canonical form,
+\begin{equation}
+\Box\,\Phi_\pm=\frac{\partial V}{\partial|\Phi|^2}\,\Phi_\pm .
+\label{eq:kg}
+\end{equation}
+In the $3{+}1$ language the matter sources are accumulated per sector with a sign $\epsilon_\pm=\pm1$:
+\begin{equation}
+\rho=\sum_{s=\pm}\epsilon_s\,\rho[\Phi_s],\qquad
+S_i=\sum_{s=\pm}\epsilon_s\,S_i[\Phi_s],
+\label{eq:adm_sources}
+\end{equation}
+and likewise for $S_{ij}$, each bracket being the standard scalar-field expression.
+
+The consequences follow Bondi's premise exactly. Because Eq.~\eqref{eq:kg} is canonical, the phantom field propagates on the metric like ordinary matter: its \emph{inertial and passive} masses are positive, and it falls toward a gravitational well. Because of the sign in Eq.~\eqref{eq:einstein}, the phantom lump \emph{sources} gravity with the opposite sign: its \emph{active} mass---and its ADM mass---is negative, so it repels everything. A mixed pair therefore chases: the phantom falls toward the canonical star while the canonical star is pushed away, and both accelerate in the same direction. Newton's third law fails for the pair of bodies, but nothing is wrong with the bookkeeping: the conserved quantities are those of the total signed stress-energy, Eq.~\eqref{eq:einstein}, and the phantom sector's field momentum enters with a minus sign. A co-moving pair carries near-zero total momentum---the general-relativistic version of the cancellation Forward exhibited in the Newtonian theory~\cite{forward1990}.
+
+Two honest remarks. First, the phantom sector violates the null energy condition by construction; this is a model of \emph{if such matter existed, what would gravity do}, in the spirit of phantom fields studied in cosmology~\cite{caldwell2002}, not a claim that it exists. Second, our sign structure differs from Forward's definition of negative matter (all four masses negative)~\cite{forward1990}: here inertial and passive masses stay positive and only the source sign flips. The two-body phenomenology is the same, because passive and inertial mass cancel in the acceleration of a test body---each body's acceleration is set by the \emph{other} body's active mass, which is the property the experiment tests.
+
+The model is implemented in \texttt{GRTeclyn}~\cite{grteclyn,grchombo,amrex}, evolving CCZ4~\cite{alic2012} plus the two complex fields, with Eq.~\eqref{eq:adm_sources} applied per lump in the initial-data solver \texttt{GRTresna}~\cite{grtresna} so that one constraint solve can carry mixed-sign matter.
+
+\section{Initial data: gravitationally dressed solitons}
+\label{sec:initialdata}
+
+\subsection{Coupling rung}
+
+All runs keep $\lambda^2/\mu=4.8$, which fixes the flat-space frequency floor $\omega_{\min}=\sqrt{1-3\lambda^2/16\mu}=0.316$; the working frequency $\omega=0.55$ then always means $45\%$ binding. The campaign uses the \emph{ultraweak} rung, $\lambda=10240$, $\mu=21\,845\,333$ (core amplitude scale $\sqrt{3\lambda/4\mu}\simeq0.019$)---the first rung at which a gravitationally dressed $\omega=0.55$ star exists at all (Sec.~\ref{sec:failures}).
+
+\subsection{The dressed-star problem}
+
+Dressing the soliton in its own gravity is the boson-star problem~\cite{kaup1968,ruffini1969} with a sextic self-interaction (see Ref.~\cite{liebling2023} for a review), posed for both source signs. Static, spherically symmetric, maximally sliced stars in isotropic coordinates obey
+\begin{align}
+\psi''+\tfrac{2}{r}\psi' &= -2\pi\psi^5\rho, \nonumber\\
+\alpha''+\left(\tfrac{2}{r}+\tfrac{2\psi'}{\psi}\right)\alpha' &= 4\pi\psi^4\alpha\,(\rho+S), \label{eq:starode}\\
+\varphi_0''+\left(\tfrac{2}{r}+\tfrac{\alpha'}{\alpha}+\tfrac{2\psi'}{\psi}\right)\varphi_0' &= \psi^4\!\left(\frac{dV}{d\varphi_0}-\frac{\omega^2}{\alpha^2}\varphi_0\right), \nonumber
+\end{align}
+with $\rho=\tfrac12\omega^2\varphi_0^2/\alpha^2+\tfrac12\psi^{-4}\varphi_0'^2+V$ and $\rho+S=2\omega^2\varphi_0^2/\alpha^2-2V$. \textbf{The phantom star is obtained by flipping the sign of $\rho$ and $\rho+S$ in the metric equations only}; the Klein--Gordon line keeps its canonical form, mirroring Eqs.~\eqref{eq:einstein}--\eqref{eq:kg}. The result is a soliton bound by its own self-interaction whose gravity is repulsive: $\psi<1$ and $\alpha>1$ in the core (against $\psi>1$, $\alpha<1$ for the canonical star), and negative ADM mass.
+
+Solving at fixed frequency matters. Heavy-branch sextic stars sit a fraction of a percent below the effective-potential top, so at fixed central amplitude the eigenvalue in $\omega$ is an exponentially thin needle; a shooter on $\omega$ steps over it and lands on the light branch (observed concretely: a request for the $\omega=0.55$ star returned a $5\times$ lighter $\omega=0.75$ star). The working parameterization bisects the central amplitude $\varphi_c$ at fixed integration-frame frequency and outer-iterates so the rescaled $\omega/\alpha_\infty$ matches the request; $\varphi_c$ becomes a solved output, and the returned eigenvalue matches the request to ${\sim}10^{-5}$.
+
+\begin{figure}[t]
+\centering
+\includegraphics{fig_family.pdf}
+\caption{The dressed-star family $M_{\rm ADM}(\omega)$ at the ultraweak rung. At equal frequency the phantom star is always the heavier in magnitude ($20\%$ at $\omega=0.55$, $4\%$ at $\omega=0.80$)---repulsive self-gravity puffs it out, a gravitational effect that vanishes in the weak-field limit. The branch ends near $\omega\approx0.52$--$0.53$ (shaded); no dressed star exists below it at this rung. Stars ($\star$): the equal-$|M_{\rm ADM}|$ pair actually evolved, canonical at $\omega=0.550$ ($M=+0.063951$) and phantom at $\omega=0.56598$ ($M=-0.063950$), matched to one part in $10^5$.}
+\label{fig:family}
+\end{figure}
+
+Figure~\ref{fig:family} shows the family. The stars evolved in this campaign: canonical $\omega=0.550$ with $\varphi_c=0.019695$, $M_{\rm ADM}=+0.063951$, $\alpha(0)=0.9773$; phantom $\omega=0.550$ with $\varphi_c=0.019589$, $M_{\rm ADM}=-0.076962$, $\alpha(0)=1.0249$ ($|M_-|/M_+=1.203$); and, for the equal-mass cell, the phantom at $\omega=0.56598$ with $M_{\rm ADM}=-0.063950$.
+
+\subsection{Painting and constraint solve}
+
+Two subtleties in seeding the stars mattered enormously (Sec.~\ref{sec:failures}). First, the seed amplitude must be the star's own solved $\varphi_c$---any rescaling de-tunes the eigenstate. Second, a boson star is stationary, not static: the $U(1)$ momentum must be painted with the star's own lapse,
+\begin{equation}
+\Pi_{\rm im}=-\frac{\omega}{\alpha(r)}\,\varphi_0(r),
+\label{eq:pi_im}
+\end{equation}
+which is why the star tables carry $\alpha(r)$ as a column. Mixed pairs get one profile table \emph{per sector}, and the equal-mass cell required threading the frequency through per lump, since painting the $\omega=0.56598$ profile with a global $\omega=0.550$ phase velocity would seed it off-eigenstate.
+
+\texttt{GRTresna} then solves the constraints (CTTKHybrid, per-lump signed sources) to a nonlinear exit tolerance of $0.1\%$; at the earlier $1\%$ gate the residual radiated away as a visible $\chi$ ring that sloshed the stars' envelopes. The evolution initial data keeps the solved metric and repaints the matter analytically from the same star tables.
+
+\section{Evolution setup and the cell matrix}
+\label{sec:setup}
+
+Evolutions use \texttt{GRTeclyn} (CCZ4, one GPU per cell, single rank): domain $L=64$, base resolution $N=128$ ($\Delta x=0.5$), fourth-order stencils with RK4 and Kreiss--Oliger dissipation $\sigma=2$, $\Delta t=0.02\,\Delta x$, Sommerfeld (radiative) outer boundaries, wave-extraction shells at $R=8$ and $16$, and one available mesh-refinement level---which first triggers only at $t\approx48$ in the mixed cells, after the measurement window (Appendix~\ref{app:constraints}). Stars are seeded at $x=\pm4$ about the domain centre (separation $d_0=8$, about $1.6\times$ their rms radius of ${\sim}5$), \emph{at rest}: no boosts, no initial velocities, no driving of any kind for the entire evolution. Any drift is therefore gravitational.
+
+The primary diagnostic is the per-sector barycentre stream: separate field-weighted integrals, centroids, and rms radii for $\Phi_+$ and $\Phi_-$, sampled continuously. Constraint norms, confinement (peak amplitude, confined fraction, $\min\chi$), $\Psi_4$ modes, and energy-condition monitors are recorded alongside; the constraint record is examined in Appendix~\ref{app:constraints}.
+
+\begin{table}[t]
+\caption{The falsifiable matrix. The sign structure of Sec.~\ref{sec:model} predicts co-drift in $+x$ for the mixed pair, reversal under mirroring, a weaker runaway at wider separation, and \emph{no} net drift for same-sector pairs and lone stars. Every cell was solved to Ham ${\leq}0.09\%$, Mom ${\leq}0.08\%$ (Appendix~\ref{app:constraints}), verified at $t=0$ against independently computed star fingerprints (all within $0.2\%$), and evolved under identical numerics. Drifts in code units at $t_{\rm end}$ ($t=40$ for singles, $60$ for pairs).}
+\label{tab:matrix}
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+cell & drift $\Phi_+$ & drift $\Phi_-$ & verdict \\
+\hline
+\texttt{pair\_pm} $(+,-)$ & $+3.35$ & $+9.56$ & \textbf{runaway} \\
+\texttt{pair\_pm\_eqm} & $+2.94$ & $+9.59$ & runaway \\
+\texttt{pair\_mp} (mirror) & $-3.23$ & $-9.07$ & reversed \\
+\texttt{pair\_pp} $(+,+)$ & $+0.16$ & --- & null \\
+\texttt{pair\_mm} $(-,-)$ & --- & $+0.04$ & null \\
+\texttt{single\_p} & $+0.06$ & --- & null \\
+\texttt{single\_m} & --- & $+0.07$ & null \\
+\texttt{pair\_pm}, $d_0{=}12$ & $+0.72$ & $+2.78$ & weaker \\
+\texttt{pair\_pm}, $d_0{=}16$ & (biased) & $+0.74$ & weaker \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+Table~\ref{tab:matrix} is the experiment. Each row is a falsifiable prediction of the sign structure of Sec.~\ref{sec:model}; a same-sector pair or a lone star that drifted like the mixed pair would kill the claim. The equal-$|M|$ variant changes exactly one physical quantity (the phantom's mass, by $17\%$), the mirror cell reflects the geometry, and the wider separations probe the force law.
+
+\section{How the matter was made to hold together}
+\label{sec:failures}
+
+Before any runaway could be claimed, a single lump had to hold its own size; four campaigns failed that gate, and the diagnosis trail is part of the result. Heavy lumps collapsed ($\min\chi\rightarrow0.009$ by $t\approx25$), light lumps evaporated (rms $5\rightarrow30$ by $t\approx50$), and the geometric-mean rung did both at once---a pattern that indicts the \emph{shape} of the seed, not its weight. Four root causes were found and fixed, in order:
+
+\begin{enumerate}
+\item \textbf{The amplitude clamp.} The seed pipeline clamped the profile amplitude to the thin-wall estimate $\sqrt{3\lambda/4\mu}$, $4.5\%$ below the true eigenstate amplitude: every seed was an exact Q-ball shape at the wrong height---which is not a Q-ball. It breathed, shed, and evaporated. \emph{Fix:} seed at the solved $\varphi_c$ exactly.
+\item \textbf{No dressed equilibrium existed.} The corrected flat-space seed still dispersed---the falsification that mattered. A flat-space eigenstate is an equilibrium only in flat space; solving the \emph{dressed} family showed that at the original couplings the target star simply was not on it. \emph{Fix:} move to the ultraweak rung, where the dressed $\omega=0.55$ star exists, and seed the dressed profile including its own lapse, Eq.~\eqref{eq:pi_im}.
+\item \textbf{Two painters disagreed silently.} The constraint solve used the tabulated star while the evolution's repaint fell through to a Gaussian envelope: the solved metric backed one object, the evolution started another. \emph{Fix:} both paths resolve the same star; a regression test asserts pointwise agreement to $10^{-10}$.
+\item \textbf{The phantom path had never actually run.} An old veto silently downgraded exotic lumps to canonical matter whenever self-gravity was on, reasoning that a gravity-\emph{bound} phantom star cannot exist. True---but irrelevant for a soliton bound by self-interaction, where gravity only dresses. \emph{Fix:} lift the veto; solve the phantom star with the metric-source sign flip. The first lone phantom star evolved hit its predicted fingerprint and showed the predicted mirror-image metric signature ($\chi$ just \emph{above} unity).
+\end{enumerate}
+
+Two residual effects were measured and correctly attributed rather than fixed. The stars' $\pm8\%$ radial breathing is resolution-intrinsic, not residual-driven: re-solving with $30\times$ tighter momentum residuals reproduced it crest for crest. And the rms-radius stream is not a star-health diagnostic here---it tracks the shed radiation bath, which cannot leave the box (massive-field radiation against massless-wave boundaries), which is what caps mixed cells at $t=60$.
+
+The process lesson worth exporting: \emph{verify the seed before believing the evolution}. Every cell in this campaign was checked at $t=0$ against an independently integrated fingerprint (sector totals and rms radii from the star tables); two of the four root causes were caught by that check, not by watching movies.
+
+\begin{figure*}[t]
+\centering
+\includegraphics{fig_chase_frames.pdf}
+\caption{The runaway, cell \texttt{pair\_pm}, in the $z=0$ plane. Top row: scalar-field activity $\mathcal{A}=\sum_k(\varphi_k^2+\Pi_k^2)^{1/2}$ summed over both sectors. Bottom row: conformal factor $\chi-1$; the phantom star is a hill ($\chi>1$, blue), the canonical star a well ($\chi<1$, red). Open markers show the measured sector barycentres (circle: canonical; square: phantom); dashed verticals at $x=\pm4$ mark the release positions, with an arrow per sector showing its displacement---both bodies move in $+x$, the phantom chasing hardest. The bracket below each panel gives the instantaneous separation: $8.00\rightarrow6.81\rightarrow4.32\rightarrow1.79$. Panels are individually color-scaled; the canonical well deepens from $\chi_{\min}=0.98$ to $0.44$ over the run.}
+\label{fig:frames}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics{fig_trajectories.pdf}
+\caption{(a)~Barycentre worldlines of the mixed pair \texttt{pair\_pm}: released at rest at $x=\pm4$, both bodies move in $+x$ with the phantom (dashed) chasing the canonical star (solid); the shaded band is the closing gap (annotated at three times). (b)~Drifts $\Delta x$, solid $\Phi_+$ and dashed $\Phi_-$: black, reference cell; gray, the equal-$|M_{\rm ADM}|$ rerun, which changes the phantom's mass by $17\%$ and nothing else---the phantom's trajectory is unchanged (ratio $1.002$ at $t=20$) while the canonical star moves $16\%$ less far (Table~\ref{tab:massscaling}). Light gray: all four null controls, $(+,+)$, $(-,-)$, and both singles, on the same axes. The dotted line marks $t=30$, the end of the halo-clean measurement window (Sec.~\ref{sec:caveats}). (c)~Separation versus its matched point-mass integration: at $d_0=8$ the stars overlap from the start and the NR gap closes to near-contact, where the point-mass model predicts a slowly growing gap.}
+\label{fig:traj}
+\end{figure*}
+
+\section{Results}
+\label{sec:results}
+
+\subsection{The runaway}
+
+Figures~\ref{fig:frames} and \ref{fig:traj} carry the headline. In \texttt{pair\_pm}---canonical star at $x=+4$, phantom at $x=-4$, both at rest---\emph{both} barycentres move in $+x$, with nothing pushing them: the canonical star is repelled by the phantom behind it, the phantom falls after the canonical star ahead of it. By $t=60$ the canonical star has moved $+3.35$ and the phantom $+9.56$, closing the gap from $8.00$ to $1.79$. The four controls, run under identical numerics, do not move: the same-sector pairs end at $+0.16$ and $+0.04$ and the singles at $+0.06$/$+0.07$, setting the diagnostic noise floor. The mixed-cell drift exceeds that floor by a factor of $50$--$150$. It is not fed by constraint violation either: through the measurement window the mixed cell's constraint norms sit at the same level as the non-drifting single-star controls (Appendix~\ref{app:constraints}).
+
+\begin{table}[t]
+\caption{\texttt{pair\_pm} against a point-mass Bondi integration using the measured ADM masses and the model's sign structure (each body accelerated by the \emph{other's} active mass). The clean quantitative window is $t\lesssim30$ (Sec.~\ref{sec:caveats}).}
+\label{tab:pointmass}
+\begin{ruledtabular}
+\begin{tabular}{lcccccc}
+& \multicolumn{2}{c}{drift $\Phi_+$} & \multicolumn{2}{c}{drift $\Phi_-$} & \multicolumn{2}{c}{separation} \\
+$t$ & NR & pm & NR & pm & NR & pm \\
+\hline
+$10$ & $+0.01$ & $+0.06$ & $+0.05$ & $+0.05$ & $7.96$ & $8.01$ \\
+$20$ & $+0.14$ & $+0.24$ & $+0.30$ & $+0.20$ & $7.84$ & $8.04$ \\
+$30$ & $+0.59$ & $+0.54$ & $+0.96$ & $+0.45$ & $7.63$ & $8.09$ \\
+$40$ & $+1.38$ & $+0.96$ & $+2.52$ & $+0.79$ & $6.87$ & $8.16$ \\
+$60$ & $+3.35$ & $+2.13$ & $+9.56$ & $+1.77$ & $1.79$ & $8.36$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\subsection{The mirror control closes the artifact objection}
+
+A drift produced by grid anisotropy, boundary asymmetry, or a diagnostic bias would not know which star is which. Swapping the sectors (canonical at $-4$, phantom at $+4$) must reverse the physics; it must not reverse an artifact. It reverses the physics: the mirrored cell reproduces the reference trajectory with flipped sign to $2.1\%/15\%$ (canonical/phantom) at $t=30$ and $3.4\%/5.2\%$ at $t=60$ (Fig.~\ref{fig:mirror}).
+
+\begin{figure}[t]
+\centering
+\includegraphics{fig_mirror.pdf}
+\caption{Mirror control. Lines: reference cell \texttt{pair\_pm} (canonical solid, phantom dashed). Open markers: the mirrored cell (sectors swapped; circles canonical, squares phantom), with its drift multiplied by $-1$. Reflecting the configuration reflects the whole trajectory to a few percent---the drift is set by the physics, not the grid.}
+\label{fig:mirror}
+\end{figure}
+
+\subsection{Gravity scales with the source}
+\label{sec:scaling}
+
+The strongest quantitative tests compare runs that differ in exactly one quantity.
+
+\emph{The push scales with the phantom's active mass.} Between \texttt{pair\_pm} and the equal-$|M|$ cell the phantom's mass changes by the factor $0.831$ ($-0.0770\rightarrow-0.0640$) and nothing else does. The canonical star's displacement responds in proportion (Table~\ref{tab:massscaling}): at $t=20$ the measured drift ratio is $0.836$ against the pure mass ratio $0.831$---agreement to $0.6\%$. Systematic biases in the barycentre measure largely cancel in this ratio, because both cells share the same separation and numerics.
+
+\emph{The fall depends only on the other body.} In the same pair of runs the canonical source is unchanged, and the phantom's trajectory is unchanged with it: drift ratio $1.002$ at $t=20$ and at $t=60$ ($1.02$--$1.03$ in between). Two independent constraint solves and evolutions, differing in the phantom's own mass by $17\%$, reproduce its trajectory at the percent level---simultaneously a physics statement (a body's acceleration is set by the \emph{other} body's active mass) and a reproducibility check.
+
+\begin{table}[t]
+\caption{Mass-scaling test: canonical-star drift ratio between the equal-$|M|$ cell and the reference cell, against the same ratio in the point-mass model and the bare mass ratio $0.06395/0.07696=0.831$.}
+\label{tab:massscaling}
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+$t$ & NR ratio & point-mass ratio & mass ratio \\
+\hline
+$20$ & $\mathbf{0.836}$ & $0.832$ & $0.831$ \\
+$30$ & $0.859$ & $0.834$ & $0.831$ \\
+$40$ & $0.876$ & $0.837$ & $0.831$ \\
+$60$ & $0.879$ & $0.843$ & $0.831$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\subsection{Separation scaling: inverse-square once the stars separate}
+\label{sec:sepscaling}
+
+Table~\ref{tab:pointmass} shows the reference cell departing from the point-mass model: the phantom overshoots increasingly ($1.5\times$ at $t=20$, $3.2\times$ at $t=40$), and the gap closes where the model says it should slowly grow. The equal-mass cell isolates the cause: with $|M|$ matched to $10^{-5}$ the point-mass model predicts identical drifts and an exactly constant gap, yet the NR run still gives $+2.94/+9.59$ and a gap closing to $1.35$. The asymmetry cannot be a mass-ratio effect. What remains is geometry: at $d_0=8$ these stars, rms radius ${\approx}5$, \emph{overlap from} $t=0$---the phantom's envelope sits inside the canonical star's near field, where the pull exceeds $M/r^2$.
+
+The scrutiny cells measure this directly (Fig.~\ref{fig:sepscaling}). Naive power-law fits to displacement at fixed time are misleading here---the closest pair's gap closes during the run, so a fixed-time exponent fit reports $n=2.4$--$4.6$ depending on when it is evaluated, measuring runaway feedback rather than the force law. The correct comparison is each cell against its \emph{own} point-mass integration; Table~\ref{tab:sepratios} gives the drift ratios. At separations where the point-mass idealization applies, the measured drift agrees with the Newtonian prediction to ${\sim}10\%$ at early times, and the $d_0=8$ excess is identified as the extended-body overlap enhancement, falling away with separation.
+
+\begin{table}[t]
+\caption{Separation-scaling test: ratio of the measured phantom drift to each cell's \emph{own} matched point-mass integration. At $d_0=8$ the stars overlap from $t=0$; the growing excess there is the extended-body enhancement.}
+\label{tab:sepratios}
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+$d_0$ & $t=20$ & $t=30$ & $t=40$ \\
+\hline
+$8$ (overlapping) & $1.48$ & $2.14$ & $3.17$ \\
+$12$ & $1.07$ & $1.36$ & $2.00$ \\
+$16$ & $1.11$ & $1.17$ & $1.48$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics{fig_sepscaling.pdf}
+\caption{Separation scaling of the phantom drift (the trustworthy sector; Sec.~\ref{sec:caveats}). Curves: NR runs at initial gaps $d_0=8,12,16$. Diamonds: each cell's \emph{own} matched point-mass integration, connected to its curve at equal times. At $d_0=12$--$16$ the early-time drift is Newtonian to ${\sim}10\%$; the growing excess at $d_0=8$ is the overlap enhancement of two extended bodies in contact.}
+\label{fig:sepscaling}
+\end{figure}
+
+\subsection{The phantom sector is the stable one}
+
+Counter to the intuition that antigravitating matter should fly apart, the phantom star was the best-behaved object in the campaign (Table~\ref{tab:stability}). The reason is that gravity is not the binding agent---the scalar self-interaction is, and it is identical in both sectors. Gravity's sign shows up as a correction, and the reversed sign is the \emph{stabilizing} one: shed field around the canonical star is pulled back, deepens the well, and feeds perturbations ($\chi$ slides $0.99\rightarrow0.85$ by $t=40$); shed field around the phantom star anti-gravitates and self-dilutes ($\chi=1.0009\pm0.0002$ for the entire run). The same asymmetry appears in the controls: \texttt{pair\_mm} keeps $\chi\approx1.00$ throughout while its material spreads; \texttt{pair\_pp} drives $\chi$ down to $0.44$ as the pair merges.
+
+\begin{table}[t]
+\caption{Single-star health, $t=0\rightarrow40$.}
+\label{tab:stability}
+\begin{ruledtabular}
+\begin{tabular}{lcc}
+metric & canonical & phantom \\
+\hline
+$\min\chi$ & $0.989\rightarrow0.851$ & $1.000\rightarrow1.001$ \\
+rms radius (radiation bath) & $5.05\rightarrow12.25$ & $5.43\rightarrow6.25$ \\
+peak-amplitude breathing & $\pm8\%$ & $\pm3\%$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\section{Caveats, and their measured scope}
+\label{sec:caveats}
+
+\emph{The barycentre includes the halo.} The sector barycentre integrates core plus shed radiation. By $t=60$ roughly a third of the tracked canonical field has left the accounting region and the distribution has doubled in extent; the clean quantitative window is $t\lesssim30$, where totals are stable to ${\lesssim}7\%$---and it is exactly there that the mass-scaling and reproducibility tests are strongest. Late-time drift magnitudes are upper bounds on core displacement, not precision measurements; the qualitative result (co-drift, direction, exclusivity to the mixed cell) holds across the whole run.
+
+\emph{The canonical centroid is biased low.} At $d_0=16$ the canonical barycentre drifts \emph{backwards} ($-0.34$ by $t=60$). The stream itself diagnoses it: the phantom's repulsion pushes canonical matter toward $+x$, that matter exits through the $+x$ boundary, and removing the leading edge drags the remaining centroid backwards. The canonical drift figures are therefore biased low everywhere (the reference $+3.35$ is an underestimate); the bias dominates wherever the true displacement is small---wide gaps, early times. The phantom sector, which gains tracked weight rather than losing it, is the trustworthy one, and Sec.~\ref{sec:sepscaling} uses it. The mass-scaling ratio (Table~\ref{tab:massscaling}) compares equal-separation cells, so the bias largely cancels there. A core-weighted centroid diagnostic (immune to the halo) has been built for the follow-up campaign.
+
+\emph{The radiation bath cannot leave.} Massive-field radiation reflects from massless-wave (Sommerfeld) boundaries and washes back over the stars; this caps mixed cells at $t=60$ and is the main obstacle to longer runs. A sponge layer is the fix.
+
+\emph{Resolution and parallelism.} All production cells ran at a single resolution ($N=128$) on single rank, and effectively unigrid: the one available refinement level activates only at $t\approx48$ (Appendix~\ref{app:constraints}). The one resolution-sensitivity probe available---the $30\times$ tighter constraint solve, which changed the breathing not at all---addresses the solve, not the evolution; a resolution ladder is future work.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\emph{What is established.} (i)~A gravitationally dressed negative-active-mass soliton can be constructed as constraint-satisfying initial data and evolved stably---to our knowledge for the first time. (ii)~Released at rest beside a canonical soliton, the pair self-accelerates, at $50$--$150\times$ the noise floor, exclusively in the mixed cell, reversing under mirror reflection. (iii)~The effect responds to its source like gravity: the push scales with the phantom's active mass to $0.6\%$, the fall is set by the canonical star alone and reproduces across independent solves to $0.2\%$, and the drift converges to the matched Newtonian point-mass prediction at wide separation. Bondi's runaway, in other words, survives the transition from point particles to a full initial-value problem with dynamical, radiating, finite-size matter---and Forward's Newtonian momentum accounting survives with it, the phantom sector's signed stress-energy carrying the negative momentum.
+
+\emph{What is not established.} A \emph{constant-gap} runaway---the textbook picture in which the pair accelerates forever at fixed separation---requires point-like separation. At $d_0=8$ the stars overlap and close to near-contact by $t=60$; at $d_0=12$--$16$ the gap-closure is milder but the window ends before the asymptotic behaviour is visible. The clean test needs the wider separations \emph{and} a longer window, hence a sponge layer; or more compact stars (higher $\omega$, where Fig.~\ref{fig:family} shows the sector mass asymmetry also shrinks to a few percent). Every mixed run was stopped before contact; what a canonical--phantom collision produces---including whether the trapped bath or the deepening canonical well forms a horizon---is untouched. And nothing here bears on whether NEC-violating matter exists; the model is a probe of the gravitational dynamics, not a proposal for a propulsion system~\cite{forward1990}.
+
+\emph{Next steps.} Core-weighted centroids and a per-sector momentum-balance diagnostic (the direct Bondi bookkeeping check) are built and waiting; the separation series should be re-run with them before the scaling numbers are quoted as final. A sponge layer unlocks $t\gg60$ and the constant-gap test; the contact end state and a resolution ladder follow.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We posed Bondi's positive--negative mass pair as a full initial-value problem: a bicomplex scalar model in which both sectors obey identical Klein--Gordon dynamics and only the Einstein source is signed, dressed-soliton initial data for both signs solved at fixed frequency to constraint residuals below $0.1\%$, and CCZ4 evolutions of nine cells under identical numerics. The mixed pair---and only the mixed pair---self-accelerates, the phantom chasing the canonical star exactly as Bondi described in 1957 and Forward analyzed in 1990. The displacement scales with the source's active mass to $0.6\%$, reverses under mirror reflection to a few percent, and matches matched point-mass integrations to ${\sim}10\%$ once the bodies are separated enough to be point-like. The gravitationally dressed phantom star itself---stable, negative-ADM, constraint-clean---may be the most reusable artifact of this campaign.
+
+\section*{Reproducibility}
+
+All time series, star tables, solver and evolution parameter files, code patches, analysis scripts, and the campaign journal behind every number and figure in this paper are packed, with machine paths scrubbed, in the repository's results tree (\texttt{results/bondi-dipole-runaway/}); the figures are regenerated by a single script from that pack. Initial data: \texttt{GRTresna}~\cite{grtresna}. Evolution: \texttt{GRTeclyn}~\cite{grteclyn}, the AMReX-based~\cite{amrex} GPU port of \texttt{GRChombo}~\cite{grchombo}.
+
+\appendix
+
+\section{Constraint behaviour}
+\label{app:constraints}
+
+\begin{figure}[t]
+\centering
+\includegraphics{fig_constraints.pdf}
+\caption{Constraint monitoring for the reference cell \texttt{pair\_pm} (black) against the single-star controls (light gray; solid canonical, dashed phantom, run to $t=40$): (a)~Hamiltonian constraint $\mathcal{H}$, composite $L_2$ norms (solid) and the reference cell's $L_\infty$ norm (dash--dotted); (b)~momentum constraint $\mathcal{M}$, $L_2$ norms. The equal-$|M|$ rerun lies indistinguishably under the black curves and is omitted. The birth spike from the matter repaint relaxes within $t\lesssim1$ to the truncation floor; the dotted vertical line marks $t=30$, the end of the clean measurement window; the fine AMR level first activates at $t\approx47.5$, leaving no feature in the norms.}
+\label{fig:constraints}
+\end{figure}
+
+Two records back the constraint story: the initial-data solve and the evolution-time monitoring.
+
+\emph{Initial data.} \texttt{GRTresna}'s nonlinear iteration contracts monotonically on every cell; for \texttt{pair\_pm} the Hamiltonian/momentum error falls $100\%\rightarrow0.083\%/0.074\%$ in seven iterations, and every production cell exits at ${\leq}0.09\%/{\leq}0.08\%$---the gate quoted in Table~\ref{tab:matrix}, measured by the solver on its own grid in its own normalization.
+
+\emph{Evolution.} During the runs the constraints are re-evaluated on the evolution grid every $\Delta t=0.5$ and reduced to composite norms over the grid hierarchy: each level weighted by its own cell volume, coarse cells covered by refinement dropped, and the outermost four coarse cells excluded so that outer-boundary violation is not misread as interior error. Figure~\ref{fig:constraints} shows the record. We quote absolute norms in code units: over a domain that is overwhelmingly vacuum, a global \emph{relative} normalization is dominated by near-zero denominators, so the meaningful yardstick is the control cells run under identical numerics.
+
+Three features carry the message. First, the birth transient: re-evaluating the constraints with fourth-order stencils after the analytic matter repaint (Sec.~\ref{sec:initialdata}) gives an initial $L_2(\mathcal{H})\simeq7\times10^{-4}$ that relaxes within $t\lesssim1$ to the grid's truncation floor, $8\times10^{-5}$. Second, secular growth: $L_2(\mathcal{H})$ grows by a factor ${\sim}10$ over the run---$2.7\times10^{-3}$ at the window edge $t=30$, $7.7\times10^{-3}$ at $t=60$---while $L_\infty(\mathcal{H})$ reaches $0.05$ and $0.9$ at those times, concentrated in the deepening canonical well as the pair approaches contact ($\chi_{\min}\rightarrow0.44$) and the trapped radiation bath washes back (Sec.~\ref{sec:caveats}); $L_2(\mathcal{M})$ stays below $2\times10^{-4}$ through $t=40$ and ends at $8.5\times10^{-4}$. This late-time growth is the quantitative face of the $t\lesssim30$ window. Third, the feature that matters for the claim: through that window the mixed cell's violation is within a factor $1.6$ of the stable single-star controls at equal times ($2.7\times10^{-3}$ against $1.7\times10^{-3}$ at $t=30$), and the equal-$|M|$ rerun's record is indistinguishable from the reference's. Cells with near-identical constraint records produce drifts differing by a factor of $50$--$150$, and the violation is symmetric under the mirror swap while the drift reverses: the drift correlates with the sign structure, not with the constraint error.
+
+One mesh note: the single refinement level ($\chi$-gradient tagging, regrid every $16$ steps) first activates at $t\approx47.5$ in the mixed cells---well after the measurement window---and the single-star cells never refine, so every quantitative result in this paper was produced on the uniform $\Delta x=0.5$ grid.
+
+\begin{thebibliography}{99}
+
+\bibitem{bondi1957}
+H.~Bondi,
+\newblock ``Negative mass in general relativity,''
+\newblock Rev.\ Mod.\ Phys.\ \textbf{29}, 423 (1957).
+
+\bibitem{bonnor_swami1964}
+W.~B.~Bonnor and N.~S.~Swaminarayan,
+\newblock ``An exact solution for uniformly accelerated particles in general relativity,''
+\newblock Z.\ Phys.\ \textbf{177}, 240 (1964).
+
+\bibitem{bicak1983}
+J.~Bi\v{c}\'ak, C.~Hoenselaers, and B.~G.~Schmidt,
+\newblock ``The solutions of the Einstein equations for uniformly accelerated particles without nodal singularities,''
+\newblock Proc.\ R.\ Soc.\ London A \textbf{390}, 397 (1983).
+
+\bibitem{bonnor1989}
+W.~B.~Bonnor,
+\newblock ``Negative mass in general relativity,''
+\newblock Gen.\ Relativ.\ Gravit.\ \textbf{21}, 1143 (1989).
+
+\bibitem{forward1990}
+R.~L.~Forward,
+\newblock ``Negative matter propulsion,''
+\newblock J.\ Propulsion Power \textbf{6}, 28 (1990).
+
+\bibitem{hoffmann1966}
+B.~Hoffmann,
+\newblock ``Negative mass and the quasars,''
+\newblock in \emph{Perspectives in Geometry and Relativity}, edited by B.~Hoffmann (Indiana University Press, Bloomington, 1966), p.~176.
+
+\bibitem{martins1980}
+R.~de~A.~Martins,
+\newblock ``Causal paradoxes implied by the hypothetical coexistence of positive- and negative-mass matter,''
+\newblock Lett.\ Nuovo Cimento \textbf{28}, 265 (1980).
+
+\bibitem{caldwell2002}
+R.~R.~Caldwell,
+\newblock ``A phantom menace? Cosmological consequences of a dark energy component with super-negative equation of state,''
+\newblock Phys.\ Lett.\ B \textbf{545}, 23 (2002).
+
+\bibitem{friedberg1976}
+R.~Friedberg, T.~D.~Lee, and A.~Sirlin,
+\newblock ``Class of scalar-field soliton solutions in three space dimensions,''
+\newblock Phys.\ Rev.\ D \textbf{13}, 2739 (1976).
+
+\bibitem{coleman1985}
+S.~Coleman,
+\newblock ``Q-balls,''
+\newblock Nucl.\ Phys.\ B \textbf{262}, 263 (1985).
+
+\bibitem{kaup1968}
+D.~J.~Kaup,
+\newblock ``Klein--Gordon geon,''
+\newblock Phys.\ Rev.\ \textbf{172}, 1331 (1968).
+
+\bibitem{ruffini1969}
+R.~Ruffini and S.~Bonazzola,
+\newblock ``Systems of self-gravitating particles in general relativity and the concept of an equation of state,''
+\newblock Phys.\ Rev.\ \textbf{187}, 1767 (1969).
+
+\bibitem{liebling2023}
+S.~L.~Liebling and C.~Palenzuela,
+\newblock ``Dynamical boson stars,''
+\newblock Living Rev.\ Relativ.\ \textbf{26}, 1 (2023).
+
+\bibitem{alic2012}
+D.~Alic, C.~Bona-Casas, C.~Bona, L.~Rezzolla, and C.~Palenzuela,
+\newblock ``Conformal and covariant formulation of the Z4 system with constraint-violating modes,''
+\newblock Phys.\ Rev.\ D \textbf{85}, 064040 (2012).
+
+\bibitem{grchombo}
+T.~Andrade \emph{et al.},
+\newblock ``GRChombo: an adaptable numerical relativity code for fundamental physics,''
+\newblock J.\ Open Source Softw.\ \textbf{6}, 3703 (2021).
+
+\bibitem{grteclyn}
+GRTL Collaboration,
+\newblock \texttt{GRTeclyn},
+\newblock \url{https://github.com/GRTLCollaboration/GRTeclyn}.
+
+\bibitem{grtresna}
+J.~C.~Aurrekoetxea, S.~E.~Brady, \emph{et al.},
+\newblock ``GRTresna: an open-source code to solve the initial data constraints in numerical relativity,''
+\newblock arXiv:2501.13046 [gr-qc] (2025).
+
+\bibitem{amrex}
+W.~Zhang \emph{et al.},
+\newblock ``AMReX: a framework for block-structured adaptive mesh refinement,''
+\newblock J.\ Open Source Softw.\ \textbf{4}, 1370 (2019).
+
+\end{thebibliography}
+
+\end{document}

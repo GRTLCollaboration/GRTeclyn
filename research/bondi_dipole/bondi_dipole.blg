@@ -1,6 +1,6 @@
 This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
-The top-level auxiliary file: researchnew.aux
+The top-level auxiliary file: bondi_dipole.aux
 The style file: apsrev4-2.bst
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
@@ -11,11 +11,25 @@ Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
-Database file #1: researchnewNotes.bib
-Warning--I didn't find a database entry for "helmerich2024warpfactory"
-Warning--I didn't find a database entry for "le2026warpax"
-Warning--I didn't find a database entry for "alexander2026albert"
-Warning--I didn't find a database entry for "qiu2026collideragent"
+Database file #1: bondi_dipoleNotes.bib
+Warning--I didn't find a database entry for "bondi1957"
+Warning--I didn't find a database entry for "bonnor_swami1964"
+Warning--I didn't find a database entry for "bicak1983"
+Warning--I didn't find a database entry for "bonnor1989"
+Warning--I didn't find a database entry for "forward1990"
+Warning--I didn't find a database entry for "hoffmann1966"
+Warning--I didn't find a database entry for "martins1980"
+Warning--I didn't find a database entry for "friedberg1976"
+Warning--I didn't find a database entry for "coleman1985"
+Warning--I didn't find a database entry for "caldwell2002"
+Warning--I didn't find a database entry for "grteclyn"
+Warning--I didn't find a database entry for "grchombo"
+Warning--I didn't find a database entry for "amrex"
+Warning--I didn't find a database entry for "alic2012"
+Warning--I didn't find a database entry for "grtresna"
+Warning--I didn't find a database entry for "kaup1968"
+Warning--I didn't find a database entry for "ruffini1969"
+Warning--I didn't find a database entry for "liebling2023"
 control{REVTEX42Control}, control.key{N/A}, control.author{N/A}, control.editor{N/A}, control.title{N/A}, control.pages{N/A}, control.year{N/A}, control.eprint{N/A}, 
 control{apsrev42Control}, control.key{N/A}, control.author{08}, control.editor{1}, control.title{0}, control.pages{0}, control.year{1}, control.eprint{N/A}, 
 Warning--jnrlst (dependency: not reversed) set 1
@@ -31,7 +45,7 @@ Control: year (1) truncated
 Control: production of eprint (0) enabled
 You've used 2 entries,
             6079 wiz_defined-function locations,
-            1639 strings with 15112 characters,
+            1653 strings with 15222 characters,
 and the built_in function-call counts, 991 in all, are:
 = -- 12
 > -- 16
@@ -70,4 +84,4 @@ warning$ -- 1
 while$ -- 11
 width$ -- 0
 write$ -- 52
-(There were 5 warnings)
+(There were 19 warnings)
