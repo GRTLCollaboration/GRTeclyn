@@ -367,6 +367,13 @@ peak-amplitude breathing & $\pm8\%$ & $\pm3\%$ \\
 
 \emph{Next steps.} Core-weighted centroids and a per-sector momentum-balance diagnostic (the direct Bondi bookkeeping check) are built and waiting; the separation series should be re-run with them before the scaling numbers are quoted as final. A sponge layer unlocks $t\gg60$ and the constant-gap test; the contact end state and a convergence series follow.
 
+\begin{figure}[!tb]
+\centering
+\includegraphics{fig_constraints.pdf}
+\caption{Constraint monitoring: reference run \texttt{PM} (black) against the single-star controls (light gray; solid canonical, dashed phantom). (a)~Hamiltonian constraint $\mathcal{H}$: composite $L_2$ norms (solid) and the reference run's $L_\infty$ (dash--dotted). (b)~Momentum constraint $\mathcal{M}$, $L_2$. The equal-$|M|$ rerun lies indistinguishably under the black curves and is omitted; the dotted line marks the clean-window edge $t=30$.}
+\label{fig:constraints}
+\end{figure}
+
 \section*{Reproducibility}
 
 All time series, star tables, parameter files, code patches, analysis scripts, and the campaign journal behind every number and figure are packed, with machine paths scrubbed, in the repository's results tree (\texttt{results/bondi-dipole-runaway/}); the figures regenerate from that pack by a single script. Run labels map to pack directories as \texttt{PM}${}={}$\texttt{pair\_pm}, \texttt{PM-eq}${}={}$\texttt{pair\_pm\_eqm}, \texttt{MP}${}={}$\texttt{pair\_mp\_mirror}, \texttt{PP}${}={}$\texttt{pair\_pp}, \texttt{MM}${}={}$\texttt{pair\_mm}, \texttt{P}${}={}$\texttt{single\_p}, \texttt{M}${}={}$\texttt{single\_m}; the star ODE solver of Sec.~\ref{sec:initialdata} and the $M(\omega)$ scan behind Fig.~\ref{fig:family} are \texttt{analysis/star\_family\_scan.py} and the \texttt{boson\_star\_ode} module it drives. Initial data: \texttt{GRTresna}~\cite{grtresna}; evolution: \texttt{GRTeclyn}~\cite{grteclyn}, the AMReX-based~\cite{amrex} GPU port of \texttt{GRChombo}~\cite{grchombo}.
@@ -376,13 +383,6 @@ All time series, star tables, parameter files, code patches, analysis scripts, a
 \section{Constraint behaviour}
 \label{app:constraints}
 
-\begin{figure}[t]
-\centering
-\includegraphics{fig_constraints.pdf}
-\caption{Constraint monitoring: reference run \texttt{PM} (black) against the single-star controls (light gray; solid canonical, dashed phantom). (a)~Hamiltonian constraint $\mathcal{H}$: composite $L_2$ norms (solid) and the reference run's $L_\infty$ (dash--dotted). (b)~Momentum constraint $\mathcal{M}$, $L_2$. The equal-$|M|$ rerun lies indistinguishably under the black curves and is omitted; the dotted line marks the clean-window edge $t=30$.}
-\label{fig:constraints}
-\end{figure}
-
 \emph{Initial data.} \texttt{GRTresna}'s nonlinear iteration contracts monotonically on every run; for \texttt{PM} the Hamiltonian/momentum error falls $100\%\rightarrow0.083\%/0.074\%$ in seven iterations, and every production run exits at ${\leq}0.09\%/{\leq}0.08\%$---the gate quoted in Table~\ref{tab:matrix}, in the solver's own grid and normalization.
 
 \emph{Evolution.} The constraints are re-evaluated on the evolution grid every $\Delta t=0.5$ and reduced to composite norms over the hierarchy (covered coarse cells dropped, outermost four cells excluded so boundary violation is not misread as interior error). Figure~\ref{fig:constraints} shows the record, in absolute code units: over an overwhelmingly vacuum domain a global \emph{relative} normalization is dominated by near-zero denominators, so the yardstick is the controls run under identical numerics.
@@ -390,6 +390,8 @@ All time series, star tables, parameter files, code patches, analysis scripts, a
 Three features carry the message. The birth transient: re-evaluating with fourth-order stencils after the analytic matter reconstruction (Sec.~\ref{sec:initialdata}) gives $L_2(\mathcal{H})\simeq7\times10^{-4}$, relaxing within $t\lesssim1$ to the truncation floor $8\times10^{-5}$. Secular growth: $L_2(\mathcal{H})$ reaches $2.7\times10^{-3}$ at the window edge $t=30$ and $7.7\times10^{-3}$ at $t=60$, $L_\infty(\mathcal{H})$ $0.05$ and $0.9$, concentrated in the deepening canonical well as the pair nears contact and the trapped bath washes back (Sec.~\ref{sec:caveats}); $L_2(\mathcal{M})$ stays below $2\times10^{-4}$ through $t=40$. This growth is the quantitative face of the $t\lesssim30$ window. And decisively: through that window the mixed run's violation is within a factor $1.6$ of the non-drifting single-star controls ($2.7\times10^{-3}$ against $1.7\times10^{-3}$ at $t=30$) while the drifts differ by $50$ to $150$ times---the drift correlates with the sign structure, not the constraint error.
 
 The single refinement level ($\chi$-gradient tagging, regrid every $16$ steps) first activates at $t\approx47.5$ in the mixed runs and never in the singles: every quantitative result was produced on the uniform $\Delta x=0.5$ grid.
+
+\FloatBarrier
 
 \begin{thebibliography}{99}
 
