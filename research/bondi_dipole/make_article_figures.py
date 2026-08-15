@@ -249,9 +249,9 @@ def fig_trajectories():
     ax.plot(t, xp, color="k", ls="--", lw=1.0)
     ax.text(4, 6.5, r"canonical, $M_+>0$", color="k", fontsize=7.3)
     ax.text(3, -6.4, r"phantom, $M_-<0$", color="k", fontsize=7.3)
-    # (t, side, dy): dy drops the t=58 label into the wedge interior so it
-    # clears the canonical worldline
-    for tt, side, dy in ((2.0, "r", 0.0), (40.0, "r", 0.0), (58.0, "l", -1.1)):
+    # third arrow sits at t=55, where the wedge is wide enough that its label
+    # can be centered on the arrow without touching either worldline
+    for tt, side, dy in ((5.0, "r", 0.0), (40.0, "r", 0.0), (55.0, "l", 0.0)):
         a = float(np.interp(tt, t, xc))
         b = float(np.interp(tt, t, xp))
         ax.annotate("", xy=(tt, b), xytext=(tt, a),
@@ -290,7 +290,7 @@ def fig_trajectories():
             color="0.35", va="top")
     # label the controls by proximity, late, where the flat gray lines are the
     # only curves in the neighbourhood (a leader would have to cross curves)
-    bx.text(53.0, 0.42, "controls", fontsize=7.0, color="0.35")
+    bx.text(60.5, 0.45, "controls", fontsize=7.0, color="0.35", ha="right")
     bx.set_xlim(0, 62)
     bx.set_ylim(-0.6, 10)
     bx.set_xlabel("$t$")
