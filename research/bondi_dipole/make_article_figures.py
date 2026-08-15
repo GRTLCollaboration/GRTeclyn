@@ -11,6 +11,7 @@ Outputs (research/bondi_dipole/figures/):
   fig_mirror.pdf         mirror-control overlay
   fig_family.pdf         dressed-star family M(omega)
   fig_sepscaling.pdf     separation scaling vs matched point-mass integrations
+  fig_velocity.pdf       barycentre velocities vs the point-mass model
   fig_constraints.pdf    evolution-time constraint norms (appendix)
 """
 
@@ -282,7 +283,7 @@ def fig_trajectories():
         bx.plot(tt, d, color="0.78", lw=0.6)
     bx.axvline(30, ymax=0.82, color="0.45", ls=":", lw=0.7)
     bx.text(44.0, 6.0, r"$\Phi_-$", color="k", fontsize=8.5)
-    bx.text(55.5, 1.55, r"$\Phi_+$", color="k", fontsize=8.5)
+    bx.text(49.5, 1.15, r"$\Phi_+$", color="k", fontsize=8.5)
     bx.text(2.5, 9.15, r"gray: equal-$|M|$ rerun", fontsize=7.0,
             color="0.35", va="top")
     bx.annotate("controls", xy=(25, 0.14), xytext=(14.0, 1.45),
@@ -483,11 +484,53 @@ def fig_constraints():
     plt.close(fig)
 
 
+# ------------------------------------------------------------------ fig: velocity
+def read_barycenters(cell):
+    """t, x_canon, x_phantom from the continuously sampled barycentre stream."""
+    path = os.path.join(PACK, "data", cell, "sector_barycenters.dat")
+    d = np.loadtxt(path)
+    return d[:, 0], d[:, 2], d[:, 7]
+
+
+def central_diff(t, x, half=5):
+    """Centred difference over +-half samples (+-2.0 time units at dt=0.4)."""
+    v = np.full_like(x, np.nan)
+    v[half:-half] = (x[2 * half:] - x[:-2 * half]) / (t[2 * half:] - t[:-2 * half])
+    return v
+
+
+def fig_velocity():
+    fig, ax = plt.subplots(figsize=(SINGLE, 2.45))
+
+    t, xc, xp = read_barycenters("pair_pm")
+    ax.plot(t, central_diff(t, xc), color="k", ls="-", lw=1.1)
+    ax.plot(t, central_diff(t, xp), color="k", ls="--", lw=1.1)
+
+    # matched point-mass model, for scale
+    tn, dc = series(NEWT, "pair_pm", "drift_canon_pointmass")
+    _, dp = series(NEWT, "pair_pm", "drift_phantom_pointmass")
+    ax.plot(tn, np.gradient(dc, tn), color="0.78", ls="-", lw=0.8)
+    ax.plot(tn, np.gradient(dp, tn), color="0.78", ls="--", lw=0.8)
+
+    ax.axvline(30, color="0.45", ls=":", lw=0.7)
+    ax.text(37.5, 0.30, r"$\Phi_-$", fontsize=8.5)
+    ax.text(50.5, 0.15, r"$\Phi_+$", fontsize=8.5)
+    ax.text(44.0, 0.016, "point mass", fontsize=7.0, color="0.35")
+
+    ax.set_xlim(0, 62)
+    ax.set_ylim(-0.02, 0.48)
+    ax.set_xlabel("$t$")
+    ax.set_ylabel("$v_x$")
+    fig.savefig(os.path.join(OUT, "fig_velocity.pdf"))
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     fig_chase_frames()
     fig_trajectories()
     fig_mirror()
     fig_family()
     fig_sepscaling()
+    fig_velocity()
     fig_constraints()
     print("wrote figures to", OUT)
