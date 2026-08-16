@@ -229,7 +229,7 @@ void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     const auto &tag_arrays = a_tag_box_array.arrays();
     const FixedGridsTagger tagger(Geom().CellSize(0), Level(),
-                                  Geom().ProbLength(0),
+                                  Geom().ProbLength(0) * 2.0,
                                   simParams().initial_params.center);
 
     amrex::ParallelFor(a_tag_box_array,

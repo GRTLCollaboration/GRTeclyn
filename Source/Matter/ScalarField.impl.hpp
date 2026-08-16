@@ -52,8 +52,7 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t, deriv_t>::compute_emtensor(
     out.rho = vars.Pi() * vars.Pi() + 0.5 * Vt + V_of_phi;
 
     // trS = Tr_S_ij
-    out.trS =
-        vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) - 3.0 * V_of_phi;
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU);
 
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)
