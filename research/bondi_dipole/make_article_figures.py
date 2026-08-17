@@ -269,24 +269,27 @@ def fig_trajectories():
     ax.set_ylabel("$x - x_c$")
     ax.set_title("(a)", loc="left")
 
-    # (b) drifts, with the null controls; solid = canonical, dashed =
-    # phantom, gray = equal-|ADM| rerun
+    # (b) drifts, with the null controls; solid/dashed = reference canonical/
+    # phantom, dash-dot/dash-dot-dot = equal-|ADM| rerun, dotted = controls.
+    # Runs are distinguished by LINE STYLE, not by gray level alone: closely
+    # overlapping gray-on-black curves blend together in print.
     for cell, key, color, ls, lw in [
         ("pair_pm", "drift_canon", "k", "-", 1.1),
         ("pair_pm", "drift_phantom", "k", "--", 1.1),
-        ("pair_pm_eqm", "drift_canon", "0.5", "-", 0.9),
-        ("pair_pm_eqm", "drift_phantom", "0.5", "--", 0.9),
+        ("pair_pm_eqm", "drift_canon", "0.35", "-.", 0.9),
+        ("pair_pm_eqm", "drift_phantom", "0.35",
+         (0, (4, 1.2, 1, 1.2, 1, 1.2)), 0.9),
     ]:
         tt, d = series(TRAJ, cell, key)
         bx.plot(tt, d, color=color, ls=ls, lw=lw)
     for cell, key in [("pair_pp", "drift_canon"), ("pair_mm", "drift_phantom"),
                       ("single_p", "drift_canon"), ("single_m", "drift_phantom")]:
         tt, d = series(TRAJ, cell, key)
-        bx.plot(tt, d, color="0.78", lw=0.6)
+        bx.plot(tt, d, color="0.45", ls=(0, (1, 1.5)), lw=0.7)
     bx.axvline(30, ymax=0.82, color="0.45", ls=":", lw=0.7)
     bx.text(44.0, 6.0, r"$\Phi_-$", color="k", fontsize=8.5)
     bx.text(49.5, 1.15, r"$\Phi_+$", color="k", fontsize=8.5)
-    bx.text(2.5, 9.15, r"gray: equal-$|M|$ rerun", fontsize=7.0,
+    bx.text(2.5, 9.15, r"dash--dot: equal-$|M|$ rerun", fontsize=7.0,
             color="0.35", va="top")
     # label the controls by proximity, late, where the flat gray lines are the
     # only curves in the neighbourhood (a leader would have to cross curves)
@@ -297,16 +300,20 @@ def fig_trajectories():
     bx.set_ylabel(r"$\Delta x$")
     bx.set_title("(b)", loc="left")
 
-    # (c) gap: NR closes it, the point-mass model does not
-    for cell, color, label in [("pair_pm", "0.15", "NR"),
-                               ("pair_pm_eqm", "0.55", r"NR, equal $|M|$")]:
+    # (c) gap: NR closes it, the point-mass model does not.  Four curves,
+    # four line styles (the equal-|M| pair in dark gray as a secondary cue).
+    for cell, color, ls, label in [
+        ("pair_pm", "0.15", "-", "NR"),
+        ("pair_pm_eqm", "0.35", "-.", r"NR, equal $|M|$"),
+    ]:
         tt, s = series(TRAJ, cell, "separation")
-        cx.plot(tt, np.abs(s), color=color, label=label)
-    for cell, color, label in [("pair_pm", "0.15", "point mass"),
-                               ("pair_pm_eqm", "0.55",
-                                r"point mass, equal $|M|$")]:
+        cx.plot(tt, np.abs(s), color=color, ls=ls, label=label)
+    for cell, color, ls, label in [
+        ("pair_pm", "0.15", "--", "point mass"),
+        ("pair_pm_eqm", "0.35", (0, (1, 1.5)), r"point mass, equal $|M|$"),
+    ]:
         tt, s = series(NEWT, cell, "sep_pointmass")
-        cx.plot(tt, s, color=color, ls="--", lw=0.9, label=label)
+        cx.plot(tt, s, color=color, ls=ls, lw=0.9, label=label)
     cx.legend(loc="lower left", borderaxespad=0.4)
     cx.set_xlim(0, 62)
     cx.set_ylim(0, 9.3)
@@ -517,10 +524,11 @@ def fig_constraints():
     tp, hamp, momp, _ = read_norms("single_p")
     tm, hamm, momm, _ = read_norms("single_m")
 
-    # (a) Hamiltonian: L2 for all cells, Linf for the reference cell
+    # (a) Hamiltonian: L2 for all cells, Linf for the reference cell.
+    # Controls in dotted / tightly dashed gray: style, not shade, carries them
     ax.plot(t, linf, color="k", ls="-.", lw=0.8)
-    ax.plot(tp, hamp, color="0.78", ls="-", lw=0.7)
-    ax.plot(tm, hamm, color="0.78", ls="--", lw=0.7)
+    ax.plot(tp, hamp, color="0.45", ls=(0, (1, 1.5)), lw=0.7)
+    ax.plot(tm, hamm, color="0.45", ls=(0, (3, 1.2)), lw=0.7)
     ax.plot(t, ham, color="k", ls="-", lw=1.0)
     ax.axvline(30, color="0.45", ls=":", lw=0.7)
     ax.text(10.0, 3.2e-2, r"$L_\infty$", fontsize=7.0, color="0.2")
@@ -535,8 +543,8 @@ def fig_constraints():
     ax.set_title("(a)", loc="left")
 
     # (b) momentum: L2 only
-    bx.plot(tp, momp, color="0.78", ls="-", lw=0.7)
-    bx.plot(tm, momm, color="0.78", ls="--", lw=0.7)
+    bx.plot(tp, momp, color="0.45", ls=(0, (1, 1.5)), lw=0.7)
+    bx.plot(tm, momm, color="0.45", ls=(0, (3, 1.2)), lw=0.7)
     bx.plot(t, mom, color="k", ls="-", lw=1.0)
     bx.axvline(30, color="0.45", ls=":", lw=0.7)
     bx.annotate("controls", xy=(28.0, 1.35e-4), xytext=(13.0, 3.6e-5),
@@ -577,11 +585,12 @@ def fig_velocity():
     ax.plot(t, central_diff(t, xc), color="k", ls="-", lw=1.1)
     ax.plot(t, central_diff(t, xp), color="k", ls="--", lw=1.1)
 
-    # matched point-mass model, for scale
+    # matched point-mass model, for scale: dotted (canonical) and dash-dotted
+    # (phantom) so it survives grayscale print next to the black NR curves
     tn, dc = series(NEWT, "pair_pm", "drift_canon_pointmass")
     _, dp = series(NEWT, "pair_pm", "drift_phantom_pointmass")
-    ax.plot(tn, np.gradient(dc, tn), color="0.78", ls="-", lw=0.8)
-    ax.plot(tn, np.gradient(dp, tn), color="0.78", ls="--", lw=0.8)
+    ax.plot(tn, np.gradient(dc, tn), color="0.4", ls=(0, (1, 1.5)), lw=0.9)
+    ax.plot(tn, np.gradient(dp, tn), color="0.4", ls="-.", lw=0.9)
 
     ax.axvline(30, color="0.45", ls=":", lw=0.7)
     ax.text(37.5, 0.30, r"$\Phi_-$", fontsize=8.5)

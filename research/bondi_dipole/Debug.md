@@ -142,10 +142,17 @@ needs to be re-made from the improved runs).
   thick-wall ω→m and thin-wall ω→ω_min limits). Extract R(ω) from
   `analysis/star_family_scan.py` / `boson_star_ode`; if non-monotonic, fix the
   "more compact stars (higher ω)" sentence in Discussion.
-- **Figures**: regenerate with distinct line styles (dotted / dot-dashed /
-  tight-dashed) instead of gray shades in Figs. 4b and 5; hunt down the stray
-  "1" artifacts in Figs. 1–8 captions/panels. Figures rebuild from the results
-  pack by script (see Reproducibility section / `pack_results.sh`).
+- **Figures**: DONE 2026-08-17. `make_article_figures.py` restyled so line
+  style, not gray shade, distinguishes runs: Fig. 4b — PM-eq now dash-dot
+  (Φ₊) / dash-dot-dot (Φ₋) at 0.35 gray, controls dotted at 0.45 (was 0.78
+  light gray); Fig. 4c — four distinct styles (solid / dash-dot / dashed /
+  dotted); Fig. 5 — point-mass model dotted (canonical) / dash-dotted
+  (phantom) at 0.4 (was 0.78); Fig. 8 — controls dotted / tightly dashed at
+  0.45. Captions updated to match; regenerated and visually verified.
+  The reviewer's "stray '1' artifacts in Figs. 1–8": **not reproducible** in
+  the current PDFs (all eight inspected panel by panel) — likely fixed by the
+  earlier "update figure annotations" commit or a viewer artifact on their
+  side; re-check once more on the submission build.
 - **Error bars**: derive preliminary scatter-based error bars from the four
   control runs for every headline number (superseded by A when it lands).
 
