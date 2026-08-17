@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Launch the next bondi cell as soon as the predecessor RELEASES ITS GPU.
+#
+#   bash chain_on_gpu_free.sh <wait-for-runs-dir> <new-tag> <launcher.sh> [VAR=VAL ...]
+#
+# Why this exists alongside chain_next.sh (2026-08-17): chain_next.sh waits for
+# the whole predecessor launcher to exit, and the launcher outlives the
+# evolution by the time its consumer needs to turn the leftover plotfiles into
+# frames -- CPU-only work that ran ~1 h after the N=256 control reached t=60.
+# During that hour the GPU sits idle.  This variant watches only the evolution
+# binary (main3d), so the successor starts the moment the device is free while
+# the predecessor's post-processing finishes in parallel on the CPUs.
+#
+# chain_next.sh is left untouched and stays the default: waiting for the whole
+# launcher is the conservative choice for campaigns whose successor needs the
+# predecessor's *processed* output.  Bondi cells are independent, so releasing
+# on the GPU is safe here.
+#
+# Double-launch is impossible even if an older chain_next.sh watcher is still
+# parked on the same successor: run_pair_selfgrav.sh exits without touching
+# anything when its output directory already exists, and this script checks the
+# same directory before launching.
+set -euo pipefail
+
+REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+cd "${REPO_ROOT}"
+
+WAIT_DIR="$1"; shift
+TAG="$1"; shift
+LAUNCHER="$1"; shift
+
+CAMP="grteclyn-wrapper/scripts/campaigns/bondi_dipole"
+OUT="${REPO_ROOT}/runs/bondi_rerun"
+
+# Is the predecessor's evolution binary still holding the GPU?
+#
+# `pgrep -f "${WAIT_DIR}"` matches this script's own argv and every other
+# watcher, so filter on the command being the evolution binary itself -- the
+# consumer, launcher and replay driver deliberately do NOT count here.
+gpu_held() {
+  local pid cmd
+  for pid in $(pgrep -f "${WAIT_DIR}" 2>/dev/null); do
+    [ "${pid}" = "$$" ] && continue
+    cmd="$(tr '\0' ' ' < "/proc/${pid}/cmdline" 2>/dev/null || true)"
+    case "${cmd}" in
+      *main3d*) return 0 ;;
+      *) continue ;;
+    esac
+  done
+  return 1
+}
+
+echo "[chain-gpu] waiting for '${WAIT_DIR}' to release its GPU before starting ${TAG}"
+while gpu_held; do
+  sleep 30
+done
+
+if [[ -d "${OUT}/${TAG}" ]]; then
+  echo "[chain-gpu] ${TAG} already exists -- another watcher got there first; nothing to do"
+  exit 0
+fi
+
+echo "[chain-gpu] GPU released; launching ${TAG}"
+setsid nohup /usr/bin/env "$@" BONDI_RUNS_DIR="${OUT}/${TAG}" \
+  bash "${CAMP}/${LAUNCHER}" \
+  > "${OUT}/${TAG}.launch.log" 2>&1 < /dev/null &
+disown
+
+sleep 10
+echo "[chain-gpu] ${TAG} launched"

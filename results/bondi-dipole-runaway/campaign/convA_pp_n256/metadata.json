@@ -94,6 +94,8 @@
   },
   "plotfile_dir": "/tmp/grteclyn_scratch/convA_pp_n256_bondi_sg_pair_pp_f3daa11c",
   "repo_root": "$GRTECLYN_ROOT",
+  "simulation_elapsed_seconds": 15973.835267805494,
+  "simulation_exit_code": 0,
   "solved_geometry_ftl": {
     "degenerate": 0.0,
     "f_op": 0.0,

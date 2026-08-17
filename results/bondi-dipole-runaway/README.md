@@ -79,46 +79,122 @@ the streams are absolute; drifts quoted anywhere in this pack are
 | `trajectories.csv` | drift / separation / core series for every cell, sampled every Δt = 4 |
 | `newtonian_reference.csv` | point-mass Bondi integration with the measured ADM masses, aligned to the NR output |
 | `convergence_check.csv`, `convergence_check.md` | drift / gap / control artefact across grid resolutions, with the spread between grids |
+| `wave_check.csv`, `wave_check.md` | gravitational-wave amplitude on each extraction shell in retarded time, and whether the shells agree |
 | `make_tables.py` | regenerates `summary.*` and `trajectories.csv` from `data/` |
 | `newtonian_reference.py` | regenerates the point-mass reference (pure stdlib RK4) |
 | `convergence_check.py` | regenerates `convergence_check.*` from `campaign/` |
+| `wave_check.py` | regenerates `wave_check.*` from `campaign/` |
 | `star_family_scan.py` | regenerates `stars/star_family.csv` (needs the wrapper venv) |
 
-## campaign/ — the error-bar campaign (2026-08-17, in progress)
+## campaign/ — the error-bar campaign (2026-08-17, complete)
 
-The headline numbers above come from adaptive-mesh runs at a single
-resolution. To attach error bars, the same physics is being rerun on uniform
-grids at three sharpness levels — `n128 / n192 / n256` = cells across the box,
-higher = finer — plus a double-size box for clean wave extraction. Each
+The headline numbers above come from adaptive-mesh runs at a single resolution.
+To attach error bars, the same physics was rerun on **uniform** grids (no mesh
+refinement — the convergence math needs a single cell size everywhere) at three
+sharpness levels, plus a double-size box for wave extraction. Every
 `campaign/<cell>/` folder carries the same streams and provenance files as
-`data/<cell>/` (same data dictionary), plus a few reference frames under
-`frames/`, named by plotfile step.
+`data/<cell>/` (same data dictionary), plus reference frames under `frames/` —
+matter (`scalar_activity_z`) and geometry (`chi_minus_1_z`) on the z slice,
+one every Δt = 10 plus the final state, named by simulation time
+(`scalar_activity_z_t0030.png` is that field at t = 30). That is 7 per field
+for the t = 60 cells and 10 for the t = 90 double-box cells.
 
-| cell | what it is | status |
-|---|---|---|
-| `convA_pm_n128/192/256` | the runaway pair at three resolutions | 128 + 192 complete (t = 60); 256 finishing |
-| `convA_pp_n128/192/256` | two-positive control, same three levels | 128 + 192 complete; 256 finishing |
-| `convA_pm_eqm_n128/192/256` | equal-mass pair, same three levels | queued — appears here once running |
-| `boxC_pm_L128_n256`, `boxC_pp_L128_n256` | double-size box, waves measured 4× further out, run to t = 90 | running |
+### The eleven runs
 
-**Verdict so far** (full tables: [`analysis/convergence_check.md`](analysis/convergence_check.md)):
-the runaway drift is resolution-independent — all three grids agree to ~2 % at
-t = 15 and the agreement tightens with time — while the control's spurious
-drift falls by roughly half at each resolution step and extrapolates to
-≈ −0.0003 against an effect of +0.214 at t = 20. Real physics survives grid
-refinement; the artefact does not. (That is also why the control table shows
-a huge "spread": for an artefact, disagreement between grids is the expected,
-healthy outcome.)
+`pm` = one positive + one phantom star (the runaway pair). `pp` = two positive
+stars (control — it must not run away). `eqm` = phantom retuned so both stars
+have the same |ADM| mass. All were released from rest, 8 apart.
 
-Notes for reading `campaign/` cells:
+| cell | box | grid | cell size | matter | what it is for |
+|---|---|---|---|---|---|
+| `convA_pm_n128` | 64 | 128³ | 0.50 | runaway pair | coarse leg of the resolution ladder |
+| `convA_pm_n192` | 64 | 192³ | 0.33 | runaway pair | middle leg |
+| `convA_pm_n256` | 64 | 256³ | 0.25 | runaway pair | fine leg — **quoted values come from here** |
+| `convA_pp_n128` | 64 | 128³ | 0.50 | control, two positive | coarse leg of the artefact ladder |
+| `convA_pp_n192` | 64 | 192³ | 0.33 | control, two positive | middle leg |
+| `convA_pp_n256` | 64 | 256³ | 0.25 | control, two positive | fine leg — the residual drift here is the error floor |
+| `convA_pm_eqm_n128` | 64 | 128³ | 0.50 | equal-mass pair | does the runaway need a mass difference? coarse leg |
+| `convA_pm_eqm_n192` | 64 | 192³ | 0.33 | equal-mass pair | middle leg |
+| `convA_pm_eqm_n256` | 64 | 256³ | 0.25 | equal-mass pair | fine leg |
+| `boxC_pm_L128_n256` | 128 | 256³ | 0.50 | runaway pair | waves on four shells (r = 16, 24, 32, 40) and the box-size systematic; run to t = 90 |
+| `boxC_pp_L128_n256` | 128 | 256³ | 0.50 | control, two positive | the same for the control |
 
-- These are uniform-grid runs (no mesh refinement) — required for the
-  convergence math. Their AMR twin for the mixed pair is `data/pair_pm`.
-- The two `boxC` cells live in a 128-wide box centred at `64 64 64`, so a
-  drift there is `bary_x − 64`, not `− 32` as everywhere else in this pack.
-- Cells still running are packed as-is (series end early); re-running the
-  pack script refreshes them — each cell folder is rebuilt from scratch and
-  nothing outside `campaign/` and `analysis/convergence_check.*` is touched.
+The two `boxC` cells trade resolution for reach: 256³ spread over twice the
+width gives cell size 0.50, so compare them against the `n128` column, not
+`n256`. Their drifts are measured from the box centre `64 64 64`, not `32 32 32`.
+
+### What the campaign shows
+
+Full tables: [`analysis/convergence_check.md`](analysis/convergence_check.md).
+
+The runaway drift is resolution-independent — the three grids agree to 2.2 % at
+t = 15 and to 0.5 % at t = 60 — while the control's spurious drift falls by
+roughly half at every resolution step. The effect therefore pulls away from the
+artefact as the run proceeds: on the finest grid the runaway beats the control
+by 8.4× at t = 15, 9.8× at t = 20, 56× at t = 40 and 179× at t = 60. Real
+physics survives grid refinement; the artefact does not. (That is also why the
+control table shows a huge "spread": for an artefact, disagreement between
+grids is the expected, healthy outcome.)
+
+The equal-mass series reproduces the runaway with the mass asymmetry removed:
+its drift is 3 % below the unequal-mass pair (+6.227 vs +6.407 at t = 60),
+well outside the 0.3–0.5 % grid spread — a resolved physical difference, not
+noise. The runaway does not depend on one star outweighing the other.
+
+**No successive-difference order fit is quotable.** The three-grid ratios sit
+at 0.2–1.6, below the 1.41 that any positive convergence order requires, so the
+error is dominated by initial-data offsets (~1e-3) rather than by a clean
+truncation term. Quote the grid-to-grid spread as the error bar, not an order.
+
+**Trust window: t ≲ 50.** Both lumps stay localized (spread ≈ 10, separation
+≈ 5) up to there. Past t ≈ 55 their spreads exceed their separation; in the
+double box they cross at t ≈ 65 and the matter then disperses — by t = 90 the
+peak matter density has fallen 30× and essentially nothing is still bound. That
+break-up is *converged* (the spread agrees to 2.5 % across the three grids), so
+it is a property of this matter model, not grid error — but past it the
+per-sector barycentre no longer means "where the star is", so the apparent
+slow-down of the drift after t ≈ 65 in `boxC_pm` is a diagnostic artefact of
+merged matter, not a physical deceleration.
+
+### Gravitational waves
+
+Full tables: [`analysis/wave_check.md`](analysis/wave_check.md).
+
+A wave amplitude is only quotable if every extraction shell sees the same
+outgoing wave once each is read at its own retarded time `u = t − r`, so that
+`r × Ψ₄` is radius-independent. For the runaway pair it is:
+
+| check | result |
+|---|---|
+| shells agree (4 shells, r = 16 → 40) | within 1.1–1.4× over `u = 10 … 25` |
+| across resolutions (n128 / n192 / n256) | **0.3 %** |
+| across box sizes (L = 64 vs L = 128) | **0.1 %** |
+| equal-mass pair | emits ≈ 6 % less than the unequal pair |
+
+So the l = 2, m = 0 amplitude over `u = 10 … 25` is a converged, box-independent
+measurement. Outside that window it is not: before `u ≈ 10` the shells still
+carry start-up junk from the initial data, and after `u ≈ 25` the expanding
+matter reaches the shells (it crosses r = 16 at t ≈ 51), which is what ends the
+window — not the box size.
+
+**The two-positive control has no usable wave window at all**: its shells never
+agree on one wave for two consecutive samples, because its matter reaches the
+innermost shell at t ≈ 31. Do not quote a control wave amplitude.
+
+**A bigger box is not worth running.** The double box already reproduces the
+small box's wave amplitude to 0.1 %, so reach is not the limitation — the
+matter expanding onto the shells is, and that happens at the same physical time
+in any box. A quadruple-size box at this cell size is also not possible on this
+machine: 512³ needs roughly 460 GB against 81 GB per GPU, and multi-rank runs
+are broken here. The only thing more box would buy is the post-break-up phase,
+which is not a claim this pack makes.
+
+### Reading notes
+
+- These are uniform-grid runs; the AMR twin of the mixed pair is `data/pair_pm`.
+- `boxC` drifts are `bary_x − 64`, not `− 32` as everywhere else in this pack.
+- Re-running the pack script rebuilds every cell folder from scratch; nothing
+  outside `campaign/` and the `analysis/*_check.*` tables is touched.
 
 ## Reproducing
 

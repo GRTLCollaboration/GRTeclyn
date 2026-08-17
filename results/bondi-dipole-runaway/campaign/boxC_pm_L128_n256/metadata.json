@@ -94,6 +94,8 @@
   },
   "plotfile_dir": "/tmp/grteclyn_scratch/boxC_pm_L128_n256_bondi_sg_pair_pm_795992b1",
   "repo_root": "$GRTECLYN_ROOT",
+  "simulation_elapsed_seconds": 11968.028178833425,
+  "simulation_exit_code": 0,
   "solved_geometry_ftl": {
     "degenerate": 0.0,
     "f_op": 0.0026931966261210323,

@@ -11,18 +11,36 @@ runaway pair (pm),pair drift,20.0,256,0.213707
 runaway pair (pm),gap,20.0,128,7.838321
 runaway pair (pm),gap,20.0,192,7.845019
 runaway pair (pm),gap,20.0,256,7.852359
-runaway pair (pm),pair drift,28.5,128,0.659931
-runaway pair (pm),pair drift,28.5,192,0.656689
-runaway pair (pm),pair drift,28.5,256,0.653410
-runaway pair (pm),gap,28.5,128,7.687708
-runaway pair (pm),gap,28.5,192,7.693429
-runaway pair (pm),gap,28.5,256,7.704797
+runaway pair (pm),pair drift,60.0,128,6.436472
+runaway pair (pm),pair drift,60.0,192,6.425301
+runaway pair (pm),pair drift,60.0,256,6.406536
+runaway pair (pm),gap,60.0,128,1.794180
+runaway pair (pm),gap,60.0,192,1.824223
+runaway pair (pm),gap,60.0,256,1.857633
+equal-mass pair (pm_eqm),pair drift,15.0,128,0.088688
+equal-mass pair (pm_eqm),pair drift,15.0,192,0.087855
+equal-mass pair (pm_eqm),pair drift,15.0,256,0.086887
+equal-mass pair (pm_eqm),gap,15.0,128,7.896465
+equal-mass pair (pm_eqm),gap,15.0,192,7.901880
+equal-mass pair (pm_eqm),gap,15.0,256,7.906266
+equal-mass pair (pm_eqm),pair drift,20.0,128,0.206289
+equal-mass pair (pm_eqm),pair drift,20.0,192,0.204856
+equal-mass pair (pm_eqm),pair drift,20.0,256,0.203271
+equal-mass pair (pm_eqm),gap,20.0,128,7.815268
+equal-mass pair (pm_eqm),gap,20.0,192,7.822254
+equal-mass pair (pm_eqm),gap,20.0,256,7.829411
+equal-mass pair (pm_eqm),pair drift,60.0,128,6.245855
+equal-mass pair (pm_eqm),pair drift,60.0,192,6.242459
+equal-mass pair (pm_eqm),pair drift,60.0,256,6.226512
+equal-mass pair (pm_eqm),gap,60.0,128,1.388057
+equal-mass pair (pm_eqm),gap,60.0,192,1.395228
+equal-mass pair (pm_eqm),gap,60.0,256,1.420316
 control (pp),control drift,15.0,128,-0.040522
 control (pp),control drift,15.0,192,-0.022881
 control (pp),control drift,15.0,256,-0.010661
 control (pp),control drift,20.0,128,-0.062834
 control (pp),control drift,20.0,192,-0.038561
 control (pp),control drift,20.0,256,-0.021796
-control (pp),control drift,36.5,128,-0.089239
-control (pp),control drift,36.5,192,-0.061410
-control (pp),control drift,36.5,256,-0.035671
+control (pp),control drift,60.0,128,0.149027
+control (pp),control drift,60.0,192,0.079938
+control (pp),control drift,60.0,256,0.035858

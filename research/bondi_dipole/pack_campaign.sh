@@ -78,35 +78,66 @@ PY
   found_txt=$(find "${out}" -maxdepth 1 \( -name '*.txt' -o -name '*.json' \))
   [[ -n "${found_txt}" ]] && scrub ${found_txt}
 
-  # Curated frames: first / one-third / two-thirds / latest of what exists so
-  # far, named by plotfile step (a live run's "latest" is replaced on rerun).
+  # Curated frames: one every FRAME_STRIDE in simulation time (plus the final
+  # frame), so a t = 60 cell keeps 7 per field and a t = 90 cell keeps 10.
+  # Named by simulation time, matching pack_results.sh.  A plotfile's time is
+  # step * dt with dt = dt_multiplier * L_full / N_full, all three read back
+  # from the params file just packed; if any is missing the old
+  # fraction-of-the-run selection is used instead, named by step.
   for field in scalar_activity_z chi_minus_1_z; do
     fdir="${run}/frames/${field}/frames"
     [[ -d "${fdir}" ]] || continue
-    FIELD="${field}" OUT="${out}/frames" python3 - "${fdir}" <<'PY'
+    FIELD="${field}" OUT="${out}/frames" PARAMS="${out}/evolution_params.txt" \
+      FRAME_STRIDE="${FRAME_STRIDE:-10}" python3 - "${fdir}" <<'PY'
 import os, pathlib, re, shutil, sys
 
-frames = sorted(
-    pathlib.Path(sys.argv[1]).glob("*.png"),
-    key=lambda p: int(re.search(r"(\d+)\s*$", p.stem).group(1)),
-)
+step_of = lambda p: int(re.search(r"(\d+)\s*$", p.stem).group(1))
+frames = sorted(pathlib.Path(sys.argv[1]).glob("*.png"), key=step_of)
 if not frames:
     raise SystemExit(0)
-field, out = os.environ["FIELD"], pathlib.Path(os.environ["OUT"])
+
+field = os.environ["FIELD"]
+out = pathlib.Path(os.environ["OUT"])
+stride = float(os.environ["FRAME_STRIDE"])
+
+need = {"dt_multiplier", "L_full", "N_full"}
+vals = {}
+params = pathlib.Path(os.environ["PARAMS"])
+if params.is_file():
+    for line in params.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"\s*(dt_multiplier|L_full|N_full)\s*=\s*([0-9.eE+-]+)", line)
+        if m:
+            vals[m.group(1)] = float(m.group(2))
+
 out.mkdir(parents=True, exist_ok=True)
-n = len(frames)
-for frac in (0.0, 1 / 3, 2 / 3, 1.0):
-    idx = min(n - 1, round(frac * (n - 1)))
-    step = int(re.search(r"(\d+)\s*$", frames[idx].stem).group(1))
-    shutil.copy2(frames[idx], out / f"{field}_step{step:05d}.png")
+if need <= set(vals) and vals["N_full"]:
+    dt = vals["dt_multiplier"] * vals["L_full"] / vals["N_full"]
+    times = [step_of(f) * dt for f in frames]
+    targets = [k * stride for k in range(int(times[-1] // stride) + 1)]
+    if times[-1] - targets[-1] >= stride / 2:   # keep the end of a run that
+        targets.append(times[-1])               # stops between two decades
+    picked = []
+    for want in targets:
+        i = min(range(len(times)), key=lambda j: abs(times[j] - want))
+        if i not in picked:
+            picked.append(i)
+    for i in picked:
+        shutil.copy2(frames[i], out / f"{field}_t{times[i]:04.0f}.png")
+else:
+    n = len(frames)
+    for frac in (0.0, 1 / 3, 2 / 3, 1.0):
+        i = min(n - 1, round(frac * (n - 1)))
+        shutil.copy2(frames[i], out / f"{field}_step{step_of(frames[i]):05d}.png")
 PY
   done
 
   echo "[pack-campaign] campaign/${cell}: $(find "${out}" -type f | wc -l) files"
 done
 
-# Cross-resolution check: rebuilt from whatever campaign cells are packed.
+# Derived tables: each analysis owns its own module and its own output files,
+# and is rebuilt from whatever campaign cells are packed.
 python3 "${DEST}/analysis/convergence_check.py" "${DEST}"
+python3 "${DEST}/analysis/wave_check.py" "${DEST}"
 
 echo "[pack-campaign] total campaign size: $(du -sh "${DEST}/campaign" | cut -f1)"
 echo "[pack-campaign] done"
