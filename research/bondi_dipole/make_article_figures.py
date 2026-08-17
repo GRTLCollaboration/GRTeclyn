@@ -12,6 +12,7 @@ Outputs (research/bondi_dipole/figures/):
   fig_family.pdf         dressed-star family M(omega)
   fig_sepscaling.pdf     separation scaling vs matched point-mass integrations
   fig_velocity.pdf       barycentre velocities vs the point-mass model
+  fig_weyl.pdf           l=2 Weyl amplitude: growth, controls, velocity lockstep
   fig_constraints.pdf    evolution-time constraint norms (appendix)
 """
 
@@ -605,6 +606,137 @@ def fig_velocity():
     plt.close(fig)
 
 
+# ---------------------------------------------------------------- fig: weyl
+def read_l2_modes(cell):
+    """t and the five complex (l=2,m) amplitudes r*psi4 at each shell.
+
+    psi4_mode_l2_all.dat columns: time, then (Re,Im) pairs for m=-2..2 at
+    R=8, then the same ten columns at R=16.
+    """
+    path = os.path.join(PACK, "data", cell, "psi4_mode_l2_all.dat")
+    d = np.loadtxt(path)
+    modes = {}
+    for ri, R in enumerate((8, 16)):
+        base = 1 + ri * 10
+        for mi, m in enumerate((-2, -1, 0, 1, 2)):
+            modes[(R, m)] = d[:, base + 2 * mi] + 1j * d[:, base + 2 * mi + 1]
+    return d[:, 0], modes
+
+
+def l2_amplitude(modes, R):
+    return np.sqrt(sum(np.abs(modes[(R, m)]) ** 2 for m in (-2, -1, 0, 1, 2)))
+
+
+def fig_weyl():
+    fig, (wx, ax, bx) = plt.subplots(3, 1, figsize=(SINGLE, 5.5), sharex=True)
+
+    # (a) the raw waveform at the outer shell: a monotone, chirpless ramp in
+    # the mixed run against the non-secular wander of the same-sign controls
+    t_pm, modes_pm = read_l2_modes("pair_pm")
+    wx.plot(t_pm, 1e3 * np.real(modes_pm[(16, 0)]), color="k", ls="-", lw=1.1,
+            zorder=5, label=r"\texttt{PM}")
+    for cell, ls in (("pair_pp", (0, (1, 1.5))), ("pair_mm", (0, (3, 1.2)))):
+        tc, mc = read_l2_modes(cell)
+        wx.plot(tc, 1e3 * np.real(mc[(16, 0)]), color="0.45", ls=ls, lw=0.7,
+                label=rf"\texttt{{{cell[5:].upper()}}}")
+    wx.legend(loc="lower left", borderaxespad=0.4)
+    wx.set_ylabel(r"$10^3\,r\,\mathrm{Re}\,\psi_4^{2,0}$")
+    wx.set_title("(a)", loc="left")
+
+    # (b) total l=2 amplitude at R=16: mixed cells vs the same-sign controls.
+    # Style, not shade, separates the runs (as everywhere in the article).
+    A_pm = l2_amplitude(modes_pm, 16)
+    ax.plot(t_pm, A_pm, color="k", ls="-", lw=1.1, zorder=5)
+    t_eq, modes_eq = read_l2_modes("pair_pm_eqm")
+    ax.plot(t_eq, l2_amplitude(modes_eq, 16), color="0.35", ls="-.", lw=0.9,
+            zorder=4)
+    t_mp, modes_mp = read_l2_modes("pair_mp_mirror")
+    A_mp = l2_amplitude(modes_mp, 16)
+    ax.plot(t_mp[::5], A_mp[::5], ls="none", marker="o", ms=2.7,
+            markerfacecolor="white", markeredgewidth=0.7,
+            markeredgecolor="k", zorder=6)
+    for cell, ls in (("pair_pp", (0, (1, 1.5))), ("pair_mm", (0, (3, 1.2)))):
+        tc, mc = read_l2_modes(cell)
+        ax.plot(tc, l2_amplitude(mc, 16), color="0.45", ls=ls, lw=0.7)
+
+    handles = [
+        Line2D([], [], color="k", ls="-", lw=1.1, label=r"\texttt{PM}"),
+        Line2D([], [], color="0.35", ls="-.", lw=0.9,
+               label=r"\texttt{PM-eq}"),
+        Line2D([], [], color="k", lw=0, marker="o", ms=2.7,
+               markerfacecolor="white", markeredgewidth=0.7,
+               label=r"\texttt{MP} mirror"),
+        Line2D([], [], color="0.45", ls=(0, (1, 1.5)), lw=0.7,
+               label=r"\texttt{PP}"),
+        Line2D([], [], color="0.45", ls=(0, (3, 1.2)), lw=0.7,
+               label=r"\texttt{MM}"),
+    ]
+    ax.legend(handles=handles, loc="lower right", borderaxespad=0.4, ncol=2,
+              columnspacing=1.0)
+    ax.set_yscale("log")
+    ax.set_ylim(3e-6, 3e-2)
+    ax.set_ylabel(r"$A_{\ell=2}$")
+    ax.set_title("(b)", loc="left")
+
+    # (c) the reference-run amplitude against the rescaled pair speed: the
+    # near-zone quadrupole curvature rises in lockstep with the runaway.
+    tb, xc, xp = read_barycenters("pair_pm")
+    v = central_diff(tb, 0.5 * (xc + xp))
+    Ai = np.interp(tb, t_pm, A_pm)
+    ok = np.isfinite(v) & (tb >= 5) & (tb <= 55)
+    kappa = float(np.sum(Ai[ok] * np.abs(v[ok])) / np.sum(v[ok] ** 2))
+    corr = float(np.corrcoef(Ai[ok], np.abs(v[ok]))[0, 1])
+
+    bx.plot(t_pm, A_pm, color="k", ls="-", lw=1.1,
+            label=r"$A_{\ell=2}$, run \texttt{PM}")
+    bx.plot(tb, kappa * np.abs(v), color="0.4", ls="--", lw=0.9,
+            label=rf"$\kappa\,|\dot X|$, $\kappa={kappa:.3f}$")
+    bx.axvline(30, color="0.45", ls=":", lw=0.7)
+    bx.legend(loc="upper left", borderaxespad=0.4)
+    bx.set_xlim(0, 62)
+    bx.set_ylim(-0.0002, 0.0068)
+    bx.set_xlabel("$t$")
+    bx.set_ylabel(r"$A_{\ell=2}$")
+    bx.set_title("(c)", loc="left")
+
+    fig.subplots_adjust(hspace=0.14)
+    fig.savefig(os.path.join(OUT, "fig_weyl.pdf"))
+    plt.close(fig)
+
+    # ---- numbers quoted in the article text -------------------------------
+    print("fig_weyl stats:")
+    print(f"  corr(A16,|v|) 5<=t<=55 (central diff +-2): {corr:.3f}")
+    print(f"  kappa: {kappa:.4f}")
+    for cell, (tc, mc) in (("pair_pm", (t_pm, modes_pm)),
+                           ("pair_pm_eqm", (t_eq, modes_eq)),
+                           ("pair_mp_mirror", (t_mp, modes_mp))):
+        A = l2_amplitude(mc, 16)
+        floor = np.mean(A[(tc >= 0) & (tc <= 10)])
+        late = np.mean(A[(tc >= 55) & (tc <= 60)])
+        print(f"  growth {cell}: {late / floor:.0f}x "
+              f"({floor:.2e} -> {late:.2e})")
+    n = min(len(t_pm), len(t_mp))
+    rel = np.max(np.abs(A_pm[:n] - A_mp[:n])) / np.max(A_pm[:n])
+    print(f"  mirror amplitude reproduction: max rel {rel:.3f}")
+    sel = (t_pm >= 45) & (t_pm <= 60)
+    p = {m: np.mean(np.abs(modes_pm[(16, m)][sel]) ** 2)
+         for m in (-2, -1, 0, 1, 2)}
+    print(f"  m=+-1 power fraction (45-60): {(p[1] + p[-1]) / sum(p.values()):.4f}")
+    A8 = l2_amplitude(modes_pm, 8)
+    for tt in (30, 60):
+        i = int(np.argmin(np.abs(t_pm - tt)))
+        print(f"  A(R=8)/A(R=16) at t={tt}: {A8[i] / A_pm[i]:.1f}")
+    # spectral content of the amplitude signal, growth phase
+    from numpy.fft import rfft, rfftfreq
+    selg = (t_pm >= 15) & (t_pm <= 60)
+    y = A_pm[selg] - np.mean(A_pm[selg])
+    Y = np.abs(rfft(y * np.hanning(len(y)))) ** 2
+    f = rfftfreq(len(y), t_pm[1] - t_pm[0]) * 2.0 * np.pi
+    print(f"  A16 spectral fraction below omega=0.4: {Y[f < 0.4].sum() / Y.sum():.4f}")
+    print(f"  ... in [0.45,0.65] (field omega): {Y[(f > 0.45) & (f < 0.65)].sum() / Y.sum():.2e}")
+    print(f"  ... in [1.0,1.2] (2 omega): {Y[(f > 1.0) & (f < 1.2)].sum() / Y.sum():.2e}")
+
+
 if __name__ == "__main__":
     fig_chase_frames()
     fig_trajectories()
@@ -613,5 +745,6 @@ if __name__ == "__main__":
     fig_family()
     fig_sepscaling()
     fig_velocity()
+    fig_weyl()
     fig_constraints()
     print("wrote figures to", OUT)

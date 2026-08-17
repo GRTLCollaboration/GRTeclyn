@@ -101,13 +101,36 @@ segfaults on the node).
   plot P_signed(t) = ∫(S_i[Φ₊] − S_i[Φ₋])dV decomposed by sector and by
   region (core spheres vs halo vs boundary flux). Must close to truncation
   error. Then restore conclusion (3) to a measurement.
-- **C. Boundary problem** (blocks separation-scaling finals): implement a
+- **C. Boundary problem + wave-zone Weyl** (blocks separation-scaling finals
+  AND the radiated-energy question raised in the new Sec. VI): implement a
   **sponge layer** (Kreiss–Oliger dissipation profile ramping up near the
   boundary) *and/or* enlarge the domain to L ≥ 128 (ideally 256 so boundaries
   stay causally disconnected past t = 60). Code change in RadialRecipe +
-  **rebuild** (GPU build on cluster after pull). Move Ψ₄ shells out (R ≥ 32)
-  or drop them. Massive-field modes reflect perfectly off Sommerfeld
-  boundaries — this is why the window is capped at t = 60.
+  **rebuild** (GPU build on cluster after pull). Massive-field modes reflect
+  perfectly off Sommerfeld boundaries — this is why the window is capped at
+  t = 60. Weyl program on the enlarged domain (the near-zone analysis of
+  2026-08-17 cannot settle any of these):
+  - Move the Ψ₄ shells into the wave zone (R ≥ 32, several shells to verify
+    the r⁰ peel of r·ψ₄; today's shells at 8/16 show r·ψ₄ falling 5–10×
+    between them — pure near zone).
+  - **Extend the extraction to l = 3 (and l = 4)** in
+    `grteclyn-wrapper/.../extraction/psi4.py` — currently l = 2 only. The
+    odd-l/even-l interference carries the momentum-flux beaming along the
+    runaway (x) axis; l = 1 does NOT exist for ψ₄ (spin weight −2), which the
+    paper now states explicitly against the "dipole GW" expectation. This is
+    a **local CPU code change** that must land before the rerun (extraction
+    happens live in the streaming consumer; plotfiles are purged).
+  - **Net radiated energy sign** for the mixed pair (positive, negative, or
+    inter-sector cancellation) from wave-zone dE/dt — the headline follow-up
+    number; Sec. VI promises it.
+  - **ADM mass + momentum surface integrals** at the outer boundary vs time
+    (should stay ≈ const; PM-eq should give ADM ≈ 0 globally) — decouples the
+    conservation statement from scalar-field centroids.
+  - **Bonnor–Swaminarayan benchmark**: compute the B&S acceleration parameter
+    for (M₊, M₋, d₀) and compare with the measured early-time coordinate
+    acceleration, per run — the strong-field analogue of Table II.
+  - Optional figure for the follow-up: shift vector β^x profile along the
+    axis (frame dragging of the runaway — matter-free velocity proxy).
 - **D. AMR from t = 0** (fixes §1): `ChiTagger` cannot see weak-field stars.
   Add a field-based tagger (tag on scalar amplitude/gradient of both sectors,
   or a fixed-region tagger around the cores) or drop the threshold to ~0.001
@@ -132,8 +155,9 @@ segfaults on the node).
   health table reproduces.
 
 Constraint targets after C+D: L∞(H) must stay ≪ 0.05 in the window (currently
-0.05 at t ≤ 30, 0.9 by t = 60 — reviewers will reject on that curve; Fig. 8
-needs to be re-made from the improved runs).
+0.05 at t ≤ 30, 0.9 by t = 60 — reviewers will reject on that curve; the
+constraints figure (`fig_constraints.pdf`, appendix — Fig. 9 since the Weyl
+figure took Fig. 8) needs to be re-made from the improved runs).
 
 ## 4. Local tasks (CPU, this machine — no GPU needed)
 
@@ -155,6 +179,45 @@ needs to be re-made from the improved runs).
   side; re-check once more on the submission build.
 - **Error bars**: derive preliminary scatter-based error bars from the four
   control runs for every headline number (superseded by A when it lands).
+- **Weyl analysis**: DONE 2026-08-17. New Sec. VI ("The gravitational-wave
+  signature") + `fig_weyl.pdf` (new `fig_weyl()` in
+  `make_article_figures.py`), from the packed `psi4_mode_l2_all.dat` streams
+  (l = 2 spin-weighted modes, R = 8/16). Headline numbers (all reproducible
+  by rerunning `fig_weyl()`, which prints them):
+  - A_l2 at R = 16 grows 297× (PM), 832× (PM-eq), 481× (MP mirror) above the
+    t ≤ 10 floor; PP bounded near 1e-3 with no secular ramp; MM irregular
+    (its own spreading).
+  - corr(A_l2, |Ẋ|) = 0.995 over 5 ≤ t ≤ 55 (pair-centre speed, ±2 central
+    difference); fitted κ = 0.016.
+  - Mirror reproduces the PM amplitude history to 4.7% (max-norm).
+  - m = ±1 carry 0.6% of the l = 2 power (x-axisymmetric pattern about the
+    z-decomposition axis).
+  - Spectrum of A_l2 is secular: 99.7% below ω = 0.4; 4e-4 in the ω = 0.55
+    band, 8e-6 at 2ω — NOT scalar-bath leakage.
+  - Near-zone verdict: A(R=8)/A(R=16) = 5.0 at t = 30, 9.9 at t = 60 →
+    r·ψ₄ ~ R⁻²…⁻³, nothing wave-zone; hence no energy/flux claims in the
+    paper — that's rerun item C.
+  - Physics note recorded in the paper (dipole question): signed source is
+    conserved ⇒ signed-dipole current = conserved signed momentum ⇒ no
+    mass-dipole radiation at leading order (point-mass reciprocity
+    M₊a₊ = |M₋|a₋); ψ₄ (spin −2) has no l = 1 mode at all. Counterpoint to
+    the naive "negative masses ⇒ dipole GW" reading of Trivedi–Loeb
+    (arXiv:2605.10976), which itself notes universal coupling evades dipole
+    bounds.
+  - Raw waveform added as `fig_weyl` panel (a) (2026-08-17): monotone
+    chirpless ramp in PM vs oscillatory wander in PP/MM at R = 16.
+  - **WARNING — wormhole pipeline on this data**: running
+    `process_wave/plot_extracted_psi4.py --combined` on
+    `data/pair_pm/psi4_mode_l2m0.dat` works mechanically but most panels
+    are physically invalid on near-zone data: the strain/LIGO panel reports
+    "445 Hz, SNR 133 at 10 Mpc, horizon 166 Mpc" and E_rad = 1.9e-4 M —
+    these assume wave-zone radiation and MUST NOT be quoted anywhere; the
+    propagation-speed panel returns v = ∞ (no burst front to track — the
+    secular ramp peaks at end-of-run at both shells simultaneously); the
+    spectrogram is empty (all power below its f = 0.1 floor). Only the
+    waveform and PSD panels are meaningful. After rerun item C (wave-zone
+    shells), the full pipeline becomes valid — rerun it then, including the
+    strain/LIGO comparison the wormhole paper made.
 
 ## 5. Bookkeeping for submission
 
@@ -176,8 +239,17 @@ needs to be re-made from the improved runs).
   story. The two load-bearing residual facts survive elsewhere: the 30×
   tighter-solve probe lives in the Caveats resolution paragraph; the t = 0
   seed verification lives in contribution (iii).
-- After reruns A–E land: update Tables I/III/IV, Fig. 8, the clean-window
-  ranges, and re-promote conclusion (3); only then consider the full-rewrite
+- 2026-08-17: Sec. VI (GW signature) added with `fig_weyl.pdf`; abstract,
+  contributions (iv), roadmap, conclusion (1), and Next steps updated to
+  match; Sec. II strengthened (Gleiser–Dotti exponential modes + no-puncture
+  argument; Bonnor's inverted fluid interior, verified against the PDF;
+  companion wormhole e-folding 0.11 M). New bib entry `trivedi_loeb2026`
+  (arXiv:2605.10976, web-verified 2026-08-17); Table V labels shortened to
+  fix a 20.6 pt overfull. Figure numbering shifted: Weyl figure is Fig. 8,
+  constraints figure is now Fig. 9.
+- After reruns A–E land: update Tables I/III/IV, the constraints figure
+  (`fig_constraints.pdf`), the clean-window ranges, and re-promote
+  conclusion (3); only then consider the full-rewrite
   rule that applies to validated-fix campaigns.
 
 ## 6. Removed from the article: the Sec. III D failure narrative (for the record)
