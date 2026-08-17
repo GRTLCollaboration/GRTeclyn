@@ -329,6 +329,14 @@ def build_consume_command(
         level = os.environ.get("GRTECLYN_SECTOR_DYNAMICS_LEVEL", "").strip()
         if level:
             command.extend(["--sector-dynamics-level", level])
+    # Higher-multipole Psi4 (l>=3) into its own stream.  Off by default: it adds
+    # one sphere sampling per plotfile and is only meaningful on wave-zone
+    # extraction shells (Debug.md item C).
+    if _env_flag("GRTECLYN_PSI4_HIGHER_L"):
+        command.append("--psi4-higher-l")
+        ells = os.environ.get("GRTECLYN_PSI4_ELLS", "").strip()
+        if ells:
+            command.extend(["--psi4-ells", *ells.replace(",", " ").split()])
     central_enabled = _central_timeseries_enabled(central_timeseries)
     splash_incremental = (
         _incremental_score_enabled(incremental_score)

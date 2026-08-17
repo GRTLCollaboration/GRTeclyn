@@ -16,6 +16,7 @@ from .extraction.central import CENTRAL_TIMESERIES_HEADER
 from .extraction.confinement import CONFINEMENT_TIMESERIES_HEADER
 from .extraction.sector_barycenters import SECTOR_BARYCENTERS_HEADER
 from .extraction.sector_dynamics import SECTOR_DYNAMICS_HEADER
+from .extraction.psi4_higher_l import higher_l_header as _higher_l_header
 from .extraction.ftl import FTL_TIMESERIES_HEADER
 from .extraction.shell import _shell_stats_header
 from .fields import _canonical_field_name
@@ -81,6 +82,22 @@ def main() -> None:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Enable/disable Psi4 mode extraction to .dat (default: enabled).",
+    )
+    parser.add_argument(
+        "--psi4-higher-l",
+        action="store_true",
+        help=(
+            "Also project Psi4 onto l>=3 s=-2 harmonics, into its own stream "
+            "psi4_mode_higher_l.dat.  Off by default; costs one extra sphere "
+            "sampling per plotfile.  Leaves the l=2 streams untouched."
+        ),
+    )
+    parser.add_argument(
+        "--psi4-ells",
+        nargs="+",
+        type=int,
+        default=[3, 4],
+        help="Multipoles for --psi4-higher-l (supported: 2 3 4; default: 3 4).",
     )
     parser.add_argument(
         "--shell-fields",
@@ -312,6 +329,7 @@ def main() -> None:
     out_path = out_dir / "psi4_mode_l2m0.dat"
     psi4_all_out_path = out_dir / "psi4_mode_l2_all.dat"
     psi4_directional_out_path = out_dir / "psi4_directional.dat"
+    psi4_higher_l_out_path = out_dir / "psi4_mode_higher_l.dat"
     areal_out_path = out_dir / "areal_radius.dat"
     shell_out_path = out_dir / "shell_profiles.dat"
     boundary_flux_out_path = out_dir / "boundary_flux.dat"
@@ -335,6 +353,8 @@ def main() -> None:
         )
     )
     psi4_directional_header = "# time  P_total  P_z_beam  beam_ratio  beaming_gain  wavezone_std"
+    psi4_higher_l_ells = tuple(sorted(set(int(x) for x in args.psi4_ells)))
+    psi4_higher_l_header = _higher_l_header(psi4_higher_l_ells, args.radii)
     areal_header = "# time  R_areal_min  r_at_R_areal_min"
     shell_header = _shell_stats_header(args.radii, args.shell_fields)
 
@@ -348,6 +368,8 @@ def main() -> None:
         _truncate_if_exists(out_path)
         _truncate_if_exists(psi4_all_out_path)
         _truncate_if_exists(psi4_directional_out_path)
+        if args.psi4_higher_l:
+            _truncate_if_exists(psi4_higher_l_out_path)
         _truncate_if_exists(areal_out_path)
         if args.shell_fields:
             _truncate_if_exists(shell_out_path)
@@ -541,17 +563,32 @@ def main() -> None:
                 futures = {
                     executor.submit(
                         _process_single_plotfile, p, args_dict, protected, processed_count + i
-                    ): p
+                    ): (i, p)
                     for i, p in enumerate(to_process)
                 }
+                # Collect every worker result first, then emit in SUBMISSION
+                # order.  as_completed() yields in COMPLETION order, so
+                # appending straight out of it interleaves rows from workers
+                # that finished out of turn, leaving each .dat stream
+                # non-monotone in time.  Nothing downstream validates that:
+                # the drift velocities, the psi4/|Xdot| correlation and every
+                # np.gradient/interp consumer would silently return garbage.
+                # A batch is at most args.jobs plotfiles (see the slice above),
+                # so this holds only `jobs` small_data rows in memory.
+                collected = {}
                 done = 0
                 for f in as_completed(futures):
-                    p = futures[f]
+                    idx, p = futures[f]
                     done += 1
                     key = os.path.basename(p)
                     print(f"[{done}/{len(to_process)}] finished {key}", flush=True)
                     try:
-                        res = f.result()
+                        collected[idx] = (p, f.result())
+                    except Exception as e:
+                        print(f"WARNING: worker failed for {p}: {e}")
+                for idx in sorted(collected):
+                    p, res = collected[idx]
+                    try:
                         if res["success"]:
                             if res["psi4_line"]:
                                 _append_line(out_path, header=header, line=res["psi4_line"])
@@ -566,6 +603,12 @@ def main() -> None:
                                     psi4_directional_out_path,
                                     header=psi4_directional_header,
                                     line=res["psi4_directional_line"],
+                                )
+                            if res.get("psi4_higher_l_line"):
+                                _append_line(
+                                    psi4_higher_l_out_path,
+                                    header=psi4_higher_l_header,
+                                    line=res["psi4_higher_l_line"],
                                 )
                             if res["areal_line"]:
                                 _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
@@ -614,7 +657,7 @@ def main() -> None:
                         else:
                             print(f"WARNING: failed to process {p}: {res.get('error', 'Unknown error')}")
                     except Exception as e:
-                        print(f"WARNING: worker failed for {p}: {e}")
+                        print(f"WARNING: emitting result for {p} failed: {e}")
         else:
             for i, p in enumerate(to_process):
                 key = os.path.basename(p)
@@ -634,6 +677,12 @@ def main() -> None:
                             psi4_directional_out_path,
                             header=psi4_directional_header,
                             line=res["psi4_directional_line"],
+                        )
+                    if res.get("psi4_higher_l_line"):
+                        _append_line(
+                            psi4_higher_l_out_path,
+                            header=psi4_higher_l_header,
+                            line=res["psi4_higher_l_line"],
                         )
                     if res["areal_line"]:
                         _append_line(areal_out_path, header=areal_header, line=res["areal_line"])
@@ -664,6 +713,18 @@ def main() -> None:
                             sector_barycenters_out_path,
                             header=SECTOR_BARYCENTERS_HEADER,
                             line=res["sector_barycenters_line"],
+                        )
+                    # NB: this append was previously present only in the
+                    # --jobs>1 branch.  With the default --jobs 1 the worker
+                    # computed the scrutiny stream (~1.6 s per plotfile) and the
+                    # driver then silently discarded it, so sector_dynamics.dat
+                    # was never created -- which is why the Bondi momentum
+                    # balance (Debug.md item B) had no data to read.
+                    if res.get("sector_dynamics_line"):
+                        _append_line(
+                            sector_dynamics_out_path,
+                            header=SECTOR_DYNAMICS_HEADER,
+                            line=res["sector_dynamics_line"],
                         )
                     _handle_central_outputs(res)
 

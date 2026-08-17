@@ -14,6 +14,11 @@ from .extraction.sector_barycenters import _extract_sector_barycenters_line
 from .extraction.sector_dynamics import _extract_sector_dynamics_line
 from .extraction.ftl import _extract_ftl_timeseries_line
 from .extraction.psi4 import _extract_mode_amps_l2m0, _extract_mode_amps_l2_all
+from .extraction.psi4_higher_l import (
+    extract_higher_l_modes,
+    higher_l_line as _higher_l_line,
+    parse_ells as _parse_ells,
+)
 from .extraction.shell import _extract_shell_field_stats, _format_shell_stats_line
 from .fields import _canonical_field_name
 from .frames.embedding import _render_embedding_frame
@@ -145,6 +150,26 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                     f"{t:.16e}  {p_total:.16e}  {p_z_beam:.16e}  {beam_ratio:.16e}"
                     f"  {beaming_gain:.16e}  {wavezone_std:.16e}"
                 )
+
+            # Higher multipoles (l>=3) -- own stream, own flag, l=2 untouched.
+            # Failure here must not take down the l=2 streams, which are the
+            # published ones; log and carry on.
+            if args_dict.get("psi4_higher_l"):
+                try:
+                    ells = _parse_ells(args_dict.get("psi4_ells"))
+                    modes_by_l = extract_higher_l_modes(
+                        ds,
+                        radii=radii,
+                        n_points=int(args_dict["n_points"]),
+                        center=args_dict["center"],
+                        ells=ells,
+                    )
+                    result["psi4_higher_l_line"] = _higher_l_line(
+                        t, modes_by_l, ells, len(radii)
+                    )
+                except Exception as exc:
+                    if args_dict.get("verbose", False):
+                        print(f"WARNING: higher-l Psi4 extraction failed for {key}: {exc}")
 
         shell_fields = list(args_dict.get("shell_fields") or [])
         if shell_fields:

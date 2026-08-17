@@ -2,12 +2,27 @@
 
 **Written:** 2026-08-17
 **Target branch:** `feature/interstellar`
-**Author:** analysis session on the laptop — **nothing was compiled. Every claim below comes from source
-inspection and `git merge-tree`, not from a build.** (AMReX does exist locally at
-`/home/nik/Desktop/Wormhole/amrex`, so a slow local build is possible — see §10.)
+**Author:** analysis session on the authoring workstation — **nothing was compiled. Every claim below
+comes from source inspection and `git merge-tree`, not from a build.**
 **Validated:** 2026-08-17 — SHAs, divergence counts, conflict sets (both directions), commit split,
 §6 quotes, §7 traps, §8 inventory, and §9 API re-checked against fresh fetches of both remotes.
 **Purpose:** hand-off so the merge + port can be done on a machine with CPUs and AMReX.
+
+> **Re-verified on the GPU build node, 2026-08-17.** Collaboration tip is still `7dc7c8b5` — upstream has
+> not moved. A real trial merge (not `merge-tree`) reproduced **exactly the 7 conflicts** in §6, same file
+> set. The 4 commits added to `feature/interstellar` since the §2 baseline `48aa5a44` touch only
+> `research/bondi_dipole/**` and this file, so every source-level claim below still holds.
+>
+> **Decision: the merge is deferred until after the Bondi-dipole paper is submitted.** Nothing on the
+> rerun list (`research/bondi_dipole/Debug.md` §3) needs anything from the 76 upstream commits, whereas
+> §7.4 would force a full revalidation of results that already exist. Do not start the port without
+> re-reading that decision.
+>
+> **REMOTE NAMES DIFFER BY MACHINE — CHECK BEFORE RUNNING ANY COMMAND HERE.** This document was written
+> where `origin` was the personal fork and `upstream` was the collaboration. On the GPU build node the
+> naming is inverted: `origin` **is** `GRTLCollaboration/GRTeclyn` and the fork is `myfork`. Read §4
+> before copy-pasting anything — the commands there are written for the authoring machine's naming and
+> will merge the wrong branch on the build node.
 
 ---
 
@@ -50,45 +65,60 @@ API. Only a handful (git-SHA printing, lint config, clang-tools automation) are 
 
 ---
 
-## 3. State left on the laptop
+## 3. State left on the authoring machine
 
-* Added remote `upstream` → `https://github.com/GRTLCollaboration/GRTeclyn.git`
-* Worktree `/home/nik/Desktop/github/GRTeclyn-merge`, branch `chore/merge-upstream`, based on
-  **`origin/feature/interstellar`**, upstream-tracking unset so a stray `git push` can't hit a real branch.
+* Added a remote pointing at `https://github.com/GRTLCollaboration/GRTeclyn.git`
+* A sibling worktree on branch `chore/merge-upstream`, based on **`feature/interstellar`**, with
+  upstream-tracking unset so a stray `git push` can't hit a real branch.
 * That worktree holds a **paused, conflicted merge**. It is disposable — recreate it, don't transfer it.
 * `feature/interstellar` and the main working tree were **never modified**.
 
-Discard laptop state:
+Discard that state (run from the authoring machine's clone):
 
 ```bash
-git -C /home/nik/Desktop/github/GRTeclyn worktree remove ../GRTeclyn-merge --force
-git -C /home/nik/Desktop/github/GRTeclyn branch -D chore/merge-upstream
+git worktree remove ../GRTeclyn-merge --force
+git branch -D chore/merge-upstream
 ```
+
+Nothing was carried over to the GPU build node — the 2026-08-17 re-verification there used a throwaway
+worktree that was removed immediately afterwards.
 
 ---
 
 ## 4. Reproducing the merge on the build machine
 
-Deterministic — same 7 conflicts every time.
+Deterministic — same 7 conflicts every time. **Confirmed by a real trial merge on 2026-08-17.**
+
+**First, resolve the remote names — they are not the same on every machine:**
 
 ```bash
-cd <repo>
-git remote add upstream https://github.com/GRTLCollaboration/GRTeclyn.git
-git fetch upstream
+git remote -v
+# Authoring machine: origin = personal fork, upstream = GRTLCollaboration
+# GPU build node:    origin = GRTLCollaboration, myfork = personal fork
+```
 
-git worktree add ../GRTeclyn-merge -b chore/merge-upstream origin/feature/interstellar
+Set these two once, then the rest of the section is machine-independent:
+
+```bash
+COLLAB=origin        # on the GPU build node; use 'upstream' on the authoring machine
+git fetch --all --prune
+```
+
+```bash
+git worktree add ../GRTeclyn-merge -b chore/merge-upstream feature/interstellar
 cd ../GRTeclyn-merge
 git branch --unset-upstream          # avoid an accidental push to feature/interstellar
 
-git merge upstream/develop           # → the 7 conflicts in §6
+git merge "${COLLAB}/develop"        # → the 7 conflicts in §6
 ```
 
 Escape hatches: `git merge --abort`, or `git worktree remove ../GRTeclyn-merge --force`.
 
-Preview conflicts without touching any tree:
+Preview conflicts without touching any tree (needs git ≥ 2.38 — the GPU build node has 2.34, where this
+form is unsupported and a throwaway worktree is the only option):
 
 ```bash
-git merge-tree --write-tree --name-only origin/feature/interstellar upstream/develop
+git merge-tree --write-tree --name-only feature/interstellar "${COLLAB}/develop"
 ```
 
 ---
@@ -370,14 +400,30 @@ instantiate.
 
 ## 10. Build
 
-Possible on the laptop — AMReX sits at `/home/nik/Desktop/Wormhole/amrex`, with `g++ 13.3.0`, `mpicxx`,
-and 8 cores — but slow; nothing was compiled during analysis. Preferred: the build machine.
+Do this on the GPU build node. AMReX is the sibling `../amrex`, so `AMREX_HOME` resolves on its own from
+every `Examples/*/GNUmakefile`.
+
+**Toolchain trap — verified 2026-08-17.** Do **not** `source grteclyn-wrapper/scripts/lib/env.sh` before
+building. That script prepends the conda `grtresna` environment to `PATH`, which shadows the system
+`g++ 11.4` with a conda `gcc 15.2` (unsupported as a CUDA 12.1 host compiler) and puts **no `nvcc` on
+`PATH` at all**. The failure is silent: AMReX loads `nvcc.mak`, every `nvcc` probe returns "not found",
+and `make` reports the target *up to date* while compiling nothing. `env.sh` is for **running**, not for
+building.
+
+The production artifact is `main3d.gnu.MPI.CUDA.ex` (MPI-linked, launched single-rank as an OpenMPI
+singleton — see `grteclyn_wrapper/core/config.py::resolve_executable`), built `USE_RL=FALSE`:
 
 ```bash
-export AMREX_HOME=/path/to/amrex     # on the laptop: /home/nik/Desktop/Wormhole/amrex
-cd Tests && make -j$(nproc)          # port the tests FIRST — smallest surface, real reference
-cd ../Examples/<target> && make -j$(nproc)
+export CUDA_HOME=/usr/local/cuda
+export PATH="${CUDA_HOME}/bin:<sim_root>/local/openmpi-5.0.8/bin:/usr/bin:/bin"
+export LD_LIBRARY_PATH="<sim_root>/local/openmpi-5.0.8/lib:${CUDA_HOME}/lib64"
+
+cd Tests && make -j48                # port the tests FIRST — smallest surface, real reference
+cd ../Examples/<target> && make -j48 USE_MPI=TRUE USE_CUDA=TRUE USE_RL=FALSE COMP=gnu DIM=3
 ```
+
+Sanity-check the toolchain before trusting a build — `nvcc` must resolve and `g++` must be the system
+11.4.0, not the conda 15.2.0. Back up the working `.ex` first; `make` overwrites it in place.
 
 Suggested order:
 1. Resolve the 7 conflicts (§6).

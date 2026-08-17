@@ -55,14 +55,25 @@ BONDI_S0=0 BONDI_S1=1 BONDI_S1_OMEGA=0.56598 BONDI_GPU=0 \
 Detached (the campaign ran this way, one cell per GPU):
 
 ```bash
-setsid nohup env BONDI_S0=0 BONDI_S1=1 BONDI_GPU=3 \
+setsid nohup /usr/bin/env BONDI_S0=0 BONDI_S1=1 BONDI_GPU=3 \
   BONDI_RUNS_DIR="$PWD/runs/bondi/pair_pm" \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh \
   > runs/bondi/pair_pm.launch.log 2>&1 < /dev/null & disown
 ```
 
+> **`/usr/bin/env`, spelled out — not a style preference.** On the GPU build node
+> two other users' bin directories precede `/usr/bin` on `PATH` (check with
+> `type -a env`), and each contains an executable named `env` that is really a
+> PATH-setup snippet meant to be *sourced*. Run as `env VAR=x cmd` it prepends
+> its own directory to `PATH`
+> and **exits 0 without ever executing `cmd`**. A bare `env` here therefore
+> launches nothing at all, leaving an empty `.launch.log` and a success exit
+> code — indistinguishable at a glance from a launch that is merely slow to
+> write output. (Verified 2026-08-17; only `env` is shadowed, no other core tool.)
+
 Verify a detached launch with `pgrep -f "bondi_sg_pair_p[m]"` before concluding
-anything from the log — the log file can lag the detach.
+anything from the log — the log file can lag the detach, and per the note above
+a silent no-op looks exactly the same.
 
 **Stopping** is only ever done with the sanctioned tool, which kills the
 orchestrator first and then sweeps workers:
@@ -84,6 +95,37 @@ Killing a worker directly just advances the orchestrator to the next cell.
 | `BONDI_EXOTIC` | `1` ⇒ lone phantom (`bondi_sg_single_m`) | — |
 | `BONDI_S0` / `BONDI_S1` | — | sector per lump: 0 canonical, 1 phantom ⇒ suffix `pm`/`pp`/`mm` |
 | `BONDI_S1_OMEGA` | — | per-lump star frequency for lump 1; appends `_eqm` to the run name |
+
+### Rerun knobs (added 2026-08-17 for Debug.md §3)
+
+Every one defaults to the published campaign value, so an un-set environment
+reproduces the original cell. Both launchers accept all of them.
+
+| variable | default | what it is for |
+|---|---|---|
+| `BONDI_NFULL` | 128 | item A, convergence series (192, 256) |
+| `BONDI_MAXLEVEL` | 1 | item A: **set 0** for convergence cells — see the warning below |
+| `BONDI_LFULL` | 64 | item C, enlarged domain (128, 256) |
+| `BONDI_RADII` | `8 16` | item C, wave-zone extraction shells |
+| `BONDI_DT_MULT` | 0.02 | item I, CFL experiment — **do not raise, see below** |
+| `BONDI_SCRUTINY` | 0 | item B, momentum-balance stream (`sector_dynamics.dat`) |
+| `BONDI_PSI4_HIGHER_L` | 0 | item C, l≥3 Psi4 stream (`psi4_mode_higher_l.dat`) |
+| `BONDI_PSI4_ELLS` | `3 4` | which multipoles that stream carries |
+
+**Two measured warnings.**
+
+* `BONDI_DT_MULT=0.2` **fails** — the star disperses (rms 5.05 → 19.2 by t = 40
+  against a ±10 % gate) and the tagger chases the resulting noise until the
+  refined region is 380× larger. Keep 0.02. Full numbers in Debug.md item I.
+* Convergence cells need `BONDI_MAXLEVEL=0`, for memory as much as for physics.
+  A refined N = 128 cell measured **41 GB** of GPU memory against 8.8 GB
+  unigrid; carried to N = 256 that would OOM an 80 GB H100 outright. Unigrid is
+  also what Richardson extrapolation requires, and the t ≤ 30 science window was
+  effectively unigrid anyway.
+
+Memory to budget, measured on this node: **8.8 GB per unigrid N = 128 cell**,
+scaling as N³ — so roughly 30 GB at N = 192 and 55–60 GB at N = 256. One
+N = 256 cell per GPU, and do not co-schedule anything with it.
 
 Why the stop times: singles are calibration (the pass gate is rms flat ±10 %
 to t = 40 with min χ plateau above 0.3); mixed pairs are capped at **60**

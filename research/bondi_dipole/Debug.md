@@ -1,9 +1,37 @@
 # Bondi dipole — review fixes & rerun plan
 
 Updated 2026-08-17, after two external reviews of `bondi_dipole.tex`.
-Constraint reminders: **this machine has no GPU** — every rerun below happens on
-gigaclust2, and code reaches the cluster only via **commit → push → pull**
-(never scp).
+
+**Environment note (2026-08-17): the runs moved to a GPU build node, and the
+old split between "laptop" and "cluster" no longer applies.** The working tree
+now lives on the same machine as the GPUs (4× H100, all four free), with
+AMReX, Chombo and the GRTresna solver as siblings of the repo — so edit, build
+and run happen in place. There is nothing to push and pull between machines,
+and nothing to copy. Earlier campaign output is present under `runs/bondi/`.
+
+Two things that bite on this node:
+
+* **Build with the system toolchain, not the wrapper's.** Do *not* source
+  `grteclyn-wrapper/scripts/lib/env.sh` before `make`: it prepends the conda
+  `grtresna` environment, which hides the system `g++ 11.4` behind a conda
+  `gcc 15.2` and leaves no `nvcc` on `PATH`. `make` then reports the target
+  *up to date* while compiling nothing. `env.sh` is for running, not building.
+  Exact working recipe: `UPSTREAM_MERGE_PLAN.md` §10.
+* **Single rank still.** Unchanged from before — launch everything with one
+  rank.
+* **`env` on this machine is not `env` — spell out `/usr/bin/env`.** Two other
+  users' bin directories on this shared box sit ahead of `/usr/bin` on `PATH`,
+  and each holds an executable named `env` that is really a PATH-setup snippet
+  meant to be sourced (run `type -a env` to see the current set).
+  Invoked as `env VAR=x cmd` it prepends its own directory to `PATH`
+  and **exits 0 without ever running `cmd`**. LAUNCH.md's documented detach
+  pattern (`setsid nohup env ... bash run_*.sh`) therefore launches *nothing*,
+  silently, leaving an empty log and a success exit code. Verify any detached
+  launch with `pgrep -af bondi_sg_` before believing it started.
+
+The upstream merge from the collaboration is **deferred until after
+submission**; see the decision note at the top of `UPSTREAM_MERGE_PLAN.md`.
+Nothing on the list below needs it.
 
 ---
 
@@ -22,7 +50,15 @@ weak-field objects: |χ − 1| ≲ 0.02 spread over several m⁻¹, so at t = 0 
 criterion sits an order of magnitude below 0.02. `max_level = 1` was allowed
 from the start, but nothing crossed threshold until the deepening canonical
 well (χ_min 0.98 → 0.44 as the pair nears contact and radiation falls back)
-steepened past it — at t ≈ 47.5 in the mixed runs, never in the singles.
+steepened past it — at t ≈ 47.5 in the mixed runs.
+
+Correction (2026-08-17): "never in the singles" was imprecise. The singles do
+refine, but only a **fixed, negligible 32 768-cell patch** appearing at
+t ≈ 3.4 and never growing — verified identical in July's published `single_p`
+and in the fresh reproduction on the GPU node. It is small enough not to
+disturb the unigrid reading of the science window, but the tagger is not
+inactive there. The genuinely unigrid statement is about the *science window
+resolution*, not about level 1 being absent.
 
 Consequence: the entire science window (t ≤ 30) ran **unigrid at Δx = 0.5**,
 ~10 grid points per stellar rms radius. Both reviews flag this as the top
@@ -83,24 +119,46 @@ The paper now states this explicitly (Sec. Setup + Appendix).
 
 Compile verified: 3 passes, zero errors, zero undefined citations/references.
 
-## 3. Blocking items — need GPU reruns on gigaclust2 (priority order)
+## 3. Blocking items — need GPU reruns (priority order)
 
-Every item here follows commit → push → pull; launch commands and env knobs
-are in `results/bondi-dipole-runaway/LAUNCH.md` (single rank only — MPI
-segfaults on the node).
+Launch commands and env knobs are in `results/bondi-dipole-runaway/LAUNCH.md`
+(single rank only — MPI segfaults on the node). Runs now happen in place on
+the GPU build node; no commit → push → pull round-trip is needed to get code
+onto the hardware.
 
 - **A. Convergence series** (blocks *every* headline number): rerun `PM` and
   one control at N = 192 and 256. The configuration is symmetric under y→−y
   and z→−z, so quadrant symmetry buys ~4× and funds N = 256 at roughly
   current cost (~2–3 h/cell at N = 128 now). Richardson-extrapolate drifts,
   quote convergence order + error bars for 50–150×, 0.6–3.4%, ~10%.
-- **B. Momentum-balance diagnostic** (blocks re-promoting conclusion 3): the
-  scrutiny stream already exists — `GRTECLYN_SECTOR_DYNAMICS=1` (core
-  positions, momentum balance, gauge check; see
-  `grteclyn-wrapper/.../core/plot_consumer.py`). Run for `PM` and `PM-eq`;
-  plot P_signed(t) = ∫(S_i[Φ₊] − S_i[Φ₋])dV decomposed by sector and by
-  region (core spheres vs halo vs boundary flux). Must close to truncation
-  error. Then restore conclusion (3) to a measurement.
+- **B. Momentum-balance diagnostic** — **MEASURED 2026-08-17** (`PM` and
+  `PM-eq` reruns to t=60 with `GRTECLYN_SECTOR_DYNAMICS=1`; streams in
+  `results/bondi-dipole-runaway/data/pair_pm{,_eqm}_v2/sector_dynamics.dat`,
+  analysis in `analysis/momentum_balance.py` → `momentum_balance.csv`).
+  Findings, science window t ≤ 30:
+  - Sector momenta grow to ±(5–7)×10⁻³ by t=30 and cancel in the signed sum
+    to a residual 3–5× smaller — the bookkeeping largely cancels, but
+    P_signed(t) is **not** zero and does **not** close to truncation error.
+  - The residual is physics, not error: it matches the point-mass sum
+    M₊v₊ + M₋v₋ built from the *independently measured* core velocities and
+    the dressed ADM masses to 3–10% (t=10: −1.96e-4 vs −1.89e-4; t=30:
+    −1.98e-3 vs −2.16e-3). A pair with net mass −0.013 moving at v *must*
+    carry P = M_net·v; Forward's "near-zero" is the equal-|M| idealization.
+  - Per sector, integral/(M·v_core) climbs 0.72 → 0.95 (canonical) and
+    0.81 → 0.94 (phantom) over t=10→30: early on part of each star's cloud
+    lags its core; by t=30 the lumps carry their momentum near-rigidly.
+  - `PM-eq` does **not** null the residual (−1.72e-3 vs −1.98e-3 at t=30):
+    with M_net = 0 the residual is M₊(v₊−v₋), and the gap closes (phantom
+    catches up; sep 8 → 7.79 by t=30, → 1.1 by t=60) — a finite-size /
+    field-overlap effect absent from the point-particle analysis. Reciprocity
+    M₊a₊ = |M₋|a₋ is violated at sep=8 where the lumps overlap (R₉₀ ≈ 5–7.6).
+  - Late times are contaminated: past t≈45 the cores approach merger and
+    px_canon collapses to ~0 (canonical momentum shed/absorbed); quote
+    nothing beyond t=30 (consistent with the published window).
+  - Conclusion (3) can be upgraded to a *matter-sector* measurement (done in
+    the tex). Full closure — matter + gravitational field = 0 — still needs
+    the ADM surface integral, i.e. item C; the volume integral alone
+    exchanges momentum with the field by construction.
 - **C. Boundary problem + wave-zone Weyl** (blocks separation-scaling finals
   AND the radiated-energy question raised in the new Sec. VI): implement a
   **sponge layer** (Kreiss–Oliger dissipation profile ramping up near the
@@ -113,13 +171,31 @@ segfaults on the node).
   - Move the Ψ₄ shells into the wave zone (R ≥ 32, several shells to verify
     the r⁰ peel of r·ψ₄; today's shells at 8/16 show r·ψ₄ falling 5–10×
     between them — pure near zone).
-  - **Extend the extraction to l = 3 (and l = 4)** in
-    `grteclyn-wrapper/.../extraction/psi4.py` — currently l = 2 only. The
-    odd-l/even-l interference carries the momentum-flux beaming along the
-    runaway (x) axis; l = 1 does NOT exist for ψ₄ (spin weight −2), which the
-    paper now states explicitly against the "dipole GW" expectation. This is
-    a **local CPU code change** that must land before the rerun (extraction
-    happens live in the streaming consumer; plotfiles are purged).
+  - **Extend the extraction to l = 3 (and l = 4)** — **DONE 2026-08-17.** New
+    module `extraction/psi4_higher_l.py`, its own stream
+    `psi4_mode_higher_l.dat`, off by default behind `BONDI_PSI4_HIGHER_L=1`
+    (`GRTECLYN_PSI4_HIGHER_L`); the l = 2 column contracts are untouched.
+    Choose the multipoles with `BONDI_PSI4_ELLS` (default `3 4`).
+    l = 1 does NOT exist for ψ₄ (spin weight −2), which the paper states
+    explicitly against the "dipole GW" expectation.
+
+    **Bug found while doing it — read before trusting any old l ≥ 3 work.**
+    The l = 3 and l = 4 spin-weighted harmonics already present in
+    `consume_plotfiles/sphere.py` were **not normalised**: ⟨|Y|²⟩ ranged over
+    0.055–0.56 instead of 1, and they were not mutually orthogonal. They had
+    never been exercised because only l = 2 was wired into the extraction path,
+    so the error was latent — and item C is precisely the task that would have
+    used them, silently producing confident, wrong multipole amplitudes. They
+    are now computed from the general Wigner-d formula, verified orthonormal to
+    quadrature accuracy for l = 2, 3, 4. The published l = 2 helpers were left
+    byte-identical (regression-checked), so no existing number moves.
+
+    One convention note that matters for this item specifically: the legacy
+    l = 2 closed forms carry the opposite overall sign on m = ±1 relative to the
+    general formula. That cancels in |amplitude| and in power fractions, so
+    nothing published changes — but odd-l/even-l *interference* is a relative
+    phase measurement, so `psi4_higher_l.py` deliberately uses the general
+    harmonic for every l, including l = 2, rather than mixing conventions.
   - **Net radiated energy sign** for the mixed pair (positive, negative, or
     inter-sector cancellation) from wave-zone dE/dt — the headline follow-up
     number; Sec. VI promises it.
@@ -150,9 +226,18 @@ segfaults on the node).
   (mixed pair is unequal; an asymmetry-correlated diagnostic bias is
   currently undetectable).
 - **H. Robustness point** at a second frequency or coupling (draft-box item).
-- **I. CFL experiment** (cost saver, do first on one single-star cell):
-  `dt_multiplier` 0.02 → 0.2 is ~10× cheaper; adopt only if the single-star
-  health table reproduces.
+- **I. CFL experiment — DONE 2026-08-17: REJECTED, keep `dt_multiplier = 0.02`.**
+  Ran `single_p` at 0.2 against a fresh 0.02 baseline on the same machine and
+  binary (`runs/bondi_rerun/cfl_dt0p2`, `runs/bondi_rerun/cfl_base`). The coarse
+  step fails the star-health gate outright — rms 5.045 → 13.32 by t = 32 and
+  19.22 by t = 40, against a gate of ±10 % — i.e. the star disperses. It also
+  drives runaway noise-tagging: the refined region grows from the baseline's
+  fixed 32 768 cells to 12 513 280 (380×), taking the cell from 8.8 GB to 41 GB
+  of GPU memory. So 0.2 is not a 10× saving, it is an instability being
+  resolved into existence.
+  Useful side effect: this is the evidence for the "Δt = 0.02Δx is deliberately
+  conservative and untuned" caveat — it is now measured, not asserted, and the
+  paper can say a 10× coarser step was tried and fails.
 
 Constraint targets after C+D: L∞(H) must stay ≪ 0.05 in the window (currently
 0.05 at t ≤ 30, 0.9 by t = 60 — reviewers will reject on that curve; the
@@ -161,11 +246,43 @@ figure took Fig. 8) needs to be re-made from the improved runs).
 
 ## 4. Local tasks (CPU, this machine — no GPU needed)
 
-- **R(ω) check**: the paper claims higher ω → more compact stars; sextic
-  solitonic stars can be non-monotonic in R(ω) (radius diverges in both the
-  thick-wall ω→m and thin-wall ω→ω_min limits). Extract R(ω) from
-  `analysis/star_family_scan.py` / `boson_star_ode`; if non-monotonic, fix the
-  "more compact stars (higher ω)" sentence in Discussion.
+- **R(ω) check**: DONE 2026-08-17 — **the reviewer was right, and the sentence
+  was wrong in a second way too.** New script
+  `analysis/star_radius_scan.py`, own output `stars/star_radius.csv` (27
+  frequencies × both sectors, 0.530–0.900; `--reuse` re-derives the verdict from
+  the CSV without redoing the ~15 min of shooting solves). The published
+  `star_family.csv` column contract is untouched.
+  - **R(ω) is non-monotonic**, as suspected. Canonical: `R_90` falls
+    7.567 → 5.108 with a minimum at **ω ≈ 0.80**, then inflates (thick-wall);
+    `R_99` turns over much earlier, at **ω ≈ 0.63** (7.57 → 8.30 → 8.30 → 13.40
+    at ω = 0.90), because the exponential tail starts spreading while the core
+    is still contracting. Phantom is the same shape, `R_99` minimum at ω ≈ 0.67.
+  - **But ω = 0.55 and ω = 0.56598 both sit on the shrinking side**, so
+    "higher ω → smaller star" is directionally correct. Bounded, though: only
+    −32 % in `R_90` (−5 % in `R_99`) is available before the turnover.
+  - **The word "compact" was flatly wrong.** `2|M|/R_99` decreases
+    *monotonically* across the entire family — 1.456e−2 → 2.282e−3 between
+    ω = 0.550 and 0.80 (factor 6.4), factor 14.8 over the full sweep — because
+    the ADM mass falls much faster than the radius. Higher ω gives *smaller but
+    puffier* stars, i.e. a better separation-to-size ratio bought with a weaker
+    drift signal.
+  - The other half of the sentence checks out: same-ω sector mass asymmetry
+    `|M_-|/|M_+| − 1` shrinks 25.1 % (ω = 0.53) → 20.3 % (0.55) → 4.3 % (0.80)
+    → 2.5 % (0.90).
+  - Free bonus verification of the campaign's equal-|ADM| pairing: phantom at
+    ω = 0.56598 gives |M| = 0.063950 against canonical at ω = 0.550 with
+    0.063951 — agreement to 5 significant figures, from an independent code
+    path.
+  - **Discussion sentence rewritten** in `bondi_dipole.tex` accordingly (no
+    longer claims more compact stars; states the turnover, the bounded 32 %,
+    the monotonic compactness *decrease*, and that ω cannot substitute for the
+    larger domain). **Not compile-checked — there is no LaTeX on the GPU node**;
+    only pre-existing macros and the pre-existing `fig:family` label are used.
+  - Detector caveat worth knowing if this is re-run: `R_99` is read off an ODE
+    *grid point*, so it is quantised and a naive turning-point test fires on
+    ~0.01 % wiggles (it first reported a spurious min/max pair at ω = 0.575/0.580,
+    displacing the real minimum by 0.04 in ω). `TURN_REL_TOL = 2e-3` suppresses
+    that.
 - **Figures**: DONE 2026-08-17. `make_article_figures.py` restyled so line
   style, not gray shade, distinguishes runs: Fig. 4b — PM-eq now dash-dot
   (Φ₊) / dash-dot-dot (Φ₋) at 0.35 gray, controls dotted at 0.45 (was 0.78

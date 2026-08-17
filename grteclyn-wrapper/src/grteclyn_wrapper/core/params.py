@@ -18,10 +18,13 @@ _PARM_PARSE_TOKEN_LIST_KEYS = frozenset(
 
 
 def regrid_intervals_for_max_level(max_level: int) -> list[int]:
-    """AMR regrid cadence per level; length must match ``max_level + 1`` entries."""
+    """AMR regrid cadence: GRTeclyn getarr-reads exactly ``max_level`` entries
+    and appends its own terminal 0 (AMReXParameters.hpp), but ParmParse aborts
+    at file-parse time on a key with no tokens -- so unigrid (``max_level 0``)
+    must still emit one benign ``0``, never an empty list."""
     max_lvl = int(max_level)
     if max_lvl <= 0:
-        return []
+        return [0]
     return [16] * min(max_lvl, 2) + [8] * max(0, max_lvl - 2)
 
 
