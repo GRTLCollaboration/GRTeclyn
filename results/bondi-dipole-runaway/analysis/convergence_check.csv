@@ -1,0 +1,28 @@
+group,quantity,t,resolution,value
+runaway pair (pm),pair drift,15.0,128,0.091710
+runaway pair (pm),pair drift,15.0,192,0.090711
+runaway pair (pm),pair drift,15.0,256,0.089770
+runaway pair (pm),gap,15.0,128,7.907768
+runaway pair (pm),gap,15.0,192,7.913077
+runaway pair (pm),gap,15.0,256,7.917446
+runaway pair (pm),pair drift,20.0,128,0.217165
+runaway pair (pm),pair drift,20.0,192,0.215313
+runaway pair (pm),pair drift,20.0,256,0.213707
+runaway pair (pm),gap,20.0,128,7.838321
+runaway pair (pm),gap,20.0,192,7.845019
+runaway pair (pm),gap,20.0,256,7.852359
+runaway pair (pm),pair drift,28.5,128,0.659931
+runaway pair (pm),pair drift,28.5,192,0.656689
+runaway pair (pm),pair drift,28.5,256,0.653410
+runaway pair (pm),gap,28.5,128,7.687708
+runaway pair (pm),gap,28.5,192,7.693429
+runaway pair (pm),gap,28.5,256,7.704797
+control (pp),control drift,15.0,128,-0.040522
+control (pp),control drift,15.0,192,-0.022881
+control (pp),control drift,15.0,256,-0.010661
+control (pp),control drift,20.0,128,-0.062834
+control (pp),control drift,20.0,192,-0.038561
+control (pp),control drift,20.0,256,-0.021796
+control (pp),control drift,36.5,128,-0.089239
+control (pp),control drift,36.5,192,-0.061410
+control (pp),control drift,36.5,256,-0.035671

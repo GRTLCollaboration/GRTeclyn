@@ -39,6 +39,7 @@ the quantitative gravity tests, and the honest caveats are in
 | [`MATTER_MODEL.md`](MATTER_MODEL.md) | the bicomplex model, where the sign flip lives, dressed-star initial data, code map |
 | [`LAUNCH.md`](LAUNCH.md) | exact launch command and full configuration for every cell |
 | `data/<cell>/` | per-cell time series + provenance (see the data dictionary below) |
+| `campaign/<cell>/` | the error-bar campaign: same streams at three resolutions + a double-size box (see the campaign section below) |
 | `stars/` | dressed-star profile tables `r φ₀(r) α(r)` + the M(ω) family scan |
 | `analysis/` | derived tables and the scripts that regenerate them |
 | `figures/<cell>/` | curated frames: matter activity and geometry at t = 0 → end |
@@ -77,19 +78,58 @@ the streams are absolute; drifts quoted anywhere in this pack are
 | `summary.csv`, `summary.md` | one row per cell: birth checks → final state |
 | `trajectories.csv` | drift / separation / core series for every cell, sampled every Δt = 4 |
 | `newtonian_reference.csv` | point-mass Bondi integration with the measured ADM masses, aligned to the NR output |
+| `convergence_check.csv`, `convergence_check.md` | drift / gap / control artefact across grid resolutions, with the spread between grids |
 | `make_tables.py` | regenerates `summary.*` and `trajectories.csv` from `data/` |
 | `newtonian_reference.py` | regenerates the point-mass reference (pure stdlib RK4) |
+| `convergence_check.py` | regenerates `convergence_check.*` from `campaign/` |
 | `star_family_scan.py` | regenerates `stars/star_family.csv` (needs the wrapper venv) |
+
+## campaign/ — the error-bar campaign (2026-08-17, in progress)
+
+The headline numbers above come from adaptive-mesh runs at a single
+resolution. To attach error bars, the same physics is being rerun on uniform
+grids at three sharpness levels — `n128 / n192 / n256` = cells across the box,
+higher = finer — plus a double-size box for clean wave extraction. Each
+`campaign/<cell>/` folder carries the same streams and provenance files as
+`data/<cell>/` (same data dictionary), plus a few reference frames under
+`frames/`, named by plotfile step.
+
+| cell | what it is | status |
+|---|---|---|
+| `convA_pm_n128/192/256` | the runaway pair at three resolutions | 128 + 192 complete (t = 60); 256 finishing |
+| `convA_pp_n128/192/256` | two-positive control, same three levels | 128 + 192 complete; 256 finishing |
+| `convA_pm_eqm_n128/192/256` | equal-mass pair, same three levels | queued — appears here once running |
+| `boxC_pm_L128_n256`, `boxC_pp_L128_n256` | double-size box, waves measured 4× further out, run to t = 90 | running |
+
+**Verdict so far** (full tables: [`analysis/convergence_check.md`](analysis/convergence_check.md)):
+the runaway drift is resolution-independent — all three grids agree to ~2 % at
+t = 15 and the agreement tightens with time — while the control's spurious
+drift falls by roughly half at each resolution step and extrapolates to
+≈ −0.0003 against an effect of +0.214 at t = 20. Real physics survives grid
+refinement; the artefact does not. (That is also why the control table shows
+a huge "spread": for an artefact, disagreement between grids is the expected,
+healthy outcome.)
+
+Notes for reading `campaign/` cells:
+
+- These are uniform-grid runs (no mesh refinement) — required for the
+  convergence math. Their AMR twin for the mixed pair is `data/pair_pm`.
+- The two `boxC` cells live in a 128-wide box centred at `64 64 64`, so a
+  drift there is `bary_x − 64`, not `− 32` as everywhere else in this pack.
+- Cells still running are packed as-is (series end early); re-running the
+  pack script refreshes them — each cell folder is rebuilt from scratch and
+  nothing outside `campaign/` and `analysis/convergence_check.*` is touched.
 
 ## Reproducing
 
 Regenerate this whole pack from the run tree:
 
 ```bash
-bash research/bondi_dipole/pack_results.sh
+bash research/bondi_dipole/pack_results.sh    # published cells -> data/ stars/ figures/ movies/
+bash research/bondi_dipole/pack_campaign.sh   # campaign cells  -> campaign/ + convergence tables
 ```
 
-It copies only small artefacts and scrubs absolute machine paths at runtime
+Both copy only small artefacts and scrub absolute machine paths at runtime
 (`research/bondi_dipole/scrub_paths.py`) — no host, user, or site identity
 enters git. To re-run the physics itself, see [`LAUNCH.md`](LAUNCH.md).
 

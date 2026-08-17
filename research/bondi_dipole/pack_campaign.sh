@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Pack light extracts of the convergence / big-box campaign into
+# results/bondi-dipole-runaway/campaign/.
+#
+# Companion to pack_results.sh, which owns the published paper cells under
+# data/ — this script never touches data/, stars/, figures/ or movies/.
+#
+# Safe to re-run at any time, including while runs are live:
+#   - each campaign cell's output folder is rebuilt from scratch on every run,
+#     so partial extracts from a still-running cell are replaced cleanly;
+#   - cells are discovered dynamically (every top-level dir in
+#     runs/bondi_rerun except published/, experiments/, logs/), so the queued
+#     equal-mass series is picked up automatically when it appears;
+#   - cells with no data yet are skipped with a note, never an error.
+#
+# Machine identity is scrubbed at runtime by scrub_paths.py (see the
+# no-identity-in-git rule); PNG frames carry no paths.
+#
+# Usage: bash research/bondi_dipole/pack_campaign.sh
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
+SIM_ROOT="$(cd -- "${ROOT}/.." && pwd)"
+RUNS="${ROOT}/runs/bondi_rerun"
+DEST="${ROOT}/results/bondi-dipole-runaway"
+
+export ROOT SIM_ROOT
+scrub() { python3 "${SCRIPT_DIR}/scrub_paths.py" "$@"; }
+
+mkdir -p "${DEST}/campaign"
+
+for celldir in "${RUNS}"/*/; do
+  cell="$(basename "${celldir}")"
+  case "${cell}" in published|experiments|logs) continue ;; esac
+  run="$(find "${celldir}" -maxdepth 1 -type d -name 'bondi_sg_*' | head -n 1)"
+  if [[ -z "${run}" ]] || ! compgen -G "${run}/small_data/*.dat" > /dev/null; then
+    echo "[pack-campaign] ${cell}: no time series yet -- skipping"
+    continue
+  fi
+  out="${DEST}/campaign/${cell}"
+  rm -rf "${out}"
+  mkdir -p "${out}"
+
+  # Time series: every stream is self-documenting (# header line).
+  cp "${run}"/small_data/*.dat "${out}/"
+
+  # Provenance: what was solved, how well, and what was evolved.
+  [[ -f "${run}/params.txt" ]] && cp "${run}/params.txt" "${out}/evolution_params.txt"
+  [[ -f "${run}/grtresna/params.txt" ]] && cp "${run}/grtresna/params.txt" "${out}/grtresna_params.txt"
+  [[ -f "${run}/grtresna/Ham_and_Mom_errors.txt" ]] && cp "${run}/grtresna/Ham_and_Mom_errors.txt" "${out}/"
+  for f in metadata.json initial_data.matter.json; do
+    [[ -f "${run}/${f}" ]] && cp "${run}/${f}" "${out}/"
+  done
+
+  # Evolution-side diagnostics arrive at every-step cadence; downsample to
+  # dt = 0.5 exactly as pack_results.sh does for the published cells.
+  for stream in constraint_norms energy_conditions curvature_invariants; do
+    [[ -f "${run}/data/${stream}.dat" ]] || continue
+    python3 - "${run}/data/${stream}.dat" "${out}/${stream}.dat" <<'PY'
+import sys
+
+src, dst = sys.argv[1], sys.argv[2]
+step, last = 0.5, None
+with open(src, encoding="utf-8") as fh, open(dst, "w", encoding="utf-8") as out:
+    out.write("# downsampled to dt=0.5 from the every-step stream\n")
+    for line in fh:
+        if line.startswith("#") or not line.strip():
+            out.write(line)
+            continue
+        t = float(line.split()[0])
+        if last is None or t - last >= step - 1e-9:
+            out.write(line)
+            last = t
+PY
+  done
+
+  found_txt=$(find "${out}" -maxdepth 1 \( -name '*.txt' -o -name '*.json' \))
+  [[ -n "${found_txt}" ]] && scrub ${found_txt}
+
+  # Curated frames: first / one-third / two-thirds / latest of what exists so
+  # far, named by plotfile step (a live run's "latest" is replaced on rerun).
+  for field in scalar_activity_z chi_minus_1_z; do
+    fdir="${run}/frames/${field}/frames"
+    [[ -d "${fdir}" ]] || continue
+    FIELD="${field}" OUT="${out}/frames" python3 - "${fdir}" <<'PY'
+import os, pathlib, re, shutil, sys
+
+frames = sorted(
+    pathlib.Path(sys.argv[1]).glob("*.png"),
+    key=lambda p: int(re.search(r"(\d+)\s*$", p.stem).group(1)),
+)
+if not frames:
+    raise SystemExit(0)
+field, out = os.environ["FIELD"], pathlib.Path(os.environ["OUT"])
+out.mkdir(parents=True, exist_ok=True)
+n = len(frames)
+for frac in (0.0, 1 / 3, 2 / 3, 1.0):
+    idx = min(n - 1, round(frac * (n - 1)))
+    step = int(re.search(r"(\d+)\s*$", frames[idx].stem).group(1))
+    shutil.copy2(frames[idx], out / f"{field}_step{step:05d}.png")
+PY
+  done
+
+  echo "[pack-campaign] campaign/${cell}: $(find "${out}" -type f | wc -l) files"
+done
+
+# Cross-resolution check: rebuilt from whatever campaign cells are packed.
+python3 "${DEST}/analysis/convergence_check.py" "${DEST}"
+
+echo "[pack-campaign] total campaign size: $(du -sh "${DEST}/campaign" | cut -f1)"
+echo "[pack-campaign] done"

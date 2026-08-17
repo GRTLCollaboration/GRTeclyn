@@ -16,7 +16,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 SIM_ROOT="$(cd -- "${ROOT}/.." && pwd)"
-RUNS="${ROOT}/runs/bondi"
+RUNS="${ROOT}/runs/bondi_rerun/published"
 DEST="${ROOT}/results/bondi-dipole-runaway"
 GRTRESNA_ROOT="${GRTRESNA_ROOT:-${SIM_ROOT}/GRTresna}"
 
@@ -135,7 +135,7 @@ echo "[pack] figures: $(find "${DEST}/figures" -name '*.png' | wc -l) frames"
 # ---------------------------------------------------------------------------
 # 3b. Movies -- the views that carry the result (60-180 kB each, not the full
 #     19-field set).  Stitch first if missing:
-#       bash grteclyn-wrapper/scripts/plot/make_movies.sh runs/bondi/<cell>/<run> \
+#       bash grteclyn-wrapper/scripts/plot/make_movies.sh runs/bondi_rerun/published/<cell>/<run> \
 #            --only scalar_activity_proj_z chi_minus_1_z rho_req_z
 # ---------------------------------------------------------------------------
 for spec in "${CELLS[@]}"; do

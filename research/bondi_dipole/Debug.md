@@ -136,7 +136,8 @@ old split between "laptop" and "cluster" no longer applies.** The working tree
 now lives on the same machine as the GPUs (4× H100, all four free), with
 AMReX, Chombo and the GRTresna solver as siblings of the repo — so edit, build
 and run happen in place. There is nothing to push and pull between machines,
-and nothing to copy. Earlier campaign output is present under `runs/bondi/`.
+and nothing to copy. All campaign output lives under `runs/bondi_rerun/` (see
+its `README.md`); the original paper cells sit in `runs/bondi_rerun/published/`.
 
 Two things that bite on this node:
 
@@ -453,7 +454,7 @@ onto the hardware.
 - **H. Robustness point** at a second frequency or coupling (draft-box item).
 - **I. CFL experiment — DONE 2026-08-17: REJECTED, keep `dt_multiplier = 0.02`.**
   Ran `single_p` at 0.2 against a fresh 0.02 baseline on the same machine and
-  binary (`runs/bondi_rerun/cfl_dt0p2`, `runs/bondi_rerun/cfl_base`). The coarse
+  binary (`runs/bondi_rerun/experiments/cfl_dt0p2`, `…/experiments/cfl_base`). The coarse
   step fails the star-health gate outright — rms 5.045 → 13.32 by t = 32 and
   19.22 by t = 40, against a gate of ±10 % — i.e. the star disperses. It also
   drives runaway noise-tagging: the refined region grows from the baseline's

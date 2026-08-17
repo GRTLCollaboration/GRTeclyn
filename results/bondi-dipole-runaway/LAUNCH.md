@@ -24,31 +24,31 @@ so both the solve and the evolution run with one rank; the launchers hard-set
 ## 2. The six cells
 
 Each launcher registers a stop handle (`launcher.pid`) and writes to
-`runs/bondi/<cell>/`. All six share the same physics configuration — only the
+`runs/bondi_rerun/published/<cell>/`. All six share the same physics configuration — only the
 sector flags, the per-lump frequency, and the stop time differ.
 
 ```bash
 # --- calibration singles (stop 40) ------------------------------------------
-BONDI_GPU=1 BONDI_RUNS_DIR="$PWD/runs/bondi/single_p" \
+BONDI_GPU=1 BONDI_RUNS_DIR="$PWD/runs/bondi_rerun/published/single_p" \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_single_selfgrav.sh
 
-BONDI_EXOTIC=1 BONDI_GPU=2 BONDI_RUNS_DIR="$PWD/runs/bondi/single_m" \
+BONDI_EXOTIC=1 BONDI_GPU=2 BONDI_RUNS_DIR="$PWD/runs/bondi_rerun/published/single_m" \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_single_selfgrav.sh
 
 # --- the runaway cell (stop 60) ---------------------------------------------
-BONDI_S0=0 BONDI_S1=1 BONDI_GPU=3 BONDI_RUNS_DIR="$PWD/runs/bondi/pair_pm" \
+BONDI_S0=0 BONDI_S1=1 BONDI_GPU=3 BONDI_RUNS_DIR="$PWD/runs/bondi_rerun/published/pair_pm" \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
 
 # --- controls (stop 60) -----------------------------------------------------
-BONDI_S0=0 BONDI_S1=0 BONDI_GPU=1 BONDI_RUNS_DIR="$PWD/runs/bondi/pair_pp" \
+BONDI_S0=0 BONDI_S1=0 BONDI_GPU=1 BONDI_RUNS_DIR="$PWD/runs/bondi_rerun/published/pair_pp" \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
 
-BONDI_S0=1 BONDI_S1=1 BONDI_GPU=2 BONDI_RUNS_DIR="$PWD/runs/bondi/pair_mm" \
+BONDI_S0=1 BONDI_S1=1 BONDI_GPU=2 BONDI_RUNS_DIR="$PWD/runs/bondi_rerun/published/pair_mm" \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
 
 # --- equal-|ADM| variant: phantom at its own frequency (stop 60) ------------
 BONDI_S0=0 BONDI_S1=1 BONDI_S1_OMEGA=0.56598 BONDI_GPU=0 \
-  BONDI_RUNS_DIR="$PWD/runs/bondi/pair_pm_eqm" \
+  BONDI_RUNS_DIR="$PWD/runs/bondi_rerun/published/pair_pm_eqm" \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
 ```
 
@@ -56,9 +56,9 @@ Detached (the campaign ran this way, one cell per GPU):
 
 ```bash
 setsid nohup /usr/bin/env BONDI_S0=0 BONDI_S1=1 BONDI_GPU=3 \
-  BONDI_RUNS_DIR="$PWD/runs/bondi/pair_pm" \
+  BONDI_RUNS_DIR="$PWD/runs/bondi_rerun/published/pair_pm" \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh \
-  > runs/bondi/pair_pm.launch.log 2>&1 < /dev/null & disown
+  > runs/bondi_rerun/published/pair_pm.launch.log 2>&1 < /dev/null & disown
 ```
 
 > **`/usr/bin/env`, spelled out — not a style preference.** On the GPU build node
@@ -79,7 +79,7 @@ a silent no-op looks exactly the same.
 orchestrator first and then sweeps workers:
 
 ```bash
-bash grteclyn-wrapper/scripts/campaigns/stop_campaign.sh runs/bondi/<cell>
+bash grteclyn-wrapper/scripts/campaigns/stop_campaign.sh runs/bondi_rerun/published/<cell>
 ```
 
 Killing a worker directly just advances the orchestrator to the next cell.
@@ -204,7 +204,7 @@ clamped amplitude) — the failure mode described in [`DEBUGGING.md`](DEBUGGING.
 
 ```bash
 # Movies from the retained PNG frames (19 fields, or a subset with --only)
-bash grteclyn-wrapper/scripts/plot/make_movies.sh runs/bondi/pair_pm/bondi_sg_pair_pm \
+bash grteclyn-wrapper/scripts/plot/make_movies.sh runs/bondi_rerun/published/pair_pm/bondi_sg_pair_pm \
      --framerate 10 --only scalar_activity_proj_z chi_minus_1_z rho_req_z
 
 # Rebuild this results pack (light artefacts only, machine paths scrubbed)
