@@ -2,6 +2,135 @@
 
 Updated 2026-08-17, after two external reviews of `bondi_dipole.tex`.
 
+---
+
+## 0. State of the results — snapshot 2026-08-17 12:10
+
+Live numbers, not final. Everything below is read from
+`runs/bondi_rerun/<cell>/bondi_sg_*/small_data/sector_barycenters.dat`; the
+three resolutions record on different time grids (frames every 40 *steps*, and
+dt ∝ dx), so **every cross-resolution number here is linearly interpolated onto
+a common time** — comparing raw rows silently compares different instants and
+was the first thing that made the fit look broken.
+
+### Item A convergence matrix — running, 4/6 past the science window
+
+All six cells: `L_full = 64`, unigrid (`max_level 0`), `dt_multiplier = 0.02`,
+`stop_time 60`, separation 8, lumps at rest. Only `N_full` differs.
+
+| cell | N | dx | t reached | frames |
+|---|---|---|---|---|
+| `convA_pm_n128` | 128 | 0.500 | 60.01 done | 152 |
+| `convA_pp_n128` | 128 | 0.500 | 60.01 done | 152 |
+| `convA_pm_n192` | 192 | 0.333 | 39.5 | 149 |
+| `convA_pp_n192` | 192 | 0.333 | 49.1 | 185 |
+| `convA_pm_n256` | 256 | 0.250 | 12.0 | 61 |
+| `convA_pp_n256` | 256 | 0.250 | 19.8 | 100 |
+
+Measured GPU memory: 8.8 GB (N=128), 25 GB (N=192), **58 GB of 81 GB**
+(N=256) — unigrid N=256 fits one H100 with ~23 GB spare, confirming the
+`BONDI_MAXLEVEL=0` warning in LAUNCH.md. Evolution speed 180 / ~30 / 13.5 code
+units per hour.
+
+**The runaway is resolution-independent.** Mixed-pair centroid drift, all three
+grids, common times:
+
+| t | N=128 | N=192 | N=256 | spread |
+|---|---|---|---|---|
+| 5 | 0.00252 | 0.00260 | 0.00258 | 2% |
+| 10 | 0.03422 | 0.03415 | 0.03377 | 1.3% |
+| 12 | 0.05277 | 0.05225 | 0.05166 | 2.1% |
+
+**The control's drift is a numerical artefact and it converges away.** `PP`
+centroid displacement at t=10: **−0.01615 (128), −0.01042 (192), −0.00550
+(256)** — falling with h at an apparent order between 1.1 and 2.2, i.e. → 0.
+So the effect-to-artefact ratio *improves* with refinement: 2.1× at N=128,
+3.3× at N=192, **6.1× at N=256**. This is the single most useful thing the
+series has produced so far: the mixed-pair drift sits still under refinement
+while the same-sector control's drift dies, which is exactly the signature a
+referee asks for and cannot be faked by a converging discretisation.
+
+**Two-grid error over the whole science window** (128 vs 192, mixed pair) —
+smooth, single-signed, sub-percent:
+
+| t | 10 | 15 | 20 | 25 | 30 | 35 |
+|---|---|---|---|---|---|---|
+| drift 128 | 0.0342 | 0.0897 | 0.2152 | 0.4337 | 0.7739 | 1.2721 |
+| drift 192 | 0.0342 | 0.0887 | 0.2133 | 0.4309 | 0.7705 | 1.2639 |
+| rel. diff | +0.2% | +1.1% | +0.9% | +0.7% | +0.5% | +0.7% |
+
+So the published drift numbers are not going to move materially. Coordinate
+separation over the same window: 7.96 → 7.33 (N=128).
+
+**Do not fit the convergence order before t ≈ 15.** Attempted at t=10–12 it
+returns p ≈ 0.1 and a 64% "extrapolation error" — a failed fit, not a result.
+Two reasons, both structural: (i) the drift there is 10⁻²–10⁻³, so the
+grid-to-grid differences (10⁻⁴) are the same size as other error sources, and
+(ii) **each resolution solves its own initial data independently** to a 0.1%
+non-linear tolerance, so the three cells do not start from the same state
+(final Ham residual 8.3227e-2 / 8.3188e-2 / 8.3185e-2 — converging; Mom
+residual 7.420e-2 / 7.517e-2 / 7.499e-2 — *not* monotone). Below t≈12 the
+inter-grid differences also flip sign, which alone kills a three-point fit.
+From t≈15 the ordering is stable (see the table above) and the fit is
+well-posed. Expect the fitted order to come out **below** the formal scheme
+order regardless: the drift is read from a threshold-weighted centroid, and
+blunt diagnostics converge more slowly than the field they are built from.
+Three grids give a rate *and* an extrapolation with no spare point to validate
+the fit — if the rate lands far from expectation, add a fourth resolution
+rather than forcing a curve through three points.
+
+### Box and wave extraction, as actually configured (all six cells)
+
+| quantity | value |
+|---|---|
+| evolution box | width 64, centre 32 32 32, outer wall 32 from centre |
+| outer BC | Sommerfeld outgoing, non-periodic (`hi/lo_boundary = 1 1 1`) |
+| **constraint-solve box** | **width 128** — already 2× the evolution box |
+| Ψ₄ shells | **R = 8 and R = 16** (confirmed in the `.dat` headers) |
+| built-in extraction | `activate_extraction = 0` — the in-code module is OFF |
+
+The Ψ₄ numbers come from the plotfile consumer (`--radii`, wired from
+`BONDI_RADII`), not from the evolution executable. **Neither shell is in the
+wave zone**: the inner shell sits *at* the star separation (8) and the outer at
+twice it, with the reflecting wall at only 32. Amplitudes at these radii carry
+near-field terms, the two shells disagree by construction (r·ψ₄ falls 5–10×
+between them), and no radiated-energy statement can be built on them. The
+drift result is unaffected — it is a matter-distribution measurement and never
+touches the shells. This is item C, now staged (below).
+
+### Launch-path fixes made while getting the matrix running
+
+* **All six cells initially aborted at parse time** with
+  `ParmParse::addDefn(): no values for definition regrid_interval`. Cause:
+  `regrid_intervals_for_max_level()` returned `[]` for `max_level ≤ 0`,
+  emitting a key with no tokens; ParmParse rejects that when it *parses* the
+  file, before any code reads the key. GRTeclyn `getarr`-reads exactly
+  `max_level` entries and appends its own terminal 0
+  (`Source/GRTeclynCore/AMReXParameters.hpp`), so unigrid must still emit one
+  benign `0`. Fixed in the **shared** helper
+  `grteclyn-wrapper/src/grteclyn_wrapper/core/params.py`, which every launcher
+  (`search/optimize/driver.py`, `search/qd_search/driver.py`,
+  `campaigns/hq/replay_eval.py`) goes through — not in any one campaign script.
+* **Parallel plotfile extraction validated and in use.** `CONSUMER_JOBS=8`:
+  A/B on 7 real plotfiles gave byte-identical output to serial (9/9 streams,
+  all time-ordered) at 3.2 → 12.4 files/min. Serial consumption loses to
+  production and idles the GPU 25–35 min per cell during the end-of-run drain.
+  A 256³ plotfile is 2.9 GB and takes ~8× the serial processing of a 128³ one,
+  so `-j 8` is mandatory, not an optimisation, at N=256.
+* **Chained cells do not need to wait for the predecessor's post-processing.**
+  `chain_next.sh` waits for the whole launcher to exit, but the GPU is free as
+  soon as evolution ends — the remaining backlog is CPU-only. Two N=192 cells
+  were started ~20 min early by killing the watcher and launching directly.
+  If you do this, **kill the watcher first**, or it fires a duplicate later.
+
+### Not started / still open
+
+Items **D–H** untouched. Item **C** staged (see below). `bondi_dipole.tex`
+edits from items B and the Sec. VI additions are **uncommitted**, and cannot be
+compile-checked on this node (no `pdflatex`/`latexmk` present).
+
+---
+
 **Environment note (2026-08-17): the runs moved to a GPU build node, and the
 old split between "laptop" and "cluster" no longer applies.** The working tree
 now lives on the same machine as the GPUs (4× H100, all four free), with
@@ -159,6 +288,42 @@ onto the hardware.
     the tex). Full closure — matter + gravitational field = 0 — still needs
     the ADM surface integral, i.e. item C; the volume integral alone
     exchanges momentum with the field by construction.
+  - **Bonus, 2026-08-17:** the residual has a closed form in `PM-eq`. With
+    M₊+M₋ = 0 the signed mass dipole is D = M₊(x₊−x₋) = M₊d, so Ḋ = M₊ḋ —
+    the residual *is* the mass-dipole rate, driven by the closing gap.
+    Verified numerically: measured px_total vs M₊ḋ = −1.78e-4/−1.78e-4
+    (t=10), −4.46e-4/−4.75e-4 (t=20), −1.72e-3/−2.00e-3 (t=30),
+    −1.43e-2/−1.26e-2 (t=45): agreement 1–14%. Two independent
+    diagnostics (field volume integral, core tracker) on one number.
+    Written into Sec. VI of the tex.
+
+  **Energy-budget / dipole-radiation proposal — assessed 2026-08-17.**
+  An external suggestion proposed adding: (i) the radiated energy drives the
+  binary's internal energy negative without bound ("Ostrogradsky
+  instability"), and (ii) because the gap closes, D̈ ≠ 0 and the pair
+  therefore emits **ℓ=1 dipole bremsstrahlung**.
+  - **(i) accepted, reframed.** The no-floor argument is right and worth
+    stating: Bondi mass loss is geometric (news-squared flux positive-definite
+    regardless of matter), the pair starts at M ≈ 0, and the positive-mass
+    theorem's DEC hypothesis fails, so nothing bounds the descent — no ground
+    state, no terminus. Added to Sec. VI. **Do not call it Ostrogradsky**:
+    that theorem concerns higher-derivative Lagrangians, and both sectors here
+    have canonical second-order dynamics (the sign enters only the metric
+    variation, Sec. II). The correct anchor is the positive-mass theorem
+    (already cited, Schoen–Yau/Witten) plus the vacuum-decay cites
+    (carroll2003, cline2004) the paper already carries.
+  - **(ii) REJECTED — it is wrong, and it would have contradicted the paper.**
+    Ψ₄ has spin weight −2, so its multipole expansion *starts* at ℓ=2: there
+    is no ℓ=1 harmonic to populate, whatever D̈ does. The tex already says
+    this correctly (Sec. VI, "no ℓ=1 mode to populate"); inserting the
+    proposal verbatim would have put a flat self-contradiction in the paper
+    and handed a reviewer an instant kill. Separately, the proposal misreads
+    Ḋ: it is a *momentum*, not a source. For the whole system Ḋ = P_ADM = 0
+    for data released at rest, so total D̈ ≡ 0; only the *matter* dipole
+    accelerates, and its rate of change is momentum handed to the
+    gravitational field — item C, not a radiation channel.
+  - What the closing gap *does* contribute is extra time dependence in the
+    **quadrupole**, on top of the linear acceleration. Written as such.
 - **C. Boundary problem + wave-zone Weyl** (blocks separation-scaling finals
   AND the radiated-energy question raised in the new Sec. VI): implement a
   **sponge layer** (Kreiss–Oliger dissipation profile ramping up near the
@@ -168,6 +333,66 @@ onto the hardware.
   perfectly off Sommerfeld boundaries — this is why the window is capped at
   t = 60. Weyl program on the enlarged domain (the near-zone analysis of
   2026-08-17 cannot settle any of these):
+
+  **Enlarged-box cell STAGED 2026-08-17** — `boxC_pm_L128_n256`, queued behind
+  `convA_pp_n192` on its GPU. **No code change and no rebuild is needed for the
+  domain part**, which is why this could be staged today rather than after a
+  sponge-layer implementation:
+
+  | knob | value | why |
+  |---|---|---|
+  | `BONDI_LFULL` | 128 | wall moves 32 → **64** from centre |
+  | `BONDI_NFULL` | 256 | keeps **dx = 0.5**, the published resolution |
+  | `BONDI_MAXLEVEL` | 0 | unigrid; 256³ = 58 GB, one GPU, measured |
+  | `BONDI_RADII` | `16 24 32 40` | four shells, two of them at R ≥ 32 |
+  | `BONDI_STOP_TIME` | 90 | see the causal window below |
+  | `BONDI_PSI4_HIGHER_L` | 1 | l = 3,4 stream — only meaningful now |
+  | `BONDI_SCRUTINY` | 1 | momentum stream, for the item B closure |
+  | `CONSUMER_JOBS` | 8 | mandatory at 2.9 GB/plotfile |
+
+  Same cell count as the `convA_*_n256` cells, so the same 58 GB — but spent on
+  *volume* instead of resolution. dt = 0.01 (twice the `convA_*_n256` step), so
+  ~27 code units/h and ~3.3 h to t = 90.
+
+  **Why these radii and this stop time.** With the wall at 64, junk from the
+  initial data reaches it at t ≈ 64 and returns inward to shell R at
+  t ≈ 128 − R. So the clean window per shell is R < t < 128 − R:
+  R = 16 → 16–112, R = 24 → 24–104, R = 32 → 32–96, R = 40 → 40–88. All four
+  shells are simultaneously clean over **t = 40–88**, which is what a
+  multi-shell r⁰ peel test of r·ψ₄ needs. `stop_time 90` buys that window;
+  going further only adds time past R = 40's contamination. As a bonus the
+  *drift* window also grows — the massive-field bath now needs t ≈ 128 to
+  return to the centre instead of t ≈ 64, so this cell can also test whether the
+  published t ≤ 30 cap was conservative.
+
+  **The constraint solve needs no change: it already runs on a box of width
+  128** (`--grtresna-domain-l 128`, hardcoded in the launcher, 64³ base + 3 AMR
+  levels), while the evolution box has been the *smaller* one at 64. Setting
+  the evolution box to 128 makes the two coincide, so the initial data covers
+  the new box exactly and its configuration stays **identical to the published
+  cells** — the enlarged box is then the only variable that changed. What is
+  lost is the current 2× margin between solve box and evolution box; solving on
+  the evolution domain with a 1/r outer condition is standard practice, but if
+  junk turns out to contaminate the shells anyway, the knobs to raise are
+  `--grtresna-domain-l 256` with `--grtresna-domain-nx 128` (both exist in the
+  CLI; the launcher hardcodes them, so they would need promoting to
+  `BONDI_*` env knobs like the rest of §3's rerun set).
+
+  **Verified before staging, not assumed:** the extraction centre is derived as
+  `L_full/2` in `campaigns/hq/replay_eval.py` and flows to the consumer's
+  `--center`/`--frames-center`, so it becomes 64 64 64 automatically — a
+  hardcoded 32 would have silently extracted spheres around the wrong point.
+  `--consumer-radii` is `nargs="+"`, so four shells are fine and the `.dat`
+  header labels each column group `R=`. Star placement is set by
+  `trajectory_lump{k}_R0 = 4` in code units, independent of the box, so the
+  separation stays 8.
+
+  **Control not staged yet, deliberately.** The radiated-energy *sign* wants a
+  same-sector comparison, but this box configuration has never been run. Verify
+  the PM cell past t ≈ 2 (centre at 64 64 64, t = 0 barycentre fingerprints per
+  LAUNCH.md §4, four `R=` column groups present) before chaining
+  `boxC_pp_L128_n256`.
+
   - Move the Ψ₄ shells into the wave zone (R ≥ 32, several shells to verify
     the r⁰ peel of r·ψ₄; today's shells at 8/16 show r·ψ₄ falling 5–10×
     between them — pure near zone).

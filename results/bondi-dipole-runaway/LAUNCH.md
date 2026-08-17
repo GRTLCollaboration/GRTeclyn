@@ -111,6 +111,7 @@ reproduces the original cell. Both launchers accept all of them.
 | `BONDI_SCRUTINY` | 0 | item B, momentum-balance stream (`sector_dynamics.dat`) |
 | `BONDI_PSI4_HIGHER_L` | 0 | item C, l≥3 Psi4 stream (`psi4_mode_higher_l.dat`) |
 | `BONDI_PSI4_ELLS` | `3 4` | which multipoles that stream carries |
+| `CONSUMER_JOBS` | 1 | parallel plotfile analysis workers. Validated 2026-08-17 (N=128, 7-plotfile A/B): `-j 8` output byte-identical to serial, all streams time-ordered, 3.2 → 12.4 plotfiles/min. Serial consumption (3/min) loses to production (6/min) and idles the GPU ~25–35 min per cell during the end-of-run drain; 8 clears it. Needs the 2026-08-17 driver ordering fix — on older trees `-j > 1` scrambles every `.dat` time column. |
 
 **Two measured warnings.**
 
