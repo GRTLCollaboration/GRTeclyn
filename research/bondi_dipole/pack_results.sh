@@ -62,19 +62,29 @@ for spec in "${CELLS[@]}"; do
   cp "${src}/metadata.json" "${src}/initial_data.matter.json" "${out}/"
   # Evolution-side diagnostics live in data/ at every-step cadence (6001 rows,
   # ~2 MB each).  Downsample to dt = 0.5 -- plenty for a drift/violation curve.
-  for stream in constraint_norms energy_conditions curvature_invariants; do
+  for stream in constraint_norms energy_conditions curvature_invariants collapse_diagnostics; do
     [[ -f "${src}/data/${stream}.dat" ]] || continue
-    python3 - "${src}/data/${stream}.dat" "${out}/${stream}.dat" <<'PY'
-import sys
+    header=""
+    [[ "${stream}" == collapse_diagnostics ]] && header="time min_lapse min_chi max_abs_K min_lapse_x min_lapse_y min_lapse_z max_ah_r min_theta_plus r_at_min_theta_plus min_phi max_phi min_Pi max_Pi pump_work"
+    HEADER="${header}" python3 - "${src}/data/${stream}.dat" "${out}/${stream}.dat" <<'PY'
+import os, sys
 
 src, dst = sys.argv[1], sys.argv[2]
 step, last = 0.5, None
 with open(src, encoding="utf-8") as fh, open(dst, "w", encoding="utf-8") as out:
     out.write("# downsampled to dt=0.5 from the every-step stream\n")
+    wrote_header = False
     for line in fh:
         if line.startswith("#") or not line.strip():
             out.write(line)
+            wrote_header = True
             continue
+        if not wrote_header:
+            # collapse_diagnostics ships without a header line; supply the
+            # column names the evolution code writes.
+            if os.environ.get("HEADER"):
+                out.write("# " + os.environ["HEADER"] + "\n")
+            wrote_header = True
         t = float(line.split()[0])
         if last is None or t - last >= step - 1e-9:
             out.write(line)

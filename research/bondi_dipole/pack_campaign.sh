@@ -55,19 +55,29 @@ for celldir in "${RUNS}"/*/; do
 
   # Evolution-side diagnostics arrive at every-step cadence; downsample to
   # dt = 0.5 exactly as pack_results.sh does for the published cells.
-  for stream in constraint_norms energy_conditions curvature_invariants; do
+  for stream in constraint_norms energy_conditions curvature_invariants collapse_diagnostics; do
     [[ -f "${run}/data/${stream}.dat" ]] || continue
-    python3 - "${run}/data/${stream}.dat" "${out}/${stream}.dat" <<'PY'
-import sys
+    header=""
+    [[ "${stream}" == collapse_diagnostics ]] && header="time min_lapse min_chi max_abs_K min_lapse_x min_lapse_y min_lapse_z max_ah_r min_theta_plus r_at_min_theta_plus min_phi max_phi min_Pi max_Pi pump_work"
+    HEADER="${header}" python3 - "${run}/data/${stream}.dat" "${out}/${stream}.dat" <<'PY'
+import os, sys
 
 src, dst = sys.argv[1], sys.argv[2]
 step, last = 0.5, None
 with open(src, encoding="utf-8") as fh, open(dst, "w", encoding="utf-8") as out:
     out.write("# downsampled to dt=0.5 from the every-step stream\n")
+    wrote_header = False
     for line in fh:
         if line.startswith("#") or not line.strip():
             out.write(line)
+            wrote_header = True
             continue
+        if not wrote_header:
+            # collapse_diagnostics ships without a header line; supply the
+            # column names the evolution code writes.
+            if os.environ.get("HEADER"):
+                out.write("# " + os.environ["HEADER"] + "\n")
+            wrote_header = True
         t = float(line.split()[0])
         if last is None or t - last >= step - 1e-9:
             out.write(line)

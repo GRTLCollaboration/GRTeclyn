@@ -234,6 +234,8 @@ canonicals) drives χ down to 0.44 as the pair merges.
 | **Breathing is resolution-intrinsic** | a re-solve with 30× tighter residuals (Mom 0.64 % → 0.018 %) reproduced the ±8 % breath point-for-point | cosmetic; a resolution notch is the lever, not a tighter solve |
 | **The radiation bath cannot leave** | massive-field radiation against massless-wave (Sommerfeld) boundaries; χ drifts down monotonically in canonical cells | mixed cells capped at t = 60; a sponge layer would be needed for longer runs |
 | **Barycentre includes the halo** | total activity −35 %, rms ×2.3 by t = 60 | §5.4 — quote t ≲ 30 for precision |
+| **No horizon in the measured window** | θ₊ stays positive and no apparent horizon is found in every cell stopped at t = 60; the lapse only dips to ≈ 0.55 | the runaway is not a collapse artefact |
+| **Collapse after contact** | the two t = 90 double-box cells form a trapped surface at t = 68.5 (mixed) and t = 69.5 (control) | end state is black-hole formation; measured at one cell size only, not convergence-tested |
 | **Single-rank only** | MPI is unusable on this node | performance only; no physics impact |
 
 ## 8. What is established, and what is not
@@ -249,6 +251,21 @@ canonicals) drives χ down to 0.44 as the pair merges.
 4. The push on the canonical star scales with the phantom's active mass as
    gravity requires (0.6 % agreement), and the phantom's response to an
    unchanged source reproduces across independent runs to 0.2 %.
+5. The drift is resolution-independent and box-independent. A uniform-grid
+   ladder at cell sizes 0.50 / 0.33 / 0.25 agrees to 2.2 % at t = 15 and 0.5 %
+   at t = 60, while the same ladder for the control shows its residual drift
+   halving at each refinement — the effect converges, the artefact vanishes
+   (`campaign/`, `analysis/convergence_check.md`).
+6. The runaway does not need a mass difference: with |ADM| matched between the
+   sectors the pair still runs away, 3 % weaker — a resolved difference against
+   a 0.3–0.5 % grid spread.
+7. The pair radiates a converged gravitational-wave signal. The l = 2, m = 0
+   amplitude agrees across four extraction shells in retarded time over
+   u = 10–25, to 0.3 % across the resolution ladder and 0.1 % between box
+   sizes (`analysis/wave_check.md`). The control has no usable wave window at
+   all — its shells never agree — so no control amplitude is quotable.
+8. Nothing collapses while the runaway is being measured: no apparent horizon
+   and θ₊ > 0 in every cell that stops at t = 60.
 
 **Not established.**
 1. *A constant-gap runaway.* At separation 8 the stars overlap and the pair
@@ -256,9 +273,14 @@ canonicals) drives χ down to 0.44 as the pair merges.
    compact stars (both sectors at higher ω, where the family scan shows the
    mass asymmetry also shrinks to a few percent).
 2. *Precision drift magnitudes at late times.* See §5.4.
-3. *The end state.* Every mixed run was stopped at t = 60, before contact, to
-   keep the trapped bath from poisoning the measurement. What a canonical–
-   phantom contact produces is untouched.
+3. *The end state — now observed, not yet measured.* The two double-box cells
+   were carried to t = 90, past contact: both form a black hole, the mixed
+   pair at t = 68.5 (apparent-horizon radius ≈ 2.5) and the two-positive
+   control at t = 69.5 (≈ 4.5), with the lapse collapsing to 0.06 and 0.01 by
+   t = 80. A canonical–phantom contact therefore ends in collapse rather than
+   in mutual cancellation. This rests on one cell size (0.50) in one box with
+   no convergence ladder behind it, and the sector barycentres are meaningless
+   once the lumps merge, so no quantitative claim is attached to it yet.
 
 ## 9. Suggested next runs
 

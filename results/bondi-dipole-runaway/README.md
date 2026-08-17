@@ -59,6 +59,7 @@ Every `.dat` stream carries its own `#` header line naming each column.
 | `shell_profiles.dat` | metric on extraction shells (χ, lapse, K) | — |
 | `constraint_norms.dat` | **constraint violation during the evolution** (downsampled to Δt = 0.5) | 1 `t`, 2 `L2_Ham`, 3 `L2_Mom`, 7 `L2_Ham_rel`, 8 `L2_Mom_rel` |
 | `energy_conditions.dat`, `curvature_invariants.dat` | NEC/WEC monitors and invariants (downsampled) | — |
+| `collapse_diagnostics.dat` | **horizon watch** — how deep the gravity well gets and whether a trapped surface appears (downsampled; column names are supplied by the pack script, the raw stream has none) | 1 `t`, 2 `min_lapse`, 3 `min_chi`, 4 `max_abs_K`, 8 `max_ah_r`, 9 `min_theta_plus` |
 | `boundary_flux.dat`, `areal_radius.dat`, `ftl_timeseries.dat` | outflow, minimal areal radius, geodesic diagnostics | — |
 | `grtresna_params.txt` | the constraint-solve input (couplings, per-lump seeds, tolerances) | — |
 | `evolution_params.txt` | the GRTeclyn evolution input (grid, AMR, boundaries, dt) | — |
@@ -147,14 +148,23 @@ error is dominated by initial-data offsets (~1e-3) rather than by a clean
 truncation term. Quote the grid-to-grid spread as the error bar, not an order.
 
 **Trust window: t ≲ 50.** Both lumps stay localized (spread ≈ 10, separation
-≈ 5) up to there. Past t ≈ 55 their spreads exceed their separation; in the
-double box they cross at t ≈ 65 and the matter then disperses — by t = 90 the
-peak matter density has fallen 30× and essentially nothing is still bound. That
-break-up is *converged* (the spread agrees to 2.5 % across the three grids), so
-it is a property of this matter model, not grid error — but past it the
-per-sector barycentre no longer means "where the star is", so the apparent
-slow-down of the drift after t ≈ 65 in `boxC_pm` is a diagnostic artefact of
-merged matter, not a physical deceleration.
+≈ 5) up to there. Past t ≈ 55 their spreads exceed their separation, and in the
+double box they cross at t ≈ 65. The spreading is *converged* (the three grids
+agree to 2.5 %), so it is a property of this matter model, not grid error — but
+past it the per-sector barycentre no longer means "where the star is", so the
+apparent slow-down of the drift after t ≈ 65 in `boxC_pm` is a diagnostic
+artefact of merged matter, not a physical deceleration.
+
+**No horizon forms during the measurement window — but the pair does collapse
+after it.** Every cell that stops at t = 60 stays horizon-free: the expansion
+θ₊ never goes negative, no apparent horizon is found, and the lapse only dips
+to ≈ 0.55. The runaway is therefore not a collapse artefact. The two double-box
+cells, which run to t = 90, keep going and both form a black hole — a trapped
+surface appears at **t = 68.5** in the mixed pair (horizon radius ≈ 2.5) and at
+**t = 69.5** in the two-positive control (≈ 4.5), with the lapse collapsing to
+0.06 and 0.01 by t = 80. So a canonical–phantom contact ends in collapse, not
+in mutual annihilation. That end state comes from a single cell size (0.50) and
+has not been convergence-tested; treat it as observed, not measured.
 
 ### Gravitational waves
 
