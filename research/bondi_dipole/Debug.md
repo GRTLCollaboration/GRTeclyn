@@ -167,8 +167,57 @@ needs to be re-made from the improved runs).
   015011 and mbarek2014 101502(R) formatting.
 - "traversible" in the Shinkai–Hayward title is original — warn the
   copyeditor not to "fix" it.
-- Sec. III D failure narrative stays in the main text; be prepared to move it
-  to an appendix if a referee asks.
+- Sec. III D failure narrative **removed from the article** (2026-08-17, user
+  decision: debug text, not article text). Full content preserved in §6 below
+  and in git history. Cross-references repaired: contribution (v) now points at
+  Caveats only; the couplings, dressed-star, and seeding paragraphs keep the
+  physics conclusions ("first couplings at which a dressed ω=0.55 star
+  exists", "any rescaling de-tunes the eigenstate") without the campaign
+  story. The two load-bearing residual facts survive elsewhere: the 30×
+  tighter-solve probe lives in the Caveats resolution paragraph; the t = 0
+  seed verification lives in contribution (iii).
 - After reruns A–E land: update Tables I/III/IV, Fig. 8, the clean-window
   ranges, and re-promote conclusion (3); only then consider the full-rewrite
   rule that applies to validated-fix campaigns.
+
+## 6. Removed from the article: the Sec. III D failure narrative (for the record)
+
+Cut 2026-08-17. Kept here because two of the four root causes are the reason
+the t = 0 verification gate exists, and future reruns must not regress them.
+
+Before any runaway could be claimed, a single lump had to hold its own size;
+four campaigns failed that gate. Heavy lumps collapsed (min χ → 0.009 by
+t ≈ 25), light lumps evaporated (rms 5 → 30 by t ≈ 50), and intermediate
+lumps did both — indicting the *shape* of the seed, not its weight. Four root
+causes, in order:
+
+1. **The amplitude clamp.** The seeding script clamped the amplitude to the
+   flat-space thin-wall value √(3λ/4μ), 4.5% below the solved eigenstate: an
+   exact Q-ball shape at the wrong height is not a Q-ball — it breathed, shed,
+   and evaporated. *Fix:* seed at the solved φ_c.
+2. **No dressed equilibrium existed.** The corrected flat-space seed still
+   dispersed: a flat-space eigenstate is an equilibrium only in flat space,
+   and the dressed family showed the target star did not exist at the original
+   couplings. *Fix:* weaken the couplings to the working values and seed the
+   dressed profile with its own lapse (paper Eq. 6).
+3. **Two seeding paths disagreed silently.** The constraint solve used the
+   tabulated star while the evolution's matter reconstruction fell through to
+   a Gaussian: the solved metric backed one object, the evolution started
+   another. *Fix:* both paths resolve the same star, enforced to 1e−10 by a
+   regression test.
+4. **The phantom path had never run.** An old veto downgraded exotic lumps to
+   canonical matter whenever self-gravity was on — correct for a
+   gravity-*bound* star, irrelevant for one bound by self-interaction.
+   *Fix:* lift the veto. The first phantom star evolved matched its predicted
+   profile, with the predicted mirror-image metric signature (χ just *above*
+   unity).
+
+Residual effects attributed rather than fixed: the ±8% radial breathing is
+resolution-intrinsic (re-solving with 30× tighter momentum residuals
+reproduced it crest for crest); the rms-radius stream tracks the shed
+radiation bath, not star health.
+
+The exportable lesson: **verify the seed before believing the evolution.**
+Every run was checked at t = 0 against the independently integrated star
+solution; two of the four root causes were caught by that check, not by
+watching movies.
