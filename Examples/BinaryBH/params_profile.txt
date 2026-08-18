@@ -1,33 +1,30 @@
 # Based on the q1-d12 configuration of https://inspirehep.net/literature/1994195
-
-# Many of the commented out parameters are relics from GRChombo and may not be
-# implemented here.
+# Commented parameters show default or suggested values.
 
 #################################################
 # Filesystem parameters
-# grteclyn.output_path = "" # Main path for all files. Must exist!
+# grteclyn.output_path = . # base path for all output
 
-amrex.verbose = 1
 amr.verbose = 1
-
 
 #ifdef AMREX_USE_GPU
 amrex.use_gpu_aware_mpi = 1
 #endif
 
-puncture_tracking.enabled = 0
-puncture_tracking.level = 5
-
-amr.check_file = BinaryBHChk_
-amr.plot_file = BinaryBHPlt_
-# amr.restart = BinaryBHChk_00100
+# amr.check_file = chk
+# amr.plot_file = plt
+# amr.restart = chk00100
 # amr.file_name_digits = 5
 
-amr.check_int = -1
-amr.plot_int = -1
+# amr.check_int = -1
+# amr.plot_int = -1
+
+# amr.plot_vars = ALL
+# amr.derive_plot_vars = NONE
 
 #################################################
-# Initial Data parameters
+# BH initial data parameters
+# These parameters are mostly ignored when using TwoPunctures initial data.
 
 bh1.mass = 0.48847892320123
 bh2.mass = 0.48847892320123
@@ -43,73 +40,72 @@ bh2.momentum = 0.0841746  0.000510846 0.0
 
 amr.n_cell = 128 128 64
 geometry.prob_extent = 1024 1024 512
+# geometry.center = 512 512 0 # defaults based on the domain and boundaries
 
-amr.max_level = 9 # There are (max_level+1) grids, so min is zero
+amr.max_level = 9 # there are max_level + 1 levels
 
 # -1 disables regridding
 amr.regrid_int = -1 -1 1 -1 -1 -1 -1 -1 -1
 tagging.threshold = 0.02
 
-# Max and min box sizes
+# Grid box sizes
 amr.max_grid_size = 32
 amr.blocking_factor = 16
 
 # Tag buffer size
 amr.n_error_buf = 4 4 4
-#amr.n_proper = 1
-# geometry.center = 8 8 8 # defaults to center of the grid
+# amr.n_proper = 1
 
 #################################################
-# Boundary Conditions parameters
+# Boundary condition parameters
 
-# Periodic directions - 0 = false, 1 = true
+# Periodic directions: 0 = false, 1 = true
 geometry.is_periodic = 0 0 0
-# if not periodic, then specify the boundary type
-# 0 = static, 1 = sommerfeld, 2 = reflective
+# For non-periodic directions, specify the boundary type:
+# 0 = static, 1 = Sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
 boundary.hi_condition = 1 1 1
 boundary.lo_condition = 1 1 2
 
-# if sommerfeld boundaries selected, must select
-# non zero asymptotic values
+# Sommerfeld boundaries require nonzero asymptotic values.
 boundary.nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 boundary.nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
-# if you are using extrapolating BC:
-# extraction.extrapolation_order = 1
-# extraction.extrapolating_vars =
+# Extrapolating and mixed boundary conditions are not yet implemented.
+# boundary.extrapolation_order = 1
+# boundary.extrapolating_vars =
 
 #################################################
 # Evolution parameters
 
-# dt will be dx*dt_multiplier on each grid level
-evolution.dt_multiplier = 0.25
+# dt is dx * dt_multiplier on each grid level.
+# evolution.dt_multiplier = 0.25
 # evolution.stop_time = 2.0
 evolution.max_steps = 1
 
-# Spatial derivative order (only affects CCZ4 RHS)
-evolution.spatial_derivative_order = 4 # only 4 currently implemented
+# Spatial derivative order (only affects the CCZ4 RHS)
+# evolution.spatial_derivative_order = 4
 
-evolution.nan_check = 1
+# evolution.nan_check = true
 
 # Lapse evolution
-gauge.lapse_advec_coeff = 1.0
-gauge.lapse_coeff = 2.0
-gauge.lapse_power = 1.0
+# gauge.lapse_advec_coeff = 1.0
+# gauge.lapse_coeff = 2.0
+# gauge.lapse_power = 1.0
 
 # Shift evolution
 gauge.shift_advec_coeff = 1.0
-gauge.shift_Gamma_coeff = 0.75
-gauge.eta = 1.0 # eta of gamma driver
+# gauge.shift_Gamma_coeff = 0.75
+# gauge.eta = 1.0 # typically O(1/M_ADM)
 
 # CCZ4 parameters
-ccz4.formulation = 0 # 1 for BSSN, 0 for CCZ4
-ccz4.kappa1 = 0.1
-ccz4.kappa2 = 0.
-ccz4.kappa3 = 1.
-ccz4.covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
+# ccz4.formulation = 0 # 1 for BSSN, 0 for CCZ4
+# ccz4.kappa1 = 0.1
+# ccz4.kappa2 = 0.0
+# ccz4.kappa3 = 1.0
+# ccz4.covariantZ4 = true # replace kappa1 with kappa1/lapse
 
-# coefficient for KO numerical dissipation
+# Coefficient for KO numerical dissipation
 evolution.sigma = 0.5
 
 # ccz4.min_chi = 1.e-4
@@ -118,13 +114,19 @@ evolution.sigma = 0.5
 #################################################
 # Extraction parameters
 
-# weyl_extraction.center = 4 4 0 # defaults to geometry.center
-weyl_extraction.enabled = 1
+# weyl_extraction.center = 4 4 0 # defaults to geometry.center in all cases
+weyl_extraction.enabled = true
 weyl_extraction.num_radii = 2
 weyl_extraction.radii = 110.0 150.0
 weyl_extraction.levels = 3 2
 weyl_extraction.num_points_phi = 32
-weyl_extraction.num_points_theta = 48
-weyl_extraction.write = 0
-weyl_extraction.num_modes = 3
-weyl_extraction.modes = 2 0  2 1  2 2
+weyl_extraction.num_points_theta = 49
+# weyl_extraction.write = false
+# weyl_extraction.num_modes = 3
+# weyl_extraction.modes = 2 0  2 1  2 2
+
+#################################################
+# Puncture tracking parameters
+
+# puncture_tracking.enabled = false
+# puncture_tracking.level = 5
