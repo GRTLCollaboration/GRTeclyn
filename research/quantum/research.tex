@@ -1,0 +1,432 @@
+\documentclass[twocolumn,floatfix,aps,prd,nofootinbib]{revtex4-2}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\input{glyphtounicode}
+\pdfgentounicode=1
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{textcase}
+\usepackage{placeins}
+\usepackage[protrusion=true,expansion=false]{microtype}
+
+\graphicspath{{figures/}{./}}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+    citecolor=blue,
+}
+\urlstyle{same}
+\emergencystretch=2em
+
+\begin{document}
+
+\title{\texorpdfstring{\MakeTextUppercase{The Euclidean Loophole: Imaginary Light Speed, Wick Rotation, and Microscopic Wormholes Without Exotic Matter}}{The Euclidean Loophole: Imaginary Light Speed, Wick Rotation, and Microscopic Wormholes Without Exotic Matter}}
+
+\author{\MakeTextUppercase{[Author Name]}}
+\email{author@institution.edu}
+\affiliation{\textit{[Affiliation]}}
+\date{\today}
+
+\begin{abstract}
+A student's substitution---set the speed of light to $c=i$ in the Minkowski line element---turns out to be the Wick rotation, and following it honestly leads somewhere real. We trace the substitution from the metric signature through the causal structure to the character of the field equations, and then to a conclusion that sounds like it should be false: the exotic-matter requirement that obstructs traversable wormholes in general relativity is a \emph{Lorentzian} statement, and it does not obstruct the Euclidean axion wormhole of Giddings and Strominger, whose throat is held open by ordinary quantized three-form flux. The same imaginary time that makes a tunnelling barrier into a valley makes a wormhole into a solution. We give a claims audit of the naive route: the signature flip and the collapse of the light cone survive it; the widely circulated inferences $E=-m$ and ``the speed limit disappears, so velocities are unbounded'' do not, and we say precisely why. We then state the loophole in its sharp form---the field-strength formulation carries no ghost, the wrong-sign kinetic term being an artifact of the dual scalar description of a complex saddle---and quantify what it buys: for $f_a\sim10^{16}$~GeV the throat is ${\sim}25$ Planck lengths across and the tunnelling amplitude is suppressed by $e^{-S}$ with $S\sim M_{\rm Pl}/f_a\sim10^2$. Interpretation is the price: a Euclidean wormhole is a saddle point of the gravitational path integral---a tunnelling amplitude, a topology-change event, an entry in Wheeler's foam---and not a tunnel anyone traverses. Nothing here is a new result; the contribution is a corrected derivation, a synthesis across four literatures that rarely cite one another, and the first pedagogical account of the 2019--2025 reversal on wormhole stability.
+\end{abstract}
+
+\maketitle
+
+% ==== DRAFT NOTE — remove before submission ==============================
+\begin{center}
+\fcolorbox{red}{white}{\parbox{0.94\columnwidth}{\footnotesize
+\textcolor{red}{\textbf{Draft --- required before submission:}}
+(1)~\emph{decide the venue and retitle accordingly}---as written this is a pedagogical synthesis (Am.\ J.\ Phys.\ / Eur.\ J.\ Phys.), \emph{not} a PRD research paper; the REVTeX \texttt{prd} class here is house style, not a submission target;
+(2)~if PRD or JHEP is wanted, add original content: reproduce the Giddings--Strominger solve and the negative-mode spectrum independently, or extend the stability analysis to a case not yet in the literature---at present Sec.~\ref{sec:euclidean} reports others' results;
+(3)~verify every numerical prefactor against the primary sources---the throat-radius convention differs by factors of $3\pi^3$ vs.\ $24\pi^4$ across Refs.~\cite{gs1988,alonso_urbano2019,hebecker2018} through the definition of $f_a$;
+(4)~arXiv \texttt{gr-qc} submission requires endorsement if the author is unaffiliated;
+(5)~Sec.~\ref{sec:stability} tracks an active dispute---re-check the literature at submission time and date the claim;
+(6)~get a referee-grade reading from someone who works in Euclidean quantum gravity before posting.}}
+\end{center}
+% =========================================================================
+
+\section{Introduction}
+\label{sec:intro}
+
+The question that starts this paper is the kind a student asks and a lecturer usually waves away. In $E=mc^2$, what if $c$ were imaginary?
+
+The waving-away is a mistake, because the substitution is not idle. Write the Minkowski line element in the mostly-plus convention,
+\begin{equation}
+ds^2=-c^2dt^2+dx^2+dy^2+dz^2 ,
+\label{eq:minkowski}
+\end{equation}
+and set $c\to i$. Then $-c^2=+1$, the minus sign that distinguishes time from space evaporates, and what remains is the metric of four-dimensional Euclidean space. The student has, without knowing it, performed the Wick rotation---the single most productive formal manoeuvre in theoretical physics, the one that makes the path integral converge, that computes tunnelling rates, and that underwrites Hawking's Euclidean quantum gravity programme~\cite{hawking1979}.
+
+Following it honestly leads somewhere that sounds false. In Lorentzian general relativity, a traversable wormhole throat requires matter that violates the null energy condition---``exotic matter,'' the standing obstruction to every wormhole and warp spacetime since Morris and Thorne~\cite{morris_thorne1988,alcubierre1994}. In Euclidean signature the obstruction is simply not there. The wormhole of Giddings and Strominger~\cite{gs1988}, a regular solution of Einstein's equations with an ordinary axion, has a throat held open by quantized three-form flux and needs no exotic matter at all. The theorem has a loophole, and the loophole is the signature.
+
+This deserves stating carefully, because it is exactly the kind of result that gets repeated into something false. The purpose of this paper is threefold: to correct the naive derivation where it goes wrong (Sec.~\ref{sec:audit}), to state the loophole in the sharp form the specialist literature uses rather than the slogan form that circulates (Sec.~\ref{sec:euclidean}), and to be explicit about what a Euclidean wormhole \emph{is}---a saddle point of a path integral, a tunnelling amplitude, not a tunnel (Sec.~\ref{sec:interpretation}).
+
+\emph{Novelty, stated up front.} Nothing in Secs.~\ref{sec:wick}--\ref{sec:stability} is new physics. The Giddings--Strominger solution is from 1988, its instanton interpretation from the same period~\cite{coleman1988,hawking1988}, the tunnelling formalism from Coleman's work a decade earlier~\cite{coleman1977}, and the stability analysis is a live dispute among specialists~\cite{hertog2019,hertog2024,marolf2025}. What this paper contributes is: (i)~a corrected derivation of the ``imaginary $c$'' route, with its two standard errors diagnosed rather than repeated; (ii)~a synthesis across four literatures---Euclidean quantum gravity, axion wormholes, black-hole information, and holographic factorization---that cite one another sparsely; and (iii)~to our knowledge the first pedagogical account of the 2019--2025 reversal on axion-wormhole stability, which is recent enough that no textbook treatment exists.
+
+Throughout, $\hbar=G=1$ except where units are restored for numerical estimates; $c$ is displayed explicitly wherever it is the object under discussion. $\tau$ denotes Euclidean time, $t$ Lorentzian.
+
+\section{Imaginary \texorpdfstring{$c$}{c} \emph{is} the Wick rotation}
+\label{sec:wick}
+
+\subsection{The substitution}
+
+In the line element~\eqref{eq:minkowski}, $c$ and $t$ appear only through the combination $x^0=ct$. It follows immediately that the two operations
+\begin{equation}
+c\to ic \qquad\text{and}\qquad t\to-i\tau
+\label{eq:equivalence}
+\end{equation}
+have identical effect on the geometry. The second is the Wick rotation as it is standardly written. The first is the student's question. They are the same manoeuvre, and the second is the better-posed of the two: $c$ is a dimensionful conversion constant fixed by measurement, whereas $t$ is a coordinate, and rotating a coordinate into the complex plane is a well-defined operation on an analytic function.
+
+This equivalence is the paper's organizing observation, and it cuts both ways. It grants the naive substitution its dignity---it is not numerology, it is a rederivation of a standard tool. It also removes any suggestion that $c$ is a dial one could turn. Nobody makes the speed of light imaginary; one continues an amplitude to complex values of a coordinate and continues back at the end.
+
+\subsection{What follows immediately}
+
+Three consequences follow, all of them standard, all of them correct.
+
+\emph{Signature.} The metric becomes Riemannian, $\delta_{\mu\nu}$ in place of $\eta_{\mu\nu}$. The four-dimensional geometry is now flat Euclidean space, and $\tau$ is on the same footing as $x$, $y$, $z$.
+
+\emph{Causal structure.} With no relative sign between $d\tau^2$ and $dx^2$, the classification of intervals into timelike, null, and spacelike is gone; there is no light cone, no invariant ordering of events, no distinguished direction of time. This is correct \emph{about the Euclidean manifold} and is precisely why the manoeuvre is useful. It is not a statement that causality fails in the world: causal structure is a feature of the Lorentzian section, recovered on continuing back.
+
+\emph{Character of the field equations.} The wave operator becomes the Laplacian,
+\begin{equation}
+-\frac{1}{c^2}\partial_t^2+\nabla^2 \;\longrightarrow\; \partial_\tau^2+\nabla^2 ,
+\end{equation}
+converting hyperbolic evolution into an elliptic boundary-value problem. In quantum mechanics the same rotation converts the Schr\"odinger equation into a diffusion equation,
+\begin{equation}
+i\partial_t\psi=H\psi \;\longrightarrow\; \partial_\tau\psi=-H\psi ,
+\end{equation}
+and in the path integral it converts the oscillatory weight into a convergent one,
+\begin{equation}
+e^{iS_{\rm L}/\hbar}\;\longrightarrow\;e^{-S_{\rm E}/\hbar}.
+\label{eq:weights}
+\end{equation}
+Equation~\eqref{eq:weights} is the reason the rotation is performed at all: an integral that merely oscillates becomes one that converges and can be evaluated by steepest descent.
+
+\subsection{Tunnelling: the barrier becomes a valley}
+\label{sec:tunnelling}
+
+The rotation's most physical consequence is the one the original question anticipated. A particle of energy $E$ facing a barrier $V(x)>E$ has no classical trajectory. Under $t\to-i\tau$ the Euclidean equation of motion is that of the \emph{inverted} potential $-V$, in which the forbidden region is a valley admitting a perfectly ordinary classical solution---the \emph{instanton}, or \emph{bounce} (Fig.~\ref{fig:bounce}). Its Euclidean action $B$ gives the tunnelling rate at one loop,
+\begin{equation}
+\Gamma\sim A\,e^{-B/\hbar},
+\label{eq:rate}
+\end{equation}
+and $B$ reproduces the WKB exponent $2\!\int\!\sqrt{2m(V-E)}\,dx$ exactly~\cite{coleman1977}. Tunnelling is not merely \emph{describable} in imaginary time; in imaginary time it is classical motion.
+
+\begin{figure}[t]
+\centering
+\includegraphics{fig_bounce.pdf}
+\caption{Barrier inversion. (a)~A double-well potential $V(x)=(x^2-1)^2$ (solid) and its Euclidean counterpart $-V(x)$ (dashed). What is a classically impassable barrier between the two minima in real time is a valley connecting them in imaginary time. (b)~The instanton, $x(\tau)=\tanh(\tau/\sqrt2)$: an ordinary classical trajectory of the inverted potential, interpolating between the two vacua over a Euclidean time of order unity. Its action $B$ sets the tunnelling rate through Eq.~\eqref{eq:rate}. This is the mechanism that Sec.~\ref{sec:euclidean} promotes from a particle in a potential to the geometry of spacetime itself.}
+\label{fig:bounce}
+\end{figure}
+
+This is the template for everything that follows. Sec.~\ref{sec:euclidean} replaces the particle coordinate $x$ with the spatial geometry, and the instanton of Fig.~\ref{fig:bounce}b with a wormhole.
+
+\section{Claims audit: what the naive route gets wrong}
+\label{sec:audit}
+
+Two inferences commonly attached to the ``imaginary $c$'' substitution do not survive scrutiny. Both are worth dissecting, since the substitution's real payoff is only visible once they are cleared away. Table~\ref{tab:audit} summarizes.
+
+\begin{table}[t]
+\caption{Audit of the claims that follow, or fail to follow, from $c\to ic$. ``Survives'' means the claim is standard physics correctly derived; ``fails'' means the derivation is invalid, whatever the status of the conclusion. Section references point to the discussion.}
+\label{tab:audit}
+\begin{ruledtabular}
+\begin{tabular}{lcc}
+claim & verdict & sec. \\
+\hline
+$c\to ic$ gives Euclidean signature & survives & \ref{sec:wick} \\
+light cone and causal order collapse & survives & \ref{sec:wick} \\
+hyperbolic $\to$ elliptic equations & survives & \ref{sec:wick} \\
+barrier inverts; tunnelling classical & survives & \ref{sec:tunnelling} \\
+$E=mc^2\Rightarrow E=-m$ & \textbf{fails} & \ref{sec:emc2} \\
+$\gamma$ finite $\Rightarrow$ unbounded speeds & \textbf{fails} & \ref{sec:gamma} \\
+Euclidean wormholes need no exotic matter & survives\footnotemark[1] & \ref{sec:euclidean} \\
+they are traversable tunnels & \textbf{fails} & \ref{sec:interpretation} \\
+\end{tabular}
+\end{ruledtabular}
+\footnotetext[1]{With the sharpening of Sec.~\ref{sec:sharp}: no exotic matter in the three-form formulation; the ``wrong-sign kinetic term'' is a feature of the dual scalar description of a complex saddle, and calling it a ghost is misleading~\cite{hebecker2018}.}
+\end{table}
+
+\subsection{$E=-m$ does not follow}
+\label{sec:emc2}
+
+The tempting move is: $c^2=i^2=-1$, therefore $E=mc^2=-m$. Energy and mass acquire opposite signs, heating an object makes it lighter, and so forth.
+
+This is wrong, and its wrongness is instructive. $E=mc^2$ is not a formula into which one substitutes a formally complex $c$; it is the rest-frame case of the invariant relation
+\begin{equation}
+E^2=m^2c^4+p^2c^2 ,\qquad p_\mu p^\mu=-m^2c^2 .
+\label{eq:dispersion}
+\end{equation}
+Here $c$ is a real, positive conversion constant between units of mass and units of energy. Wick rotation is an analytic continuation of amplitudes in a complexified time coordinate; it does not renegotiate the unit system, and the Euclidean energy is the analytic continuation of the Lorentzian one---conjugate to imaginary time---not its negative. Nothing in the procedure produces negative rest energy.
+
+There \emph{is} a well-defined object with $m^2<0$: the tachyon, whose four-momentum is spacelike. But that is obtained by continuing the \emph{mass}, $m\to i\mu$ in Eq.~\eqref{eq:dispersion}, which is a different and much more pathological operation---in field theory a tachyonic mass signals not superluminal particles but an unstable vacuum. Conflating it with Wick rotation confuses a computational tool with a sick theory.
+
+The correct statement is narrower and duller: under Wick rotation, energy is the generator of translations in $\tau$ rather than $t$, and the Boltzmann weight $e^{-\beta H}$ of statistical mechanics is the Euclidean evolution operator over a periodic imaginary time of circumference $\beta$. That correspondence---quantum field theory in imaginary time \emph{is} statistical mechanics---is the genuine article, and it is a deeper statement than $E=-m$ would have been.
+
+\subsection{The Lorentz factor loses its asymptote, but not to superluminal motion}
+\label{sec:gamma}
+
+Under $c\to ic$ the Lorentz factor becomes
+\begin{equation}
+\gamma=\frac{1}{\sqrt{1-v^2/c^2}}\;\longrightarrow\;\frac{1}{\sqrt{1+v^2/c^2}} ,
+\label{eq:gamma}
+\end{equation}
+finite and smooth for all $v$, with the divergence at $v=c$ gone. The inference drawn is that the speed limit has been removed and arbitrary velocities are available.
+
+The premise is right and the conclusion does not follow. The asymptote vanishes for a structural reason: an invariant limiting speed is a feature of Lorentzian causal structure, and Euclidean space has none. But by the same token Euclidean space has no distinguished time coordinate, and $v=dx/d\tau$ is not an invariant of it---rotations mix $\tau$ with $x$ freely, so ``velocity'' is not a physically meaningful quantity to be bounded or unbounded. Eq.~\eqref{eq:gamma} is a formal expression whose ingredients have lost their operational meaning.
+
+Removing the light cone does not enable faster-than-light travel; it removes the structure with respect to which ``faster than light'' means anything. The substitution buys access to a different \emph{calculational} regime, and the price is that real-time notions like velocity, causality, and traversal must be reconstructed on the way back. Sec.~\ref{sec:interpretation} is about paying that price.
+
+\section{The Euclidean loophole}
+\label{sec:euclidean}
+
+\subsection{The Lorentzian obstruction}
+
+For the static, spherically symmetric wormhole metric~\cite{morris_thorne1988}
+\begin{equation}
+ds^2=-e^{2\Phi(r)}dt^2+\frac{dr^2}{1-b(r)/r}+r^2d\Omega^2 ,
+\end{equation}
+a throat at $b(r_0)=r_0$ that flares outward, $b'(r_0)<1$, forces
+\begin{equation}
+T_{\alpha\beta}k^\alpha k^\beta=\rho+p_r<0
+\label{eq:nec}
+\end{equation}
+for the outgoing radial null vector $k^\alpha$: the null energy condition is violated at the throat. This is the exotic-matter requirement, and it is robust---it follows from the geometry of the throat and Einstein's equations, with no assumption about the matter beyond its being described by a stress tensor.
+
+Note what the derivation used: a null vector. Eq.~\eqref{eq:nec} is a statement about the null cone, which exists only in Lorentzian signature. \emph{The obstruction is a Lorentzian theorem.}
+
+\subsection{The Giddings--Strominger wormhole}
+
+Consider Einstein gravity in Euclidean signature coupled to an axion, described by its field strength $H_3=dB_2$. The Giddings--Strominger solution~\cite{gs1988} takes the form
+\begin{equation}
+ds^2=d\tau^2+a(\tau)^2\,d\Omega_3^2 ,\qquad
+\dot a^2=1-\frac{L^4}{a^4},
+\label{eq:gs}
+\end{equation}
+with the axion charge quantized on the three-sphere,
+\begin{equation}
+\int_{S^3}H_3=n\in\mathbb{Z} ,
+\end{equation}
+and throat radius scaling as
+\begin{equation}
+L\sim\left(\frac{n^2}{M_{\rm Pl}^2f_a^2}\right)^{1/4}
+\label{eq:throat}
+\end{equation}
+up to a convention-dependent numerical factor ($3\pi^3$ in the normalization of Ref.~\cite{alonso_urbano2019}). The geometry (Fig.~\ref{fig:throat}) has a minimum three-sphere of radius $L$ at $\tau=0$ and asymptotes to flat space, $a\to|\tau|$, on both sides. The apparent singularity of Eq.~\eqref{eq:gs} at $a=L$, where $\dot a=0$, is a coordinate artifact: the solution passes through the throat smoothly.
+
+\begin{figure}[t]
+\centering
+\includegraphics{fig_throat.pdf}
+\caption{The Giddings--Strominger throat: the scale factor of Eq.~\eqref{eq:gs} integrated numerically in units of the throat radius $L$. The three-sphere contracts to a minimum radius $L$ and re-expands, connecting two asymptotically flat Euclidean regions (dashed: the asymptote $a=|\tau|+\text{const}$, approached with constant $0.6025\,L$). What holds the throat open is quantized three-form flux through the $S^3$, not exotic matter---the flux term grows as $a^{-6}$ under contraction and halts it. In Lorentzian signature the same task requires violating Eq.~\eqref{eq:nec}.}
+\label{fig:throat}
+\end{figure}
+
+The mechanism is worth naming plainly, because it is not exotic in any sense. Flux through a sphere is conserved; as the sphere shrinks the flux energy density grows as $a^{-6}$, faster than the curvature term, and the contraction is halted. This is the same reason a charged black hole has an inner horizon. It is ordinary physics doing the job for which the Lorentzian case demanded negative energy density.
+
+\subsection{The sharp statement}
+\label{sec:sharp}
+
+Here the slogan and the correct statement diverge, and the difference matters enough to spell out.
+
+The slogan---``in Euclidean signature energy can be negative, so no exotic matter is needed''---is wrong, and reproduces the error of Sec.~\ref{sec:emc2}. What is true is this. When the pseudoscalar $\theta$ is Wick-rotated and dualized to the three-form $H_3$, the kinetic term acquires an overall sign flip relative to an ordinary Euclidean scalar, traceable to the Levi-Civita contraction picking up $(-1)^t$ with $t$ the number of negative metric eigenvalues. In the dual \emph{scalar} description this is the notorious ``wrong-sign kinetic term.'' In the \emph{three-form} description---the formulation in which the charge quantization is manifest---the fields have standard kinetic terms on both sides of the duality, and there is no ghost. As Hebecker \emph{et al.} put it, the saddle sits at imaginary values of $d\theta$ even though the $B_2$ and $H_3$ fields are real, and describing this as a ghost is conceptually misleading~\cite{hebecker2018,alonso_urbano2019}.
+
+So the defensible claim is:
+\begin{quote}
+\emph{The exotic-matter requirement is a theorem about Lorentzian traversable throats. The Euclidean axion wormhole is a regular solution of Einstein's equations sourced by ordinary quantized flux, and it evades the theorem because the theorem's hypotheses---a null cone, a traversal---are absent in Euclidean signature.}
+\end{quote}
+The loophole is real and it is structural. It is not a claim that energy conditions have been repealed.
+
+This should be distinguished from the large literature achieving ``wormholes without exotic matter'' in modified gravity---$f(R)$, Gauss--Bonnet, braneworld constructions---which satisfies the NEC by relocating the offending term from the stress tensor into the modified geometry. The Euclidean case lives inside ordinary Einstein gravity, and the resolution is the signature itself.
+
+\subsection{What the loophole buys, numerically}
+
+Two numbers set the scale, and both are sobering.
+
+For a GUT-scale axion decay constant, $f_a\sim10^{16}$~GeV with $n=1$, Eq.~\eqref{eq:throat} gives a throat radius $L\approx4\times10^{-34}$~m, about $25$ Planck lengths. Lowering $f_a$ to $10^{12}$~GeV widens it to ${\sim}2500\,\ell_{\rm P}$, still $10^{-32}$~m. These are microscopic in the strongest available sense of the word---the ``micro'' in the title is not rhetorical.
+
+The action scales as $S\sim n\,M_{\rm Pl}/f_a$, of order $10^2$ for $f_a\sim10^{16}$~GeV and $10^6$ for $10^{12}$~GeV. Through Eq.~\eqref{eq:rate} the associated amplitude carries a factor $e^{-S}$: these processes are suppressed by $e^{-100}$ at best. Nothing observable rides on a single wormhole. What rides on them is structural---the properties of the gravitational path integral, discussed next.
+
+\section{Interpretation: an amplitude, not a tunnel}
+\label{sec:interpretation}
+
+Everything above is about a solution on a Riemannian manifold. The question that decides its meaning is what such a solution \emph{is}, and the answer is fixed by Eq.~\eqref{eq:weights}: a Euclidean solution is a saddle point of
+\begin{equation}
+Z=\int\mathcal{D}g\;e^{-I_{\rm E}[g]} ,
+\label{eq:pathintegral}
+\end{equation}
+i.e.\ a stationary configuration dominating an \emph{amplitude}. The instanton of Fig.~\ref{fig:bounce}b is not a trajectory the particle follows; it is the configuration whose action sets the tunnelling rate. The wormhole of Fig.~\ref{fig:throat} stands in exactly the same relation to its process.
+
+That process is topology change. Cut the Giddings--Strominger solution at its neck and one has an instanton emitting a baby universe of axion charge $n$, with the anti-instanton reabsorbing it. Coleman~\cite{coleman1988} and Hawking~\cite{hawking1988} showed that the effect on low-energy physics is a bilocal interaction which can be localized by introducing ``$\alpha$ parameters''---a baby-universe Hilbert space---whose net effect is to shift the couplings of the effective theory, $\lambda_i\to\lambda_i-\alpha_i$. Coleman famously argued that this drives the cosmological constant toward zero; the argument was contested~\cite{fischler1989,polchinski1989} and remains unsettled.
+
+This is the sense in which a Euclidean wormhole is real, and it is a weaker sense than the word ``wormhole'' suggests. It contributes to amplitudes. It is not a structure with a mouth one could fly into, and its Lorentzian continuation is not a stable bridge: continuing the Giddings--Strominger solution yields contracting cosmologies, not a traversable tube. The formal bridge between the two signatures is the real-tunnelling construction~\cite{gibbons1990}: these geometries possess a hypersurface of vanishing extrinsic curvature on which they glue smoothly onto a Lorentzian solution, so the Euclidean section prepares an initial condition, not a passage.
+
+Placed in this frame, the picture is old and respectable. Wheeler's spacetime foam~\cite{wheeler1957} proposed that at $\ell_{\rm P}=1.616\times10^{-35}$~m geometry and topology fluctuate---virtual wormholes and handles appearing and closing. The Giddings--Strominger instanton is one calculable semiclassical inhabitant of that foam, and Sec.~\ref{sec:euclidean}'s ${\sim}25\,\ell_{\rm P}$ is precisely where Wheeler said to look.
+
+Three modern developments belong to the same family and are worth naming, because they are why this material is currently active rather than merely historical. \emph{Replica wormholes}: Euclidean saddles connecting replicas of a black hole reproduce the Page curve of Hawking radiation, with entirely ordinary matter~\cite{penington2020,almheiri2020}. \emph{The factorization problem}: Euclidean wormholes joining distinct asymptotic boundaries make $\langle Z_1Z_2\rangle\neq\langle Z_1\rangle\langle Z_2\rangle$, interpreted by Marolf and Maxfield~\cite{marolf2020} via an ensemble average and a baby-universe Hilbert space---Coleman's $\alpha$ parameters, returned. \emph{ER${}={}$EPR}~\cite{maldacena2013}: entangled pairs joined by non-traversable Einstein--Rosen bridges built from ordinary entangled matter, the supporting example constructed by---again---a Wick rotation.
+
+The common thread is worth stating, since it is the honest version of the intuition that motivated this paper: at the quantum level, wormhole-like structures appear throughout gravitational physics without exotic matter, provided one accepts that they are amplitudes, saddles, and entanglement structures rather than passages.
+
+\section{Stability: a dispute, and its reversal}
+\label{sec:stability}
+
+Whether these saddles genuinely contribute to Eq.~\eqref{eq:pathintegral} turns on their negative-mode spectrum, and the recent history is a caution against quoting any of it as settled.
+
+Negative modes were identified early~\cite{rubakov1987}. In 2019 Hertog, Truijen, and Van Riet~\cite{hertog2019} argued that axionic wormholes possess \emph{multiple} negative modes and are therefore not relevant saddle points---which would have dissolved the associated puzzles, factorization included, at a stroke.
+
+That conclusion has since been reversed. Treating the axion as a two-form gauge field, Hertog and collaborators~\cite{hertog2024} found axion wormholes to be perturbatively stable, even with a massless dilaton present. Marolf and Missoni~\cite{marolf2025} traced the earlier divergences to a particular way of solving the constraints and showed that a full treatment gives finite, positive action for the modes in question, leaving the stability conclusions intact. Corroborating analyses in AdS$_3$~\cite{loveridge2025} treat these wormholes as stable contributions to the path integral.
+
+The current consensus, as of 2025, is that Giddings--Strominger wormholes are perturbatively stable under fixed-charge boundary conditions and should be included as saddles---which \emph{revives} the factorization puzzle rather than resolving it. This is a live front, and a paper written a year from now may need a different paragraph here.
+
+\section{Limitations}
+\label{sec:limitations}
+
+\emph{Nothing here is a new result.} Sec.~\ref{sec:intro} said so; it bears repeating at the end, where a reader might have accumulated a different impression. The contribution is corrective, synthetic, and pedagogical.
+
+\emph{No macroscopic traversable wormhole is implied.} The Morris--Thorne obstruction stands, unmodified, in the Lorentzian regime where traversal is defined. Nothing above provides a route to one, and the numerical estimates of Sec.~\ref{sec:euclidean} place the structures at $10^{-34}$~m with amplitudes suppressed by $e^{-100}$.
+
+\emph{``Imaginary $c$'' is not a physical dial.} It is a rewriting of an analytic continuation. Any claim conditioned on ``if $c$ were imaginary in some region'' is not a claim about a physically realizable regime, and the tunnelling connection of Sec.~\ref{sec:tunnelling} should not be over-read: tunnelling is \emph{computed} in imaginary time, which does not mean a tunnelling particle inhabits a locally Euclidean region of spacetime.
+
+\emph{The exotic-matter statement requires its sharpening.} Sec.~\ref{sec:sharp}, not the slogan. Stated loosely it becomes the error of Sec.~\ref{sec:emc2} wearing different clothes.
+
+\emph{Prefactors are convention-dependent.} The numerical coefficient in Eq.~\eqref{eq:throat} varies across the literature through differing definitions of $f_a$ and of the Planck mass; only the scaling is convention-independent, and the estimates of Sec.~\ref{sec:euclidean} should be read as order-of-magnitude.
+
+\emph{Coleman's mechanism is unsettled}~\cite{fischler1989,polchinski1989}, and Sec.~\ref{sec:stability} tracks an active dispute. Neither is quoted here as established.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+A naive substitution turns out to be a standard tool, and following it carefully leads to a genuine structural fact: the exotic-matter obstruction to wormholes is a theorem about Lorentzian signature, and the Euclidean axion wormhole evades it with ordinary flux. Two inferences commonly bundled with the substitution---$E=-m$, and unbounded velocities---do not survive, and removing them is what makes the surviving claim visible.
+
+The price of the loophole is interpretive and it is steep. A Euclidean wormhole is a saddle point of the gravitational path integral: a tunnelling amplitude, a topology-change event, an entry in Wheeler's foam. Twenty-five Planck lengths across, suppressed by $e^{-100}$, and not traversable by anything. What it offers is not transport but structure---the same structure that reproduces the Page curve, obstructs holographic factorization, and links entanglement to geometry.
+
+That is a smaller claim than the one the thought experiment seemed to promise, and a more durable one.
+
+\section*{Reproducibility}
+
+Figures~\ref{fig:bounce} and~\ref{fig:throat} and the numerical estimates of Sec.~\ref{sec:euclidean} regenerate from a single script, \texttt{make\_figures.py}, with no arguments and no external data; it integrates Eq.~\eqref{eq:gs} with \texttt{scipy.integrate.solve\_ivp} (RK45, \texttt{rtol}${}=10^{-10}$) and evaluates Eq.~\eqref{eq:throat} in reduced-Planck-mass conventions following Ref.~\cite{alonso_urbano2019}. The asymptotic offset quoted in Fig.~\ref{fig:throat} ($0.6025\,L$) and the throat radii of Sec.~\ref{sec:euclidean} are printed by the same run.
+
+\FloatBarrier
+
+\begin{thebibliography}{99}
+
+\bibitem{hawking1979}
+S.~W.~Hawking,
+\newblock ``The path-integral approach to quantum gravity,''
+\newblock in \emph{General Relativity: An Einstein Centenary Survey}, edited by S.~W.~Hawking and W.~Israel (Cambridge University Press, Cambridge, 1979), p.~746.
+
+\bibitem{morris_thorne1988}
+M.~S.~Morris and K.~S.~Thorne,
+\newblock ``Wormholes in spacetime and their use for interstellar travel: A tool for teaching general relativity,''
+\newblock Am.\ J.\ Phys.\ \textbf{56}, 395 (1988).
+
+\bibitem{alcubierre1994}
+M.~Alcubierre,
+\newblock ``The warp drive: hyper-fast travel within general relativity,''
+\newblock Class.\ Quantum Grav.\ \textbf{11}, L73 (1994).
+
+\bibitem{gs1988}
+S.~B.~Giddings and A.~Strominger,
+\newblock ``Axion-induced topology change in quantum gravity and string theory,''
+\newblock Nucl.\ Phys.\ B \textbf{306}, 890 (1988).
+
+\bibitem{coleman1988}
+S.~Coleman,
+\newblock ``Why there is nothing rather than something: a theory of the cosmological constant,''
+\newblock Nucl.\ Phys.\ B \textbf{310}, 643 (1988).
+
+\bibitem{hawking1988}
+S.~W.~Hawking,
+\newblock ``Wormholes in spacetime,''
+\newblock Phys.\ Rev.\ D \textbf{37}, 904 (1988).
+
+\bibitem{coleman1977}
+S.~Coleman,
+\newblock ``Fate of the false vacuum: semiclassical theory,''
+\newblock Phys.\ Rev.\ D \textbf{15}, 2929 (1977).
+
+\bibitem{hertog2019}
+T.~Hertog, B.~Truijen, and T.~Van~Riet,
+\newblock ``Euclidean axion wormholes have multiple negative modes,''
+\newblock Phys.\ Rev.\ Lett.\ \textbf{123}, 081302 (2019); arXiv:1811.12690 [hep-th].
+
+\bibitem{hertog2024}
+T.~Hertog, S.~Maenaut, B.~Missoni, R.~Tielemans, and T.~Van~Riet,
+\newblock ``Stability of axion-saxion wormholes,''
+\newblock J.\ High Energy Phys.\ \textbf{11} (2024) 151; arXiv:2405.02072 [hep-th].
+
+\bibitem{marolf2025}
+D.~Marolf and B.~Missoni,
+\newblock ``Euclidean wormholes stability analysis revisited,''
+\newblock J.\ High Energy Phys.\ \textbf{10} (2025) 117; arXiv:2505.21118 [hep-th].
+
+\bibitem{alonso_urbano2019}
+R.~Alonso and A.~Urbano,
+\newblock ``Wormholes and masses for Goldstone bosons,''
+\newblock J.\ High Energy Phys.\ \textbf{02} (2019) 136; arXiv:1706.07415 [hep-ph].
+
+\bibitem{hebecker2018}
+A.~Hebecker, T.~Mikhail, and P.~Soler,
+\newblock ``Euclidean wormholes, baby universes, and their impact on particle physics and cosmology,''
+\newblock Front.\ Astron.\ Space Sci.\ \textbf{5}, 35 (2018); arXiv:1807.00824 [hep-th].
+
+\bibitem{fischler1989}
+W.~Fischler and L.~Susskind,
+\newblock ``A wormhole catastrophe,''
+\newblock Phys.\ Lett.\ B \textbf{217}, 48 (1989).
+
+\bibitem{polchinski1989}
+J.~Polchinski,
+\newblock ``The phase of the sum over spheres,''
+\newblock Phys.\ Lett.\ B \textbf{219}, 251 (1989).
+
+\bibitem{gibbons1990}
+G.~W.~Gibbons and J.~B.~Hartle,
+\newblock ``Real tunneling geometries and the large-scale topology of the universe,''
+\newblock Phys.\ Rev.\ D \textbf{42}, 2458 (1990).
+
+\bibitem{wheeler1957}
+J.~A.~Wheeler,
+\newblock ``On the nature of quantum geometrodynamics,''
+\newblock Ann.\ Phys.\ (N.Y.) \textbf{2}, 604 (1957).
+
+\bibitem{penington2020}
+G.~Penington, S.~H.~Shenker, D.~Stanford, and Z.~Yang,
+\newblock ``Replica wormholes and the black hole interior,''
+\newblock J.\ High Energy Phys.\ \textbf{03} (2022) 205; arXiv:1911.11977 [hep-th].
+
+\bibitem{almheiri2020}
+A.~Almheiri, T.~Hartman, J.~Maldacena, E.~Shaghoulian, and A.~Tajdini,
+\newblock ``Replica wormholes and the entropy of Hawking radiation,''
+\newblock J.\ High Energy Phys.\ \textbf{05} (2020) 013; arXiv:1911.12333 [hep-th].
+
+\bibitem{marolf2020}
+D.~Marolf and H.~Maxfield,
+\newblock ``Transcending the ensemble: baby universes, spacetime wormholes, and the order and disorder of black hole information,''
+\newblock J.\ High Energy Phys.\ \textbf{08} (2020) 044; arXiv:2002.08950 [hep-th].
+
+\bibitem{maldacena2013}
+J.~Maldacena and L.~Susskind,
+\newblock ``Cool horizons for entangled black holes,''
+\newblock Fortschr.\ Phys.\ \textbf{61}, 781 (2013); arXiv:1306.0533 [hep-th].
+
+\bibitem{rubakov1987}
+G.~V.~Lavrelashvili, V.~A.~Rubakov, and P.~G.~Tinyakov,
+\newblock ``Disruption of quantum coherence upon a change in spatial topology in quantum gravity,''
+\newblock JETP Lett.\ \textbf{46}, 167 (1987).
+
+\bibitem{loveridge2025}
+A.~Loveridge and Y.~Sun,
+\newblock ``AdS$_3$ axion wormholes as stable contributions to the Euclidean gravitational path integral,''
+\newblock arXiv:2504.10868 [hep-th] (2025).
+
+\end{thebibliography}
+
+\end{document}
