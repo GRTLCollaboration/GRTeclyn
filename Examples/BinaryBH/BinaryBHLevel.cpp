@@ -135,15 +135,18 @@ void BinaryBHLevel::initData()
     {
         // need to set the puncture coordinates as we use it for the puncture
         // tagging
-        GRParmParse pp;
-        std::array<double, AMREX_SPACEDIM> bh1_center;
-        std::array<double, AMREX_SPACEDIM> bh2_center;
-        pp.get("bh1.center", bh1_center);
-        pp.get("bh2.center", bh2_center);
+        BoostedBHInitialData::params_t bh1_params(1);
+        BoostedBHInitialData::params_t bh2_params(2);
+#ifdef USE_TWOPUNCTURES
+        two_punctures_initial_data.set_bh_params(bh1_params, bh2_params);
+#else
+        bh1_params.fill_params();
+        bh2_params.fill_params();
+#endif
 
         get_puncture_tracker().set_puncture_coords(
-            {bh1_center[0], bh1_center[1], bh1_center[2], bh2_center[0],
-             bh2_center[1], bh2_center[2]});
+            {bh1_params.center[0], bh1_params.center[1], bh1_params.center[2],
+             bh2_params.center[0], bh2_params.center[1], bh2_params.center[2]});
         // can't call start_from_initial_punctures() because we need the full
         // AMR grid first
     }

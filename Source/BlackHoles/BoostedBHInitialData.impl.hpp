@@ -34,40 +34,26 @@ void BoostedBHInitialData::params_t::check_params(int id)
             "approximation used for boosted BH only valid for small boosts");
     }
 
-    GRParmParse pp;
+    GRParmParse geom_pp("geometry");
     std::array<double, AMREX_SPACEDIM> center{};
-    pp.load("geometry.center", center);
+    geom_pp.get("center", center);
     std::array<double, AMREX_SPACEDIM> prob_extent{};
-    pp.get("geometry.prob_extent", prob_extent);
+    geom_pp.get("prob_extent", prob_extent);
 
-    // Get the centers of the BH either explicitly or as
-    // an offset (not both)
-
+    std::array<double, AMREX_SPACEDIM> offset{};
+    bh_pp.queryAdd("offset", offset);
     std::array<double, AMREX_SPACEDIM> bh_center = center;
-
-    if (bh_pp.contains("center") && bh_pp.contains("offset"))
+    FOR (idir)
     {
-        bh_pp.error("offset", "shouldn't be provided with center");
+        bh_center[idir] += offset[idir];
     }
-    else if (bh_pp.contains("offset"))
-    {
-        std::array<double, AMREX_SPACEDIM> offset;
-        bh_pp.get("offset", offset);
-
-        FOR (idir)
-        {
-            bh_center[idir] += offset[idir];
-        }
-    }
-
-    bh_pp.queryAdd("center", bh_center);
 
     FOR (idir)
     {
         if (bh_center[idir] < 0.0 || bh_center[idir] > prob_extent[idir])
         {
-            bh_pp.warning("center",
-                          "should be within the computational domain");
+            bh_pp.warning("offset", "places the black hole outside the "
+                                    "computational domain");
         }
     }
 }
@@ -75,9 +61,17 @@ void BoostedBHInitialData::params_t::check_params(int id)
 void BoostedBHInitialData::params_t::fill_params()
 {
     GRParmParse bh_pp("bh" + std::to_string(id));
+    GRParmParse geom_pp("geometry");
     bh_pp.get("mass", mass);
-    bh_pp.get("center", center);
     bh_pp.get("momentum", momentum);
+
+    geom_pp.get("center", center);
+    std::array<double, AMREX_SPACEDIM> offset{};
+    bh_pp.get("offset", offset);
+    FOR (idir)
+    {
+        center[idir] += offset[idir];
+    }
 }
 
 AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(int id)

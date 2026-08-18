@@ -29,15 +29,11 @@ amr.plot_int = -1
 #################################################
 # Initial Data parameters
 
-# provide 'offset' or 'center'
-
 bh1.mass = 0.48847892320123
 bh2.mass = 0.48847892320123
 
 bh1.offset = 0.0 6.10679 0.0
 bh2.offset =  0.0 -6.10679 0.0
-# bh1.center = 512  518.10679 512
-# bh2.center = 512 -505.89321 512
 
 bh1.momentum = -0.0841746 -0.000510846 0.0
 bh2.momentum = 0.0841746  0.000510846 0.0
