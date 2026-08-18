@@ -160,19 +160,19 @@
               
                 <h1 id="running-the-scalar-field-example">Running the scalar field example</h1>
 <p>Here we explain the scalar field example found in the code, which implements an oscillaton, which is a compact object where the scalar field gradients balance the gravitational attraction, leading to a long-lived, local, oscillating configuration.</p>
+<p>The parameters that are provided give a good enough resolution for the physical problem, and can be run relatively quickly on a laptop. For that reason it is a good initial test of running the code. However, to test the performance of the code on a larger system we recommend the <a href="../bbh_example/"><strong>Binary BH example</strong></a>.</p>
 <h2 id="physical-scenario">Physical scenario</h2>
 <p>This page describes running the Scalar Field example using the parameters found in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/ScalarField/params.txt">this parameter file</a>.</p>
 <h3 id="initial-data">Initial data</h3>
 <p>The initial scalar field profile is set in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/ScalarField/OscillatonInitialData.hpp"><code>OscillatonInitialData.hpp</code></a>).</p>
-<p>This uses a stationary solution obtained from a shooting method, which has then been interpolated using chebychev polynomials to give something we can impose analytically. At large radius it reduces the the Schwarzschild metric. </p>
-<p>The values for <span class="arithmatex">\(Gamma^i\)</span> could be calculated analytically from derivatives of the conformal metric, but instead we calculate it numerically using the <code>GammaCalculator.hpp</code> tool.</p>
-<p>Time-symmetric metric data for the fitted ground-state oscillaton profile.</p>
-<p>The source solution is supplied in areal-polar coordinates,</p>
+<p>This uses a quasi-stationary solution obtained from a shooting method, which has then been interpolated using chebychev polynomials to give something we can impose analytically. At large radius it reduces to the Schwarzschild metric. </p>
+<p>The values for <span class="arithmatex">\(\Gamma^i\)</span> could be calculated analytically from derivatives of the conformal metric, but instead we calculate it numerically using the <code>GammaCalculator.hpp</code> tool, which is necessary where the initial data is not conformally flat.</p>
+<p>Time-symmetric metric data for the fitted ground-state oscillaton profile is supplied in areal-polar coordinates,</p>
 <div class="arithmatex">\[ dl^2 = g_{rr}(r) dr^2 + r^2 d\Omega^2. \]</div>
 <p>In Cartesian coordinates this is</p>
-<div class="arithmatex">\[ \gamma_{ij} = \delta_{ij} + (g_rr - 1) n_i n_j. \]</div>
-<p>The CCZ4 variables are <code>chi = det(gamma)^(-1/3) = g_rr^(-1/3)</code> and <code>h_ij = chi gamma_ij</code>.  <code>K</code> and <code>A_ij</code> are zero.  At the initial oscillaton phase the field profile <code>phi=0</code> and its conjugate momentum <code>Pi</code> is nonzero. </p>
-<p>The conformal connection Gamma^i is evaluated numerically from <code>h_ij</code> using a separate class <code>GammaCalculator</code>, which is required for consistency since the metric is not conformally flat.</p>
+<div class="arithmatex">\[ \gamma_{ij} = \delta_{ij} + (g_{rr} - 1) n_i n_j. \]</div>
+<p>The CCZ4 variables are <code>chi</code><span class="arithmatex">\(= det(\gamma)^{-1/3} = g_{rr}^{-1/3}\)</span> and <code>h</code><span class="arithmatex">\(= \chi \gamma_{ij}\)</span>. The components of the extrinsic curvature <code>K</code> and <code>A</code><span class="arithmatex">\(=\tilde A_{ij}\)</span> are zero.  At the initial oscillaton phase the field profile <code>phi</code> is zero and its conjugate momentum <code>Pi</code> is nonzero, which means it can satisfy the constraints for any scalar potential (but it will only be stationary for the massive potential corresponding to the solution). </p>
+<p>The conformal connection <code>Gamma</code><span class="arithmatex">\(=\tilde{\Gamma}^i\)</span> is evaluated numerically from <code>h</code> using a separate class <code>GammaCalculator</code>, which is required for consistency since the metric is not conformally flat.</p>
 <p>The fitted profiles are finite Chebyshev expansions in</p>
 <div class="arithmatex">\[s = r^2 / (r^2 + L^2), \quad   x = 2s - 1.\]</div>
 <p>They are smooth and even at the origin.  </p>
@@ -185,21 +185,16 @@
 <h2 id="computational-set-up">Computational set up</h2>
 <p>Please read the <a href="../performance_optimisation/">Performance Optimisation</a> guide to understand how to divide the domain into boxes that are shared over the MPI ranks, as this is crucial for obtaining good performance on HPC systems. When GRTeclyn regrids (always at the first step, and at later steps as requested by the user), it will output the grid setup to the output file. This tells you how many boxes are on each level, and what their sizes are. This is very useful for understanding if you are load balancing appropriately.</p>
 <p>The parameters should be mostly self explanatory if you are familiar with NR, but you can look at the <a href="../parameters/"><strong>Parameters</strong></a> guide for more details.</p>
-<p>Typically, on a CPU system, dividing the domain up into 16^3 boxes, and running on 512 CPU cores with 512 MPI ranks, we obtain a speed of xx M/hr in code units. The speed is output at every timestep to the output file. This is just a rough measure obtained by dividing the current simulation time by the total runtime, so if the simulation freezes it won't go immediately to zero.</p>
-<p>Typically, on a GPU system, dividing the domain up into 32^3 boxes, and running on 8 GPUs (1 node) with 8 MPI ranks, we obtain a speed of xxx M/hr in code units.</p>
-<p>If you are seeing speeds significantly less than these you may have some memory bottleneck on your system. It will be worth trying to resolve this rather than running at a slower speed - your system admins should be able to advise on how to do this.</p>
+<p>Typically, on an old M1 Macbook laptop with no MPI, we obtain a speed of 650 M/hr in code units with the provided parameters. If your speeds are significantly below this, something is wrong.</p>
 <h2 id="checking-the-outputs">Checking the outputs</h2>
 <h3 id="viewing-3d-data-and-2d-slices">Viewing 3D data and 2D slices</h3>
 <p>See <a href="../visualising_outputs/"><strong>Visualising Ouputs</strong></a> for details on visualising. Note that checkpoint files are not viewable with AMReX, only plot files are.</p>
 <p>You probably want to look at the scalar profile <code>phi</code>, and perhaps also the conformal factor <code>chi</code>. Both should oscillate during the evolution.</p>
 <h3 id="plots-from-data-files">Plots from data files</h3>
 <p>The example also outputs some ASCII datafiles for post processing in a <code>data</code> folder. Firstly, it gives a file <code>scalar_profile.dat</code>, which gives the scalar profile over time.</p>
-<p>This can be plotted using a <code>python</code> script such as:</p>
-<pre class="highlight"><code class="language-python">
-Add one here
-</code></pre>
-<p>TODO: replace this:
-The resulting image should look like <img alt="this" src="../img/WeylScalar22.png" />.</p>
+<p>This can be plotted using the <code>python</code> script <code>plot_lineouts.png</code> found in the example folder.</p>
+<p>The resulting image should look like <img alt="this" src="../img/lineouts.png" /> </p>
+<p>Note that the small oscillation in the density over time is expected - for a real scalar field oscillon, the stress energy tensor is not completely stationary. However, it should not decay noticeably over time and the amplitude of the oscillations should remain just above 0.04.</p>
               
             </div>
           </div><footer>
