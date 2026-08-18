@@ -226,9 +226,13 @@ This example is very small, so 2 MPI ranks is more than sufficient. </p>
 <li><code>rho</code> - the value of the energy density at each cell.</li>
 </ul>
 <p>Set <code>amr.plot_vars = ALL</code> and <code>amr.derive_plot_vars = ALL</code> to print all the state (<code>phi</code>, <code>Pi</code>) and derived variables (<code>phi_analytic</code>, <code>Pi_analytic</code>, <code>rho</code>). </p>
+<p>If you plot the outputs using AMReXplorer, you will get something like this:</p>
+<p><img alt="KleinGordonBlob" src="img/KleinGordon.png" title="KleinGordonBlob" /></p>
+<p>You can then use the "Field" button to scroll through the different variables.</p>
 <h3 id="aside-how-to-add-a-derived-variable">(Aside) How to add a derived variable</h3>
+<p>Since the way GRTeclyn handles derived variables is quite different to GRChombo and the derived variables are quite straightforward in this example, this is a good place to start learning how to add your own derived quantities. </p>
 <ol>
-<li>Define their compute functions, e.g. <code>calc_energy_density</code>. This is done inside <code>DerivedVariables.hpp</code> and <code>DerivedVariables.impl.hpp</code>.</li>
+<li>Define their compute functions, e.g. <code>calc_energy_density</code>. Take a look at how this is done inside <code>DerivedVariables.hpp</code> and <code>DerivedVariables.impl.hpp</code>.</li>
 <li>Add the variable to the list of derived variables, <code>derive_lst</code>, managed by AMReX. This happens within the <code>KleinGordonLevel</code> class, inside the member function called <code>variableSetUp()</code>. Notice that the compute function defined in Step 1 is passed into <code>deriv_lst.add</code> and that the variables are named e.g. <code>rho</code>.</li>
 <li>When <code>writePlotFile</code> is called (at the AMReX level), it will cycle through the names of the variables in <code>derive_lst</code> and the ones that you have selected (using <code>amr.derive_plot_vars</code> in the parameter file) will be written to file. </li>
 </ol>

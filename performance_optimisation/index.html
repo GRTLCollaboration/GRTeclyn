@@ -80,6 +80,22 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#load-balancing-on-gpus">Load balancing on GPUs</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#writing-code-for-gpus">Writing code for GPUs</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#limit-the-amount-of-memory-used">Limit the amount of memory used</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#kernel-fission">Kernel Fission</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#kernel-fusion">Kernel Fusion</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tensors">Tensors</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#limit-branching-within-a-kernel">Limit branching within a kernel</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#further-reading">Further reading</a>
+    </li>
+        </ul>
+    </li>
     </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
@@ -157,6 +173,95 @@
 <p>There is also a minimum box size set by the <code>block_factor</code>, which we usually set to be equal (at least roughly) to the max box size, since this means that all the boxes are roughly the same size. Then having one box per process should mean roughly equal amounts of work. Below about <code>block_factor=8</code>, the costs of subdividing the grid start to outweigh the benefits of sharing the work (each box has +3 ghost cells on each edge, so the ghost cell load becomes comparable to the main calculation load).</p>
 <h2 id="load-balancing-on-gpus">Load balancing on GPUs</h2>
 <p>The really important thing to understand is that how you are doing your parallelisation is very different now. GPUs are <strong>HUGE AND HUNGRY</strong> and they need to be fed a lot of points to process at the same time. So your grid is going to be divided up into a much smaller number of boxes, each with a lot of cells, and each one will typically be given to an MPI process running on a single GPU. This is why you can even use a single GPU to process the whole box in one go without using MPI at all.</p>
+<h2 id="writing-code-for-gpus">Writing code for GPUs</h2>
+<p>There are some factors that should be considered when writing GPU performant code. </p>
+<h3 id="limit-the-amount-of-memory-used">Limit the amount of memory used</h3>
+<p>This seems like a simple one, but having a large memory footprint affects GPUs differently to CPUs. The GPUs contain contain simpler processors and do not have an ability to "pre-fetch" instructions unlike CPUs. </p>
+<p>Just like CPUs, the GPUs have a memory hierarchy. However, unlike (most) CPUs, local memory is not a software abstraction. Local memory to each thread is a dedicated resource and is the fastest to read and write, follwed by shared work group/thread block memory then global memory (also called VRAM). But local memory also has the smallest volume. If you reduce the amount of memory needed in your calculation, you can encourage the compiler to keep your variables stored on the <em>lowest</em> level of memory possible. This is why we no longer have the <code>Vars</code> struct in GRChombo or the derivative structs - these were being stored and fetched inside global memory and slowing down the code.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Only instantiate the variables that you are using at the time that they are needed. Limit the persistence of variables.</p>
+</div>
+<h3 id="kernel-fission">Kernel Fission</h3>
+<p>Related to the issue above, if the calculation uses too much local (register) memory, memory spills can occur. You can see this at compile time, e.g. for CUDA, there will be a line reporting the number of bytes spilled. </p>
+<p>This is why the <code>CCZ4RHS</code> calculation has been split up into three different parts:</p>
+<ul>
+<li>one <code>ParallelFor</code> launch to calculate <code>chi</code> and <code>h_ij</code></li>
+<li>one <code>ParallelFor</code> launch to calculate <code>A_ij</code>, <code>Theta</code> and <code>Gamma_ij</code></li>
+<li>one <code>ParallelFor</code> launch for the gauge and dissipation</li>
+</ul>
+<p>Take a look inside <code>BinaryBHLevel.cpp</code> in the <code>specificEvalRHS</code> member function as an example of how to do the splitting. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Use kernel splitting when calculating the RHS. Always call the above functions in separate <code>ParallelFor</code> instances. </p>
+</div>
+<h3 id="kernel-fusion">Kernel Fusion</h3>
+<p>In circumstances where there is not enough work for the GPU to do, your code may benefit from the opposite effect, kernel <em>fusion</em>. Small workloads, such as initializing variables, should be combined together in the same <code>ParallelFor</code> launch whenever possible. This reduces the launch overhead from each call to <code>ParallelFor</code>. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Try to combine small workloads into a single <code>ParallelFor</code> launch.</p>
+</div>
+<h3 id="tensors">Tensors</h3>
+<p>The <code>Tensor</code> object has been overhauled since GRChombo. It is now a lightweight wrapper around <code>amrex::Array1D</code>, <code>amrex::Array2D</code> or <code>amrex::Array3D</code> depending on the rank of the <code>Tensor</code> object.</p>
+<p>It supports curly brace initialization and you can access the elements using <code>()</code> brackets, e.g.:
+<pre class="highlight"><code>Tensor::Rank2 my_tensor{0.};     // all values are initialized to 0.
+FOR(i)
+{
+    my_tensor(i, i) = 1;         // set the diagonal elements to 1. 
+}</code></pre></p>
+<p>The default size of the tensor object is <code>AMREX_SPACEDIM</code> but you can have any size that you like if you write it like this:</p>
+<pre class="highlight"><code>// The syntax is Tensor::GeneralRank&lt;RANK, DIM1, DIM2, DIM3&gt;
+
+Tensor::GeneralRank&lt;3, 10, 20, 30&gt; my_oddly_shaped_tensor{0.}; 
+
+my_oddly_shaped_tensor(1, 2, 3) = 4. // still OK!</code></pre>
+<p>You can declare tensors up to rank 4, after that you will need to modify <code>Tensor.hpp</code> to define your own.</p>
+<p>There is even a special rank-4 tensor with size <code>AMREX_SPACEDIM+1</code>:</p>
+<pre class="highlight"><code>Tensor::SpacetimeRank4 my_spacetime_tensor{0.}
+
+for (int i = 0; i &lt; AMREX_SPACEDIM+1; ++i)   // NB: can't use FOR!
+  for (int j = 0; j &lt; AMREX_SPACEDIM+1; ++j)
+    for (int k = 0; k &lt; AMREX_SPACEDIM+1; ++k)
+      for (int l = 0; l &lt; AMREX_SPACEDIM+1; ++l)      
+        my_spacetime_tensor(i, j, k, l) = i + j + k + l;  // or something...
+</code></pre>
+<p>Some variables are symmetric so we only store the unique values. This is the same as GRChombo where <code>Vars</code> only stored <code>A12</code> but not <code>A21</code>. For example: </p>
+<p><pre class="highlight"><code>Tensor::Sym12Sym34Rank4 my_symmetric_tensor{0.}; //initialize all elements to 0
+
+FOR(i)
+ FOR(j)
+  FOR(k)
+   FOR(l)
+    my_symmetric_tensor(i, j, k, l) = i + cos(j) + log(k) + l;  
+</code></pre>
+In the example above, not all the values will be saved to <code>my_symmetric_tensor</code> as the calculation is not symmetric in the <code>ij</code> or <code>kl</code> pair of indices. </p>
+<p>Some things to bear in mind: </p>
+<ul>
+<li>The second derivatives are always assumed to be symmetric: <span class="arithmatex">\(\frac{d^2}{dxdy} = \frac{d^2}{dydx}\)</span> and we will only store the unique values. </li>
+<li><code>h_ij</code>, <code>d1_h</code> and <code>d2_h</code> are always symmetric. <code>d2_h</code> is special in that it is doubly symmetric so it has type <code>Tensor::Sym12Sym34Rank4</code>. <code>d1_h</code> is only symmetric in <span class="arithmatex">\(h_{ij}\)</span> and not the derivative part, so <code>d1_h</code> has type <code>Tensor::Sym12Rank3</code> because the derivative is always the last index.</li>
+<li><code>A_ij</code> and <code>d1_A</code> are always symmetric, similarly <code>d1_A</code> has type <code>Tensor::Sym12Rank3</code>. </li>
+<li>The real dimension of <code>Tensor::Sym12Sym34Rank4</code> is 2. It is actually an 6 x 6 <code>amrex::Array2D</code> object (which is actually a 1D object...) as there only 36 unique values once both symmetries have been accounted. But you index into it the same as a 4D object, so always write <code>d2_h(i, j, k, l)</code> the code will work out the correct element. </li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Take advantage of symmetries whenever possible. </p>
+</div>
+<h3 id="limit-branching-within-a-kernel">Limit branching within a kernel</h3>
+<p>Because of their simpler processors, GPUs have limited branch prediction capabilities. Control flow statements, such as <code>if</code> statements, can severely impact performance by reducing thread occupation, as some branches are masked off or predicated in a different instruction stream. In CUDA terms, this is called "warp divergence".</p>
+<p>If you must use branching, try to reword it as <code>if constexpr my_expression</code> and have <code>my_expression</code> be evaluated at compile time instead of runtime. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Try not to use <code>if...else...</code> statements inside a <code>ParallelFor</code>. Prefer the use of <code>if constexpr ...</code></p>
+</div>
+<h3 id="further-reading">Further reading</h3>
+<ul>
+<li>
+<p><strong>Data Parallel C++: Mastering DPC++ for Programming of Hetrogeneous Systems using C++ and SYCL</strong>, Reinders, Ashbaugh, Brodman, Kinsner, Pennycook, Tian. A great intermediate level book, not limited to SYCL, one of Juliana's favourites. <a href="https://link.springer.com/book/10.1007/978-1-4842-5574-2">Download</a></p>
+</li>
+<li>
+<p><strong>Software Carpentries Lesson</strong> Introductory material for GPU programming. If this is the first time you have ever programmed for GPUs, this is for you. <a href="https://carpentries-incubator.github.io/lesson-gpu-programming/introduction.html">Start here</a></p>
+</li>
+</ul>
               
             </div>
           </div><footer>
