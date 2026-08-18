@@ -27,42 +27,10 @@ class SimulationParameters
 
         spherical_extraction_params_t::check_params("test_extraction_lo");
         spherical_extraction_params_t::check_params("test_extraction_hi");
+        CCZ4_params_t::check_params();
+        puncture_tracker_params_t::check_params();
 
-        GRParmParse pp;
         GRParmParse test_pp("test");
-        int formulation = CCZ4RHS<>::USE_CCZ4; // Whether to use BSSN or CCZ4
-        pp.queryAdd("ccz4.formulation", formulation);
-
-        if (formulation != CCZ4RHS<>::USE_CCZ4 &&
-            formulation != CCZ4RHS<>::USE_BSSN)
-        {
-            pp.error("ccz4.formulation", "must be 0 or 1");
-        }
-
-        if (formulation == CCZ4RHS<>::USE_CCZ4)
-        {
-            CCZ4_params_t::check_params();
-        }
-        else if (formulation == CCZ4RHS<>::USE_BSSN)
-        {
-            if (pp.contains("ccz4.kappa1") || pp.contains("ccz4.kappa2") ||
-                pp.contains("ccz4.kappa3"))
-            {
-                pp.warning("kappa1/2/3",
-                           "should not be provided with BSSN formulation, "
-                           "setting them all to zero");
-            }
-            pp.add("ccz4.kappa1", 0.0);
-            pp.add("ccz4.kappa2", 0.0);
-            pp.add("ccz4.kappa3", 0.0);
-        }
-
-        bool puncture_tracking_enabled{false};
-        pp.queryAdd("puncture_tracking.enabled", puncture_tracking_enabled);
-        if (puncture_tracking_enabled)
-        {
-            puncture_tracker_params_t::check_params();
-        }
 
         amrex::Real fake_bh1_mass = 0.5;
         amrex::Real fake_bh2_mass = 0.5;

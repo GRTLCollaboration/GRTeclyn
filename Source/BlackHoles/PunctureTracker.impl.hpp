@@ -31,6 +31,10 @@ void puncture_tracker_params_t::check_params()
 
     bool enabled = false; // default
     puncture_tracking_pp.queryAdd("enabled", enabled);
+    if (!enabled)
+    {
+        return;
+    }
 
     std::string output_path;
     pp.get("grteclyn.output_path", output_path);

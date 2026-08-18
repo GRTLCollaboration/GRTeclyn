@@ -29,31 +29,7 @@ struct CCZ4_params_t
     bool covariantZ4; //!< if true, replace kappa1->kappa1/lapse as in
                       //!<  arXiv:1307.7391 eq. 27
 
-    static void check_params()
-    {
-        GRParmParse ccz4_pp("ccz4");
-        double kappa1 = 0.1;
-        ccz4_pp.queryAdd("kappa1", kappa1);
-        if (kappa1 <= 0.0)
-        {
-            ccz4_pp.warning("kappa1", "should be greater than 0.0 to damp "
-                                      "constraints (see arXiv:1106.2254).");
-        }
-
-        double kappa2 = 0.0;
-        ccz4_pp.queryAdd("kappa2", kappa2);
-        if (kappa2 <= -1.0)
-        {
-            ccz4_pp.warning("kappa2", "should be greater than -1.0 to damp "
-                                      "constraints (see arXiv:1106.2254).");
-        }
-
-        double kappa3 = 1.0;
-        ccz4_pp.queryAdd("kappa3", kappa3);
-
-        bool covariantZ4 = true;
-        ccz4_pp.queryAdd("covariantZ4", covariantZ4);
-    }
+    static void check_params();
 
     void fill_params()
     {
@@ -130,6 +106,59 @@ class CCZ4RHS
                       const amrex::Array4<amrex::Real> &rhs,
                       const amrex::Array4<const amrex::Real> &state) const;
 };
+
+inline void CCZ4_params_t::check_params()
+{
+    GRParmParse ccz4_pp("ccz4");
+
+    int formulation = CCZ4RHS<>::USE_CCZ4;
+    ccz4_pp.queryAdd("formulation", formulation);
+    if (formulation != CCZ4RHS<>::USE_CCZ4 &&
+        formulation != CCZ4RHS<>::USE_BSSN)
+    {
+        ccz4_pp.error("formulation", "must be 0 or 1");
+    }
+
+    if (formulation == CCZ4RHS<>::USE_BSSN)
+    {
+        if (ccz4_pp.contains("kappa1") || ccz4_pp.contains("kappa2") ||
+            ccz4_pp.contains("kappa3"))
+        {
+            ccz4_pp.warning("kappa1/2/3",
+                            "should not be provided with BSSN formulation, "
+                            "setting them all to zero");
+        }
+        ccz4_pp.add("kappa1", 0.0);
+        ccz4_pp.add("kappa2", 0.0);
+        ccz4_pp.add("kappa3", 0.0);
+    }
+    else
+    {
+        double kappa1 = 0.1;
+        ccz4_pp.queryAdd("kappa1", kappa1);
+        if (kappa1 <= 0.0)
+        {
+            ccz4_pp.warning("kappa1",
+                            "should be greater than 0.0 to damp constraints "
+                            "(see arXiv:1106.2254).");
+        }
+
+        double kappa2 = 0.0;
+        ccz4_pp.queryAdd("kappa2", kappa2);
+        if (kappa2 <= -1.0)
+        {
+            ccz4_pp.warning("kappa2",
+                            "should be greater than -1.0 to damp constraints "
+                            "(see arXiv:1106.2254).");
+        }
+
+        double kappa3 = 1.0;
+        ccz4_pp.queryAdd("kappa3", kappa3);
+    }
+
+    bool covariantZ4 = true;
+    ccz4_pp.queryAdd("covariantZ4", covariantZ4);
+}
 
 #include "CCZ4RHS.impl.hpp"
 
