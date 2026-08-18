@@ -19,8 +19,17 @@ template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
     params_t a_params, double a_dt, double a_time, bool a_first_step,
     double a_restart_time)
-    : m_params(std::move(a_params)), m_geom(), m_dt(a_dt), m_time(a_time),
-      m_first_step(a_first_step), m_restart_time(a_restart_time)
+    : SurfaceExtraction(std::move(a_params), SurfaceGeometry{}, a_dt, a_time,
+                        a_first_step, a_restart_time)
+{
+}
+
+template <class SurfaceGeometry, int num_components>
+SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
+    params_t a_params, SurfaceGeometry a_geom, double a_dt, double a_time,
+    bool a_first_step, double a_restart_time)
+    : m_geom(std::move(a_geom)), m_params(std::move(a_params)), m_dt(a_dt),
+      m_time(a_time), m_first_step(a_first_step), m_restart_time(a_restart_time)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     m_num_interp_points = (amrex::ParallelDescriptor::MyProc() == 0)

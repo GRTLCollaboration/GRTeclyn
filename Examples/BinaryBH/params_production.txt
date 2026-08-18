@@ -159,13 +159,12 @@ evolution.sigma = 0.5
 #################################################
 # Extraction parameters
 
-# We don't have any extraction yet but the extraction spheres are used for
-# tagging cells
-extraction.activate_extraction = true
-extraction.num_extraction_radii = 2
-extraction.extraction_radii = 50.0 100.0
-extraction.extraction_levels = 3 2
-extraction.num_points_phi = 160
-extraction.num_points_theta = 80
-extraction.num_modes = 3
-extraction.modes = 2 0  2 1  2 2
+# weyl_extraction.center = 4 4 0 # defaults to geometry.center
+weyl_extraction.enabled = true
+weyl_extraction.num_radii = 2
+weyl_extraction.radii = 50.0 100.0
+weyl_extraction.levels = 3 2
+weyl_extraction.num_points_phi = 160
+weyl_extraction.num_points_theta = 80
+weyl_extraction.num_modes = 3
+weyl_extraction.modes = 2 0  2 1  2 2

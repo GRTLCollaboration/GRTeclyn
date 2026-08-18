@@ -94,6 +94,11 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
 
+    //! Constructor for geometries which require instance-specific parameters
+    SurfaceExtraction(surface_extraction_params_t a_params,
+                      SurfaceGeometry a_geom, double a_dt, double a_time,
+                      bool a_first_step, double a_restart_time = 0.0);
+
     //! add a single variable or derivative of variable
     void add_var(int a_var, const VariableType var_type = VariableType::state,
                  const Derivative &a_deriv                 = Derivative::LOCAL,

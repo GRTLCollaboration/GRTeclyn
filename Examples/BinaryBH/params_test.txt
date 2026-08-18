@@ -144,15 +144,15 @@ evolution.sigma = 0.5
 #################################################
 # Extraction parameters
 
-# extraction.extraction_center = 4 4 0 # defaults to center
-extraction.activate_extraction = true
-# extraction.num_extraction_radii = 2
-# extraction.extraction_radii = 2.0 3.0
-# extraction.extraction_levels = 2 1
-# extraction.num_points_phi = 24
-# extraction.num_points_theta = 37
-# extraction.num_modes = 8
-# extraction.modes = 2 0  2 1  2 2  4 0  4 1  4 2  4 3  4 4
+# weyl_extraction.center = 4 4 0 # defaults to geometry.center
+weyl_extraction.enabled = true
+# weyl_extraction.num_radii = 2
+# weyl_extraction.radii = 2.0 3.0
+# weyl_extraction.levels = 2 1
+# weyl_extraction.num_points_phi = 24
+# weyl_extraction.num_points_theta = 37
+# weyl_extraction.num_modes = 8
+# weyl_extraction.modes = 2 0  2 1  2 2  4 0  4 1  4 2  4 3  4 4
 
 #################################################
 # Puncture Tracking parameters

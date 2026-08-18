@@ -11,7 +11,6 @@
 #include "BoundaryConditions.hpp"
 #include "FilesystemTools.hpp"
 #include "GRParmParse.hpp"
-#include "SphericalExtractionParameters.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
 
@@ -315,15 +314,6 @@ class BaseParameterChecker
         std::string check_file = plot_directory + "/chk";
         pp.add("amr.plot_file", plot_file);
         pp.add("amr.check_file", check_file);
-
-        // Extraction params
-        bool activate_extraction = false;
-        pp.queryAdd("extraction.activate_extraction", activate_extraction);
-
-        if (activate_extraction)
-        {
-            spherical_extraction_params_t::check_params();
-        }
     }
 };
 

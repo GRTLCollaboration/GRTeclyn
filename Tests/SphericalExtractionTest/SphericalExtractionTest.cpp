@@ -92,23 +92,25 @@ void run_spherical_extraction_test()
         int es{0};
         int el{2};
         int em{0}; // spherical harmonic params
-        pp.queryAdd("extraction.es", es);
-        pp.queryAdd("extraction.el", el);
-        pp.queryAdd("extraction.em", em);
+        GRParmParse test_pp("test");
+        test_pp.get("es", es);
+        test_pp.get("el", el);
+        test_pp.get("em", em);
 
-        int num_points_theta_lo{};
-        pp.get("extraction.num_points_theta_lo", num_points_theta_lo);
-        pp.add("extraction.num_points_theta", num_points_theta_lo);
+        spherical_extraction_params_t extraction_params_lo(
+            "test_extraction_lo");
+        extraction_params_lo.fill_params();
+        spherical_extraction_params_t extraction_params_hi(
+            "test_extraction_hi");
+        extraction_params_hi.fill_params();
         {
             // Initiate ParticleInterpolator
             ParticleInterpolator<2> interpolator;
             interpolator.setup(&gr_amr);
             // Low resolution spherical extraction
-            spherical_extraction_params_t extraction_params;
-            extraction_params.fill_params();
             SphericalExtraction<2> spherical_extraction_lo(
-                extraction_params, state_vars, coarsest_dx * dt_multiplier, 0.0,
-                true, 0.0);
+                extraction_params_lo, state_vars, coarsest_dx * dt_multiplier,
+                0.0, true, 0.0);
 
             spherical_extraction_lo.extract(&interpolator);
             spherical_extraction_lo.write_extraction("ExtractionOutLo_");
@@ -137,20 +139,9 @@ void run_spherical_extraction_test()
             ParticleInterpolator<2> interpolator_hi;
             interpolator_hi.setup(&gr_amr);
 
-            // We are only checking the convergence in theta integration
-
-            int num_points_theta_hi  = num_points_theta_lo;
-            num_points_theta_hi     *= 2;
-            // Need to subtract a point as it's the number of subintervals we
-            // want to double for theta
-            num_points_theta_hi -= 1;
-            pp.add("extraction.num_points_theta", num_points_theta_hi);
-
-            spherical_extraction_params_t extraction_params;
-            extraction_params.fill_params();
             SphericalExtraction<2> spherical_extraction_hi(
-                extraction_params, state_vars, coarsest_dx * dt_multiplier, 0.0,
-                true, 0.0);
+                extraction_params_hi, state_vars, coarsest_dx * dt_multiplier,
+                0.0, true, 0.0);
 
             spherical_extraction_hi.extract(&interpolator_hi);
             spherical_extraction_hi.write_extraction("ExtractionOutHi_");
@@ -171,14 +162,13 @@ void run_spherical_extraction_test()
 
         amrex::Print() << std::setprecision(10);
 
-        int num_extraction_radii{};
-        pp.get("extraction.num_extraction_radii", num_extraction_radii);
-        std::vector<int> extraction_radii_stdvect(num_extraction_radii);
-        pp.queryAdd("extraction.extraction_radii", extraction_radii_stdvect);
+        const int num_extraction_radii =
+            extraction_params_lo.num_extraction_radii();
+        const auto &extraction_radii = extraction_params_lo.extraction_radii();
 
         for (int iradius = 0; iradius < num_extraction_radii; ++iradius)
         {
-            double r = extraction_radii_stdvect[iradius];
+            double r = extraction_radii[iradius];
 
             // NOLINTBEGIN(cppcoreguidelines-init-variables)
             double integral_re_lo_trapezium =

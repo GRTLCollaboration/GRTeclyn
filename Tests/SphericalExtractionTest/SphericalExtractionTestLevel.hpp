@@ -35,13 +35,14 @@ class SphericalExtractionTestLevel : public GRAMRLevel
         auto const dx          = geom.CellSizeArray();
 
         GRParmParse pp;
+        GRParmParse test_pp("test");
 
         int es{0};
         int el{2};
         int em{0}; // spherical harmonic params
-        pp.queryAdd("es", es);
-        pp.queryAdd("el", el);
-        pp.queryAdd("em", em);
+        test_pp.get("es", es);
+        test_pp.get("el", el);
+        test_pp.get("em", em);
 
         std::array<double, AMREX_SPACEDIM> center{};
         pp.get("geometry.center", center);

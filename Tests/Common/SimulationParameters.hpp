@@ -11,6 +11,7 @@
 #include "CCZ4RHS.hpp"
 #include "GRParmParse.hpp"
 #include "PunctureTracker.hpp"
+#include "SphericalExtractionParameters.hpp"
 
 class SimulationParameters
 {
@@ -23,6 +24,9 @@ class SimulationParameters
     static void check_params()
     {
         BaseParameterChecker::check_params();
+
+        spherical_extraction_params_t::check_params("test_extraction_lo");
+        spherical_extraction_params_t::check_params("test_extraction_hi");
 
         GRParmParse pp;
         GRParmParse test_pp("test");
@@ -68,6 +72,13 @@ class SimulationParameters
 
         int num_points = 2;
         test_pp.queryAdd("num_points", num_points);
+
+        int es = 0;
+        int el = 2;
+        int em = 0;
+        test_pp.queryAdd("es", es);
+        test_pp.queryAdd("el", el);
+        test_pp.queryAdd("em", em);
     }
 };
 

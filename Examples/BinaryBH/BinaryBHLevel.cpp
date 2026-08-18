@@ -309,11 +309,10 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
 
     GRParmParse pp;
-    bool activate_extraction{};
-    pp.get("extraction.activate_extraction", activate_extraction);
-
+    spherical_extraction_params_t extraction_params("weyl_extraction");
+    extraction_params.fill_params();
     ExtractionTagger extraction_tagger(Geom().CellSize(0), Level(),
-                                       activate_extraction);
+                                       extraction_params);
 
     constexpr auto num_puncture_coords =
         static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
@@ -419,13 +418,12 @@ void BinaryBHLevel::specificPostTimeStep()
         get_puncture_tracker().track(current_time, dt, write_punctures);
     }
 
-    bool activate_extraction{};
-    pp.get("extraction.activate_extraction", activate_extraction);
+    spherical_extraction_params_t extraction_params("weyl_extraction");
+    extraction_params.fill_params();
 
-    if (activate_extraction)
+    if (extraction_params.enabled)
     {
-        int min_level{};
-        pp.get("extraction.min_extraction_level", min_level);
+        const int min_level = extraction_params.min_extraction_level();
         bool calculate_weyl = at_level_timestep_multiple(min_level);
 
         if (calculate_weyl && Level() == min_level)
@@ -435,8 +433,6 @@ void BinaryBHLevel::specificPostTimeStep()
             amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
             bool first_step          = (m_time <= m_dt);
 
-            spherical_extraction_params_t extraction_params;
-            extraction_params.fill_params();
             WeylExtraction my_extraction(extraction_params, m_dt, m_time,
                                          first_step, restart_time);
             my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);

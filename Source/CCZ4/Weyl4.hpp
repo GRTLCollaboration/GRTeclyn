@@ -74,7 +74,8 @@ class Weyl4
         : m_dx(a_dx), m_deriv(a_dx), m_out_comp(a_out_comp)
     {
         GRParmParse pp;
-        pp.get("extraction_center", m_center);
+        GRParmParse extraction_pp("weyl_extraction");
+        extraction_pp.get("center", m_center);
         pp.get("ccz4.formulation", m_formulation);
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)

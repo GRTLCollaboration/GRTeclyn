@@ -32,16 +32,26 @@ geometry.is_periodic = 1 1 1
 evolution.max_steps = 1
 
 #################################################
-# Extraction parameters
+# Low resolution extraction parameters
 
-extraction.activate_extraction = 1
+test_extraction_lo.enabled = 1
+test_extraction_lo.num_radii = 2
+test_extraction_lo.radii = 4. 6.
+test_extraction_lo.levels = 0 0
+test_extraction_lo.num_points_phi = 12
+test_extraction_lo.num_points_theta = 13
 
-extraction.num_surfaces = 2
-extraction.extraction_radii = 4. 6.
-extraction.num_points_phi_lo = 12
-extraction.num_points_theta_lo = 13
+# High resolution extraction parameters. We are only checking the convergence
+# in theta integration, so double the number of theta subintervals.
+
+test_extraction_hi.enabled = 1
+test_extraction_hi.num_radii = 2
+test_extraction_hi.radii = 4. 6.
+test_extraction_hi.levels = 0 0
+test_extraction_hi.num_points_phi = 12
+test_extraction_hi.num_points_theta = 25
 
 # Spherical Harmonic to set and extract
-extraction.es = 0
-extraction.el = 2
-extraction.em = 0
+test.es = 0
+test.el = 2
+test.em = 0

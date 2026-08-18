@@ -6,14 +6,31 @@
 #ifndef SPHERICALEXTRACTIONPARAMETERS_HPP_
 #define SPHERICALEXTRACTIONPARAMETERS_HPP_
 
-// AMReX includes
+#include "BoundaryConditions.hpp"
+#include "GRParmParse.hpp"
+#include "SurfaceExtractionParameters.hpp"
+
 #include <AMReX_GpuContainers.H>
 
-// Parameters
-#include "SurfaceExtractionParameters.hpp"
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <string>
+#include <utility>
+#include <vector>
 
 struct spherical_extraction_params_t : surface_extraction_params_t
 {
+    bool enabled{};
+    std::array<double, AMREX_SPACEDIM> center{}; //!< center of the shells
+    int num_modes{};                             //!< number of modes to extract
+    std::vector<std::pair<int, int>> modes{};    //!< l = first, m = second
+
+    explicit spherical_extraction_params_t(std::string a_param_scope)
+        : m_param_scope(std::move(a_param_scope))
+    {
+    }
+
     int &num_extraction_radii() { return this->num_surfaces; }
 
     [[nodiscard]] const int &num_extraction_radii() const
@@ -42,59 +59,67 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         return this->num_points_v;
     }
 
-    std::array<double, AMREX_SPACEDIM> center{}; //!< the center of the
-                                                 //!< spherical shells
-    std::array<double, AMREX_SPACEDIM> &extraction_center()
-    {
-        return this->center;
-    }
-    int num_modes{}; //!< the number of modes to extract
-    std::vector<std::pair<int, int>> modes{}; //!< the modes to extract
-                                              //!< l = first, m = second
-
     [[nodiscard]] const surface_extraction_params_t &
     get_surface_extraction_params() const
     {
         return *this;
     }
 
-    static void check_params()
+    static void check_params(const std::string &a_param_scope)
     {
-        GRParmParse extraction_pp("extraction");
-        GRParmParse pp;
-        int num_extraction_radii = 1;
-        extraction_pp.queryAdd("num_extraction_radii", num_extraction_radii);
-        if (num_extraction_radii <= 0)
+        GRParmParse extraction_pp(a_param_scope);
+
+        bool enabled = false;
+        extraction_pp.queryAdd("enabled", enabled);
+
+        GRParmParse geom_pp("geometry");
+        std::array<double, AMREX_SPACEDIM> grid_center{};
+        geom_pp.get("center", grid_center);
+        std::array<double, AMREX_SPACEDIM> center = grid_center;
+        extraction_pp.queryAdd("center", center);
+
+        if (!enabled)
         {
-            extraction_pp.error(
-                "num_extraction_radii",
-                "must be bigger than 0 when activate_extraction = 1");
+            return;
         }
 
-        // Check for multiple extraction radii, otherwise load single
-        // radius/level (for backwards compatibility).
-        std::vector<int> extraction_levels(num_extraction_radii, 0);
-        if (!extraction_pp.contains("extraction_levels"))
+        int num_radii = 1;
+        extraction_pp.queryAdd("num_radii", num_radii);
+        if (num_radii <= 0)
         {
-            int extraction_level = 0;
-            extraction_pp.queryAdd("extraction_level", extraction_level);
-            std::fill(extraction_levels.begin(), extraction_levels.end(),
-                      extraction_level);
-            extraction_pp.addarr("extraction_levels", extraction_levels);
+            extraction_pp.error("num_radii", "must be greater than 0 when "
+                                             "enabled = true");
         }
 
-        int min_extraction_level = *(std::min_element(extraction_levels.begin(),
-                                                      extraction_levels.end()));
-        extraction_pp.add("min_extraction_level", min_extraction_level);
-
-        std::vector<double> extraction_radii(num_extraction_radii);
-        if (!extraction_pp.contains("extraction_radii"))
+        std::vector<int> levels(num_radii, 0);
+        if (extraction_pp.contains("levels"))
         {
-            double extraction_radius = 0.1;
-            extraction_pp.queryAdd("extraction_radius", extraction_radius);
-            std::fill(extraction_radii.begin(), extraction_radii.end(),
-                      extraction_radius);
-            extraction_pp.addarr("extraction_radii", extraction_radii);
+            if (extraction_pp.countval("levels") != num_radii)
+            {
+                extraction_pp.error("levels", "must contain num_radii values");
+            }
+            extraction_pp.getarr("levels", levels, 0, num_radii);
+        }
+        else
+        {
+            extraction_pp.addarr("levels", levels);
+        }
+
+        const int min_level = *std::min_element(levels.begin(), levels.end());
+        extraction_pp.add("min_level", min_level);
+
+        std::vector<double> radii(num_radii, 0.1);
+        if (extraction_pp.contains("radii"))
+        {
+            if (extraction_pp.countval("radii") != num_radii)
+            {
+                extraction_pp.error("radii", "must contain num_radii values");
+            }
+            extraction_pp.getarr("radii", radii, 0, num_radii);
+        }
+        else
+        {
+            extraction_pp.addarr("radii", radii);
         }
 
         int num_points_phi = 2;
@@ -111,20 +136,14 @@ struct spherical_extraction_params_t : surface_extraction_params_t
             extraction_pp.add("num_points_theta", num_points_theta);
         }
 
-        std::array<double, AMREX_SPACEDIM> grid_center{};
-        pp.get("geometry.center", grid_center);
-        std::array<double, AMREX_SPACEDIM> extraction_center = grid_center;
-        pp.queryAdd("extraction_center", extraction_center);
-
-        // Used to check params
-
         std::array<int, AMREX_SPACEDIM> lo_condition{};
         std::array<int, AMREX_SPACEDIM> hi_condition{};
         std::array<double, AMREX_SPACEDIM> prob_extent{};
 
-        pp.get("boundary.lo_condition", lo_condition);
-        pp.get("boundary.hi_condition", hi_condition);
-        pp.get("geometry.prob_extent", prob_extent);
+        GRParmParse boundary_pp("boundary");
+        boundary_pp.get("lo_condition", lo_condition);
+        boundary_pp.get("hi_condition", hi_condition);
+        geom_pp.get("prob_extent", prob_extent);
 
         std::array<double, AMREX_SPACEDIM> reflective_domain_lo{};
         std::array<double, AMREX_SPACEDIM> reflective_domain_hi{};
@@ -144,75 +163,58 @@ struct spherical_extraction_params_t : surface_extraction_params_t
 
         FOR (idir)
         {
-            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-            if (extraction_center[idir] < reflective_domain_lo[idir] ||
-                extraction_center[idir] > reflective_domain_hi[idir])
+            if (center[idir] < reflective_domain_lo[idir] ||
+                center[idir] > reflective_domain_hi[idir])
             {
-                pp.error("extraction_center",
-                         "must be in the computational domain after applying "
-                         "reflective symmetry");
+                extraction_pp.error("center",
+                                    "must be in the computational domain after "
+                                    "applying reflective symmetry");
             }
 
-            for (int iradius = 0; iradius < num_extraction_radii; ++iradius)
+            for (int iradius = 0; iradius < num_radii; ++iradius)
             {
-                // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-                if (idir == 0)
+                if (idir == 0 && radii[iradius] < 0.0)
                 {
-                    if (extraction_radii[iradius] < 0.0)
-                    {
-                        extraction_pp.error("extraction_radii",
-                                            "must all be >= 0.0");
-                    }
+                    extraction_pp.error("radii", "must all be >= 0.0");
                 }
-                if (extraction_center[idir] - extraction_radii[iradius] <
+                if (center[idir] - radii[iradius] <
                         reflective_domain_lo[idir] ||
-                    extraction_center[idir] + extraction_radii[iradius] >
-                        reflective_domain_hi[idir])
+                    center[idir] + radii[iradius] > reflective_domain_hi[idir])
                 {
-                    extraction_pp.error(
-                        "extraction_radii",
-                        "extraction sphere must lie within the computational "
-                        "domain after applying reflective symmetry");
+                    extraction_pp.error("radii",
+                                        "extraction sphere must lie within the "
+                                        "computational domain after applying "
+                                        "reflective symmetry");
                 }
             }
         }
 
         int num_modes{};
-        std::vector<int> extraction_modes_vect{};
-        std::vector<std::pair<int, int>> modes{}; //!< the modes to extract
-                                                  //!< l = first, m = second
+        std::vector<int> modes_vector{};
         if (extraction_pp.contains("modes"))
         {
             extraction_pp.queryAdd("num_modes", num_modes);
-            extraction_modes_vect.resize(static_cast<size_t>(2 * num_modes));
-            extraction_pp.getarr("modes", extraction_modes_vect);
+            if (extraction_pp.countval("modes") != 2 * num_modes)
+            {
+                extraction_pp.error("modes", "must contain 2 * num_modes "
+                                             "values");
+            }
+            modes_vector.resize(static_cast<size_t>(2 * num_modes));
+            extraction_pp.getarr("modes", modes_vector);
         }
         else
         {
-            // by default extraction (l,m) = (2,0), (2,1) and (2,2)
+            // By default extract (l,m) = (2,0), (2,1) and (2,2).
             num_modes = 3;
             extraction_pp.add("num_modes", num_modes);
-            extraction_modes_vect.resize(static_cast<size_t>(2 * num_modes));
-            for (size_t i = 0; i < 3; ++i)
-            {
-                extraction_modes_vect[2 * i]     = 2;
-                extraction_modes_vect[2 * i + 1] = static_cast<int>(i);
-            }
-            extraction_pp.addarr("modes", extraction_modes_vect);
-        }
-
-        modes.resize(num_modes);
-        for (size_t i = 0; i < num_modes; ++i)
-        {
-            modes[i].first  = extraction_modes_vect[2 * i];
-            modes[i].second = extraction_modes_vect[2 * i + 1];
+            modes_vector = {2, 0, 2, 1, 2, 2};
+            extraction_pp.addarr("modes", modes_vector);
         }
 
         for (int imode = 0; imode < num_modes; ++imode)
         {
-            auto &mode = modes[imode];
-            int l      = mode.first;
-            int m      = mode.second;
+            const int l = modes_vector[2 * imode];
+            const int m = modes_vector[2 * imode + 1];
             if ((l < 2) || (std::abs(m) > l))
             {
                 extraction_pp.warning(
@@ -220,72 +222,67 @@ struct spherical_extraction_params_t : surface_extraction_params_t
             }
         }
 
-        bool write_extraction = false;
-        pp.queryAdd("write_extraction", write_extraction);
+        bool write = false;
+        extraction_pp.queryAdd("write", write);
 
-        std::string output_path = "";
-        pp.get("grteclyn.output_path", output_path);
+        GRParmParse grteclyn_pp("grteclyn");
+        std::string output_path{};
+        grteclyn_pp.get("output_path", output_path);
 
-        std::string extraction_path = output_path + "/extraction_data/";
-        std::string data_path       = extraction_path;
-        pp.add("extraction_path", extraction_path);
-        pp.add("data_path", data_path);
+        std::string path = output_path + "/extraction_data/";
+        extraction_pp.queryAdd("path", path);
 
-        // default names to Weyl extraction
-        std::string extraction_file_prefix = "Weyl4_extraction_";
-        pp.queryAdd("extraction_file_prefix", extraction_file_prefix);
-        std::string integral_file_prefix = "Weyl4_mode_";
-        pp.queryAdd("integral_file_prefix", integral_file_prefix);
-    };
+        std::string file_prefix = a_param_scope + "_";
+        extraction_pp.queryAdd("file_prefix", file_prefix);
+        std::string integral_file_prefix = a_param_scope + "_mode_";
+        extraction_pp.queryAdd("integral_file_prefix", integral_file_prefix);
+    }
 
     void fill_params()
     {
-        GRParmParse extraction_pp("extraction");
-        GRParmParse pp;
+        GRParmParse extraction_pp(m_param_scope);
 
-        extraction_pp.get("num_extraction_radii", num_extraction_radii());
+        extraction_pp.get("enabled", enabled);
+        extraction_pp.get("center", center);
+        if (!enabled)
+        {
+            return;
+        }
 
-        // Check for multiple extraction radii, otherwise load single
-        // radius/level (for backwards compatibility).
-        std::vector<int> extraction_levels_stdvect(num_extraction_radii());
-        extraction_pp.getarr("extraction_levels", extraction_levels_stdvect);
+        extraction_pp.get("num_radii", num_extraction_radii());
 
+        std::vector<int> levels(num_extraction_radii());
+        extraction_pp.getarr("levels", levels, 0, num_extraction_radii());
         extraction_levels.resize(num_extraction_radii());
-        std::copy(extraction_levels_stdvect.begin(),
-                  extraction_levels_stdvect.end(), extraction_levels.begin());
+        std::copy(levels.begin(), levels.end(), extraction_levels.begin());
 
-        std::vector<double> extraction_radii_stdvect(num_extraction_radii());
-        extraction_pp.getarr("extraction_radii", extraction_radii_stdvect);
-
+        std::vector<double> radii(num_extraction_radii());
+        extraction_pp.getarr("radii", radii, 0, num_extraction_radii());
         extraction_radii().resize(num_extraction_radii());
-        std::copy(extraction_radii_stdvect.begin(),
-                  extraction_radii_stdvect.end(), extraction_radii().begin());
+        std::copy(radii.begin(), radii.end(), extraction_radii().begin());
 
         extraction_pp.get("num_points_phi", num_points_phi());
         extraction_pp.get("num_points_theta", num_points_theta());
 
-        pp.load("extraction_center", center);
-
         extraction_pp.get("num_modes", num_modes);
-        std::vector<int> extraction_modes_vect{};
-        extraction_pp.getarr("modes", extraction_modes_vect);
-
+        std::vector<int> modes_vector(static_cast<size_t>(2 * num_modes));
+        extraction_pp.getarr("modes", modes_vector);
         modes.resize(num_modes);
-        for (size_t i = 0; i < num_modes; ++i)
+        for (int imode = 0; imode < num_modes; ++imode)
         {
-            modes[i].first  = extraction_modes_vect[2 * i];
-            modes[i].second = extraction_modes_vect[2 * i + 1];
+            modes[imode].first  = modes_vector[2 * imode];
+            modes[imode].second = modes_vector[2 * imode + 1];
         }
 
-        pp.load("write_extraction", write_extraction);
+        extraction_pp.get("write", write_extraction);
+        extraction_pp.get("path", data_path);
+        extraction_path = data_path;
+        extraction_pp.get("file_prefix", extraction_file_prefix);
+        extraction_pp.get("integral_file_prefix", integral_file_prefix);
+    }
 
-        pp.get("data_path", data_path);
-        pp.get("extraction_path", extraction_path);
-
-        // default names to Weyl extraction
-        pp.get("extraction_file_prefix", extraction_file_prefix);
-        pp.get("integral_file_prefix", integral_file_prefix);
-    };
+  private:
+    std::string m_param_scope;
 };
 
 #endif /* SPHERICALEXTRACTIONPARAMETERS_HPP_ */

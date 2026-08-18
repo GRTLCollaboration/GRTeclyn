@@ -30,6 +30,12 @@ class SphericalGeometry
         pp.get("geometry.center", m_center);
     }
 
+    explicit SphericalGeometry(
+        const std::array<double, AMREX_SPACEDIM> &a_center)
+        : m_center(a_center)
+    {
+    }
+
     //! returns the grid spacing in theta
     [[nodiscard]] static double du(int a_num_points_theta)
     {

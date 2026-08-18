@@ -15,6 +15,7 @@
 #include "BoostedBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
 #include "PunctureTracker.hpp"
+#include "SphericalExtractionParameters.hpp"
 #ifdef USE_TWOPUNCTURES
 #include "TwoPuncturesInitialData.hpp"
 #endif
@@ -37,6 +38,8 @@ class SimulationParameters
 #else
         TwoPuncturesInitialData::check_params();
 #endif
+
+        spherical_extraction_params_t::check_params("weyl_extraction");
     }
 
     /// Read shared parameters
