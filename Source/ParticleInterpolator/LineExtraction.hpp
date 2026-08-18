@@ -95,7 +95,8 @@ template <int num_components> class LineExtraction
                                       // stuff into out_k array
         }
 
-        interpolator->interp(query);
+        interpolator->interp(query, false); // do not refresh particles as we
+                                            // assume the query remains the same
 
         const bool first_step =
             (std::abs(m_time) == m_dt); // random for now, needs a fix

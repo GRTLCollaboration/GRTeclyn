@@ -6,6 +6,9 @@
 // Doctest header
 #include "doctest.h"
 
+// State vars
+#include "StateVariables.hpp"
+
 // Test include
 #include "ParticleInterpolatorUnitTest.hpp"
 
@@ -134,21 +137,25 @@ void run_particle_interpolator_test()
         query_state.setCoords(0, interp_x_local.data())
             .setCoords(1, interp_y_local.data())
             .setCoords(2, interp_z_local.data())
-            .addComp(0, B_local.data(), VariableType::state);
+            .addComp(c_polystate, B_local.data(), VariableType::state);
 
         // set up interpolation using Particles for derived vars
         ParticleInterpolator<1> interpolator_derived;
 
         interpolator_derived.setup(&gr_amr, sim_params.boundary_params,
                                    verbosity);
-        interpolator_derived.interp(query_derived,
-                                    PolynomialDerivedQuantity::name, 0.0);
+        interpolator_derived.interp(query_derived, false,
+                                    PolynomialDerivedQuantity::name,
+                                    0.0); // do not refresh particles as we
+                                          // assume the query remains the same
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;
         interpolator_state.setup(&gr_amr, sim_params.boundary_params,
                                  verbosity);
-        interpolator_state.interp(query_state);
+        interpolator_state.interp(query_state,
+                                  false); // do not refresh particles as we
+                                          // assume the query remains the same
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {
@@ -157,7 +164,7 @@ void run_particle_interpolator_test()
             double z = interp_z_local[ipoint] - sim_params.center[2];
 
             double A_known = 42. + x * x + y * y * z * z;
-            double B_known = pow(x, 3);
+            double B_known = pow(z, 3);
 
             INFO("Interpolated A is "
                  << A_local[ipoint] << " at point x = " << x << " y = " << y

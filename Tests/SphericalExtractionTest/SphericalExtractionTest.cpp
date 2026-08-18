@@ -6,6 +6,9 @@
 // Doctest header
 #include "doctest.h"
 
+// State vars
+#include "StateVariables.hpp"
+
 // Common includes
 #include "doctestCLIArgs.hpp"
 
@@ -72,7 +75,7 @@ void run_spherical_extraction_test()
         std::pair<std::vector<double>, std::vector<double>> integral_lo_boole,
             integral_hi_boole;
 
-        std::vector<int> state_vars = {c_phi, c_Pi};
+        std::vector<int> state_vars = {c_phi_Re, c_phi_Im};
 
         // Real part is the zeroth component and imaginary part is the first
         // component
