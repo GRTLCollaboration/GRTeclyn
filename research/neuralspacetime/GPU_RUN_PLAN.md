@@ -397,6 +397,16 @@ general_ftl) still name the old roots in their own launchers — pass
 - **Stop** only with
   `bash scripts/campaigns/stop_campaign.sh <run dir>` then confirm
   `pgrep -af "grteclyn_wrapper|grtresna|main3d"` is empty of that run.
+- **Pump convention: the pump runs for the ENTIRE simulation, never stopped
+  mid-run** (`RL_PUMP_STOP_TIME=-1`). A `params.txt` *without* an
+  `rl_pump_stop_time` line already means this — the wiring writes the key
+  only for values ≥ 0 and the evolution default is −1 = never stop. Because
+  a negative value also erases the scorer's fallback emit floor, every pin
+  of `RL_PUMP_STOP_TIME=-1` must be paired with
+  `GEODESIC_EMIT_MIN_TIME=4`. The only deliberate pump-off runs are the two
+  controls: the `manifest_pumpfree.json` twin (t_pump = 0, §12.5) and the
+  NM-1 dressed-star pilot (`rl_pump_stop_time=0`, §12.7). Nothing else may
+  set a non-negative value.
 - Common env for every paper-tier (t ≥ 40) replay:
   `GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25
   GRTECLYN_METRIC_STACK_N_SPACE=257
@@ -418,15 +428,49 @@ cp -r scripts/campaigns/promote/bicomplex_cmaes_v1 scripts/campaigns/promote/fge
 #                      LIVE_RUN=${GRTECLYN_ROOT}/runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1
 #                      FREEZE_ROOT=${GRTECLYN_ROOT}/runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1
 #                      OBJECTIVE_MODE=f_geo_max
-#                      RL_PUMP_STOP_TIME = the search value (pump on for the
-#                      full run — copy `rl_pump_stop_time` from the champion's
-#                      params.txt, do NOT keep the bicomplex default 4)
+#                      GRTRESNA_RANKS=1 (promote path default is 8,
+#                      lib/promote_common.sh:18 — mpirun segfaults on this
+#                      node; note the search path spells this RANKS instead)
+#                      SCORE_EXOTIC_PENALTY_WEIGHT=0 (template pins the
+#                      bicomplex 0.2; f_geo_max has no exotic penalty)
+#                      RL_PUMP_STOP_TIME=-1 — pump on for the ENTIRE run,
+#                      the project convention. (The champion's params.txt has
+#                      no rl_pump_stop_time line and that is correct: the
+#                      wiring only writes the key for values >= 0, and the
+#                      evolution default is -1 = never stop. Do NOT keep the
+#                      bicomplex default 4, which stops the pump at t=4.)
+#                      GEODESIC_EMIT_MIN_TIME=4 — the scoring emit floor;
+#                      with a negative pump value the scorer's fallback floor
+#                      vanishes (ftl.py skips values < 0), same pin as §12.3
+#                      GRTRESNA_MAX_HAM_PCT=5 GRTRESNA_MAX_MOM_PCT=5 — the
+#                      promote path defaults BOTH to 10 (promote_common.sh:14-15)
+#                      while the search that picked the champion gated at 5;
+#                      without this the matrix accepts twice the initial-data
+#                      residual the champion was selected under
+#                      GRTECLYN_METRIC_STACK_N_SPACE=257 and
+#                      GRTECLYN_FREEFALL_OBSERVER_TIMING=1 — the §12.1
+#                      mandatory replay env; the promote framework exports
+#                      neither (run_matrix.sh passes only the geo_* keys),
+#                      so they must live here or every FMAX cell ships
+#                      without the metric stack + free-fall certificate
 #    manifest.json   : ids FMAX-*, objective_mode f_geo_max,
 #                      defaults stop_time 64, geo_emit_interval 2, geo_max_emissions 25,
 #                      evolution_mpi_ranks 1 on EVERY cell (multi-rank is dead),
 #                      ladder N 192/224/256 (nothing above 256 — §2 memory table),
 #                      DS L96/N192, DS2 L112/N224
-#    manifest_pumpfree.json / manifest_freefall.json : same edits, t_pump=0 twin + observer cells
+#                      *** REMOVE rl_pump_stop_time from BOTH physics_frozen
+#                      (line "rl_pump_stop_time": 4.0) and extra_overrides
+#                      ("rl_pump_stop_time=4"). The manifest — not the env
+#                      var — is what reaches params.txt (run_matrix.sh passes
+#                      extra_overrides as --extra-override, which beats env);
+#                      leaving either in stops the pump at t=4 on every FMAX
+#                      cell no matter what campaign.env.sh says. Absent key =
+#                      pump on for the entire run (§12.1). ***
+#    manifest_freefall.json : same edits — it ALSO carries rl_pump_stop_time=4
+#                      today; the observer cells must run pump-on-full like
+#                      the runs they certify
+#    manifest_pumpfree.json : same edits EXCEPT keep rl_pump_stop_time=0 —
+#                      the pump-free twin is the deliberate control (§12.1)
 
 # 2. Validate without GPUs:
 DRY_RUN=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh --list
@@ -434,11 +478,18 @@ DRY_RUN=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh --list
 # 2b. Register the frontier descriptor mode (code task, no GPU — needed
 #     before the Phase-4 FRONTIER-1 launch, §12.6). Add a mode named
 #     `exotic_frontier` to the QD descriptor module + the CLI choices list:
-#     axis 1 = evolving f_geo, axis 2 = log10 of the exotic-energy integral
-#     (both already in each eval's diagnostics; the atlas scorer reads the
-#     same integral). Own extension, default-off, unit test alongside the
-#     existing descriptor tests; smoke it with QD_TARGET_EVALS=2 before the
-#     real launch.
+#     axis 1 = evolving f_geo, axis 2 = log10 of the exotic-energy integral.
+#     SIGN CONVENTION (two opposite ones live in the repo — do not mix):
+#     axis 2 MUST use `integral_negative_rho`, the POSITIVE magnitude from
+#     constraint_norms col 6 — template: search/geometry_atlas/score.py
+#     (log10(max(value, floor)), the paper's E_- convention). Do NOT wire it
+#     to warpfactory's `total_negative_energy`, which is SIGNED (<= 0):
+#     log10 of it is NaN for every candidate, and since the PG-8 fix maps
+#     NaN to bin 0 instead of raising, the whole archive would silently
+#     collapse into one column and look like a converged frontier.
+#     Own extension, default-off, unit test alongside the existing
+#     descriptor tests (include a negative-input case); smoke it with
+#     QD_TARGET_EVALS=2 before the real launch.
 
 # 3. Chain Phase 1 to fire when the bondi ladders finish (detached).
 #    NOTE: superseded by the §12.10 queue for everything replay-shaped —
@@ -463,8 +514,10 @@ setsid nohup /usr/bin/env \
   POPULATION=16 MAX_GENERATIONS=13 TARGET_EVALS=200 \
   SIGMA0=0.05 SEED=11 \
   GPU_IDS="0 1 2 3" MAX_CONCURRENT_GRTRESNA=6 \
-  GRTRESNA_TIMEOUT=2400 GRTRESNA_RANKS=1 \
+  GRTRESNA_TIMEOUT=2400 RANKS=1 \
   STOP_TIME=26 \
+  RL_PUMP_STOP_TIME=-1 GEODESIC_EMIT_MIN_TIME=4 \
+  SCORE_EXOTIC_PENALTY_WEIGHT=0 \
   POSTLOAD_MAX_HAM_L2=3e-2 POSTLOAD_MAX_MOM_L2=1e-2 \
   bash scripts/campaigns/qball_trajectory/cmaes_run.sh \
   > ../runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1_launch.log 2>&1 < /dev/null & disown
@@ -473,12 +526,34 @@ setsid nohup /usr/bin/env \
 Notes: `STOP_TIME=26` mirrors the `fgeo_v1` physics window so the refinement
 is stage-comparable to its QD parent (the depth twin used 32 — do not mix).
 `WARM_START_TOP_K=1` centres on the eval-322 basin. `SEED=11` decorrelates
-from the seed-7 noise every earlier campaign replayed. Monitor / resume /
-stop:
+from the seed-7 noise every earlier campaign replayed.
+
+Four pins exist because `cmaes_run.sh` carries bicomplex-era defaults that
+do **not** match the `fgeo_v1` parent (run_fgeo.sh → run.sh) this campaign
+warm-starts from — without them the refinement optimizes different physics
+than it inherits:
+
+- `RANKS=1` — the search path reads `RANKS` (`lib/search_common.sh:27`,
+  default **8** → mpirun segfault). `GRTRESNA_RANKS` is the *promote*-path
+  spelling (`lib/promote_common.sh:18`); setting the wrong one here is
+  silent.
+- `RL_PUMP_STOP_TIME=-1` — cmaes_run.sh defaults to pump-off-at-4; the
+  parent ran the pump for the full window (-1).
+- `GEODESIC_EMIT_MIN_TIME=4` — with the pump at -1 the fallback ray-launch
+  floor (the score code reads `GEODESIC_EMIT_MIN_TIME`, else a
+  *non-negative* `RL_PUMP_STOP_TIME`) would vanish; the parent had the
+  floor at 4 via run.sh's default. Restate it explicitly.
+- `SCORE_EXOTIC_PENALTY_WEIGHT=0` — cmaes_run.sh defaults 0.2; the parent's
+  f_geo_max scoring has no exotic penalty (run_fgeo.sh pins 0).
+
+Monitor / resume / stop (note: resume must repeat the same env block):
 
 ```bash
 grep -a "^\[optimize\] \(eval\|gen\)" ../runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1_launch.log | tail
-RESUME=1 RUN_NAME=qball_traj_fgeo_max_cmaes_v1 bash scripts/campaigns/qball_trajectory/cmaes_run.sh
+RESUME=1 RUN_NAME=qball_traj_fgeo_max_cmaes_v1 \
+  OBJECTIVE_MODE=f_geo_max RANKS=1 STOP_TIME=26 \
+  RL_PUMP_STOP_TIME=-1 GEODESIC_EMIT_MIN_TIME=4 SCORE_EXOTIC_PENALTY_WEIGHT=0 \
+  bash scripts/campaigns/qball_trajectory/cmaes_run.sh
 bash scripts/campaigns/stop_campaign.sh ../runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1
 ```
 
@@ -499,7 +574,8 @@ as the live bondi reruns):
 ```bash
 setsid nohup /usr/bin/env \
   GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25 \
-  GRTECLYN_METRIC_STACK_N_SPACE=257 \
+  GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1 \
+  GEODESIC_EMIT_MIN_TIME=4 \
   .venv/bin/python scripts/campaigns/hq/replay_eval.py \
   ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
   --name depth195_hq_L128_N256_t64 --runs-dir ../runs/neuralspacetime/hq \
@@ -514,18 +590,35 @@ setsid nohup /usr/bin/env \
 DEPTH-A, the clean-branch fallback exhibit, identically configured (the
 branch-B conditioning question then answers itself inside Phase 2). Eval
 185's directory was pruned from both the live tree and the pack — only its
-genome ships (`genomes/best_clean_branch_eval185_familyA.json`, which
-carries an `overrides` block, exactly what the replayer reads from
-`metadata.json`) — so materialize a stub eval dir first:
+genome ships (`genomes/best_clean_branch_eval185_familyA.json`). Its
+`overrides` block holds **only the 39 searched dials**; the 30 fixed keys
+(matter model, μ, λ, mass, ω, lump count, well depths, grid) are campaign
+constants that never entered the genome. Copying the genome alone as
+`metadata.json` would replay the wrong object — materialize the stub by
+overlaying the 185 dials on a sibling eval's full metadata (195's fixed
+keys are the same campaign constants):
 
 ```bash
 mkdir -p ../runs/neuralspacetime/hq/sources/depth_eval185_stub
-cp ../results/qball-trajectory-cmaes-refinement/genomes/best_clean_branch_eval185_familyA.json \
-   ../runs/neuralspacetime/hq/sources/depth_eval185_stub/metadata.json
+.venv/bin/python - <<'PY'
+import json, pathlib
+pack = pathlib.Path('../results/qball-trajectory-cmaes-refinement')
+base = json.loads((pack / 'run/eval_000195/metadata.json').read_text())
+genome = json.loads((pack / 'genomes/best_clean_branch_eval185_familyA.json').read_text())
+assert set(genome['overrides']) <= set(base['overrides'])
+base['overrides'].update(genome['overrides'])
+base['stub_note'] = ('eval-185 familyA searched dials overlaid on eval-195 '
+                     'fixed keys (185 dir pruned from pack; genome = 39 '
+                     'searched dials only)')
+out = pathlib.Path('../runs/neuralspacetime/hq/sources/depth_eval185_stub/metadata.json')
+out.write_text(json.dumps(base, indent=2) + '\n')
+print('wrote', out, '-', len(base['overrides']), 'overrides')
+PY
 
 setsid nohup /usr/bin/env \
   GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25 \
-  GRTECLYN_METRIC_STACK_N_SPACE=257 \
+  GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1 \
+  GEODESIC_EMIT_MIN_TIME=4 \
   .venv/bin/python scripts/campaigns/hq/replay_eval.py \
   ../runs/neuralspacetime/hq/sources/depth_eval185_stub \
   --name depth185_hq_L128_N256_t64 --runs-dir ../runs/neuralspacetime/hq \
@@ -565,10 +658,12 @@ GPU_ID=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-RI
 GPU_ID=2 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-DS
 GPU_ID=3 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-DS2
 
-# pump-free twin + freefall companions, same runner, different manifest:
-MANIFEST=scripts/campaigns/promote/fgeo_max_cmaes_v1/manifest_pumpfree.json \
+# pump-free twin + freefall companions, same runner, different manifest.
+# MANIFEST must be ABSOLUTE: every campaign shell cd's to GRTECLYN_ROOT
+# (scripts/lib/env.sh:88), so wrapper-relative paths stop resolving:
+MANIFEST="$PWD/scripts/campaigns/promote/fgeo_max_cmaes_v1/manifest_pumpfree.json" \
   GPU_ID=0 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh --list   # then launch its cell id
-MANIFEST=scripts/campaigns/promote/fgeo_max_cmaes_v1/manifest_freefall.json \
+MANIFEST="$PWD/scripts/campaigns/promote/fgeo_max_cmaes_v1/manifest_freefall.json" \
   GPU_ID=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh --list   # then launch its cell ids
 ```
 
@@ -585,6 +680,7 @@ for CELL in "depth195_hq_L128_N192_t64 192 2" "depth195_hq_L128_N224_t64 224 3";
   setsid nohup /usr/bin/env \
     GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25 \
     GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1 \
+    GEODESIC_EMIT_MIN_TIME=4 \
     .venv/bin/python scripts/campaigns/hq/replay_eval.py \
     ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
     --name "$1" --runs-dir ../runs/neuralspacetime/hq \
@@ -606,7 +702,7 @@ restated alongside the five exotic pins:
 cd grteclyn-wrapper
 setsid nohup /usr/bin/env \
   QD_NAME=qball_traj_fgeo_canonical_v1 \
-  QD_TARGET_EVALS=200 \
+  QD_TARGET_EVALS=200 SEED=12 \
   PIN_DIMS="grtresna_scalar_mass=1.0 grtresna_scalar_lambda=640 grtresna_bs_omega=0.8 \
 trajectory_lump0_well_depth=0.15 trajectory_lump1_well_depth=0.15 trajectory_lump2_well_depth=0.15 \
 trajectory_lump3_well_depth=0.15 trajectory_lump4_well_depth=0.15 trajectory_well_width=1.667 \
@@ -620,8 +716,19 @@ trajectory_lump3_exotic=0 trajectory_lump4_exotic=0" \
 The default warm start (prior elites) is kept deliberately: under the pins
 they decode as the *same choreographies with the phantom sector removed* —
 the strongest possible matched control. **Verify on the first completed
-evals** that `params.txt` carries `recipe_scalar_field_signs = 1 1 1 1 1`
-and the exotic integral is 0; abort and fix the pins if not.
+evals** that every `params.txt` carries `recipe_scalar_field_signs = 1 1 1 1 1`
+and the exotic integral is 0 — and run it as a command, not an eyeball
+(this is the ONLY guard: the automated sign rail is a no-op for the
+bicomplex model — `sign_consistency.py` compares the requested signs
+against themselves and can never fail there):
+
+```bash
+grep -H "recipe_scalar_field_signs" \
+  ../runs/neuralspacetime/search/map_elites/qball_traj_fgeo_canonical_v1/eval_*/params.txt \
+  | grep -v "= 1 1 1 1 1" && echo "SIGN PIN FAILED — stop the campaign" || echo signs-ok
+```
+
+Abort and fix the pins if it prints anything but `signs-ok`.
 
 **FRONTIER-1 — efficiency-frontier search** (fires after the control;
 requires the `exotic_frontier` descriptor mode from §12.2 item 2b). Same
@@ -630,11 +737,17 @@ champions onto the frontier's known corners:
 
 ```bash
 cd grteclyn-wrapper
+# preflight: the mode must exist BEFORE detaching — an unregistered
+# descriptor dies at argparse inside setsid/nohup, silently, into a log
+# nobody is watching:
+grep -q exotic_frontier src/grteclyn_wrapper/cli/parser.py \
+  || { echo "exotic_frontier not registered — do §12.2 item 2b first"; false; }
+
 setsid nohup /usr/bin/env \
   QD_NAME=qball_traj_fgeo_frontier_v1 \
   OBJECTIVE_MODE=f_geo_max \
   DESCRIPTOR_MODE=exotic_frontier \
-  QD_TARGET_EVALS=200 \
+  QD_TARGET_EVALS=200 SEED=13 \
   SEED_EVAL_DIRS="$(ls -d ../runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1/eval_* 2>/dev/null | head -1) \
 ../runs/neuralspacetime/search/map_elites/qball_traj_fgeo_v1/eval_000322 \
 ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
@@ -662,6 +775,7 @@ swapped to self-gravitating ultraweak stars, pump off, tightened solve:
 cd grteclyn-wrapper
 mkdir -p ../runs/neuralspacetime/pilots
 setsid nohup /usr/bin/env \
+  GEODESIC_EMIT_MIN_TIME=4 \
   .venv/bin/python scripts/campaigns/hq/replay_eval.py \
   "$(ls -d ../runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1/eval_* | head -1)" \
   --name fmax_dressed_pilot --runs-dir ../runs/neuralspacetime/pilots \
@@ -688,6 +802,15 @@ LAUNCH.md §4 before believing anything downstream.
 ### 12.8 After each phase
 
 ```bash
+# cache-fidelity check on every paper-tier (t >= 40) run of the phase.
+# The cache_fidelity gate lives ONLY in this script — NOTHING on the launch
+# path enforces it (replay_eval, run_batch and the promote framework never
+# call it). It refuses to score an unfaithful metric stack; §2 forbids
+# --force. A refusal here means the stack does not match the spacetime that
+# evolved — the exact bug-#9 shape that once faked an FTL shortcut:
+GEODESIC_EMIT_MIN_TIME=4 .venv/bin/python \
+  scripts/campaigns/rl/score_evolving_geodesic.py <each t>=40 run dir>
+
 # pack the finished campaign (create the pack script alongside the others,
 # scrubbing machine paths like research/bondi_dipole/pack_*.sh do), then:
 grep -rnE "/(home|users)/|$(whoami)" results/<new-pack>/ && echo "SCRUB FAILED" || echo clean
@@ -763,6 +886,7 @@ cat > "$QROOT/staged_200_depth195_evolve.job" <<EOF
 cd "$PWD"
 export GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25
 export GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1
+export GEODESIC_EMIT_MIN_TIME=4
 .venv/bin/python scripts/campaigns/hq/replay_eval.py \
   ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
   --name depth195_hq_L128_N256_t64 --runs-dir ../runs/neuralspacetime/hq \

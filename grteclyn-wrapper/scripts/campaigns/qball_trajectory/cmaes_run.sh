@@ -45,7 +45,27 @@ export GRTRESNA_MATTER_COUPLING="${GRTRESNA_MATTER_COUPLING:-canonical}"
 export GRTRESNA_FULL_Z=1
 export GRTRESNA_ALLOW_SIGN_MISMATCH="${GRTRESNA_ALLOW_SIGN_MISMATCH:-0}"
 export SCORE_PUMP_ENERGY_WEIGHT="${SCORE_PUMP_ENERGY_WEIGHT:-40}"
-export RL_PUMP_STOP_TIME="${RL_PUMP_STOP_TIME:-4}"
+
+# Pump convention (GPU_RUN_PLAN.md §12.1): the pump runs for the ENTIRE
+# simulation (-1 = never stop). The old silent default here (stop at t=4)
+# flipped the physics of any campaign that forgot to set it — the value must
+# now be stated explicitly; >= 0 is only for a deliberate pump-off control.
+if [[ -z "${RL_PUMP_STOP_TIME:-}" ]]; then
+  echo "[cmaes] RL_PUMP_STOP_TIME is required (no silent default):" >&2
+  echo "        -1 = pump on for the whole run (the convention);" >&2
+  echo "        >=0 only for a deliberate pump-off control." >&2
+  exit 2
+fi
+export RL_PUMP_STOP_TIME
+# A negative pump value erases the scorer's fallback emission floor
+# (metrics/score/ftl.py skips values < 0) — the floor must then be pinned
+# explicitly or f_geo silently changes meaning.
+if [[ "${RL_PUMP_STOP_TIME}" == -* && -z "${GEODESIC_EMIT_MIN_TIME:-}" ]]; then
+  echo "[cmaes] RL_PUMP_STOP_TIME=${RL_PUMP_STOP_TIME} needs an explicit emission" >&2
+  echo "        floor: set GEODESIC_EMIT_MIN_TIME (=4 for the fgeo lineage)." >&2
+  exit 2
+fi
+export GEODESIC_EMIT_MIN_TIME="${GEODESIC_EMIT_MIN_TIME:-}"
 export FRAMES_FIELDS="${FRAMES_FIELDS:-scalar_activity phi Pi phi_lump0 Pi_lump0 phi_lump1 Pi_lump1 phi_lump2 Pi_lump2 chi chi_minus_1 local_speed shift1 rho_req}"
 export PROJECTION_FIELDS="${PROJECTION_FIELDS:-scalar_activity phi}"
 

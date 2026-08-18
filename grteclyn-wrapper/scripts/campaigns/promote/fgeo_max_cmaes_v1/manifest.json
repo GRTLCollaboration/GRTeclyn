@@ -1,0 +1,147 @@
+{
+  "campaign": "fgeo_max_cmaes_validation",
+  "source_run": "runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1",
+  "source_eval": "auto",
+  "objective_mode": "f_geo_max",
+  "physics_frozen": {
+    "matter_model": "grtresna_bicomplex_scalar",
+    "matter_sector": "boson_star",
+    "pump": "on for the ENTIRE run \u2014 rl_pump_stop_time deliberately ABSENT (absent key = never stop, GPU_RUN_PLAN.md 12.1; the pump-convention validator refuses this manifest if one is added)",
+    "max_level": 3,
+    "regrid_threshold": 0.02,
+    "qball": "compact ODE + equilibrium amplitude",
+    "do_not_mutate": true
+  },
+  "extra_overrides": [
+    "grtresna_matter_model=grtresna_bicomplex_scalar",
+    "grtresna_matter_coupling=canonical"
+  ],
+  "defaults": {
+    "stop_time": 64.0,
+    "plot_interval": 72,
+    "grteclyn_frames": 0,
+    "grteclyn_psi4": 1,
+    "grteclyn_psi4_n_points": 128,
+    "consumer_radii": [
+      12.0,
+      18.0,
+      24.0
+    ],
+    "geo_directions": "x y z",
+    "geo_emit_interval": 2.0,
+    "geo_max_emissions": 25,
+    "evolving_geodesic_mode": "hq",
+    "gauge_speed_factor": 1.41421356237
+  },
+  "runs": [
+    {
+      "id": "FMAX-RM",
+      "phase": 2,
+      "role": "hq_baseline_richardson_medium",
+      "n_full": 256,
+      "l_full": 128.0,
+      "stop_time": 64.0,
+      "plot_interval": 72,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 1,
+      "consumer_radii": [
+        12.0,
+        18.0,
+        24.0
+      ],
+      "name_prefix": "fmax_rm_L128_N256_t64",
+      "notes": "HQ headline + Richardson medium (h=0.5). 1 GPU. Metrics-only."
+    },
+    {
+      "id": "FMAX-RC",
+      "phase": 3,
+      "role": "richardson_coarse",
+      "n_full": 192,
+      "l_full": 128.0,
+      "stop_time": 64.0,
+      "plot_interval": 72,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 1,
+      "consumer_radii": [
+        12.0,
+        18.0,
+        24.0
+      ],
+      "name_prefix": "fmax_rc_L128_N192_t64",
+      "notes": "Richardson coarse (h=0.667). 1 GPU."
+    },
+    {
+      "id": "FMAX-RI",
+      "phase": 3,
+      "role": "richardson_intermediate",
+      "n_full": 224,
+      "l_full": 128.0,
+      "stop_time": 64.0,
+      "plot_interval": 72,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 1,
+      "consumer_radii": [
+        12.0,
+        18.0,
+        24.0
+      ],
+      "name_prefix": "fmax_ri_L128_N224_t64",
+      "notes": "Richardson intermediate rung (h=0.571). Replaces the retired N=384 fine rung (OOMs on one GPU; ladder capped at 256 per GPU_RUN_PLAN.md 2). Raise to N=240 iff the 12.4 memory probe passes."
+    },
+    {
+      "id": "FMAX-DS",
+      "phase": 3,
+      "role": "domain_small",
+      "n_full": 192,
+      "l_full": 96.0,
+      "stop_time": 64.0,
+      "plot_interval": 72,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 1,
+      "consumer_radii": [
+        12.0,
+        18.0,
+        24.0
+      ],
+      "name_prefix": "fmax_ds_L96_N192_t64",
+      "notes": "Domain study small (L=96, same h). 1 GPU."
+    },
+    {
+      "id": "FMAX-DS2",
+      "phase": 3,
+      "role": "domain_mid",
+      "n_full": 224,
+      "l_full": 112.0,
+      "stop_time": 64.0,
+      "plot_interval": 72,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 1,
+      "consumer_radii": [
+        12.0,
+        18.0,
+        24.0
+      ],
+      "name_prefix": "fmax_ds2_L112_N224_t64",
+      "notes": "Domain study mid (L=112, same h). Replaces the retired L160/N320 cell (~137 GB, unproducible on one GPU)."
+    }
+  ],
+  "acceptance": {
+    "f_geo_positive": true,
+    "n_rays": 5,
+    "h_quality_ok": true,
+    "richardson_series": [
+      "FMAX-RC",
+      "FMAX-RI",
+      "FMAX-RM"
+    ],
+    "fine_vs_medium_rel_tol": 0.1,
+    "domain_l112_vs_l128_rel_tol": 0.1,
+    "freefall_ladder_spread_rel_tol": 0.1
+  },
+  "stop_condition": {
+    "run_id": "FMAX-RM",
+    "require_positive_f_geo": true,
+    "require_h_quality_ok": true,
+    "on_fail": "halt_matrix_diagnose_drift"
+  }
+}

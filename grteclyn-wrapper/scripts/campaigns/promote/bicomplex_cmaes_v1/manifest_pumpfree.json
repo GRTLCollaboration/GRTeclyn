@@ -3,6 +3,7 @@
   "source_run": "runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1",
   "source_eval": "auto",
   "objective_mode": "general_ftl",
+  "pump_off_control": true,
   "physics_frozen": {
     "matter_model": "grtresna_bicomplex_scalar",
     "matter_sector": "boson_star",

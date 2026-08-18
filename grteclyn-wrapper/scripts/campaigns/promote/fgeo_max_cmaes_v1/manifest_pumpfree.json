@@ -1,0 +1,59 @@
+{
+  "campaign": "fgeo_max_cmaes_pumpfree",
+  "source_run": "runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1",
+  "source_eval": "auto",
+  "objective_mode": "f_geo_max",
+  "physics_frozen": {
+    "matter_model": "grtresna_bicomplex_scalar",
+    "matter_sector": "boson_star",
+    "pump": "OFF from t=0 \u2014 the deliberate pump-free control twin (declared via pump_off_control)",
+    "max_level": 3,
+    "regrid_threshold": 0.02,
+    "qball": "compact ODE + equilibrium amplitude",
+    "do_not_mutate": true,
+    "rl_pump_stop_time": 0.0
+  },
+  "extra_overrides": [
+    "grtresna_matter_model=grtresna_bicomplex_scalar",
+    "grtresna_matter_coupling=canonical",
+    "rl_pump_stop_time=0"
+  ],
+  "defaults": {
+    "stop_time": 64.0,
+    "plot_interval": 72,
+    "grteclyn_frames": 0,
+    "grteclyn_psi4": 1,
+    "grteclyn_psi4_n_points": 128,
+    "consumer_radii": [
+      12.0,
+      18.0,
+      24.0
+    ],
+    "geo_directions": "x y z",
+    "geo_emit_interval": 2.0,
+    "geo_max_emissions": 25,
+    "evolving_geodesic_mode": "hq",
+    "gauge_speed_factor": 1.41421356237
+  },
+  "runs": [
+    {
+      "id": "FMAX-PF",
+      "phase": 3,
+      "role": "pumpfree_twin",
+      "n_full": 256,
+      "l_full": 128.0,
+      "stop_time": 64.0,
+      "plot_interval": 72,
+      "grteclyn_frames": 0,
+      "evolution_mpi_ranks": 1,
+      "consumer_radii": [
+        12.0,
+        18.0,
+        24.0
+      ],
+      "name_prefix": "fmax_pf_L128_N256_t64",
+      "notes": "Pump-free HQ twin of FMAX-RM (rl_pump_stop_time=0). Proves what survives without PD ignition. 1 GPU. Metrics-only."
+    }
+  ],
+  "pump_off_control": true
+}

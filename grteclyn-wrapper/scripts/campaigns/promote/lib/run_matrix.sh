@@ -29,6 +29,13 @@ if [[ -z "${MANIFEST}" || ! -f "${MANIFEST}" ]]; then
   exit 2
 fi
 
+# Pump convention (GPU_RUN_PLAN.md §12.1): the pump runs for the entire
+# simulation. Refuse any manifest/env that stops it mid-run unless the
+# manifest declares itself a deliberate pump-off control
+# ("pump_off_control": true), and require the emission floor on pump-on
+# manifests. Runs on every --list and launch.
+python3 "${PROMOTE_LIB}/validate_pump_convention.py" "${MANIFEST}"
+
 if [[ "${RUN_ID}" == "--list" || -z "${RUN_ID}" ]]; then
   python3 - <<'PY' "${MANIFEST}"
 import json, sys
