@@ -97,11 +97,10 @@ void BoundaryConditions::params_t::fill_params()
 
 void BoundaryConditions::params_t::check_params()
 {
-    // still load even if not contained, to ensure printout saying parameters
-    // were set to their default values
+    // Register defaults so that the resolved values appear in the parameter
+    // output even when they were not supplied by the user.
     GRParmParse boundary_pp("boundary");
     GRParmParse geom_pp("geometry");
-    GRParmParse pp;
 
     // set defaults
     std::array<int, AMREX_SPACEDIM> hi_condition{};
@@ -117,6 +116,30 @@ void BoundaryConditions::params_t::check_params()
     geom_pp.get("is_periodic", is_periodic_int);
     FOR (idir)
     {
+        if (is_periodic_int[idir] != 0 && is_periodic_int[idir] != 1)
+        {
+            geom_pp.error("is_periodic", "entries must be either 0 or 1");
+        }
+
+        if (hi_condition[idir] < STATIC_BC ||
+            hi_condition[idir] > REFLECTIVE_BC)
+        {
+            boundary_pp.error(
+                "hi_condition",
+                "entries must be 0 (static), 1 (Sommerfeld), or 2 "
+                "(reflective); extrapolating and mixed boundary conditions "
+                "are not implemented");
+        }
+        if (lo_condition[idir] < STATIC_BC ||
+            lo_condition[idir] > REFLECTIVE_BC)
+        {
+            boundary_pp.error(
+                "lo_condition",
+                "entries must be 0 (static), 1 (Sommerfeld), or 2 "
+                "(reflective); extrapolating and mixed boundary conditions "
+                "are not implemented");
+        }
+
         if (is_periodic_int[idir] == 0)
         {
             nonperiodic_boundaries_exist = true;
@@ -124,7 +147,8 @@ void BoundaryConditions::params_t::check_params()
                 lo_condition[idir] == EXTRAPOLATING_BC)
             {
                 int extrapolation_order = 1;
-                pp.queryAdd("extrapolation_order", extrapolation_order);
+                boundary_pp.queryAdd("extrapolation_order",
+                                     extrapolation_order);
                 break;
             }
         }
@@ -134,9 +158,9 @@ void BoundaryConditions::params_t::check_params()
     {
         // write out boundary conditions where non periodic - useful for
         // debug
-
-        // TODO: FIX AND REINSTATE THIS
-        // write_boundary_conditions(*this);
+        params_t boundary_params;
+        boundary_params.fill_params();
+        BoundaryConditions::write_boundary_conditions(boundary_params);
     }
 }
 
@@ -222,6 +246,64 @@ void BoundaryConditions::write_mixed_conditions(int idir,
     write_sommerfeld_conditions(idir, a_params);
 }
 
+/// write out boundary params (used during setup for debugging)
+void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
+{
+    amrex::Print() << "You are using non-periodic boundary conditions." << '\n';
+    amrex::Print() << "The boundary parameters chosen are:" << '\n';
+    amrex::Print() << "-----------------------------------" << '\n';
+
+    const std::map<int, std::string> boundary_condition_names = {
+        {STATIC_BC,        "Static"       },
+        {SOMMERFELD_BC,    "Sommerfeld"   },
+        {REFLECTIVE_BC,    "Reflective"   },
+        {EXTRAPOLATING_BC, "Extrapolating"},
+        {MIXED_BC,         "Mixed"        }
+    };
+    FOR (idir)
+    {
+        if (!a_params.is_periodic[idir])
+        {
+            amrex::Print() << "- "
+                           << boundary_condition_names.at(
+                                  a_params.hi_condition[idir])
+                           << " boundaries in direction high " << idir << '\n';
+            if (a_params.hi_condition[idir] == REFLECTIVE_BC)
+            {
+                write_reflective_conditions(idir);
+            }
+            else if (a_params.hi_condition[idir] == SOMMERFELD_BC)
+            {
+                write_sommerfeld_conditions(idir, a_params);
+            }
+            else if (a_params.hi_condition[idir] == MIXED_BC)
+            {
+                write_mixed_conditions(idir, a_params);
+            }
+            amrex::Print() << "\n" << '\n';
+
+            amrex::Print() << "- "
+                           << boundary_condition_names.at(
+                                  a_params.lo_condition[idir])
+                           << " boundaries in direction low " << idir << '\n';
+            if (a_params.lo_condition[idir] == REFLECTIVE_BC)
+            {
+                write_reflective_conditions(idir);
+            }
+            else if (a_params.lo_condition[idir] == SOMMERFELD_BC)
+            {
+                write_sommerfeld_conditions(idir, a_params);
+            }
+            else if (a_params.lo_condition[idir] == MIXED_BC)
+            {
+                write_mixed_conditions(idir, a_params);
+            }
+            amrex::Print() << "\n" << '\n';
+        }
+    }
+    amrex::Print() << "-----------------------------------" << '\n';
+}
+
 /// The function which returns the parity of each of the vars in
 /// StateVariables.hpp (It is only required for reflective boundary conditions.)
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
@@ -264,7 +346,8 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                 int bclo = get_boundary_condition(
                     amrex::Orientation(idim, amrex::Orientation::low));
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bclo != MIXED_BC,
-                                                 "xxxx mixed bc todo");
+                                                 "Mixed boundary conditions "
+                                                 "are not implemented");
                 if (bclo == SOMMERFELD_BC)
                 {
                     const int len  = domain.length(idim);
@@ -276,7 +359,8 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                 int bchi = get_boundary_condition(
                     amrex::Orientation(idim, amrex::Orientation::high));
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bchi != MIXED_BC,
-                                                 "xxxx mixed bc todo");
+                                                 "Mixed boundary conditions "
+                                                 "are not implemented");
                 if (bchi == SOMMERFELD_BC)
                 {
                     const int len  = domain.length(idim);
@@ -298,8 +382,10 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
         amrex::Orientation face = orit();
         int bc_on_face          = get_boundary_condition(face);
         if (m_geom.isPeriodic(face.coordDir()) || bc_on_face == REFLECTIVE_BC)
-        {                      // xxxxx todo: what about other BCs?
-            domain.grow(face); // to use the central derivative stencil
+        {
+            // These faces have usable ghost cells, so the central derivative
+            // stencil can extend beyond the valid domain.
+            domain.grow(face);
         }
     }
     const auto domlo  = domain.smallEnd();
@@ -383,7 +469,7 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
 }
 
 #if 0
-//xxxxx
+// Unported legacy boundary handling retained for a future refactor.
 /// Fill the rhs boundary values appropriately based on the params set
 void BoundaryConditions::fill_rhs_boundaries(const Side::LoHiSide a_side,
                                              const GRLevelData &a_soln,
@@ -410,7 +496,7 @@ void BoundaryConditions::fill_rhs_boundaries(const Side::LoHiSide a_side,
 #endif
 
 #if 0
-// xxxxx
+// Unported legacy boundary handling retained for a future refactor.
 /// fill solution boundary conditions, e.g. after interpolation
 void BoundaryConditions::fill_solution_boundaries(const Side::LoHiSide a_side,
                                                   GRLevelData &a_state,
@@ -445,7 +531,7 @@ void BoundaryConditions::fill_solution_boundaries(const Side::LoHiSide a_side,
 #endif
 
 #if 0
-//xxxxx
+// Unported legacy boundary handling retained for a future refactor.
 /// fill diagnostic boundaries
 void BoundaryConditions::fill_diagnostic_boundaries(const Side::LoHiSide a_side,
                                                     GRLevelData &a_state,
@@ -478,7 +564,7 @@ void BoundaryConditions::fill_diagnostic_boundaries(const Side::LoHiSide a_side,
 #endif
 
 #if 0
-//xxxxxx
+// Unported legacy boundary handling retained for a future refactor.
 /// Fill the boundary values appropriately based on the params set
 /// in the direction dir
 void BoundaryConditions::fill_boundary_cells_dir(
@@ -585,10 +671,10 @@ void BoundaryConditions::fill_sommerfeld_cell(
     amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
     const amrex::IntVect a_iv, const std::vector<int> &sommerfeld_comps)
 {
-    amrex::Abort("xxxxx todo BoundaryConditions::fill_sommerfeld_cell");
+    amrex::Abort("BoundaryConditions::fill_sommerfeld_cell is not implemented");
     amrex::ignore_unused(rhs_box, soln_box, a_iv, sommerfeld_comps);
 #if 0
-//xxxxx
+// Unported legacy boundary handling retained for a future refactor.
     // assumes an asymptotic value + radial waves and permits them
     // to exit grid with minimal reflections
     // get real position on the grid
@@ -657,7 +743,7 @@ void BoundaryConditions::fill_sommerfeld_cell(
 }
 
 #if 0
-//xxxxx
+// Unported legacy boundary handling retained for a future refactor.
 void BoundaryConditions::fill_extrapolating_cell(
     amrex::FArrayBox &out_box, const amrex::IntVect iv, const Side::LoHiSide a_side,
     const int dir, const std::vector<int> &extrapolating_comps,
@@ -754,7 +840,7 @@ void BoundaryConditions::fill_extrapolating_cell(
 #endif
 
 #if 0
-//xxxxx
+// Unported legacy boundary handling retained for a future refactor.
 /// Copy the boundary values from src to dest
 /// NB only acts if same box layout of input and output data
 void BoundaryConditions::copy_boundary_cells(const Side::LoHiSide a_side,
@@ -812,7 +898,7 @@ void BoundaryConditions::copy_boundary_cells(const Side::LoHiSide a_side,
 #endif
 
 #if 0
-//xxxxx
+// Unported legacy boundary handling retained for a future refactor.
 /// Fill the fine boundary values in a_state
 /// Required for interpolating onto finer levels at boundaries
 void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
@@ -952,7 +1038,7 @@ void BoundaryConditions::interp_boundaries(GRLevelData &a_fine_state,
 #endif
 
 #if 0
-//xxxxx
+// Unported legacy boundary handling retained for a future refactor.
 /// get the boundary box to fill if we are at a boundary
 Box BoundaryConditions::get_boundary_box(
     const Side::LoHiSide a_side, const int a_dir, const amrex::IntVect &offset_lo,

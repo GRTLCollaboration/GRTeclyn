@@ -21,13 +21,14 @@
 /// the high and low directions.
 /// In cases where different variables/boundaries are required, the user should
 /// (usually) write their own conditions class which inherits from this one.
-/// Note that these conditions enforce a certain rhs based on the current values
-/// of the grid variables. (Another option would be to enforce grid values, e.g.
-/// by extrapolating from within the grid.)
+/// Boundary handling combines AMReX ghost-cell filling with explicit RHS
+/// updates where required.
 class BoundaryConditions
 {
   public:
-    /// enum for possible boundary states
+    /// Boundary condition identifiers. Extrapolating and mixed conditions are
+    /// retained for a future implementation but rejected during parameter
+    /// checking.
     enum
     {
         STATIC_BC,
@@ -43,15 +44,6 @@ class BoundaryConditions
         std::array<int, AMREX_SPACEDIM> hi_condition{};
         std::array<int, AMREX_SPACEDIM> lo_condition{};
         std::array<bool, AMREX_SPACEDIM> is_periodic{};
-        /*
-        bool nonperiodic_boundaries_exist{false};
-        bool boundary_solution_enforced{false};
-        bool boundary_rhs_enforced{false};
-        bool reflective_boundaries_exist{false};
-        bool sommerfeld_boundaries_exist{false};
-        bool extrapolating_boundaries_exist{};
-        bool mixed_boundaries_exist{};
-        */
 
         std::array<double, NUM_VARS> vars_asymptotic_values{};
         std::map<int, int> mixed_bc_vars_map;
@@ -108,7 +100,7 @@ class BoundaryConditions
                                      const amrex::MultiFab &a_soln) const;
 
 #if 0
-//xxxxx
+    // Unported legacy boundary handling retained for a future refactor.
     /// Fill the rhs boundary values appropriately based on the params set
     void fill_rhs_boundaries(const Side::LoHiSide a_side,
                              const GRLevelData &a_soln, GRLevelData &a_rhs);
@@ -156,8 +148,8 @@ class BoundaryConditions
     /// necessary (i.e. in the Sommerfeld BC case). It is used to define the
     /// correct DisjointBoxLayout for the exchange copier so that shared
     /// boundary ghosts are exchanged correctly.
-//xxxxx    void expand_grids_to_boundaries(DisjointBoxLayout &a_out_grids,
-//                                    const DisjointBoxLayout &a_in_grids);
+    void expand_grids_to_boundaries(DisjointBoxLayout &a_out_grids,
+                                    const DisjointBoxLayout &a_in_grids);
 #endif
 
     friend class ExpandGridsToBoundaries;
@@ -178,10 +170,11 @@ class BoundaryConditions
                                      const std::vector<int> &sommerfeld_comps);
 
 #if 0
-//xxxxx    void fill_extrapolating_cell(amrex::FArrayBox &out_box, const amrex::IntVect iv,
-                                 const Side::LoHiSide a_side, const int dir,
-                                 const std::vector<int> &extrapolating_comps,
-                                 const int order = 1) const;
+    // Unported legacy boundary handling retained for a future refactor.
+    void fill_extrapolating_cell(
+        amrex::FArrayBox &out_box, const amrex::IntVect iv,
+        const Side::LoHiSide a_side, const int dir,
+        const std::vector<int> &extrapolating_comps, const int order = 1) const;
 
     void fill_reflective_cell(
         amrex::FArrayBox &out_box, const amrex::IntVect iv, const Side::LoHiSide a_side,

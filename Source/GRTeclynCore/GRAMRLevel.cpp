@@ -33,8 +33,7 @@ void GRAMRLevel::stateVariableSetUp()
                 bc.set(face, amrex::BCType::int_dir);
             }
             else if (bctype == BoundaryConditions::STATIC_BC ||
-                     bctype == BoundaryConditions::SOMMERFELD_BC ||
-                     bctype == BoundaryConditions::MIXED_BC)
+                     bctype == BoundaryConditions::SOMMERFELD_BC)
             {
                 bc.set(face, amrex::BCType::foextrap);
             }
@@ -51,13 +50,17 @@ void GRAMRLevel::stateVariableSetUp()
                     bc.set(face, amrex::BCType::reflect_odd);
                 }
             }
-            else if (bctype == BoundaryConditions::EXTRAPOLATING_BC)
+            else if (bctype == BoundaryConditions::EXTRAPOLATING_BC ||
+                     bctype == BoundaryConditions::MIXED_BC)
             {
-                amrex::Abort("xxxxx EXTRAPOLATING_BC todo");
+                amrex::Abort(
+                    "Extrapolating and mixed boundary conditions are not "
+                    "implemented");
             }
             else
             {
-                amrex::Abort("Unknow BC type " + std::to_string(bctype));
+                amrex::Abort("Unknown boundary condition type " +
+                             std::to_string(bctype));
             }
         }
     }
