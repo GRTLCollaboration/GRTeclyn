@@ -351,6 +351,56 @@ comparison and full env-var reference.
 4. **Search turns frames off, HQ turns them on** — by design (`search_common.sh` vs `promote_common.sh`).
 5. **Promotion must use `N > L`** (or same `L` with larger `N`) to refine the grid. `L=N` only enlarges the domain at `dx=1` — no fidelity gain.
 6. **Plotfiles go to node-local scratch, never NFS** — automatic since `core/scratch.py`; `output_path` stays on NFS. Only override it (`GRTECLYN_SCRATCH`) if `/tmp` is not node-local on your machine. See [Plotfile scratch MUST be node-local](#plotfile-scratch-must-be-node-local-required).
+7. **The pump runs for the ENTIRE simulation** — never stopped mid-run. Enforced at launch, not by checklist; see [Pump convention](#pump-convention-enforced-at-launch) below.
+
+### Pump convention (enforced at launch)
+
+The PD pump stays on for the whole simulation. In the evolution config this
+means the `rl_pump_stop_time` key is **absent** — the binary's default (`-1`)
+is "never stop" — so a config with no pump key is already correct, and any
+non-negative value someone bakes in silently changes the physics of every run
+that inherits it. That failure mode is now closed by the launchers themselves:
+
+**Search launchers** (`qball_trajectory/cmaes_run.sh`): `RL_PUMP_STOP_TIME`
+must be set explicitly — there is no silent default any more; an unset value
+refuses to launch (exit 2).
+
+```bash
+RL_PUMP_STOP_TIME=-1     # the convention: pump on for the whole run
+GEODESIC_EMIT_MIN_TIME=4 # required whenever the pump value is negative
+```
+
+The floor pairing is also enforced: a negative pump value erases the scorer's
+fallback emission floor (`metrics/score/ftl.py` skips negatives), so `-1`
+without an explicit `GEODESIC_EMIT_MIN_TIME` refuses to launch — otherwise
+`f_geo` silently changes meaning between runs.
+
+**Promotion launchers** (`promote/lib/run_matrix.sh`): every launch and every
+`--list` runs `promote/lib/validate_pump_convention.py` over the manifest and
+the environment. It refuses (exit 3) when:
+
+- the manifest bakes a non-negative `rl_pump_stop_time` anywhere
+  (`physics_frozen`, `extra_overrides`, any nesting, `key=value` string form —
+  unparseable values are refused, not waved through), or
+- the environment carries `RL_PUMP_STOP_TIME ≥ 0`, or
+- a pump-on manifest is launched without `GEODESIC_EMIT_MIN_TIME` in the env.
+
+**Deliberate pump-off controls** (e.g. the pump-free twin that proves `f_geo`
+persists without ignition) are the only exception, and they must say so in
+the manifest, top-level:
+
+```json
+"pump_off_control": true
+```
+
+Only with that key may a manifest carry a non-negative `rl_pump_stop_time`.
+The key is not inherited from templates — each control manifest declares it
+itself, so a copy-paste of an old manifest with a baked stop time is refused
+loudly instead of quietly stopping the pump.
+
+Covered by `tests/scripts/test_pump_convention.py` (11 tests, including
+end-to-end refusal of the retired template manifest and acceptance of the
+pump-free twin).
 
 ### Stopping detached campaigns — kill the orchestrator first
 

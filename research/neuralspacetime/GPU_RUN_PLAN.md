@@ -422,57 +422,32 @@ general_ftl) still name the old roots in their own launchers — pass
 ```bash
 cd grteclyn-wrapper
 
-# 1. Clone the promotion campaign for Phase 3 and edit it:
-cp -r scripts/campaigns/promote/bicomplex_cmaes_v1 scripts/campaigns/promote/fgeo_max_cmaes_v1
-#    campaign.env.sh : CAMPAIGN_NAME=fgeo_max_cmaes_v1
-#                      LIVE_RUN=${GRTECLYN_ROOT}/runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1
-#                      FREEZE_ROOT=${GRTECLYN_ROOT}/runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1
-#                      OBJECTIVE_MODE=f_geo_max
-#                      GRTRESNA_RANKS=1 (promote path default is 8,
-#                      lib/promote_common.sh:18 — mpirun segfaults on this
-#                      node; note the search path spells this RANKS instead)
-#                      SCORE_EXOTIC_PENALTY_WEIGHT=0 (template pins the
-#                      bicomplex 0.2; f_geo_max has no exotic penalty)
-#                      RL_PUMP_STOP_TIME=-1 — pump on for the ENTIRE run,
-#                      the project convention. (The champion's params.txt has
-#                      no rl_pump_stop_time line and that is correct: the
-#                      wiring only writes the key for values >= 0, and the
-#                      evolution default is -1 = never stop. Do NOT keep the
-#                      bicomplex default 4, which stops the pump at t=4.)
-#                      GEODESIC_EMIT_MIN_TIME=4 — the scoring emit floor;
-#                      with a negative pump value the scorer's fallback floor
-#                      vanishes (ftl.py skips values < 0), same pin as §12.3
-#                      GRTRESNA_MAX_HAM_PCT=5 GRTRESNA_MAX_MOM_PCT=5 — the
-#                      promote path defaults BOTH to 10 (promote_common.sh:14-15)
-#                      while the search that picked the champion gated at 5;
-#                      without this the matrix accepts twice the initial-data
-#                      residual the champion was selected under
-#                      GRTECLYN_METRIC_STACK_N_SPACE=257 and
-#                      GRTECLYN_FREEFALL_OBSERVER_TIMING=1 — the §12.1
-#                      mandatory replay env; the promote framework exports
-#                      neither (run_matrix.sh passes only the geo_* keys),
-#                      so they must live here or every FMAX cell ships
-#                      without the metric stack + free-fall certificate
-#    manifest.json   : ids FMAX-*, objective_mode f_geo_max,
-#                      defaults stop_time 64, geo_emit_interval 2, geo_max_emissions 25,
-#                      evolution_mpi_ranks 1 on EVERY cell (multi-rank is dead),
-#                      ladder N 192/224/256 (nothing above 256 — §2 memory table),
-#                      DS L96/N192, DS2 L112/N224
-#                      *** REMOVE rl_pump_stop_time from BOTH physics_frozen
-#                      (line "rl_pump_stop_time": 4.0) and extra_overrides
-#                      ("rl_pump_stop_time=4"). The manifest — not the env
-#                      var — is what reaches params.txt (run_matrix.sh passes
-#                      extra_overrides as --extra-override, which beats env);
-#                      leaving either in stops the pump at t=4 on every FMAX
-#                      cell no matter what campaign.env.sh says. Absent key =
-#                      pump on for the entire run (§12.1). ***
-#    manifest_freefall.json : same edits — it ALSO carries rl_pump_stop_time=4
-#                      today; the observer cells must run pump-on-full like
-#                      the runs they certify
-#    manifest_pumpfree.json : same edits EXCEPT keep rl_pump_stop_time=0 —
-#                      the pump-free twin is the deliberate control (§12.1)
+# 1. DONE — the promotion campaign clone EXISTS with every pin baked in:
+#    scripts/campaigns/promote/fgeo_max_cmaes_v1/
+#    campaign.env.sh pins (each with its rationale in a comment there):
+#      OBJECTIVE_MODE=f_geo_max, SCORE_EXOTIC_PENALTY_WEIGHT=0,
+#      RL_PUMP_STOP_TIME=-1 + GEODESIC_EMIT_MIN_TIME=4 (§12.1),
+#      GRTRESNA_RANKS=1, GRTRESNA_MAX_HAM_PCT=5 / MOM_PCT=5,
+#      GRTECLYN_METRIC_STACK_N_SPACE=257, GRTECLYN_FREEFALL_OBSERVER_TIMING=1
+#    manifest.json / manifest_freefall.json carry NO pump key (absent key =
+#    pump on for the entire run); manifest_pumpfree.json alone keeps
+#    rl_pump_stop_time=0 and declares "pump_off_control": true — the
+#    deliberate control (§12.1).
+#
+#    The pump rule is LAUNCHER-ENFORCED now, not a checklist item:
+#    - promote/lib/run_matrix.sh runs lib/validate_pump_convention.py on
+#      every launch and --list; a manifest or env that stops the pump
+#      without "pump_off_control": true is refused (exit 3), and pump-on
+#      manifests require GEODESIC_EMIT_MIN_TIME in the env.
+#    - qball_trajectory/cmaes_run.sh requires an explicit RL_PUMP_STOP_TIME
+#      (no silent default; exit 2) and refuses a negative value without an
+#      explicit floor.
+#    Spec: grteclyn-wrapper README "Pump convention (enforced at launch)".
+#    Tests: tests/scripts/test_pump_convention.py (11 tests).
 
-# 2. Validate without GPUs:
+# 2. Validate without GPUs (the pump validator runs inside --list too;
+#    smoke-verified: all three manifests list clean, the retired bicomplex
+#    template manifest is refused with exit 3):
 DRY_RUN=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh --list
 
 # 2b. Register the frontier descriptor mode (code task, no GPU — needed
@@ -599,6 +574,8 @@ overlaying the 185 dials on a sibling eval's full metadata (195's fixed
 keys are the same campaign constants):
 
 ```bash
+# (Already materialized during the pre-GPU smoke run — 69 overrides, loads
+# through replay_eval's own reader, no pump key. Re-running is idempotent.)
 mkdir -p ../runs/neuralspacetime/hq/sources/depth_eval185_stub
 .venv/bin/python - <<'PY'
 import json, pathlib
