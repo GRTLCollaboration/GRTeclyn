@@ -219,27 +219,22 @@ class BaseParameterChecker
             amr_pp.error("max_level", "must be >= 0");
         }
 
-        // the reference ratio is hard coded to 2
-        // in principle it can be set to other values, but this is
-        // not recommended since we do not test GRChombo with other
-        // refinement ratios - use other values at your own risk
+        // The refinement ratio is fixed to 2 since GRTeclyn is not tested with
+        // other values.
         amrex::Vector<int> ref_ratio(max_level, 2); // ref ratios between levels
-        amr_pp.queryAdd("ref_ratio", ref_ratio);
+        amr_pp.addarr("ref_ratio", ref_ratio);
 
         // Regridding interval on each level, with size max_level (i.e.
         // num_levels-1) since regridding on max level does nothing
-        amrex::Vector<int> regrid_int(max_level,
-                                      2); // steps between regrid at each level
+        amrex::Vector<int> regrid_int(max_level, -1);
+        if (max_level > 0)
+        {
+            regrid_int[0] = 1;
+        }
         amr_pp.queryAdd("regrid_int", regrid_int);
 
-        if (tagging_pp.contains("thresholds"))
+        if (!tagging_pp.contains("thresholds"))
         {
-            amrex::Print() << "Using multiple regrid thresholds." << '\n';
-        }
-        else
-        {
-            amrex::Print() << "Using single regrid threshold." << '\n';
-
             double regrid_threshold = 0.5;
             tagging_pp.queryAdd("threshold", regrid_threshold);
 
@@ -248,17 +243,29 @@ class BaseParameterChecker
             tagging_pp.queryAdd("thresholds", regrid_thresholds);
         }
 
-        int check_int = 1; // Steps between checkpoint file outputs
+        int check_int = -1; // Steps between checkpoint file outputs
         amr_pp.queryAdd("check_int", check_int);
 
-        int plot_int = 0; // Steps between plot file outputs
+        int plot_int = -1; // Steps between plot file outputs
         amr_pp.queryAdd("plot_int", plot_int);
 
         double stop_time = 1.; // The stop time
         evolution_pp.queryAdd("stop_time", stop_time);
+        if (stop_time < 0.0)
+        {
+            evolution_pp.warning("stop_time",
+                                 "is negative, disabling this stopping "
+                                 "criterion");
+        }
 
         int max_steps = 1000000;
         evolution_pp.queryAdd("max_steps", max_steps);
+        if (max_steps < 0)
+        {
+            evolution_pp.warning("max_steps",
+                                 "is negative, disabling this stopping "
+                                 "criterion");
+        }
 
         FOR (idir)
         {
