@@ -2,6 +2,8 @@
 
 The following gives some instructions on running the binary black hole example.
 
+This is the classic NR problem, but it is also quite an expensive example to run, so if you just want to try out running GRTeclyn on your laptop or a small cluster, we recommend you start with the [**Scalar Field Example**](sf_example.md) instead.
+
 ## Physical scenario
 
 This page describes running the Binary BH example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/BinaryBH/params_profile.txt).

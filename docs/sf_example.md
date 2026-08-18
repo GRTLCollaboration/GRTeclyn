@@ -2,6 +2,8 @@
 
 Here we explain the scalar field example found in the code, which implements an oscillaton, which is a compact object where the scalar field gradients balance the gravitational attraction, leading to a long-lived, local, oscillating configuration.
 
+The parameters that are provided give a good enough resolution for the physical problem, and can be run relatively quickly on a laptop. For that reason it is a good initial test of running the code. However, to test the performance of the code on a larger system we recommend the [**Binary BH example**](bbh_example.md).
+
 ## Physical scenario
 
 This page describes running the Scalar Field example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/ScalarField/params.txt).
@@ -10,23 +12,21 @@ This page describes running the Scalar Field example using the parameters found 
 
 The initial scalar field profile is set in [`OscillatonInitialData.hpp`](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/ScalarField/OscillatonInitialData.hpp)).
 
-This uses a stationary solution obtained from a shooting method, which has then been interpolated using chebychev polynomials to give something we can impose analytically. At large radius it reduces the the Schwarzschild metric. 
+This uses a quasi-stationary solution obtained from a shooting method, which has then been interpolated using chebychev polynomials to give something we can impose analytically. At large radius it reduces to the Schwarzschild metric. 
 
-The values for $Gamma^i$ could be calculated analytically from derivatives of the conformal metric, but instead we calculate it numerically using the `GammaCalculator.hpp` tool.
+The values for $\Gamma^i$ could be calculated analytically from derivatives of the conformal metric, but instead we calculate it numerically using the `GammaCalculator.hpp` tool, which is necessary where the initial data is not conformally flat.
 
-Time-symmetric metric data for the fitted ground-state oscillaton profile.
-
-The source solution is supplied in areal-polar coordinates,
+Time-symmetric metric data for the fitted ground-state oscillaton profile is supplied in areal-polar coordinates,
 
 $$ dl^2 = g_{rr}(r) dr^2 + r^2 d\Omega^2. $$
 
 In Cartesian coordinates this is
 
-$$ \gamma_{ij} = \delta_{ij} + (g_rr - 1) n_i n_j. $$
+$$ \gamma_{ij} = \delta_{ij} + (g_{rr} - 1) n_i n_j. $$
 
-The CCZ4 variables are `chi = det(gamma)^(-1/3) = g_rr^(-1/3)` and `h_ij = chi gamma_ij`.  `K` and `A_ij` are zero.  At the initial oscillaton phase the field profile `phi=0` and its conjugate momentum `Pi` is nonzero. 
+The CCZ4 variables are `chi`$= det(\gamma)^{-1/3} = g_{rr}^{-1/3}$ and `h`$= \chi \gamma_{ij}$. The components of the extrinsic curvature `K` and `A`$=\tilde A_{ij}$ are zero.  At the initial oscillaton phase the field profile `phi` is zero and its conjugate momentum `Pi` is nonzero, which means it can satisfy the constraints for any scalar potential (but it will only be stationary for the massive potential corresponding to the solution). 
 
-The conformal connection Gamma^i is evaluated numerically from `h_ij` using a separate class `GammaCalculator`, which is required for consistency since the metric is not conformally flat.
+The conformal connection `Gamma`$=\tilde{\Gamma}^i$ is evaluated numerically from `h` using a separate class `GammaCalculator`, which is required for consistency since the metric is not conformally flat.
 
 The fitted profiles are finite Chebyshev expansions in
 
@@ -52,11 +52,7 @@ Please read the [Performance Optimisation](performance_optimisation.md) guide to
 
 The parameters should be mostly self explanatory if you are familiar with NR, but you can look at the [**Parameters**](parameters.md) guide for more details.
 
-Typically, on a CPU system, dividing the domain up into 16^3 boxes, and running on 512 CPU cores with 512 MPI ranks, we obtain a speed of xx M/hr in code units. The speed is output at every timestep to the output file. This is just a rough measure obtained by dividing the current simulation time by the total runtime, so if the simulation freezes it won't go immediately to zero.
-
-Typically, on a GPU system, dividing the domain up into 32^3 boxes, and running on 8 GPUs (1 node) with 8 MPI ranks, we obtain a speed of xxx M/hr in code units.
-
-If you are seeing speeds significantly less than these you may have some memory bottleneck on your system. It will be worth trying to resolve this rather than running at a slower speed - your system admins should be able to advise on how to do this.
+Typically, on an old M1 Macbook laptop with no MPI, we obtain a speed of 650 M/hr in code units with the provided parameters. If your speeds are significantly below this, something is wrong.
 
 ## Checking the outputs
 
@@ -70,13 +66,8 @@ You probably want to look at the scalar profile `phi`, and perhaps also the conf
 
 The example also outputs some ASCII datafiles for post processing in a `data` folder. Firstly, it gives a file `scalar_profile.dat`, which gives the scalar profile over time.
 
-This can be plotted using a `python` script such as:
+This can be plotted using the `python` script `plot_lineouts.png` found in the example folder.
 
-```python
+The resulting image should look like ![this](img/lineouts.png) 
 
-Add one here
-
-```
-
-TODO: replace this:
-The resulting image should look like ![this](img/WeylScalar22.png).
+Note that the small oscillation in the density over time is expected - for a real scalar field oscillon, the stress energy tensor is not completely stationary. However, it should not decay noticeably over time and the amplitude of the oscillations should remain just above 0.04.
