@@ -1,7 +1,8 @@
 # GPU run plan — closing the gap between the post-bugfix campaigns and the paper
 
-Status 2026-08-18. Branch `feature/interstellar`. Companion to
-[`researchnew.tex`](researchnew.tex), [`Debug.md`](Debug.md),
+Status 2026-08-18. Branch `feature/interstellar`. Companion to the article
+at [`article/research.tex`](article/research.tex) (the live manuscript;
+`researchnew.tex` is a legacy draft), [`Debug.md`](Debug.md),
 [`DebugPreGPU.md`](DebugPreGPU.md), and the campaign packs under
 [`results/`](../../results/).
 
@@ -33,7 +34,12 @@ lineage. The pure-depth lineage answers a different question ("how deep can
 this ansatz cut, ignoring survival") and stays in the paper only as the
 strength end of the strength-vs-persistence Pareto frontier — the same role
 the rejected evals 99/136 play in the current draft — **not** as the
-headline. Consequence: the CMA-ES refinement that exists
+headline. (Decision 2026-08-18: both lineages *do* ship — the gated champion
+as the headline with the full matrix, the depth champion as the second
+result with a mini resolution ladder, §6 — because the two results explain
+each other: depth proves the search saturates the known kinematic ceiling,
+the gated run proves persistence selects a genuinely different object.)
+Consequence: the CMA-ES refinement that exists
 (`qball_traj_fgeo_depth_cmaes_v1`) refined the *out-of-scope* objective. The
 paper's own ladder — MAP-Elites (`fgeo_v1`) → CMA-ES **under the same gated
 rule** → HQ → matrix — is missing its refinement stage. That run comes first.
@@ -47,7 +53,7 @@ rule** → HQ → matrix — is missing its refinement stage. That run comes fir
 2. **No production replay of any post-fix champion.** Nothing has been
    measured above N = 128 / max_level 1.
 3. **No convergence or domain matrix for the new result** (the matrix in
-   `researchnew.tex` validates candidate 146 only).
+   `article/research.tex` validates candidate 146 only).
 4. **Depth numbers are lower bounds.** Every emission sweep still rises at
    its last allowed launch. The true peak has never been measured.
 5. **Mechanism unknown for the new champions.** The depth exhibit's 48 %
@@ -65,6 +71,16 @@ rule** → HQ → matrix — is missing its refinement stage. That run comes fir
    draft quotes only post-fix runs, and its heavy run tree was deleted
    (§12.9). The audit pack under `results/` stays in git as the record of
    the superseded iteration.
+8. **No efficiency accounting.** The paper never answers the question
+   referees respect most — *how much shortcut does a unit of exotic matter
+   buy?* — even though both quantities (f_geo and the negative-energy
+   integral) are measured per eval, and the draft's own
+   quantum-inequality/Casimir discussion begs for exactly this frontier.
+   Closed by the frontier search in Phase 4 (adopted 2026-08-18 from
+   `research/nextsteps.md` item F3, together with the free-fall-certificate
+   upgrade F7, §7). The rest of `nextsteps.md` belongs to other papers
+   (wormhole arc, gw_beam/reward-hacking, Bondi) and stays out of this
+   queue.
 
 ---
 
@@ -175,6 +191,14 @@ framework that ran the candidate-146 matrix:
 | FMAX-DL | 160 | 320 | 0.500 | domain ladder — only if the N = 320 probe passed; else drop and rely on DS + the search-tier L = 64 vs 128 comparison |
 | FMAX-PF | 128 | 256 | 0.500 | pump-free twin (t_pump = 0), t = 64 |
 | freefall companions | — | — | — | `manifest_freefall.json` cells on the stored stacks |
+| DEPTH-RC | 128 | 192 | 0.667 | **depth mini-ladder** — result 2 gets its own error bar |
+| DEPTH-RM | 128 | 256 | 0.500 | = the Phase-2 DEPTH-X run, reused |
+| DEPTH-RF | 128 | 288–320 | 0.44–0.40 | probe-gated, same N as FMAX-RF; no domain ladder for depth |
+
+The depth mini-ladder (commands in §12.5) is deliberately small: its job is
+to turn the ~48 % from a search-tier window-clipped number into a defensible
+supporting result with a spread, not to be a second precision measurement.
+Quote its grid-to-grid spread exactly like the bondi tables.
 
 **Pre-registered acceptance (fix before launching):** fine–medium relative
 difference ≤ 10 % on peak f_geo; f_ff ladder spread ≤ 10 %; full ray bundles
@@ -187,7 +211,7 @@ N = 256 (~70 GB).
 
 ---
 
-## 7. Phase 4 — controls and re-measurements
+## 7. Phase 4 — controls, frontier search, and close-outs
 
 1. **Canonical-only control (4 GPUs, ~1 day).** MAP-Elites under the *same
    gated objective* (`f_geo_max`), current pipeline, every per-lump exotic
@@ -195,11 +219,31 @@ N = 256 (~70 GB).
    canonical bound; keeps the "phantom sector required" claim commensurable
    with the headline. Verify on the first evals that
    `recipe_scalar_field_signs` is all +1.
-2. **CPU-only close-outs (no GPU):** ablation + endpoint-gauge +
+2. **Efficiency-frontier search (FRONTIER-1, 4 GPUs, ~1 day; adopted from
+   `nextsteps.md` F3).** MAP-Elites with the *same* gated objective but
+   descriptor axes **(f_geo, exotic-energy budget)** — the Pareto map of
+   "how much shortcut per unit negative energy, under full evolution". Both
+   axes are already measured per eval; the only prep is registering a new
+   descriptor mode (§12.2, a small default-off extension — none of the
+   existing modes pairs the two). 200 evals, search tier, seeded from both
+   lineages' champions so the frontier's two known corners are occupied
+   from generation zero. Why it earns a GPU-day: it is the figure that
+   unifies the paper — the headline and the depth champion become two
+   labelled points on one measured frontier — and it converts the draft's
+   quantum-inequality/Casimir discussion from prose into a plot. Command in
+   §12.6.
+3. **CPU-only close-outs (no GPU):** ablation + endpoint-gauge +
    proper-time tables for the new champion from stored stacks;
    `cache_fidelity` report attached to every quoted f_geo; calibrate the
    post-load gate's composite thresholds from the accumulated composite
-   columns (closes `DebugPreGPU.md` PG-3).
+   columns (closes `DebugPreGPU.md` PG-3); **free-fall certificate curve
+   (`nextsteps.md` F7):** the free-fall observer probe is already built and
+   env-gated — §12.1 now switches it on for every paper-tier replay, so
+   each matrix cell records one certificate for free — and here its
+   emission time is swept over the same grid as the geodesic sweep on the
+   stored headline stack, giving f_ff(t_emit) alongside f_geo(t_emit). The
+   free-faller number is the paper's most gauge-honest observable; this
+   turns it from a single point into its strongest curve at zero GPU cost.
 
 ---
 
@@ -245,13 +289,17 @@ Before the rewrite is called done, walk both debug logs' claim tables:
 - `DebugPreGPU.md` PART E — resolved by exclusion: candidate 146 does not
   appear in the rebuilt paper; the post-fix campaigns' clean provenance
   carries the discovery narrative end to end.
-- The depth lineage appears as the Pareto strength-end exhibit (search-tier
-  tables + the DEPTH-X production point), explicitly labelled as outside the
-  gated objective.
+- The depth lineage appears as **result 2** (search-tier tables + the
+  DEPTH-X production point + the §6 mini-ladder spread), explicitly
+  labelled as outside the gated objective.
+- The frontier figure (FRONTIER-1 archive with FMAX-champ and DEPTH-X as
+  labelled points) appears in the discussion, wired to the
+  quantum-inequality/Casimir section; the f_ff(t_emit) curve appears next
+  to the f_geo sweep wherever the headline number is quoted.
 - Every quoted number names its source run and pack; every pack regenerates
   its tables by script. New packs: `qball-trajectory-fgeo-max-refinement`
   (Phase 1), `qball-trajectory-hq-promotion` (Phases 2–3), the canonical
-  control (Phase 4).
+  control and the frontier campaign (Phase 4).
 
 ---
 
@@ -263,12 +311,15 @@ Before the rewrite is called done, walk both debug logs' claim tables:
 | 1 | Phase 1: CMA-ES refinement under `f_geo_max` | 4 | ~1 day |
 | 2 | Phase 2: FMAX-RM + DEPTH-X + DEPTH-A + probes | 4 | ~1 day |
 | 3 | analysis: freeze champion, fix manifest grids | — | hours |
-| 4 | Phase 3: RC, RF, DS, DL, PF (+freefall companions) | 4 | ~1.5–2 days |
+| 4 | Phase 3: RC, RF, DS, DL, PF (+freefall companions) + depth mini-ladder | 4 | ~2–2.5 days |
 | 5 | Phase 4: canonical-only control | 4 | ~1 day |
-| 6 | Phase 5: NM-1 pilot (NM-2 only on green light) | 1–4 | 0.5–1 day |
+| 6 | Phase 4: FRONTIER-1 efficiency-frontier search | 4 | ~1 day |
+| 7 | Phase 5: NM-1 pilot (NM-2 only on green light); f_ff curve + close-outs on CPU in parallel | 1–4 | 0.5–1 day |
 
-Total ≈ 6–7 GPU-days after the bondi ladders clear. Chain each slot off the
-previous (§12.2) rather than babysitting launches.
+Total ≈ 8–9 GPU-days after the bondi ladders clear. Chain each slot off the
+previous (§12.2) rather than babysitting launches. If the queue must be cut,
+FRONTIER-1 is the first thing to drop and the depth mini-ladder the second —
+both improve the paper, neither blocks it.
 
 ---
 
@@ -282,6 +333,13 @@ previous (§12.2) rather than babysitting launches.
   N = 384 run becomes load-bearing.
 - No GW-beaming campaign work (separate paper, separate queue).
 - No full dressed-star search in this paper's queue (pilot only, §8).
+- No shift-dominance/sourceability search (`nextsteps.md` F1/AT2) in this
+  queue — it is its own campaign and likely its own paper; Phase 2's
+  ablation already places both champions on the mechanism map, which is all
+  this paper needs.
+- No reward-hacking methods write-up here (`nextsteps.md` G5+N9) — it is
+  publishable as-is from existing material, zero GPU, separate venue;
+  harvest after this queue ships.
 
 ---
 
@@ -328,7 +386,13 @@ general_ftl) still name the old roots in their own launchers — pass
   `pgrep -af "grteclyn_wrapper|grtresna|main3d"` is empty of that run.
 - Common env for every paper-tier (t ≥ 40) replay:
   `GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25
-  GRTECLYN_METRIC_STACK_N_SPACE=257`.
+  GRTECLYN_METRIC_STACK_N_SPACE=257
+  GRTECLYN_FREEFALL_OBSERVER_TIMING=1`. The last flag turns on the built-in
+  free-fall observer certificate (default emission τ = 4.0, override with
+  `GRTECLYN_FREEFALL_EMISSION_TAU`) — one
+  `small_data/freefall_observer_timing.json` per replay, no extra cost. The
+  full f_ff(t_emit) curve is a Phase-4 CPU close-out: re-run the probe over
+  the emission grid on the stored stack.
 
 ### 12.2 Prepare now (no GPU needed) + chain off bondi
 
@@ -352,6 +416,15 @@ cp -r scripts/campaigns/promote/bicomplex_cmaes_v1 scripts/campaigns/promote/fge
 
 # 2. Validate without GPUs:
 DRY_RUN=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh --list
+
+# 2b. Register the frontier descriptor mode (code task, no GPU — needed
+#     before the Phase-4 FRONTIER-1 launch, §12.6). Add a mode named
+#     `exotic_frontier` to the QD descriptor module + the CLI choices list:
+#     axis 1 = evolving f_geo, axis 2 = log10 of the exotic-energy integral
+#     (both already in each eval's diagnostics; the atlas scorer reads the
+#     same integral). Own extension, default-off, unit test alongside the
+#     existing descriptor tests; smoke it with QD_TARGET_EVALS=2 before the
+#     real launch.
 
 # 3. Chain Phase 1 to fire when the bondi ladders finish (detached):
 setsid nohup bash -c 'until ! pgrep -f "bondi_sg_pair" >/dev/null; do sleep 600; done; \
@@ -422,14 +495,22 @@ setsid nohup /usr/bin/env \
 ```
 
 DEPTH-A, the clean-branch fallback exhibit, identically configured (the
-branch-B conditioning question then answers itself inside Phase 2):
+branch-B conditioning question then answers itself inside Phase 2). Eval
+185's directory was pruned from both the live tree and the pack — only its
+genome ships (`genomes/best_clean_branch_eval185_familyA.json`, which
+carries an `overrides` block, exactly what the replayer reads from
+`metadata.json`) — so materialize a stub eval dir first:
 
 ```bash
+mkdir -p ../runs/neuralspacetime/hq/sources/depth_eval185_stub
+cp ../results/qball-trajectory-cmaes-refinement/genomes/best_clean_branch_eval185_familyA.json \
+   ../runs/neuralspacetime/hq/sources/depth_eval185_stub/metadata.json
+
 setsid nohup /usr/bin/env \
   GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25 \
   GRTECLYN_METRIC_STACK_N_SPACE=257 \
   .venv/bin/python scripts/campaigns/hq/replay_eval.py \
-  ../results/qball-trajectory-cmaes-refinement/run/eval_000185 \
+  ../runs/neuralspacetime/hq/sources/depth_eval185_stub \
   --name depth185_hq_L128_N256_t64 --runs-dir ../runs/neuralspacetime/hq \
   --gpu 2 --n-full 256 --l-full 128 --max-level 3 --regrid-threshold 0.02 \
   --stop-time 64 --plot-interval 72 \
@@ -475,6 +556,28 @@ MANIFEST=scripts/campaigns/promote/fgeo_max_cmaes_v1/manifest_freefall.json \
 `DRY_RUN=1` any cell first; launch logs land in the campaign's
 `VALIDATION_LAUNCH_LOG_DIR`.
 
+Depth mini-ladder (result 2's error bar) — same pattern as the §12.4
+DEPTH-X command, only the grid changes; slot each onto whichever GPU frees
+first. DEPTH-RM is the Phase-2 run, reused as the middle rung:
+
+```bash
+for CELL in "depth195_hq_L128_N192_t64 192 2" "depth195_hq_L128_N288_t64 288 3"; do
+  set -- $CELL   # $1 = name, $2 = N (288 → whatever the §12.4 probe passed), $3 = GPU
+  setsid nohup /usr/bin/env \
+    GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25 \
+    GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1 \
+    .venv/bin/python scripts/campaigns/hq/replay_eval.py \
+    ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+    --name "$1" --runs-dir ../runs/neuralspacetime/hq \
+    --gpu "$3" --n-full "$2" --l-full 128 --max-level 3 --regrid-threshold 0.02 \
+    --stop-time 64 --plot-interval 72 \
+    --objective-mode f_geo_depth --evolving-geodesic \
+    --grtresna-ranks 1 --grtresna-iterations 50 --grtresna-timeout 7200 \
+    --consumer-radii 12 18 24 \
+    > "../runs/neuralspacetime/hq/$1.launch.log" 2>&1 < /dev/null & disown
+done
+```
+
 ### 12.6 Phase 4 — canonical-only control
 
 `PIN_DIMS` **replaces** the launcher default, so the physics pins must be
@@ -500,6 +603,33 @@ they decode as the *same choreographies with the phantom sector removed* —
 the strongest possible matched control. **Verify on the first completed
 evals** that `params.txt` carries `recipe_scalar_field_signs = 1 1 1 1 1`
 and the exotic integral is 0; abort and fix the pins if not.
+
+**FRONTIER-1 — efficiency-frontier search** (fires after the control;
+requires the `exotic_frontier` descriptor mode from §12.2 item 2b). Same
+gated objective, new descriptor axes; the seed list drops both lineages'
+champions onto the frontier's known corners:
+
+```bash
+cd grteclyn-wrapper
+setsid nohup /usr/bin/env \
+  QD_NAME=qball_traj_fgeo_frontier_v1 \
+  OBJECTIVE_MODE=f_geo_max \
+  DESCRIPTOR_MODE=exotic_frontier \
+  QD_TARGET_EVALS=200 \
+  SEED_EVAL_DIRS="$(ls -d ../runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1/eval_* 2>/dev/null | head -1) \
+../runs/neuralspacetime/search/map_elites/qball_traj_fgeo_v1/eval_000322 \
+../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+../runs/neuralspacetime/hq/sources/depth_eval185_stub" \
+  GPU_IDS="0 1 2 3" RANKS=1 \
+  bash scripts/campaigns/qball_trajectory/run_fgeo.sh \
+  > ../runs/neuralspacetime/search/map_elites/qball_traj_fgeo_frontier_v1_launch.log 2>&1 < /dev/null & disown
+```
+
+Setting `SEED_EVAL_DIRS` explicitly replaces `run_fgeo.sh`'s pump_v2
+default — intended: four champion seeds anchor the corners and MAP-Elites
+fills the frontier between them. The archive plot (f_geo vs log exotic
+budget) drops straight into the discussion section next to the
+quantum-inequality bound.
 
 
 ### 12.7 Phase 5 — dressed-star pilot NM-1
