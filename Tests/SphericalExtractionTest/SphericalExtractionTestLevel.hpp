@@ -64,8 +64,8 @@ class SphericalExtractionTestLevel : public GRAMRLevel
                 const auto Y_lm =
                     SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
 
-                array(i, j, k, c_phi) = Y_lm.Real;
-                array(i, j, k, c_Pi)  = Y_lm.Im;
+                array(i, j, k, c_phi_Re) = Y_lm.Real;
+                array(i, j, k, c_phi_Im) = Y_lm.Im;
             });
 
         amrex::Gpu::streamSynchronize();

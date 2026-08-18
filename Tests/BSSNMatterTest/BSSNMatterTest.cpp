@@ -67,6 +67,7 @@ void run_bssn_matter_test()
 
         amrex::MultiFab in_mf{box_array, distribution_mapping, NUM_VARS,
                               num_ghosts, mf_info};
+        in_mf.setVal(0.0); // initialise to zero
 
         const auto &in_array = in_mf.arrays();
 
@@ -121,10 +122,11 @@ void run_bssn_matter_test()
         FourthOrderDerivatives deriv{dx};
 
         // Set up the constraints
-        constexpr int dcomp = NUM_VARS;
+        constexpr int num_bssn_matter_vars = c_Pi + 1;
+        constexpr int dcomp                = num_bssn_matter_vars;
 
         int num_comp_constraints = 1 + AMREX_SPACEDIM; // ham + moms
-        int num_comp             = NUM_VARS + num_comp_constraints;
+        int num_comp             = num_bssn_matter_vars + num_comp_constraints;
 
         amrex::MultiFab out_mf{box_array, distribution_mapping, num_comp, 0,
                                mf_info};
@@ -187,8 +189,11 @@ void run_bssn_matter_test()
 
 #if AMREX_USE_HDF5
 
-        amrex::Vector<std::string> var_names = ArrayTools::concatenate(
-            StateVariables::names, Constraints::var_names);
+        amrex::Vector<std::string> bssn_matter_names(
+            StateVariables::names.begin(),
+            StateVariables::names.begin() + num_bssn_matter_vars);
+        amrex::Vector<std::string> var_names =
+            ArrayTools::concatenate(bssn_matter_names, Constraints::var_names);
 
         std::string grteclyn_hdf5_file = "BSSNMatterTest/BSSNMatterTest";
 
