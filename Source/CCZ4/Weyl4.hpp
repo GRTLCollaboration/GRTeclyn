@@ -75,7 +75,7 @@ class Weyl4
     {
         GRParmParse pp;
         pp.get("extraction_center", m_center);
-        pp.get("formulation", m_formulation);
+        pp.get("ccz4.formulation", m_formulation);
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
 

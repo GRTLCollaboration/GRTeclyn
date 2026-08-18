@@ -27,7 +27,7 @@ class SphericalGeometry
     SphericalGeometry()
     {
         GRParmParse pp;
-        pp.get("grteclyn.center", m_center);
+        pp.get("geometry.center", m_center);
     }
 
     //! returns the grid spacing in theta

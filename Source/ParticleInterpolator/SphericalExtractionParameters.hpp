@@ -66,8 +66,9 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         extraction_pp.queryAdd("num_extraction_radii", num_extraction_radii);
         if (num_extraction_radii <= 0)
         {
-            extraction_pp.error("num_extraction_radii",
-                     "must be bigger than 0 when activate_extraction = 1");
+            extraction_pp.error(
+                "num_extraction_radii",
+                "must be bigger than 0 when activate_extraction = 1");
         }
 
         // Check for multiple extraction radii, otherwise load single
@@ -104,24 +105,25 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         if (num_points_theta % 2 == 0)
         {
             num_points_theta += 1;
-            extraction_pp.warning("num_points_theta",
-                       "incompatible with Simpson's rule so increased by 1");
+            extraction_pp.warning(
+                "num_points_theta",
+                "incompatible with Simpson's rule so increased by 1");
             extraction_pp.add("num_points_theta", num_points_theta);
         }
 
         std::array<double, AMREX_SPACEDIM> grid_center{};
-        pp.get("grteclyn.center", grid_center);
+        pp.get("geometry.center", grid_center);
         std::array<double, AMREX_SPACEDIM> extraction_center = grid_center;
         pp.queryAdd("extraction_center", extraction_center);
 
         // Used to check params
 
-        std::array<int, AMREX_SPACEDIM> lo_boundary{};
-        std::array<int, AMREX_SPACEDIM> hi_boundary{};
+        std::array<int, AMREX_SPACEDIM> lo_condition{};
+        std::array<int, AMREX_SPACEDIM> hi_condition{};
         std::array<double, AMREX_SPACEDIM> prob_extent{};
 
-        pp.get("boundary.lo_boundary", lo_boundary);
-        pp.get("boundary.hi_boundary", hi_boundary);
+        pp.get("boundary.lo_condition", lo_condition);
+        pp.get("boundary.hi_condition", hi_condition);
         pp.get("geometry.prob_extent", prob_extent);
 
         std::array<double, AMREX_SPACEDIM> reflective_domain_lo{};
@@ -129,12 +131,12 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         FOR (idir)
         {
             reflective_domain_lo[idir] =
-                ((lo_boundary[idir] == BoundaryConditions::REFLECTIVE_BC)
+                ((lo_condition[idir] == BoundaryConditions::REFLECTIVE_BC)
                      ? -1.0
                      : 0.0) *
                 prob_extent[idir];
             reflective_domain_hi[idir] =
-                ((hi_boundary[idir] == BoundaryConditions::REFLECTIVE_BC)
+                ((hi_condition[idir] == BoundaryConditions::REFLECTIVE_BC)
                      ? 2.0
                      : 1.0) *
                 prob_extent[idir];
@@ -158,7 +160,8 @@ struct spherical_extraction_params_t : surface_extraction_params_t
                 {
                     if (extraction_radii[iradius] < 0.0)
                     {
-                        extraction_pp.error("extraction_radii", "must all be >= 0.0");
+                        extraction_pp.error("extraction_radii",
+                                            "must all be >= 0.0");
                     }
                 }
                 if (extraction_center[idir] - extraction_radii[iradius] <
@@ -212,8 +215,8 @@ struct spherical_extraction_params_t : surface_extraction_params_t
             int m      = mode.second;
             if ((l < 2) || (std::abs(m) > l))
             {
-                extraction_pp.warning("modes",
-                           "l must be >= 2 and m must satisfy -l <= m <= l");
+                extraction_pp.warning(
+                    "modes", "l must be >= 2 and m must satisfy -l <= m <= l");
             }
         }
 

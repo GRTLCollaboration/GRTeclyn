@@ -93,7 +93,7 @@ amr.max_level = 9 # There are (max_level+1) grids, so min is zero
 
 # -1 disables regridding
 amr.regrid_int = -1   -1   -1   2   4   8   16   32   64
-grteclyn.regrid_threshold = 0.014
+tagging.threshold = 0.014
 
 # Max and min box sizes
 amr.max_grid_size = 64
@@ -102,8 +102,7 @@ amr.blocking_factor = 16
 # Tag buffer size
 amr.n_error_buf = 3 3 3
 #amr.n_proper = 1
-grteclyn.num_ghosts = 4
-# grteclyn.center = 8 8 8 # defaults to center of the grid
+# geometry.center = 8 8 8 # defaults to center of the grid
 
 #################################################
 # Boundary Conditions parameters
@@ -113,8 +112,8 @@ geometry.is_periodic = 0 0 0
 # if not periodic, then specify the boundary type
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
-boundary.hi_boundary = 1 1 1
-boundary.lo_boundary = 1 1 2
+boundary.hi_condition = 1 1 1
+boundary.lo_condition = 1 1 2
 
 # if sommerfeld boundaries selected, must select
 # non zero asymptotic values
@@ -129,14 +128,14 @@ boundary.nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 # Evolution parameters
 
 # dt will be dx*dt_multiplier on each grid level
-grteclyn.dt_multiplier = 0.25
-grteclyn.stop_time = 2500.0
-#grteclyn.max_steps = 1
+evolution.dt_multiplier = 0.25
+evolution.stop_time = 2500.0
+#evolution.max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
-grteclyn.max_spatial_derivative_order = 6 # only 4 currently implemented
+evolution.spatial_derivative_order = 6 # only 4 currently implemented
 
-grteclyn.nan_check = 1
+evolution.nan_check = 1
 
 # Lapse evolution
 gauge.lapse_advec_coeff = 1.0
@@ -149,17 +148,17 @@ gauge.shift_Gamma_coeff = 0.75
 gauge.eta = 1.0 # eta of gamma driver
 
 # CCZ4 parameters
-formulation = 0 # 1 for BSSN, 0 for CCZ4
+ccz4.formulation = 0 # 1 for BSSN, 0 for CCZ4
 ccz4.kappa1 = 0.1
 ccz4.kappa2 = 0.0
 ccz4.kappa3 = 1.0
 ccz4.covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
 
 # coefficient for KO numerical dissipation
-grteclyn.sigma = 0.5
+evolution.sigma = 0.5
 
-# min_chi = 1.e-4
-# min_lapse = 1.e-4
+# ccz4.min_chi = 1.e-4
+# ccz4.min_lapse = 1.e-4
 
 #################################################
 # Extraction parameters

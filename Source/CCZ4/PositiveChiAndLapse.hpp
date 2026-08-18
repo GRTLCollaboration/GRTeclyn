@@ -23,8 +23,8 @@ class PositiveChiAndLapse
     PositiveChiAndLapse()
     {
         GRParmParse pp;
-        pp.get("min_chi", m_min_chi);
-        pp.get("min_lapse", m_min_lapse);
+        pp.get("ccz4.min_chi", m_min_chi);
+        pp.get("ccz4.min_lapse", m_min_lapse);
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)

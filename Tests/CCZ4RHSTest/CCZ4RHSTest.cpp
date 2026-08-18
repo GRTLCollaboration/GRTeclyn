@@ -74,8 +74,8 @@ void run_ccz4_rhs_test()
         pp.add("gauge.shift_advec_coeff", 0.0);
         pp.add("gauge.eta", 1.82);
 
-        pp.add("grteclyn.sigma", 3.0);
-        pp.add("formulation", formulation);
+        pp.add("evolution.sigma", 3.0);
+        pp.add("ccz4.formulation", formulation);
 
         Old::CCZ4_params_t<Old::MovingPunctureGauge::params_t> old_ccz4_params;
         old_ccz4_params.kappa1            = 0.1;

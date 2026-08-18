@@ -83,7 +83,7 @@ void run_weyl4_test()
         std::array<double, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
         int formulation = CCZ4RHS<>::USE_CCZ4;
         pp.queryAdd("extraction_center", center);
-        pp.queryAdd("formulation", formulation);
+        pp.queryAdd("ccz4.formulation", formulation);
 
         constexpr int num_weyl4_comps = 2;
         constexpr int num_out_ghosts  = 0;

@@ -30,8 +30,8 @@ void ParticleInterpolator<num_components>::setup(GRAMR *gramr_ptr)
     AMREX_ASSERT(gramr_ptr != nullptr);
     m_gramr_ptr = gramr_ptr;
     m_bc_params.fill_params();
-    GRParmParse pp;
-    pp.get("amrex.verbose", m_verbosity);
+    GRParmParse particle_interpolator_pp("particle_interpolator");
+    particle_interpolator_pp.get("verbosity", m_verbosity);
 
     this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gramr_ptr->GetParGDB()));
     m_initialized = true;
@@ -61,10 +61,10 @@ void ParticleInterpolator<num_components>::setup(GRAMR *gramr_ptr)
     // set the reflective flags from BC params
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
-        m_lo_boundary_reflective[dir] =
-            (m_bc_params.lo_boundary[dir] == BoundaryConditions::REFLECTIVE_BC);
-        m_hi_boundary_reflective[dir] =
-            (m_bc_params.hi_boundary[dir] == BoundaryConditions::REFLECTIVE_BC);
+        m_lo_boundary_reflective[dir] = (m_bc_params.lo_condition[dir] ==
+                                         BoundaryConditions::REFLECTIVE_BC);
+        m_hi_boundary_reflective[dir] = (m_bc_params.hi_condition[dir] ==
+                                         BoundaryConditions::REFLECTIVE_BC);
     }
 
     // get resolution on level 0

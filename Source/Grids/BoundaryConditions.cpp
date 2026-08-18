@@ -26,7 +26,7 @@ bool BoundaryConditions::params_t::boundary_exists(const int BC) const
     FOR (idir)
     {
         if (!is_periodic[idir] &&
-            (hi_boundary[idir] == BC || lo_boundary[idir] == BC))
+            (hi_condition[idir] == BC || lo_condition[idir] == BC))
         {
             return true;
         }
@@ -50,8 +50,8 @@ void BoundaryConditions::params_t::fill_params()
         is_periodic[idir] = static_cast<bool>(is_periodic_int[idir]);
     }
 
-    boundary_pp.get("hi_boundary", hi_boundary);
-    boundary_pp.get("lo_boundary", lo_boundary);
+    boundary_pp.get("hi_condition", hi_condition);
+    boundary_pp.get("lo_condition", lo_condition);
 
     if (boundary_exists(SOMMERFELD_BC))
     {
@@ -71,8 +71,8 @@ void BoundaryConditions::params_t::fill_params()
     if (boundary_exists(MIXED_BC))
     {
         std::vector<int> extrapolating_vars;
-        StateVariablesParmParse::load_vars_to_vector(boundary_pp, "extrapolating_vars",
-                                                     extrapolating_vars);
+        StateVariablesParmParse::load_vars_to_vector(
+            boundary_pp, "extrapolating_vars", extrapolating_vars);
         for (int icomp = 0; icomp < NUM_VARS; icomp++)
         {
             bool is_extrapolating = false;
@@ -104,13 +104,13 @@ void BoundaryConditions::params_t::check_params()
     GRParmParse pp;
 
     // set defaults
-    std::array<int, AMREX_SPACEDIM> hi_boundary{};
-    hi_boundary.fill(STATIC_BC);
-    boundary_pp.queryAdd("hi_boundary", hi_boundary);
+    std::array<int, AMREX_SPACEDIM> hi_condition{};
+    hi_condition.fill(STATIC_BC);
+    boundary_pp.queryAdd("hi_condition", hi_condition);
 
-    std::array<int, AMREX_SPACEDIM> lo_boundary{};
-    lo_boundary.fill(STATIC_BC);
-    boundary_pp.queryAdd("lo_boundary", lo_boundary);
+    std::array<int, AMREX_SPACEDIM> lo_condition{};
+    lo_condition.fill(STATIC_BC);
+    boundary_pp.queryAdd("lo_condition", lo_condition);
 
     bool nonperiodic_boundaries_exist{false};
     std::array<int, AMREX_SPACEDIM> is_periodic_int{};
@@ -120,8 +120,8 @@ void BoundaryConditions::params_t::check_params()
         if (is_periodic_int[idir] == 0)
         {
             nonperiodic_boundaries_exist = true;
-            if (hi_boundary[idir] == EXTRAPOLATING_BC ||
-                lo_boundary[idir] == EXTRAPOLATING_BC)
+            if (hi_condition[idir] == EXTRAPOLATING_BC ||
+                lo_condition[idir] == EXTRAPOLATING_BC)
             {
                 int extrapolation_order = 1;
                 pp.queryAdd("extrapolation_order", extrapolation_order);
@@ -145,10 +145,10 @@ void BoundaryConditions::define(const amrex::Geometry &a_geom)
 {
     m_params.fill_params();
     GRParmParse pp;
-    pp.get("grteclyn.num_ghosts", m_num_ghosts);
+    pp.get("evolution.num_ghosts", m_num_ghosts);
 
     std::array<double, AMREX_SPACEDIM> center{};
-    pp.get("grteclyn.center", center);
+    pp.get("geometry.center", center);
 
     FOR (i)
     {
@@ -242,8 +242,8 @@ int BoundaryConditions::get_state_var_parity(int a_comp, int a_dir)
 /// Get the boundary condition for given face
 int BoundaryConditions::get_boundary_condition(amrex::Orientation face) const
 {
-    return face.isLow() ? m_params.lo_boundary[face.coordDir()]
-                        : m_params.hi_boundary[face.coordDir()];
+    return face.isLow() ? m_params.lo_condition[face.coordDir()]
+                        : m_params.hi_condition[face.coordDir()];
 }
 
 void BoundaryConditions::apply_sommerfeld_boundaries(

@@ -40,8 +40,8 @@ class BoundaryConditions
     /// Structure containing the boundary condition params
     struct params_t
     {
-        std::array<int, AMREX_SPACEDIM> hi_boundary{};
-        std::array<int, AMREX_SPACEDIM> lo_boundary{};
+        std::array<int, AMREX_SPACEDIM> hi_condition{};
+        std::array<int, AMREX_SPACEDIM> lo_condition{};
         std::array<bool, AMREX_SPACEDIM> is_periodic{};
         /*
         bool nonperiodic_boundaries_exist{false};

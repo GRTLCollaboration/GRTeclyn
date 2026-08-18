@@ -25,13 +25,14 @@ class SimulationParameters
         BaseParameterChecker::check_params();
 
         GRParmParse pp;
+        GRParmParse test_pp("test");
         int formulation = CCZ4RHS<>::USE_CCZ4; // Whether to use BSSN or CCZ4
-        pp.queryAdd("formulation", formulation);
+        pp.queryAdd("ccz4.formulation", formulation);
 
         if (formulation != CCZ4RHS<>::USE_CCZ4 &&
             formulation != CCZ4RHS<>::USE_BSSN)
         {
-            pp.error("formulation", "must be 0 or 1");
+            pp.error("ccz4.formulation", "must be 0 or 1");
         }
 
         if (formulation == CCZ4RHS<>::USE_CCZ4)
@@ -62,14 +63,11 @@ class SimulationParameters
         amrex::Real fake_bh1_mass = 0.5;
         amrex::Real fake_bh2_mass = 0.5;
 
-        pp.queryAdd("fake_bh1_mass", fake_bh1_mass);
-        pp.queryAdd("fake_bh2_mass", fake_bh2_mass);
+        test_pp.queryAdd("fake_bh1_mass", fake_bh1_mass);
+        test_pp.queryAdd("fake_bh2_mass", fake_bh2_mass);
 
         int num_points = 2;
-        pp.queryAdd("num_points", num_points);
-
-        bool verbosity = true;
-        pp.queryAdd("verbosity", verbosity);
+        test_pp.queryAdd("num_points", num_points);
     }
 };
 

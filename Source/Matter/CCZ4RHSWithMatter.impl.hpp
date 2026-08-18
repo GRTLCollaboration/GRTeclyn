@@ -18,7 +18,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
       m_G_Newton(a_G_Newton)
 {
     GRParmParse pp;
-    pp.get("formulation", m_formulation);
+    pp.get("ccz4.formulation", m_formulation);
 }
 
 template <class matter_t, class gauge_t, class deriv_t>

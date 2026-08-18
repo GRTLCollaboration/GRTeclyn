@@ -105,8 +105,8 @@ void run_bssn_matter_test()
         pp.add("gauge.shift_advec_coeff", 0.0);
         pp.add("gauge.eta", 1.0);
 
-        pp.add("grteclyn.sigma", 0.1);
-        pp.add("formulation", formulation);
+        pp.add("evolution.sigma", 0.1);
+        pp.add("ccz4.formulation", formulation);
 
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;

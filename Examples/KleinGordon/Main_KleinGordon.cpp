@@ -25,9 +25,9 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     pp.get("klein_gordon.model", model);
 
     double stop_time{};
-    pp.get("grteclyn.stop_time", stop_time);
+    pp.get("evolution.stop_time", stop_time);
     int max_steps{};
-    pp.get("grteclyn.max_steps", max_steps);
+    pp.get("evolution.max_steps", max_steps);
 
     amrex::Print() << "Now running " << model << " simulation"
                    << "\n";

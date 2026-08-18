@@ -177,8 +177,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
     // Calculate CCZ4 right hand side
     int max_spatial_derivative_order{};
-    pp.get("grteclyn.max_spatial_derivative_order",
-           max_spatial_derivative_order);
+    pp.get("evolution.spatial_derivative_order", max_spatial_derivative_order);
 
     if (max_spatial_derivative_order == 4)
     {
@@ -203,7 +202,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
 
         int my_formulation{0};
         int my_covariantZ4{1};
-        pp.query("formulation", my_formulation);
+        pp.query("ccz4.formulation", my_formulation);
         pp.query("covariantZ4", my_covariantZ4);
 
         // amrex::AnyCTO allows for runtime options to be evaluated at

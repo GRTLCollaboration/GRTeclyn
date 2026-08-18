@@ -62,13 +62,13 @@ void run_spherical_extraction_test()
         GRAMR gr_amr(&surface_extraction_test_level_fact);
 
         double stop_time{};
-        pp.get("grteclyn.stop_time", stop_time);
+        pp.get("evolution.stop_time", stop_time);
         gr_amr.init(0., stop_time);
 
         double coarsest_dx;
         double dt_multiplier;
 
-        pp.get("grteclyn.dt_multiplier", dt_multiplier);
+        pp.get("evolution.dt_multiplier", dt_multiplier);
         pp.get("grteclyn.coarsest_dx", coarsest_dx);
         bool broadcast_integral = true;
 

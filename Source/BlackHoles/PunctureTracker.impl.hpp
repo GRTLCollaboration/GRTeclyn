@@ -63,7 +63,7 @@ void puncture_tracker_params_t::check_params()
     puncture_tracking_pp.queryAdd("writeout_level", writeout_level);
 
     std::array<double, AMREX_SPACEDIM> center{};
-    pp.get("grteclyn.center", center);
+    pp.get("geometry.center", center);
 
     std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_coords{
         center[0], center[1] - 1.0, center[2],

@@ -80,9 +80,9 @@ void PunctureTrackerLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Real fake_bh1_mass;
     amrex::Real fake_bh2_mass;
 
-    GRParmParse pp;
-    pp.get("fake_bh1_mass", fake_bh1_mass);
-    pp.get("fake_bh2_mass", fake_bh2_mass);
+    GRParmParse test_pp("test");
+    test_pp.get("fake_bh1_mass", fake_bh1_mass);
+    test_pp.get("fake_bh2_mass", fake_bh2_mass);
 
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
@@ -133,9 +133,9 @@ void PunctureTrackerLevel::check_puncture_tagging()
     amrex::Real fake_bh1_mass;
     amrex::Real fake_bh2_mass;
 
-    GRParmParse pp;
-    pp.get("fake_bh1_mass", fake_bh1_mass);
-    pp.get("fake_bh2_mass", fake_bh2_mass);
+    GRParmParse test_pp("test");
+    test_pp.get("fake_bh1_mass", fake_bh1_mass);
+    test_pp.get("fake_bh2_mass", fake_bh2_mass);
 
     std::array<amrex::Real, num_punctures> fake_masses{fake_bh1_mass,
                                                        fake_bh2_mass};

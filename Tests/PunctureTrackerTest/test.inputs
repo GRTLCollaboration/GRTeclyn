@@ -30,16 +30,16 @@ geometry.is_periodic = 0 0 0
 # if not periodic, then specify the boundary type
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
-boundary.hi_boundary = 0 0 0
-boundary.lo_boundary = 0 0 2
+boundary.hi_condition = 0 0 0
+boundary.lo_condition = 0 0 2
 
 #################################################
 # Evolution parameters
 
 # dt will be dx*dt_multiplier on each grid level
-grteclyn.dt_multiplier = 0.25
-# grteclyn.stop_time = 1.0
-grteclyn.max_steps = 2
+evolution.dt_multiplier = 0.25
+# evolution.stop_time = 1.0
+evolution.max_steps = 2
 
 #################################################
 # Puncture Tracking parameters

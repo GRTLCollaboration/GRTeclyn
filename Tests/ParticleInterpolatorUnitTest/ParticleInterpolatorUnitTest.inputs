@@ -16,8 +16,6 @@ geometry.prob_extent = 16.0 16.0 8.0
 
 amr.max_level = 1
 amr.regrid_int = 1
-grteclyn.num_ghosts = 3
-
 #################################################
 # Boundary Conditions parameters
 #Periodic directions - 0 = false, 1 = true
@@ -25,15 +23,16 @@ geometry.is_periodic = 0 0 0
 # if not periodic, then specify the boundary type
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
-boundary.hi_boundary = 1 1 1
-boundary.lo_boundary = 1 1 2
+boundary.hi_condition = 1 1 1
+boundary.lo_condition = 1 1 2
 
 #################################################
 # Evolution parameters
 
-grteclyn.max_steps = 1
+evolution.max_steps = 1
 
 #################################################
 # Extraction parameters
 
-num_points = 30
+test.num_points = 30
+particle_interpolator.verbosity = true

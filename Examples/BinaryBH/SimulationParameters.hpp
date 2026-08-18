@@ -45,12 +45,12 @@ class SimulationParameters
     {
         GRParmParse pp;
         int formulation = CCZ4RHS<>::USE_CCZ4; // Whether to use BSSN or CCZ4
-        pp.queryAdd("formulation", formulation);
+        pp.queryAdd("ccz4.formulation", formulation);
 
         if (formulation != CCZ4RHS<>::USE_CCZ4 &&
             formulation != CCZ4RHS<>::USE_BSSN)
         {
-            pp.error("formulation", "must be 0 or 1");
+            pp.error("ccz4.formulation", "must be 0 or 1");
         }
 
         if (formulation == CCZ4RHS<>::USE_CCZ4)

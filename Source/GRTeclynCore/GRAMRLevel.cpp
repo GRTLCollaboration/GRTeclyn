@@ -11,7 +11,7 @@ void GRAMRLevel::stateVariableSetUp()
 {
     GRParmParse pp;
     int nghost;
-    pp.get("grteclyn.num_ghosts", nghost);
+    pp.get("evolution.num_ghosts", nghost);
     desc_lst.addDescriptor(state_index, amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
                            &amrex::cell_quartic_interp);
@@ -85,7 +85,7 @@ GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
     : amrex::AmrLevel(papa, lev, geom, box_array, distribution_mapping, time)
 {
     GRParmParse pp;
-    pp.get("grteclyn.nan_check", nan_check);
+    pp.get("evolution.nan_check", nan_check);
     m_boundaries.define(geom);
 }
 
@@ -114,7 +114,7 @@ void GRAMRLevel::computeInitialDt(
     {
         GRParmParse pp;
         double dt_multiplier{};
-        pp.get("grteclyn.dt_multiplier", dt_multiplier);
+        pp.get("evolution.dt_multiplier", dt_multiplier);
         for (int i = 0; i <= finest_level; ++i)
         {
             dt_level[i] = dt_multiplier * parent->Geom(i).CellSize(0);
@@ -136,7 +136,7 @@ void GRAMRLevel::computeNewDt(
     {
         GRParmParse pp;
         double dt_multiplier;
-        pp.get("grteclyn.dt_multiplier", dt_multiplier);
+        pp.get("evolution.dt_multiplier", dt_multiplier);
 
         for (int i = 0; i <= finest_level; ++i)
         {
@@ -284,7 +284,7 @@ void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
     // It is up to the derived class to use regrid_threshold in tag_cells()
     amrex::Vector<double> regrid_thresholds;
     GRParmParse pp;
-    pp.getarr("grteclyn.regrid_thresholds", regrid_thresholds);
+    pp.getarr("tagging.thresholds", regrid_thresholds);
     amrex::Real regrid_threshold = regrid_thresholds[Level()];
     tag_cells(a_tag_box_array, regrid_threshold);
 }

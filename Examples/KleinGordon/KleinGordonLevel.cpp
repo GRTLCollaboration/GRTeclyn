@@ -74,7 +74,7 @@ void KleinGordonLevel::initData()
     amrex::Real initial_time{0.0};
 
     amrex::ParmParse pp;
-    pp.get("grteclyn.center", center);
+    pp.get("geometry.center", center);
     pp.get("klein_gordon.model", model);
     pp.get("klein_gordon.initial_time", initial_time);
 
@@ -174,7 +174,7 @@ void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
     const amrex::Real box_length = Geom().ProbLength(0);
     std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
     GRParmParse pp;
-    pp.query("grteclyn.center", center);
+    pp.query("geometry.center", center);
 
     FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
                                           center};

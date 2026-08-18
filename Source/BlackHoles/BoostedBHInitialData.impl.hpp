@@ -36,7 +36,7 @@ void BoostedBHInitialData::params_t::check_params(int id)
 
     GRParmParse pp;
     std::array<double, AMREX_SPACEDIM> center{};
-    pp.load("grteclyn.center", center);
+    pp.load("geometry.center", center);
     std::array<double, AMREX_SPACEDIM> prob_extent{};
     pp.get("geometry.prob_extent", prob_extent);
 

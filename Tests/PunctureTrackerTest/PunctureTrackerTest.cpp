@@ -52,11 +52,11 @@ void run_puncture_tracker_test()
 
         BHAMR<2> bh_amr(&level_factory);
         double stop_time{};
-        pp.get("grteclyn.stop_time", stop_time);
+        pp.get("evolution.stop_time", stop_time);
         bh_amr.init(0., stop_time);
 
         int max_steps{};
-        pp.get("grteclyn.max_steps", max_steps);
+        pp.get("evolution.max_steps", max_steps);
 
         while ((bh_amr.okToContinue() != 0) &&
                (bh_amr.levelSteps(0) < max_steps || max_steps < 0) &&

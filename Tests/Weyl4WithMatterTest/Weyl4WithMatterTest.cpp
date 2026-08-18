@@ -112,7 +112,7 @@ void run_matter_weyl4_test()
         GRParmParse pp;
         int formulation = CCZ4RHS<>::USE_BSSN;
         pp.queryAdd("extraction_center", center);
-        pp.queryAdd("formulation", formulation);
+        pp.queryAdd("ccz4.formulation", formulation);
         pp.queryAdd("G_newton", G_Newton);
 
         Weyl4WithMatter<DefaultScalarField>::compute_mf(

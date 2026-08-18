@@ -24,7 +24,7 @@ class KleinGordonRHS
         : m_deriv(a_dx), m_model(a_model)
     {
         GRParmParse pp;
-        pp.get("grteclyn.sigma", m_sigma);
+        pp.get("evolution.sigma", m_sigma);
     };
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void

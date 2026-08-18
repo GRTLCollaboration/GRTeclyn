@@ -33,7 +33,7 @@ class TwoPuncturesInitialData
     TwoPuncturesInitialData(const double a_dx) : m_dx(a_dx)
     {
         GRParmParse pp;
-        pp.get("grteclyn.center", m_center);
+        pp.get("geometry.center", m_center);
         read_parameters();
     }
 
@@ -232,7 +232,8 @@ class TwoPuncturesInitialData
 
         // default to Taylor expansion interpolation as it is much faster
         bool use_spectral_interpolation = false;
-        tp_pp.queryAdd("use_spectral_interpolation", use_spectral_interpolation);
+        tp_pp.queryAdd("use_spectral_interpolation",
+                       use_spectral_interpolation);
         s_two_punctures.grid_setup_method =
             (use_spectral_interpolation) ? "evaluation" : "Taylor expansion";
 
@@ -251,7 +252,7 @@ class TwoPuncturesInitialData
         {
             s_two_punctures.initial_lapse_psi_exponent = -2.0;
             tp_pp.queryAdd("initial_lapse_psi_exponent",
-                        s_two_punctures.initial_lapse_psi_exponent);
+                           s_two_punctures.initial_lapse_psi_exponent);
         }
 
         // spectral grid parameters
@@ -292,10 +293,10 @@ class TwoPuncturesInitialData
         // debug output
         s_two_punctures.do_residuum_debug_output = false;
         tp_pp.queryAdd("do_residuum_debug_output",
-                    s_two_punctures.do_residuum_debug_output);
+                       s_two_punctures.do_residuum_debug_output);
         s_two_punctures.do_initial_debug_output = false;
         tp_pp.queryAdd("do_initial_debug_output",
-                    s_two_punctures.do_initial_debug_output);
+                       s_two_punctures.do_initial_debug_output);
 
         // Irrelevant parameters set to default value
         s_two_punctures.keep_u_around                   = false;
@@ -346,7 +347,7 @@ class TwoPuncturesInitialData
 
         int offset_dir = (!tp_params.swap_xz) ? 0 : 2;
         std::array<double, AMREX_SPACEDIM> center{};
-        pp.get("grteclyn.center", center);
+        pp.get("geometry.center", center);
         warn_parameter("TP_offset_minus", tp_offset_minus,
                        tp_offset_minus < (ivN[offset_dir] + 1) * coarsest_dx -
                                              center[offset_dir],
