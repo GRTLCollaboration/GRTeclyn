@@ -60,8 +60,6 @@ template <int num_components> void AHFinder<num_components>::find()
 
 
     this->set_particle_positions(S.h);
-    h_derivs(S.h);
-    h_hessian(S.h);
     compute_theta(S.h);
 
     double theta_old = inf_norm(m_theta_vals);
@@ -103,8 +101,6 @@ template <int num_components> void AHFinder<num_components>::find()
 
         // Evaluate Theta at the new state
         this->set_particle_positions(S.h);
-        h_derivs(S.h);
-        h_hessian(S.h);
         compute_theta(S.h);
 
         double theta_new = inf_norm(m_theta_vals);
@@ -272,8 +268,6 @@ void AHFinder<num_components>::compute_rhs(AHState &rhs, AHState &state,
     this->set_particle_positions(state.h);
 
     // Calculate Theta
-    h_derivs(state.h);
-    h_hessian(state.h);
     compute_theta(state.h);
 
     //   h_dot = v - eta * h
@@ -516,6 +510,10 @@ void AHFinder<num_components>::setup_metric_query()
 template <int num_components>
 void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
 {
+
+    h_derivs(h);
+    h_hessian(h);
+    
     this->m_query = &m_metric_query_state;
     this->interp(m_metric_query_state);
     this->m_query = &m_metric_query_deriv;
