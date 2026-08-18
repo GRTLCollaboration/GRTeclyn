@@ -35,6 +35,7 @@ GROUPS = (
     ("runaway pair (pm)", "convA_pm_n"),
     ("equal-mass pair (pm_eqm)", "convA_pm_eqm_n"),
     ("wider pair, separation 12 (pm_sep12)", "convA_pm_sep12_n"),
+    ("widest pair, separation 16 (pm_sep16)", "convA_pm_sep16_n"),
     ("two-positive control (pp)", "convA_pp_n"),
     ("two-phantom control (mm)", "convA_mm_n"),
 )

@@ -177,7 +177,8 @@ What remains is geometry: at separation 8 these stars have rms radius ≈ 5, so
 canonical star's near field, where the effective pull greatly exceeds ADM/r².
 These are extended bodies in contact, not point masses. A constant-gap runaway
 requires point-like separation; at this separation the pair closes to
-near-contact by t ≈ 60 regardless of mass matching.
+near-contact by t ≈ 60 regardless of mass matching. §5.5 tests this
+directly by re-running the cell at separations 12 and 16.
 
 ### 5.4 Caveat: the late-time magnitudes are contaminated
 
@@ -202,10 +203,134 @@ Recommended follow-up: track a core-weighted centroid (e.g. weight by activity²
 or fit the peak) alongside the barycentre, so core motion and halo motion can be
 separated at late times.
 
+### 5.5 Pulling the stars apart removes the departure
+
+The overlap diagnosis above is testable: repeat the cell with the stars further
+apart and the excess over the point-mass prediction should shrink. Three
+separations, identical stars and identical numerics, each compared against its
+**own** point-mass integration so that the reference closes its gap too
+(`analysis/separation_scaling.py`):
+
+| separation | envelopes at t = 0 | ratio t = 20 | t = 30 | t = 40 | t = 50 | gap, t = 0 → 60 |
+|---|---|---|---|---|---|---|
+| 8 | interpenetrating (5.05 + 5.43 vs 8) | 1.48× | **2.14×** | 3.17× | 4.36× | 8 → 1.8 (contact) |
+| 12 | just touching | 1.07× | **1.36×** | 2.00× | 2.66× | 12 → 9.9 |
+| 16 | clear by ≈ one star radius | 1.11× | **1.17×** | 1.48× | 1.60× | 16 → 14.9 |
+
+("ratio" = phantom drift measured in NR ÷ the same drift from a point-mass
+integration of that separation. 1.00× would be a textbook Bondi pair.)
+
+The ratio marches toward 1 as the pair is pulled apart, which is what the
+overlap explanation requires and what a numerical artefact would not do. At
+separation 16 the run is within **17 % of a pure inverse-square point-mass
+runaway** at t = 30. (The t = 20 column is not monotonic between 12 and 16
+because the displacement there is only ≈ 0.05 — at the level of the diagnostic
+floor.) The residual excess still grows with time in every cell: the runaway
+closes the gap, which strengthens the interaction, and extended bodies feel
+that sooner than point masses do.
+
+**This is the strongest single argument that the runaway is gravitational.**
+The close pair is contaminated, but the contamination is identified,
+reproducible, and removable by the one change that should remove it.
+
+Each wider cell was then re-run on the full uniform-grid ladder (cell sizes
+0.50 / 0.33 / 0.25), which the earlier separation series did not have. Drift
+of the pair centre:
+
+| separation | t | N = 128 | N = 192 | N = 256 | spread |
+|---|---|---|---|---|---|
+| 8 | 15 | +0.0953 | +0.0895 | +0.0898 | 6.5 % |
+| 8 | 30 | +0.7759 | +0.7613 | +0.7684 | 1.9 % |
+| 8 | 60 | +6.4365 | +6.4253 | +6.4065 | 0.5 % |
+| 12 | 15 | +0.0215 | +0.0196 | +0.0188 | 14 % |
+| 12 | 30 | +0.1405 | +0.1341 | +0.1318 | 6.6 % |
+| 12 | 60 | +1.7458 | +1.6772 | +1.6419 | 6.3 % |
+| 16 | 15 | +0.0132 | +0.0119 | +0.0111 | 19 % |
+| 16 | 30 | +0.0198 | +0.0172 | +0.0141 | 40 % |
+| 16 | 60 | +0.1981 | +0.1481 | +0.1297 | 53 % |
+
+The sign, the ordering and the time dependence are grid-stable at every
+separation, but the **relative** grid spread widens as the pair is separated,
+simply because the displacement being measured shrinks by a factor ≈ 40 between
+separation 8 and 16 while the diagnostic floor does not — at separation 16 the
+three grids still disagree by 53 % at t = 60, where separation 8 agrees to
+0.5 %. That is the trade-off of this campaign: the geometrically clean
+configuration is the statistically weak one. Separation 12 is the best
+compromise — the envelopes are no longer interpenetrating, the excess over
+point masses is down to 1.36×, and the drift is still ≈ 10× the two-positive
+control's residual.
+
+### 5.6 The two sectors do not stay the same size — and only one is trustworthy
+
+Visible directly in the movies: through the run the phantom lump stays compact
+and bright while the canonical lump fades and spreads. It is real, and it is
+mostly a bookkeeping effect rather than physics.
+
+| `pair_pm_sep12`, N = 256 | t = 0 | t = 30 | t = 60 |
+|---|---|---|---|
+| canonical tracked field | 15.90 | 15.24 | **6.26** |
+| canonical rms radius | 5.05 | 7.12 | 11.64 |
+| phantom tracked field | 21.01 | 23.60 | 25.63 |
+| phantom rms radius | 5.43 | 6.98 | 7.57 |
+
+Gaining tracked field is the *normal* behaviour here — the quantity is a volume
+integral of field activity, not a conserved charge, and it rises in every other
+cell as each star sheds a bath that fills more volume: +24 % for an isolated
+canonical star and +15 % for an isolated phantom by t = 40, +194 % and +459 %
+for the two same-sector controls. Note that the isolated **canonical** star
+grows *more* than the isolated phantom on this measure, and spreads far more
+(rms ×2.66 against ×1.16) — so a rising total is not "the phantom blowing up",
+and the ranking of §6 is unchanged.
+
+The canonical star in a **mixed** pair is the only object in the campaign that
+*loses* field: −12 % by t = 40 and −61 % by t = 60. Two things happen to it at
+once, and the diagnostics separate them:
+
+| `pair_pm_sep12`, N = 256 | t = 0 | t = 20 | t = 40 | t = 60 |
+|---|---|---|---|---|
+| peak field amplitude | 0.0227 | 0.0228 | 0.0234 | **0.0308** |
+| canonical fraction inside r = 4.8 | 0.564 | 0.569 | 0.604 | **0.759** |
+| minimum lapse | 0.984 | 0.948 | 0.822 | **0.352** |
+| minimum χ (well depth) | 0.980 | 0.954 | 0.806 | **0.205** |
+
+- **The core compactifies.** Peak amplitude rises 36 %, three-quarters of the
+  canonical field ends up inside r = 4.8, and the lapse and conformal factor
+  collapse. This star is on its way to the black hole that forms at t ≈ 68 in
+  the double-box cells — the late canonical "shrinking" seen in the movies is
+  mostly this, and it is physics, not a plotting artefact.
+- **The halo is lost.** The confined *fraction* rises while the total falls,
+  which can only mean the material outside r = 4.8 stopped being counted. The
+  canonical sector is the one pushed toward +x, so its shed matter reaches the
+  domain edge first. Losing the leading edge also drags the remaining canonical
+  centroid backwards, which is why the widest cell reports a spurious
+  *negative* canonical drift.
+
+The phantom does the opposite of both: its confined fraction drifts down only
+0.46 → 0.38, it spreads ×1.40 against the canonical's ×2.31, and the
+two-phantom control holds χ ≈ 1.00 for its whole run while the two-canonical
+control drives χ to 0.44.
+
+Three consequences, all already respected above:
+
+- The **phantom** sector carries the quantitative tests (§5.5 and
+  `separation_scaling.py` both use it).
+- §5.1 survives the bias because it is a *ratio of the same diagnostic between
+  two runs*, so a common bias cancels.
+- Late-time canonical magnitudes are upper bounds on core displacement, not
+  measurements — the same conclusion as §5.4, reached independently.
+
 ## 6. The phantom sector is the *stable* one
 
 Counter to the naive expectation that antigravitating matter should fly apart,
 the phantom star was the best-behaved object in the campaign.
+
+"Best-behaved" means three specific things, all in the table below: it keeps
+its size, it does not deepen its own gravity well, and it breathes less. It
+does *not* mean its field integral stays constant — that integral rises for
+every star in the campaign, phantom and canonical alike, and rises **faster**
+for the canonical one (§5.6). Read the two sections together: the phantom is
+the calmer object on every measure of shape and geometry, and the canonical
+star is the one that ends up collapsing.
 
 | metric (single stars, t = 0 → 40) | canonical | phantom |
 |---|---|---|
@@ -241,6 +366,9 @@ canonicals) drives χ down to 0.44 as the pair merges.
 | **Single-rank only** | MPI is unusable on this node | performance only; no physics impact |
 | **Constraint violation is floored by the initial data** | the evolution's Hamiltonian violation is identical on all three grids (coarse ÷ fine = 1.00× at every sampled time) because one elliptic solve on a fixed grid feeds the whole ladder | no convergence order is quotable from this campaign; quote the grid-to-grid spread instead, and refine the solve alongside the grid if an order is wanted — [`analysis/constraint_check.md`](analysis/constraint_check.md) |
 | **Violation grows through the run** | box-averaged Hamiltonian 1.1e−3 at t = 15 → 6.9e−3 at t = 60 for the mixed pair, worst single point 1.9e−2 → 8.4e−1 | consistent with the t ≲ 50 trust window; the late rise tracks the canonical star compactifying toward collapse, not a code failure |
+| **The stars overlap at separation 8** | rms radii 5.05 and 5.43 against a gap of 8, so the envelopes interpenetrate from t = 0; the phantom drift is 2.1× the point-mass value at t = 30, falling to 1.17× at separation 16 | the baseline cell's drift *magnitude* is inflated by contact, not by gravity alone — quote separation 12–16 for magnitudes and separation 8 for illustration (§5.5) |
+| **The canonical sector leaks past the boundary** | it is the sector pushed toward +x; its tracked field falls −12 % by t = 40 and −61 % by t = 60 while every other cell in the campaign *gains* field | the canonical barycentre is biased low at late times and can even read negative in the widest cell; the quantitative tests use the phantom sector (§5.6) |
+| **Weak signal at wide separation** | the drift at separation 16 is ≈ 40× smaller than at separation 8, so the grid-to-grid spread rises from 1.9 % to 40 % at t = 30 and to 53 % at t = 60 | the geometrically clean cell is the statistically weak one; separation 12 is the compromise |
 
 ## 8. What is established, and what is not
 
@@ -270,14 +398,26 @@ canonicals) drives χ down to 0.44 as the pair merges.
    all — its shells never agree — so no control amplitude is quotable.
 8. Nothing collapses while the runaway is being measured: no apparent horizon
    and θ₊ > 0 in every cell that stops at t = 60.
+9. The effect converges on the point-mass Bondi law as the pair is separated.
+   The phantom's drift is 2.14× the point-mass prediction at separation 8,
+   1.36× at 12 and 1.17× at 16 (t = 30), and each of the three separations now
+   carries its own 128/192/256 grid ladder. The excess is therefore an
+   overlap effect that is removed by the one change that should remove it —
+   the strongest evidence in the campaign that the runaway is gravitational.
 
 **Not established.**
-1. *A constant-gap runaway.* At separation 8 the stars overlap and the pair
-   closes to near-contact. The clean test needs separation 12–16, or more
-   compact stars (both sectors at higher ω, where the family scan shows the
-   mass asymmetry also shrinks to a few percent).
-2. *Precision drift magnitudes at late times.* See §5.4.
-3. *The end state — now observed, not yet measured.* The two double-box cells
+1. *A constant-gap runaway.* Separations 12 and 16 have now been run and the
+   gap does hold far better (12 → 9.9 and 16 → 14.9 by t = 60, against
+   8 → 1.8), but it still closes: no cell in this campaign shows a genuinely
+   constant gap. Doing so needs a longer window at separation 16 with a sponge
+   layer, or more compact stars (both sectors at higher ω, where the family
+   scan shows the mass asymmetry also shrinks to a few percent).
+2. *A precise magnitude at wide separation.* At separation 16 the drift is
+   ≈ 40× smaller than at separation 8 and the grid spread reaches 40 % at
+   t = 30. The clean geometry and a tight error bar are not yet available in
+   the same cell.
+3. *Precision drift magnitudes at late times.* See §5.4 and §5.6.
+4. *The end state — now observed, not yet measured.* The two double-box cells
    were carried to t = 90, past contact: both form a black hole, the mixed
    pair at t = 68.5 (apparent-horizon radius ≈ 2.5) and the two-positive
    control at t = 69.5 (≈ 4.5), with the lapse collapsing to 0.06 and 0.01 by
@@ -290,7 +430,9 @@ canonicals) drives χ down to 0.44 as the pair merges.
 
 | goal | change | expected cost |
 |---|---|---|
-| constant-gap runaway | separation 12–16, same rung, stop 100–150 | drift is weaker (a ∝ 1/r²) — needs the longer window, hence a sponge layer |
+| ~~separation series~~ | **done** — 8 / 12 / 16, each on a 128/192/256 ladder (§5.5) | — |
+| constant-gap runaway | separation 16, stop 100–150, with a sponge layer | the drift is ≈ 40× weaker, so the longer window is needed to lift it clear of the diagnostic floor |
+| honest error bar at wide separation | separation 16 at cell size 0.167 (N = 384) | the only way to shrink the 40–53 % grid spread on the clean geometry |
 | decouple overlap from gravity | both sectors at ω = 0.70–0.80 (compact, near-equal masses) | cheap; sharpens §5.3 |
 | clean late-time drift | core-weighted centroid diagnostic + absorbing boundary | diagnostic work, no new physics |
 | contact / merger | continue `pair_pm` past t = 60 with a sponge | open-ended |

@@ -1,12 +1,21 @@
 cell,stage,time,L2_Ham,L2_Mom,Linf_Ham,note
 boxC_pm_L128_n256,initial_data,,8.318538e-02,7.499017e-02,,percent; 7 iterations
 boxC_pp_L128_n256,initial_data,,1.095332e-03,4.505702e-02,,percent; 4 iterations
+convA_mm_n128,initial_data,,9.420501e-02,3.480485e-02,,percent; 7 iterations
+convA_mm_n192,initial_data,,9.402400e-02,3.541683e-02,,percent; 7 iterations
+convA_mm_n256,initial_data,,9.396676e-02,3.560620e-02,,percent; 7 iterations
 convA_pm_eqm_n128,initial_data,,8.227553e-02,7.746993e-02,,percent; 7 iterations
 convA_pm_eqm_n192,initial_data,,8.225576e-02,7.921226e-02,,percent; 7 iterations
 convA_pm_eqm_n256,initial_data,,8.225705e-02,7.865433e-02,,percent; 7 iterations
 convA_pm_n128,initial_data,,8.322663e-02,7.420138e-02,,percent; 7 iterations
 convA_pm_n192,initial_data,,8.318781e-02,7.516503e-02,,percent; 7 iterations
 convA_pm_n256,initial_data,,8.318538e-02,7.499017e-02,,percent; 7 iterations
+convA_pm_sep12_n128,initial_data,,8.319968e-02,7.420220e-02,,percent; 7 iterations
+convA_pm_sep12_n192,initial_data,,8.316021e-02,7.561416e-02,,percent; 7 iterations
+convA_pm_sep12_n256,initial_data,,8.315072e-02,7.548399e-02,,percent; 7 iterations
+convA_pm_sep16_n128,initial_data,,8.325792e-02,7.441432e-02,,percent; 7 iterations
+convA_pm_sep16_n192,initial_data,,8.319851e-02,7.617097e-02,,percent; 7 iterations
+convA_pm_sep16_n256,initial_data,,8.319523e-02,7.601438e-02,,percent; 7 iterations
 convA_pp_n128,initial_data,,3.697248e-03,4.717358e-02,,percent; 4 iterations
 convA_pp_n192,initial_data,,1.883608e-03,4.805272e-02,,percent; 4 iterations
 convA_pp_n256,initial_data,,1.095332e-03,4.505702e-02,,percent; 4 iterations
@@ -20,6 +29,21 @@ boxC_pp_L128_n256,evolution,15,2.116877e-04,3.708316e-05,1.619271e-02,
 boxC_pp_L128_n256,evolution,30,5.252109e-04,6.777630e-05,3.172762e-02,
 boxC_pp_L128_n256,evolution,45,1.133664e-03,1.226399e-04,9.141138e-02,
 boxC_pp_L128_n256,evolution,60,2.209340e-03,3.202258e-04,3.881559e-01,
+convA_mm_n128,evolution,0,7.855452e-03,2.404915e-05,2.536916e-01,
+convA_mm_n128,evolution,15,7.862295e-04,1.622453e-04,9.162028e-03,
+convA_mm_n128,evolution,30,1.961344e-03,2.306783e-04,2.540882e-02,
+convA_mm_n128,evolution,45,3.003892e-03,2.142720e-04,3.010227e-02,
+convA_mm_n128,evolution,60,3.317258e-03,1.808743e-04,3.043019e-02,
+convA_mm_n192,evolution,0,1.430097e-02,2.179025e-05,2.607844e-01,
+convA_mm_n192,evolution,15,7.252127e-04,1.712354e-04,9.560068e-03,
+convA_mm_n192,evolution,30,2.042203e-03,2.516911e-04,2.582805e-02,
+convA_mm_n192,evolution,45,3.083505e-03,2.313159e-04,2.994890e-02,
+convA_mm_n192,evolution,60,3.365551e-03,1.951900e-04,3.076011e-02,
+convA_mm_n256,evolution,0,2.119044e-02,2.120229e-05,2.632689e-01,
+convA_mm_n256,evolution,15,7.106965e-04,1.736356e-04,9.558993e-03,
+convA_mm_n256,evolution,30,2.088009e-03,2.719835e-04,2.613337e-02,
+convA_mm_n256,evolution,45,3.116685e-03,2.418954e-04,2.984700e-02,
+convA_mm_n256,evolution,60,3.394033e-03,2.049178e-04,3.073749e-02,
 convA_pm_eqm_n128,evolution,0,8.546482e-04,3.297181e-06,1.279267e-02,
 convA_pm_eqm_n128,evolution,15,1.034233e-03,1.153456e-04,1.857454e-02,
 convA_pm_eqm_n128,evolution,30,2.416866e-03,1.471625e-04,5.514224e-02,
@@ -50,6 +74,36 @@ convA_pm_n256,evolution,15,1.066689e-03,1.194722e-04,1.877695e-02,
 convA_pm_n256,evolution,30,2.477148e-03,1.506826e-04,5.540117e-02,
 convA_pm_n256,evolution,45,4.064880e-03,2.430195e-04,1.755358e-01,
 convA_pm_n256,evolution,60,6.909062e-03,7.462789e-04,8.371265e-01,
+convA_pm_sep12_n128,evolution,0,1.264345e-03,4.246214e-06,1.125901e-02,
+convA_pm_sep12_n128,evolution,15,1.110138e-03,1.352811e-04,1.850427e-02,
+convA_pm_sep12_n128,evolution,30,2.675078e-03,1.826853e-04,5.509578e-02,
+convA_pm_sep12_n128,evolution,45,4.669287e-03,3.233852e-04,2.134257e-01,
+convA_pm_sep12_n128,evolution,60,7.339126e-03,1.355796e-03,1.364064e+00,
+convA_pm_sep12_n192,evolution,0,2.799403e-03,8.162533e-06,4.232503e-02,
+convA_pm_sep12_n192,evolution,15,1.114058e-03,1.352367e-04,1.849065e-02,
+convA_pm_sep12_n192,evolution,30,2.678612e-03,1.825035e-04,5.527676e-02,
+convA_pm_sep12_n192,evolution,45,4.674759e-03,3.237656e-04,2.154592e-01,
+convA_pm_sep12_n192,evolution,60,7.385738e-03,1.300927e-03,1.427298e+00,
+convA_pm_sep12_n256,evolution,0,3.862101e-03,9.257718e-06,5.237004e-02,
+convA_pm_sep12_n256,evolution,15,1.114609e-03,1.351553e-04,1.847817e-02,
+convA_pm_sep12_n256,evolution,30,2.678508e-03,1.822569e-04,5.533202e-02,
+convA_pm_sep12_n256,evolution,45,4.673157e-03,3.233490e-04,2.164687e-01,
+convA_pm_sep12_n256,evolution,60,7.378968e-03,1.302029e-03,1.483053e+00,
+convA_pm_sep16_n128,evolution,0,1.624938e-03,5.175582e-06,1.792398e-02,
+convA_pm_sep16_n128,evolution,15,1.062329e-03,1.342900e-04,1.549651e-02,
+convA_pm_sep16_n128,evolution,30,2.569725e-03,1.858315e-04,4.894262e-02,
+convA_pm_sep16_n128,evolution,45,4.486832e-03,3.138533e-04,1.891736e-01,
+convA_pm_sep16_n128,evolution,60,7.344599e-03,1.235919e-03,1.196224e+00,
+convA_pm_sep16_n192,evolution,0,3.451435e-03,9.048998e-06,3.926652e-02,
+convA_pm_sep16_n192,evolution,15,1.066693e-03,1.342356e-04,1.574311e-02,
+convA_pm_sep16_n192,evolution,30,2.573832e-03,1.855873e-04,4.918034e-02,
+convA_pm_sep16_n192,evolution,45,4.492657e-03,3.140218e-04,1.917130e-01,
+convA_pm_sep16_n192,evolution,60,7.346649e-03,1.181516e-03,1.210653e+00,
+convA_pm_sep16_n256,evolution,0,4.685218e-03,1.001032e-05,5.434471e-02,
+convA_pm_sep16_n256,evolution,15,1.067210e-03,1.341590e-04,1.577090e-02,
+convA_pm_sep16_n256,evolution,30,2.574057e-03,1.852965e-04,4.927265e-02,
+convA_pm_sep16_n256,evolution,45,4.491387e-03,3.134962e-04,1.924976e-01,
+convA_pm_sep16_n256,evolution,60,7.343588e-03,1.181879e-03,1.234308e+00,
 convA_pp_n128,evolution,0,5.857843e-03,2.109279e-04,1.242122e-01,
 convA_pp_n128,evolution,15,6.844028e-04,1.142827e-04,1.583161e-02,
 convA_pp_n128,evolution,30,2.083649e-03,3.543975e-04,3.448171e-02,
@@ -65,6 +119,11 @@ convA_pp_n256,evolution,15,6.222170e-04,1.054541e-04,1.072586e-02,
 convA_pp_n256,evolution,30,2.241295e-03,3.429406e-04,3.305978e-02,
 convA_pp_n256,evolution,45,3.343048e-03,4.178518e-04,9.454019e-02,
 convA_pp_n256,evolution,60,6.145330e-03,8.474357e-04,3.714996e-01,
+convA_mm,ladder_ratio,0,0.3707,,0.9636,coarse n128 / fine n256
+convA_mm,ladder_ratio,15,1.1063,,0.9585,coarse n128 / fine n256
+convA_mm,ladder_ratio,30,0.9393,,0.9723,coarse n128 / fine n256
+convA_mm,ladder_ratio,45,0.9638,,1.0086,coarse n128 / fine n256
+convA_mm,ladder_ratio,60,0.9774,,0.9900,coarse n128 / fine n256
 convA_pm,ladder_ratio,0,0.3457,,0.2107,coarse n128 / fine n256
 convA_pm,ladder_ratio,15,0.9952,,0.9971,coarse n128 / fine n256
 convA_pm,ladder_ratio,30,0.9975,,0.9921,coarse n128 / fine n256
@@ -75,6 +134,16 @@ convA_pm_eqm,ladder_ratio,15,0.9952,,0.9989,coarse n128 / fine n256
 convA_pm_eqm,ladder_ratio,30,0.9975,,0.9959,coarse n128 / fine n256
 convA_pm_eqm,ladder_ratio,45,0.9960,,0.9813,coarse n128 / fine n256
 convA_pm_eqm,ladder_ratio,60,1.0104,,0.9699,coarse n128 / fine n256
+convA_pm_sep12,ladder_ratio,0,0.3274,,0.2150,coarse n128 / fine n256
+convA_pm_sep12,ladder_ratio,15,0.9960,,1.0014,coarse n128 / fine n256
+convA_pm_sep12,ladder_ratio,30,0.9987,,0.9957,coarse n128 / fine n256
+convA_pm_sep12,ladder_ratio,45,0.9992,,0.9859,coarse n128 / fine n256
+convA_pm_sep12,ladder_ratio,60,0.9946,,0.9198,coarse n128 / fine n256
+convA_pm_sep16,ladder_ratio,0,0.3468,,0.3298,coarse n128 / fine n256
+convA_pm_sep16,ladder_ratio,15,0.9954,,0.9826,coarse n128 / fine n256
+convA_pm_sep16,ladder_ratio,30,0.9983,,0.9933,coarse n128 / fine n256
+convA_pm_sep16,ladder_ratio,45,0.9990,,0.9827,coarse n128 / fine n256
+convA_pm_sep16,ladder_ratio,60,1.0001,,0.9691,coarse n128 / fine n256
 convA_pp,ladder_ratio,0,0.3551,,0.9227,coarse n128 / fine n256
 convA_pp,ladder_ratio,15,1.0999,,1.4760,coarse n128 / fine n256
 convA_pp,ladder_ratio,30,0.9297,,1.0430,coarse n128 / fine n256

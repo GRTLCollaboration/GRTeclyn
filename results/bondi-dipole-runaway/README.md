@@ -30,6 +30,15 @@ residual wobble and 50–150× above the single-star noise floor. Full numbers,
 the quantitative gravity tests, and the honest caveats are in
 [`FINDINGS.md`](FINDINGS.md).
 
+> **Read the drift magnitudes with the separation in mind.** Every cell in the
+> table above starts the stars 8 apart, and each star is about 5 across, so
+> their envelopes overlap from t = 0. That inflates the drift: against a
+> point-mass calculation of the same configuration it is 2.14× too large at
+> separation 8, falling to 1.36× at 12 and 1.17× at 16. The runaway is real
+> and gravitational — the excess shrinks exactly as the stars are pulled
+> apart — but quote separation 12–16 for magnitudes. See the campaign section
+> and [`FINDINGS.md`](FINDINGS.md) §5.5.
+
 ## What is where
 
 | path | contents |
@@ -43,7 +52,7 @@ the quantitative gravity tests, and the honest caveats are in
 | `stars/` | dressed-star profile tables `r φ₀(r) α(r)` + the M(ω) family scan |
 | `analysis/` | derived tables and the scripts that regenerate them |
 | `figures/<cell>/` | curated frames: matter activity and geometry at t = 0 → end |
-| `movies/<cell>/` | the views that carry the result (matter motion, geometry sign, signed energy density) |
+| `movies/<cell>/` | the views that carry the result (matter motion, geometry sign, signed energy density). Folders named `pair_*` / `single_*` are the original adaptive-mesh cells; folders named `convA_*` are the campaign cells, including the separation series |
 | `patches/` | the matter-model modifications this campaign required |
 | `debug_log/` | the full campaign journal, verbatim |
 
@@ -79,6 +88,7 @@ the streams are absolute; drifts quoted anywhere in this pack are
 | `summary.csv`, `summary.md` | one row per cell: birth checks → final state |
 | `trajectories.csv` | drift / separation / core series for every cell, sampled every Δt = 4 |
 | `newtonian_reference.csv` | point-mass Bondi integration with the measured ADM masses, aligned to the NR output |
+| `separation_scaling.csv`, `separation_scaling.py` | the separation series: measured drift against a point-mass integration of the *same* configuration, at separations 8 / 12 / 16 — the test that isolates the overlap |
 | `convergence_check.csv`, `convergence_check.md` | drift / gap / control artefact across grid resolutions, with the spread between grids |
 | `wave_check.csv`, `wave_check.md` | gravitational-wave amplitude on each extraction shell in retarded time, and whether the shells agree |
 | `constraint_check.csv`, `constraint_check.md` | constraint violation at both stages — the initial-data solve and the evolution — plus whether refining the grid reduces it |
@@ -89,7 +99,7 @@ the streams are absolute; drifts quoted anywhere in this pack are
 | `constraint_check.py` | regenerates `constraint_check.*` from `campaign/` |
 | `star_family_scan.py` | regenerates `stars/star_family.csv` (needs the wrapper venv) |
 
-## campaign/ — the error-bar campaign (2026-08-17, complete)
+## campaign/ — the error-bar campaign (2026-08-17 → 18, complete)
 
 The headline numbers above come from adaptive-mesh runs at a single resolution.
 To attach error bars, the same physics was rerun on **uniform** grids (no mesh
@@ -102,11 +112,13 @@ one every Δt = 10 plus the final state, named by simulation time
 (`scalar_activity_z_t0030.png` is that field at t = 30). That is 7 per field
 for the t = 60 cells and 10 for the t = 90 double-box cells.
 
-### The eleven runs
+### The twenty runs
 
 `pm` = one positive + one phantom star (the runaway pair). `pp` = two positive
-stars (control — it must not run away). `eqm` = phantom retuned so both stars
-have the same |ADM| mass. All were released from rest, 8 apart.
+stars (control — it must not run away). `mm` = two phantom stars (the other
+control). `eqm` = phantom retuned so both stars have the same |ADM| mass.
+`sep12` / `sep16` start the pair 12 and 16 apart instead of 8. All were
+released from rest.
 
 | cell | box | grid | cell size | matter | what it is for |
 |---|---|---|---|---|---|
@@ -119,6 +131,9 @@ have the same |ADM| mass. All were released from rest, 8 apart.
 | `convA_pm_eqm_n128` | 64 | 128³ | 0.50 | equal-mass pair | does the runaway need a mass difference? coarse leg |
 | `convA_pm_eqm_n192` | 64 | 192³ | 0.33 | equal-mass pair | middle leg |
 | `convA_pm_eqm_n256` | 64 | 256³ | 0.25 | equal-mass pair | fine leg |
+| `convA_mm_n128/192/256` | 64 | 128/192/256³ | 0.50 / 0.33 / 0.25 | control, two phantom | the other null test, on the same ladder |
+| `convA_pm_sep12_n128/192/256` | 64 | 128/192/256³ | 0.50 / 0.33 / 0.25 | runaway pair, 12 apart | envelopes no longer interpenetrating |
+| `convA_pm_sep16_n128/192/256` | 64 | 128/192/256³ | 0.50 / 0.33 / 0.25 | runaway pair, 16 apart | cleanly separated — the point-mass limit |
 | `boxC_pm_L128_n256` | 128 | 256³ | 0.50 | runaway pair | waves on four shells (r = 16, 24, 32, 40) and the box-size systematic; run to t = 90 |
 | `boxC_pp_L128_n256` | 128 | 256³ | 0.50 | control, two positive | the same for the control |
 
@@ -126,11 +141,10 @@ The two `boxC` cells trade resolution for reach: 256³ spread over twice the
 width gives cell size 0.50, so compare them against the `n128` column, not
 `n256`. Their drifts are measured from the box centre `64 64 64`, not `32 32 32`.
 
-A second phase is running (launched 2026-08-17 evening) and will appear here as
-`convA_mm_n128/192/256` — the two-phantom control on the same ladder, which so
-far rests on a single adaptive-mesh run — and `convA_pm_sep12_n128/192/256`,
-the pair started 12 apart instead of 8, to test whether the runaway survives at
-a constant gap. Re-running the pack script picks them up automatically.
+The second phase (2026-08-17 evening → 2026-08-18 morning) added nine cells:
+the two-phantom control on the full ladder, and the separation series at 12 and
+16 — which turned out to be the most consequential result of the whole campaign
+(see **Separation** below). Re-running the pack script picks them all up.
 
 ### What the campaign shows
 
@@ -149,6 +163,46 @@ The equal-mass series reproduces the runaway with the mass asymmetry removed:
 its drift is 3 % below the unequal-mass pair (+6.227 vs +6.407 at t = 60),
 well outside the 0.3–0.5 % grid spread — a resolved physical difference, not
 noise. The runaway does not depend on one star outweighing the other.
+
+**Separation: the stars were touching, and that mattered.** In the baseline
+cell the two stars are 8 apart but each is about 5 across, so their envelopes
+overlap from the first moment — you can see it in the very first frame of the
+matter movies. Repeating the run with the pair 12 and then 16 apart shows what
+that overlap was doing. Against a point-mass calculation of the same
+configuration, the measured drift is 2.14× too large at separation 8, 1.36× at
+12 and 1.17× at 16 (all at t = 30). Pull the stars apart and the run converges
+on the textbook answer, which is exactly what an overlap effect should do and
+what a numerical artefact should not.
+
+The trade-off is that the clean geometry is also the faint one: separation 16
+drifts about 40× less than separation 8, so the grid-to-grid spread grows from
+1.9 % to 40 % at t = 30. Separation 12 is the usable compromise. **Quote
+separation 12–16 for magnitudes, separation 8 for illustration.** Details and
+the full ladder are in [`FINDINGS.md`](FINDINGS.md) §5.5.
+
+**The two lumps do not stay the same size.** Through every mixed run the
+phantom lump stays compact while the canonical lump fades and spreads. Two
+separate things are doing that, and it is worth keeping them apart:
+
+- The canonical star's **core is collapsing**. Its peak field strength rises
+  36 %, three-quarters of its material ends up within a radius of 4.8, and the
+  lapse and the conformal factor fall from 0.98 to 0.35 and 0.20 by t = 60.
+  This is the same star that goes on to form a black hole at t ≈ 68 in the
+  double-size box. That is physics.
+- The canonical star's **halo is leaving the box**. It is the lump being pushed
+  toward +x, so its shed matter reaches the edge first. Losing the leading edge
+  also drags its measured centre backwards — which is why the widest-separation
+  cell reports a small *negative* canonical drift.
+
+This does not conflict with the earlier result that the phantom sector is the
+better-behaved one. That claim is about shape and geometry, and it still holds
+everywhere: the canonical star spreads 2.7× against the phantom's 1.2× when
+each is alone in the box, and the two-canonical control drives the gravity well
+down to 0.44 while the two-phantom control holds it at 1.00. The total amount
+of field being tracked is *not* a conserved mass — it rises for almost every
+star here, and it rises faster for the canonical one. Practical consequence:
+the phantom side carries the quantitative tests, and late-time canonical
+numbers are upper bounds. See [`FINDINGS.md`](FINDINGS.md) §5.6 and §6.
 
 **No successive-difference order fit is quotable.** The three-grid ratios sit
 at 0.2–1.6, below the 1.41 that any positive convergence order requires, so the
@@ -280,6 +334,37 @@ which is not a claim this pack makes.
 - `boxC` drifts are `bary_x − 64`, not `− 32` as everywhere else in this pack.
 - Re-running the pack script rebuilds every cell folder from scratch; nothing
   outside `campaign/` and the `analysis/*_check.*` tables is touched.
+
+### Movies
+
+Up to four views per cell, all on the z slice through the pair (the older
+`pair_*` folders carry two or three of them; the `convA_*` folders carry all four):
+
+| file | what it shows |
+|---|---|
+| `scalar_activity_z.mp4` | the matter itself, as a slice — the clearest view of the two lumps moving |
+| `scalar_activity_proj_z.mp4` | the same matter, but with the whole depth stacked into one image (brighter, and it makes the overlap obvious) |
+| `chi_minus_1_z.mp4` | the gravity well — positive and negative curvature have opposite colours, so the two sectors are visually distinguishable |
+| `rho_req_z.mp4` | the signed energy density, i.e. where the negative-mass matter actually is |
+
+Three campaign cells were added for the separation result: `convA_pm_n256`
+(8 apart, envelopes overlapping), `convA_pm_sep12_n256` (12 apart) and
+`convA_pm_sep16_n128` (16 apart, cleanly separated). Playing the three matter
+movies side by side is the quickest way to see the overlap argument of
+[`FINDINGS.md`](FINDINGS.md) §5.5.
+
+Two cautions when reading them. **The colour scale on `chi_minus_1_z` is
+re-chosen for every frame**, because the gravity well starts almost flat and
+becomes very deep — so a colour means a different number at different times,
+and that movie shows *where* structure is, not *how big* it is. The other three
+hold a fixed scale and can be compared across time. And in the mixed pairs the
+canonical lump (the one at +x, on the right) genuinely fades and spreads as the
+run proceeds; that is the boundary-loss effect of §5.6, not a rendering
+artefact.
+
+The complete set — 19 fields per cell rather than four — is left outside this
+pack under `runs/bondi_rerun/<cell>/<run>/movies/`, together with the PNG frames
+they were built from.
 
 ## Reproducing
 

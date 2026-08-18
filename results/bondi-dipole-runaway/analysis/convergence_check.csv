@@ -35,6 +35,42 @@ equal-mass pair (pm_eqm),pair drift,60.0,256,6.226512
 equal-mass pair (pm_eqm),gap,60.0,128,1.388057
 equal-mass pair (pm_eqm),gap,60.0,192,1.395228
 equal-mass pair (pm_eqm),gap,60.0,256,1.420316
+"wider pair, separation 12 (pm_sep12)",pair drift,15.0,128,0.021082
+"wider pair, separation 12 (pm_sep12)",pair drift,15.0,192,0.019755
+"wider pair, separation 12 (pm_sep12)",pair drift,15.0,256,0.018760
+"wider pair, separation 12 (pm_sep12)",gap,15.0,128,11.935013
+"wider pair, separation 12 (pm_sep12)",gap,15.0,192,11.941022
+"wider pair, separation 12 (pm_sep12)",gap,15.0,256,11.945482
+"wider pair, separation 12 (pm_sep12)",pair drift,20.0,128,0.038683
+"wider pair, separation 12 (pm_sep12)",pair drift,20.0,192,0.036048
+"wider pair, separation 12 (pm_sep12)",pair drift,20.0,256,0.034259
+"wider pair, separation 12 (pm_sep12)",gap,20.0,128,11.884001
+"wider pair, separation 12 (pm_sep12)",gap,20.0,192,11.894053
+"wider pair, separation 12 (pm_sep12)",gap,20.0,256,11.901854
+"wider pair, separation 12 (pm_sep12)",pair drift,60.0,128,1.745807
+"wider pair, separation 12 (pm_sep12)",pair drift,60.0,192,1.677190
+"wider pair, separation 12 (pm_sep12)",pair drift,60.0,256,1.641884
+"wider pair, separation 12 (pm_sep12)",gap,60.0,128,9.947817
+"wider pair, separation 12 (pm_sep12)",gap,60.0,192,10.069111
+"wider pair, separation 12 (pm_sep12)",gap,60.0,256,10.139561
+"widest pair, separation 16 (pm_sep16)",pair drift,15.0,128,0.013083
+"widest pair, separation 16 (pm_sep16)",pair drift,15.0,192,0.011924
+"widest pair, separation 16 (pm_sep16)",pair drift,15.0,256,0.011144
+"widest pair, separation 16 (pm_sep16)",gap,15.0,128,15.956659
+"widest pair, separation 16 (pm_sep16)",gap,15.0,192,15.962436
+"widest pair, separation 16 (pm_sep16)",gap,15.0,256,15.965993
+"widest pair, separation 16 (pm_sep16)",pair drift,20.0,128,0.015031
+"widest pair, separation 16 (pm_sep16)",pair drift,20.0,192,0.012789
+"widest pair, separation 16 (pm_sep16)",pair drift,20.0,256,0.011378
+"widest pair, separation 16 (pm_sep16)",gap,20.0,128,15.917663
+"widest pair, separation 16 (pm_sep16)",gap,20.0,192,15.928412
+"widest pair, separation 16 (pm_sep16)",gap,20.0,256,15.934748
+"widest pair, separation 16 (pm_sep16)",pair drift,60.0,128,0.198052
+"widest pair, separation 16 (pm_sep16)",pair drift,60.0,192,0.148085
+"widest pair, separation 16 (pm_sep16)",pair drift,60.0,256,0.129686
+"widest pair, separation 16 (pm_sep16)",gap,60.0,128,14.922286
+"widest pair, separation 16 (pm_sep16)",gap,60.0,192,15.026833
+"widest pair, separation 16 (pm_sep16)",gap,60.0,256,15.075691
 two-positive control (pp),control drift,15.0,128,-0.040522
 two-positive control (pp),control drift,15.0,192,-0.022881
 two-positive control (pp),control drift,15.0,256,-0.010661
@@ -44,3 +80,12 @@ two-positive control (pp),control drift,20.0,256,-0.021796
 two-positive control (pp),control drift,60.0,128,0.149027
 two-positive control (pp),control drift,60.0,192,0.079938
 two-positive control (pp),control drift,60.0,256,0.035858
+two-phantom control (mm),control drift,15.0,128,0.007898
+two-phantom control (mm),control drift,15.0,192,0.005507
+two-phantom control (mm),control drift,15.0,256,0.004253
+two-phantom control (mm),control drift,20.0,128,0.003108
+two-phantom control (mm),control drift,20.0,192,0.002841
+two-phantom control (mm),control drift,20.0,256,0.002386
+two-phantom control (mm),control drift,60.0,128,0.039277
+two-phantom control (mm),control drift,60.0,192,0.013750
+two-phantom control (mm),control drift,60.0,256,0.011760
