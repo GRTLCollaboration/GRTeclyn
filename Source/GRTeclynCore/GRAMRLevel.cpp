@@ -10,7 +10,7 @@
 void GRAMRLevel::stateVariableSetUp()
 {
     GRParmParse pp;
-    int nghost;
+    int nghost{};
     pp.get("evolution.num_ghosts", nghost);
     desc_lst.addDescriptor(state_index, amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
@@ -137,7 +137,7 @@ void GRAMRLevel::computeNewDt(
     if (Level() == 0)
     {
         GRParmParse pp;
-        double dt_multiplier;
+        double dt_multiplier{};
         pp.get("evolution.dt_multiplier", dt_multiplier);
 
         for (int i = 0; i <= finest_level; ++i)

@@ -14,19 +14,14 @@
 #include <numeric>
 #include <string>
 
-BoundaryConditions::params_t::params_t()
-{
-    // set defaults
-
-    vars_asymptotic_values.fill(0.0);
-}
-
-bool BoundaryConditions::params_t::boundary_exists(const int BC) const
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+bool BoundaryConditions::params_t::boundary_exists(
+    const int a_boundary_condition) const
 {
     FOR (idir)
     {
-        if (!is_periodic[idir] &&
-            (hi_condition[idir] == BC || lo_condition[idir] == BC))
+        if (!is_periodic[idir] && (hi_condition[idir] == a_boundary_condition ||
+                                   lo_condition[idir] == a_boundary_condition))
         {
             return true;
         }
@@ -667,6 +662,7 @@ void BoundaryConditions::fill_boundary_cells_dir(
 }
 #endif
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void BoundaryConditions::fill_sommerfeld_cell(
     amrex::FArrayBox &rhs_box, const amrex::FArrayBox &soln_box,
     const amrex::IntVect a_iv, const std::vector<int> &sommerfeld_comps)

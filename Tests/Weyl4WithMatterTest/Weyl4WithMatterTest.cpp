@@ -111,7 +111,9 @@ void run_matter_weyl4_test()
 
         GRParmParse pp;
         GRParmParse extraction_pp("weyl_extraction");
-        int formulation = CCZ4RHS<>::USE_BSSN;
+        // This test deliberately exercises the BSSN formulation.
+        int formulation{};
+        formulation = CCZ4RHS<>::USE_BSSN;
         extraction_pp.queryAdd("center", center);
         pp.queryAdd("ccz4.formulation", formulation);
         pp.queryAdd("G_newton", G_Newton);

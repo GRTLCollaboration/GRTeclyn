@@ -77,8 +77,8 @@ void PunctureTrackerLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     puncture_coords = get_puncture_tracker().get_puncture_coords();
 
-    amrex::Real fake_bh1_mass;
-    amrex::Real fake_bh2_mass;
+    amrex::Real fake_bh1_mass{};
+    amrex::Real fake_bh2_mass{};
 
     GRParmParse test_pp("test");
     test_pp.get("fake_bh1_mass", fake_bh1_mass);
@@ -130,8 +130,8 @@ void PunctureTrackerLevel::check_puncture_tagging()
     const int num_points_theta = 8;
     const int num_points_phi   = 8;
 
-    amrex::Real fake_bh1_mass;
-    amrex::Real fake_bh2_mass;
+    amrex::Real fake_bh1_mass{};
+    amrex::Real fake_bh2_mass{};
 
     GRParmParse test_pp("test");
     test_pp.get("fake_bh1_mass", fake_bh1_mass);
@@ -218,7 +218,7 @@ void PunctureTrackerLevel::specific_post_checkpoint(
 void PunctureTrackerLevel::specificPostTimeStep()
 {
     GRParmParse puncture_tracking_pp("puncture_tracking");
-    int puncture_tracking_level;
+    int puncture_tracking_level{};
     puncture_tracking_pp.get("level", puncture_tracking_level);
 
     if (Level() == puncture_tracking_level)

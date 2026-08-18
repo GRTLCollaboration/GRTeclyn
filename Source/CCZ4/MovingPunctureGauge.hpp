@@ -83,7 +83,7 @@ class MovingPunctureGauge
             double shift_advec_coeff = 0.0;
             gauge_pp.queryAdd("shift_advec_coeff", shift_advec_coeff);
             if (std::min(std::abs(shift_advec_coeff),
-                         std::abs(shift_advec_coeff - 1.0)) <
+                         std::abs(shift_advec_coeff - 1.0)) >
                 std::numeric_limits<double>::epsilon())
             {
                 gauge_pp.warning("shift_advec_coeff",
@@ -115,7 +115,7 @@ class MovingPunctureGauge
     };
 
   protected:
-    params_t m_params;
+    params_t m_params{};
 
   public:
     MovingPunctureGauge() { m_params.fill_params(); }

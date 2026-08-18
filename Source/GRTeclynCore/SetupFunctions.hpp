@@ -63,8 +63,7 @@ void mainSetup(int argc, char *argv[])
     {
         std::ofstream ofs("parameters_and_version.txt");
         ofs << "Using GRTeclyn version (" << GRTECLYN_VERSION << ")\n\n";
-        GRParmParse pp;
-        pp.prettyPrintTable(ofs);
+        GRParmParse::prettyPrintTable(ofs);
     }
 
     amrex::Print() << "GRTeclyn (" << GRTECLYN_VERSION << ") initialized"

@@ -68,11 +68,11 @@ void run_spherical_extraction_test()
         pp.get("evolution.stop_time", stop_time);
         gr_amr.init(0., stop_time);
 
-        double coarsest_dx;
-        double dt_multiplier;
+        double coarsest_dx{};
+        double dt_multiplier{};
 
         pp.get("evolution.dt_multiplier", dt_multiplier);
-        pp.get("grteclyn.coarsest_dx", coarsest_dx);
+        pp.get("geometry.coarsest_dx", coarsest_dx);
         bool broadcast_integral = true;
 
         std::pair<std::vector<double>, std::vector<double>>

@@ -84,10 +84,10 @@ void run_particle_interpolator_test()
         gr_amr.init(0., stop_time);
 
         // Read from params
-        int num_points;
+        int num_points{};
         pp.get("test.num_points", num_points);
 
-        bool verbosity;
+        bool verbosity{};
         pp.get("particle_interpolator.verbosity", verbosity);
 
         std::array<double, AMREX_SPACEDIM> prob_extent{};

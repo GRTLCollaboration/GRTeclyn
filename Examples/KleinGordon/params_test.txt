@@ -7,9 +7,11 @@
 
 amr.verbose = 1
 
-# amr.check_file = chk
-# amr.plot_file = plt
-# amr.restart = chk00000
+# Plotfiles default to <grteclyn.output_path>/plots and checkpoint files to
+# <grteclyn.output_path>/checkpoints.
+# amr.check_file = checkpoints/chk
+# amr.plot_file = plots/plt
+# amr.restart = checkpoints/chk00000
 # amr.file_name_digits = 5
 
 amr.check_int = 8

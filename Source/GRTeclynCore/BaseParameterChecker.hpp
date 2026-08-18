@@ -21,6 +21,9 @@ class BaseParameterChecker
   public:
     BaseParameterChecker() = delete;
 
+    // This function intentionally centralizes the validation of shared
+    // parameters; splitting it would obscure dependencies between defaults.
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     static void check_params()
     {
         GRParmParse amr_pp("amr");
@@ -29,7 +32,6 @@ class BaseParameterChecker
         GRParmParse grteclyn_pp("grteclyn");
         GRParmParse particle_interpolator_pp("particle_interpolator");
         GRParmParse tagging_pp("tagging");
-        GRParmParse pp;
 
         // Grid setup
 
@@ -85,7 +87,7 @@ class BaseParameterChecker
         if (amr_pp.contains("restart"))
         {
             std::string restart_file;
-            amr_pp.load("restart", restart_file);
+            amr_pp.get("restart", restart_file);
             if (access((restart_file).c_str(), R_OK) != 0)
             {
                 amr_pp.error("restart", "file cannot be opened for reading");
@@ -163,7 +165,7 @@ class BaseParameterChecker
         }
         double coarsest_dx = prob_extent[0] / n_cell[0];
 
-        grteclyn_pp.add("coarsest_dx", coarsest_dx);
+        geom_pp.add("coarsest_dx", coarsest_dx);
 
         std::array<int, AMREX_SPACEDIM> is_periodic = {0, 0, 0};
         geom_pp.queryAdd("is_periodic", is_periodic);
@@ -176,11 +178,14 @@ class BaseParameterChecker
 
         // Work out the default center, factoring in reflective boundaries
 
-        if (geom_pp.contains("prob_lo") || geom_pp.contains("prob_hi"))
+        for (const char *prob_bound_name : {"prob_lo", "prob_hi"})
         {
-            geom_pp.warning(
-                "prob_lo/hi",
-                "not implemented, assumed to be (0,0,0) and prob_extent");
+            if (geom_pp.contains(prob_bound_name))
+            {
+                geom_pp.warning(
+                    prob_bound_name,
+                    "not implemented, assumed to be (0,0,0) and prob_extent");
+            }
         }
 
         std::array<double, AMREX_SPACEDIM> center{};
@@ -293,29 +298,38 @@ class BaseParameterChecker
         double min_lapse = 1e-4;
         ccz4_pp.queryAdd("min_chi", min_chi);
         ccz4_pp.queryAdd("min_lapse", min_lapse);
+        if (min_chi < 0.0)
+        {
+            ccz4_pp.warning("min_chi", "should normally be >= 0.0");
+        }
+        if (min_lapse < 0.0)
+        {
+            ccz4_pp.warning("min_lapse", "should normally be >= 0.0");
+        }
 
         bool particle_interpolator_verbosity = false;
         particle_interpolator_pp.queryAdd("verbosity",
                                           particle_interpolator_verbosity);
 
-        // not sure these are necessary hence commented out
-        // check_parameter("min_chi", min_chi, (min_chi >= 0.0), "must be >=
-        // 0.0"); check_parameter("min_lapse", min_lapse, (min_lapse >= 0.0)
-        // "must be >= 0.0");
-
         std::string output_path = ".";
         grteclyn_pp.queryAdd("output_path", output_path);
 
-        std::string plot_directory = output_path + "/" + "plots";
+        std::string plot_directory = output_path + "/plots";
         if (!FilesystemTools::directory_exists(plot_directory))
         {
             FilesystemTools::mkdir_recursive(plot_directory);
         }
 
+        std::string checkpoint_directory = output_path + "/checkpoints";
+        if (!FilesystemTools::directory_exists(checkpoint_directory))
+        {
+            FilesystemTools::mkdir_recursive(checkpoint_directory);
+        }
+
         std::string plot_file  = plot_directory + "/plt";
-        std::string check_file = plot_directory + "/chk";
-        pp.add("amr.plot_file", plot_file);
-        pp.add("amr.check_file", check_file);
+        std::string check_file = checkpoint_directory + "/chk";
+        amr_pp.queryAdd("plot_file", plot_file);
+        amr_pp.queryAdd("check_file", check_file);
     }
 };
 

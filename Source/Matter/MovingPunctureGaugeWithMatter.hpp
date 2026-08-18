@@ -26,7 +26,7 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
 {
 
   public:
-    MovingPunctureGaugeWithMatter() : MovingPunctureGauge() {}
+    MovingPunctureGaugeWithMatter() = default;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void
     rhs_gauge_add_matter_terms(const amrex::CellData<amrex::Real> &rhs,

@@ -199,7 +199,7 @@ struct spherical_extraction_params_t : surface_extraction_params_t
                 extraction_pp.error("modes", "must contain 2 * num_modes "
                                              "values");
             }
-            modes_vector.resize(static_cast<size_t>(2 * num_modes));
+            modes_vector.resize(static_cast<size_t>(2) * num_modes);
             extraction_pp.getarr("modes", modes_vector);
         }
         else
@@ -238,7 +238,7 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         extraction_pp.queryAdd("integral_file_prefix", integral_file_prefix);
     }
 
-    void fill_params()
+    void fill_params() override
     {
         GRParmParse extraction_pp(m_param_scope);
 

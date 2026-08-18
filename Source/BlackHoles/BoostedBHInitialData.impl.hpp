@@ -14,9 +14,9 @@
 #include <cmath>
 #include <string>
 
-void BoostedBHInitialData::params_t::check_params(int id)
+void BoostedBHInitialData::params_t::check_params(int a_id)
 {
-    GRParmParse bh_pp("bh" + std::to_string(id));
+    GRParmParse bh_pp("bh" + std::to_string(a_id));
 
     double mass;
     bh_pp.get("mass", mass);
@@ -73,8 +73,8 @@ void BoostedBHInitialData::params_t::fill_params()
     }
 }
 
-AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(int id)
-    : m_params(id)
+AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(int a_id)
+    : m_params(a_id)
 {
     m_params.fill_params();
 }

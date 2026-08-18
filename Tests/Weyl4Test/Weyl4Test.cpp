@@ -82,7 +82,8 @@ void run_weyl4_test()
         GRParmParse pp;
         GRParmParse extraction_pp("weyl_extraction");
         std::array<double, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
-        int formulation = CCZ4RHS<>::USE_CCZ4;
+        int formulation{};
+        formulation = CCZ4RHS<>::USE_CCZ4;
         extraction_pp.queryAdd("center", center);
         pp.queryAdd("ccz4.formulation", formulation);
 

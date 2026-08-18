@@ -111,7 +111,8 @@ inline void CCZ4_params_t::check_params()
 {
     GRParmParse ccz4_pp("ccz4");
 
-    int formulation = CCZ4RHS<>::USE_CCZ4;
+    int formulation{};
+    formulation = CCZ4RHS<>::USE_CCZ4;
     ccz4_pp.queryAdd("formulation", formulation);
     if (formulation != CCZ4RHS<>::USE_CCZ4 &&
         formulation != CCZ4RHS<>::USE_BSSN)
@@ -121,12 +122,15 @@ inline void CCZ4_params_t::check_params()
 
     if (formulation == CCZ4RHS<>::USE_BSSN)
     {
-        if (ccz4_pp.contains("kappa1") || ccz4_pp.contains("kappa2") ||
-            ccz4_pp.contains("kappa3"))
+        for (const char *kappa_name : {"kappa1", "kappa2", "kappa3"})
         {
-            ccz4_pp.warning("kappa1/2/3",
-                            "should not be provided with BSSN formulation, "
-                            "setting them all to zero");
+            if (ccz4_pp.contains(kappa_name))
+            {
+                ccz4_pp.warning(
+                    kappa_name,
+                    "should not be provided with BSSN formulation, setting "
+                    "it to zero");
+            }
         }
         ccz4_pp.add("kappa1", 0.0);
         ccz4_pp.add("kappa2", 0.0);

@@ -13,8 +13,8 @@
 
 struct puncture_tracker_params_t
 {
-    bool disable_writeout; // if true, don't write .dat file (doesn't
-                           // affect checkpoint and plotfiles)
+    bool disable_writeout{}; // if true, don't write .dat file (doesn't
+                             // affect checkpoint and plotfiles)
     std::string filename;
     std::string checkpoint_subdir;
     std::string full_filename;
@@ -43,9 +43,9 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 
   private:
 
-    params_t m_params;
+    params_t m_params{};
 
-    amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords;
+    amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords{};
 
     GRAMR *m_gr_amr{nullptr};
 
@@ -84,6 +84,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
                             &a_puncture_coords);
 
     //! Get the puncture coordinates
+    [[nodiscard]]
     const amrex::Array<amrex::Real, num_puncture_coords> &
     get_puncture_coords() const;
 
@@ -112,6 +113,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     void write_initial_punctures() const;
 
     //! SmallDataIO requires a std::vector to write the coords
+    [[nodiscard]]
     std::vector<amrex::Real> get_puncture_vector() const;
 };
 

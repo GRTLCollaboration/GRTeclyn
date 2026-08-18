@@ -98,9 +98,9 @@ class Weyl4
     std::array<double, AMREX_SPACEDIM> m_center; //!< The grid center
     double m_dx;                                 //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
-    int m_out_comp;    //!< Which commponent to store Weyl4_Re (Weyl4_Im will be
-                       //!< m_out_comp+1)
-    int m_formulation; //!< CCZ4 or BSSN?
+    int m_out_comp; //!< Which commponent to store Weyl4_Re (Weyl4_Im will be
+                    //!< m_out_comp+1)
+    int m_formulation{}; //!< CCZ4 or BSSN?
 
     //! Compute spatial volume element
 

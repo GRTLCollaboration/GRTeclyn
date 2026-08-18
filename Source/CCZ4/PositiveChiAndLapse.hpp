@@ -14,8 +14,8 @@
 class PositiveChiAndLapse
 {
   private:
-    double m_min_chi;
-    double m_min_lapse;
+    double m_min_chi{};
+    double m_min_lapse{};
 
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)

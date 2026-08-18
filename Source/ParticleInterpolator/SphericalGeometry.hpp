@@ -66,22 +66,21 @@ class SphericalGeometry
     //! returns the Cartesian coordinate in direction a_dir with specified
     //! radius, theta and phi.
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     [[nodiscard]] double get_grid_coord(int a_dir, double a_radius,
                                         double a_theta, double a_phi) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-        switch (a_dir)
+        if (a_dir < 0 || a_dir >= AMREX_SPACEDIM)
         {
-        case (0):
-            return m_center[0] + a_radius * sin(a_theta) * cos(a_phi);
-        case (1):
-            return m_center[1] + a_radius * sin(a_theta) * sin(a_phi);
-        case (2):
-            return m_center[2] + a_radius * cos(a_theta);
-        default:
             amrex::Abort("SphericalGeometry: Direction not supported");
-            return 0.;
         }
+
+        const double cylindrical_radius = a_radius * sin(a_theta);
+        const std::array<double, AMREX_SPACEDIM> displacement{AMREX_D_DECL(
+            cylindrical_radius * cos(a_phi), cylindrical_radius * sin(a_phi),
+            a_radius * cos(a_theta))};
+        return m_center[a_dir] + displacement[a_dir];
     }
 
     //! returns the area element on a sphere with radius a_radius at the point

@@ -103,6 +103,7 @@ class GRParmParse : public amrex::ParmParse
     /// Loads a vector with num_comp components from the parameter file, if the
     /// vector isn't defined, it is set to the supplied default
     template <class data_t>
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void load(const char *name, std::vector<data_t> &vector, const int num_comp,
               const std::vector<data_t> &default_vector)
     {
@@ -129,22 +130,20 @@ class GRParmParse : public amrex::ParmParse
              std::vector<data_t>(num_comp, default_value));
     }
 
-    void error(const char *name, const std::string &a_error_message)
+    void error(const char *name, const std::string &a_error_message) const
     {
-        std::string error_message = "Error in parameter " +
-                                    this->prefixedName(name) +
-                                    " with message: " + a_error_message;
+        const std::string error_message =
+            diagnostic_message("Error", name, a_error_message);
         if (amrex::ParallelDescriptor::IOProcessor())
         {
             amrex::Abort(error_message.c_str());
         }
     }
 
-    void warning(const char *name, const std::string &a_warning_message)
+    void warning(const char *name, const std::string &a_warning_message) const
     {
-        std::string warning_message = "Warning from parameter " +
-                                      this->prefixedName(name) +
-                                      " with message: " + a_warning_message;
+        const std::string warning_message =
+            diagnostic_message("Warning", name, a_warning_message);
         if (amrex::ParallelDescriptor::IOProcessor())
         {
             amrex::Warning(warning_message.c_str());
@@ -152,6 +151,36 @@ class GRParmParse : public amrex::ParmParse
     }
 
   protected:
+    [[nodiscard]] std::string
+    diagnostic_message(const char *a_diagnostic_type, const char *name,
+                       const std::string &a_message) const
+    {
+        std::vector<std::string> values;
+        getarr(name, values);
+
+        std::string value_string;
+        if (values.size() > 1)
+        {
+            value_string += "[";
+        }
+        for (std::size_t ivalue = 0; ivalue < values.size(); ++ivalue)
+        {
+            if (ivalue > 0)
+            {
+                value_string += " ";
+            }
+            value_string += values[ivalue];
+        }
+        if (values.size() > 1)
+        {
+            value_string += "]";
+        }
+
+        return std::string(a_diagnostic_type) + " from parameter " +
+               this->prefixedName(name) + " = " + value_string + ": " +
+               a_message;
+    }
+
     template <typename data_t,
               std::enable_if_t<
                   !ArrayTools::is_std_array_or_vector<data_t>::value,
