@@ -209,14 +209,14 @@ def main() -> int:
     parser.add_argument(
         "source_eval",
         type=Path,
-        help="Source eval dir, e.g. runs/grtresna_qd/qd_.../eval_000057",
+        help="Source eval dir, e.g. runs/neuralspacetime/search/map_elites/qd_.../eval_000057",
     )
     parser.add_argument("--name", required=True, help="Output episode name")
     parser.add_argument(
         "--runs-dir",
         type=Path,
         default=None,
-        help="Parent output dir (default: runs/grtresna_promote)",
+        help="Parent output dir (default: runs/neuralspacetime/hq)",
     )
     parser.add_argument("--gpu", default="0", help="CUDA device id(s)")
     parser.add_argument(
@@ -353,7 +353,7 @@ def main() -> int:
     runs_dir = (
         args.runs_dir.expanduser().resolve()
         if args.runs_dir is not None
-        else repo_root / "runs" / "grtresna_promote"
+        else repo_root / "runs" / "neuralspacetime" / "hq"
     )
     runs_dir.mkdir(parents=True, exist_ok=True)
 

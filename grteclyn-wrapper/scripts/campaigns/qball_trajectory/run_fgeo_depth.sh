@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Q-ball trajectory MAP-Elites — pure DEPTH hunt (f_geo_depth).
 #
-# Motivation (see runs/grtresna_qd/qball_traj_fgeo_v1/CAMPAIGN_RESULTS.md §3.2):
+# Motivation (see runs/neuralspacetime/search/map_elites/qball_traj_fgeo_v1/CAMPAIGN_RESULTS.md §3.2):
 # under f_geo_max the depth signal saturates at 20% and is multiplied by
 # matter retention, so the v1 campaign optimized retention, not depth — the
 # deepest corridor ever seen (eval 370, f_geo=0.383) scored 4x below the
@@ -42,7 +42,7 @@ export GRTECLYN_GEO_MAX_EMISSIONS="${GRTECLYN_GEO_MAX_EMISSIONS:-10}"
 # productive corner of the 39-D space for a depth hunt.  Each seed is
 # re-evaluated under the current physics (stop_time=32) and scored with
 # f_geo_depth.
-FGEO_V1_DIR="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/grtresna_qd/qball_traj_fgeo_v1"
+FGEO_V1_DIR="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/neuralspacetime/search/map_elites/qball_traj_fgeo_v1"
 if [[ -z "${SEED_EVAL_DIRS:-}" && -d "${FGEO_V1_DIR}" ]]; then
   SEED_EVAL_DIRS="$(ls -d "${FGEO_V1_DIR}"/eval_* 2>/dev/null | tr '\n' ' ')"
 fi
@@ -56,6 +56,6 @@ export RANKS="${RANKS:-1}"
 # Stop handle for scripts/campaigns/stop_campaign.sh.  exec preserves the PID,
 # so registering here records the pid run.sh will actually run under.
 source "${SCRIPT_DIR}/../lib/launcher_common.sh"
-campaign_register_launcher "$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/grtresna_qd/${QD_NAME}"
+campaign_register_launcher "$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/neuralspacetime/search/map_elites/${QD_NAME}"
 
 exec bash "${SCRIPT_DIR}/run.sh"

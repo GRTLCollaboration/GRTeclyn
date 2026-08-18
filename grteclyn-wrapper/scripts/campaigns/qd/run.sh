@@ -10,7 +10,7 @@ _campaign_resolve_python
 
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
 
-RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_qd}"
+RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/neuralspacetime/search/map_elites}"
 QD_ITERATIONS="${QD_ITERATIONS:-10}"
 QD_TARGET_EVALS="${QD_TARGET_EVALS:-}"
 QD_RESUME="${QD_RESUME:-0}"

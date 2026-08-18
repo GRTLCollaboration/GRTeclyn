@@ -3,7 +3,7 @@
 # Source after env.sh; expects GRTECLYN_ROOT and WRAPPER_ROOT.
 set -euo pipefail
 
-RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_promote}"
+RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/neuralspacetime/hq}"
 N_FULL="${N_FULL:-256}"
 L_FULL="${L_FULL:-128}"
 GRTRESNA_DOMAIN_L="${GRTRESNA_DOMAIN_L:-${L_FULL}}"

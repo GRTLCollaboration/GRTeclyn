@@ -36,7 +36,7 @@ export STOP_TIME="${STOP_TIME:-26}"
 # evolving f_geo up to 0.22) so the search starts in the productive corner of
 # the 39-D space instead of rediscovering it from random throws.  Each seed is
 # re-evaluated under the current physics and scored with f_geo_max.
-PUMP_V2_DIR="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/grtresna_qd/qball_traj_pump_v2"
+PUMP_V2_DIR="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/neuralspacetime/search/map_elites/qball_traj_pump_v2"
 if [[ -z "${SEED_EVAL_DIRS:-}" && -d "${PUMP_V2_DIR}" ]]; then
   SEED_EVAL_DIRS="$(ls -d "${PUMP_V2_DIR}"/eval_* 2>/dev/null | tr '\n' ' ')"
 fi
@@ -50,6 +50,6 @@ export RANKS="${RANKS:-1}"
 # Stop handle for scripts/campaigns/stop_campaign.sh.  exec preserves the PID,
 # so registering here records the pid run.sh will actually run under.
 source "${SCRIPT_DIR}/../lib/launcher_common.sh"
-campaign_register_launcher "$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/grtresna_qd/${QD_NAME}"
+campaign_register_launcher "$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)/runs/neuralspacetime/search/map_elites/${QD_NAME}"
 
 exec bash "${SCRIPT_DIR}/run.sh"

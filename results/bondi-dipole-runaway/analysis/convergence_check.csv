@@ -35,12 +35,12 @@ equal-mass pair (pm_eqm),pair drift,60.0,256,6.226512
 equal-mass pair (pm_eqm),gap,60.0,128,1.388057
 equal-mass pair (pm_eqm),gap,60.0,192,1.395228
 equal-mass pair (pm_eqm),gap,60.0,256,1.420316
-control (pp),control drift,15.0,128,-0.040522
-control (pp),control drift,15.0,192,-0.022881
-control (pp),control drift,15.0,256,-0.010661
-control (pp),control drift,20.0,128,-0.062834
-control (pp),control drift,20.0,192,-0.038561
-control (pp),control drift,20.0,256,-0.021796
-control (pp),control drift,60.0,128,0.149027
-control (pp),control drift,60.0,192,0.079938
-control (pp),control drift,60.0,256,0.035858
+two-positive control (pp),control drift,15.0,128,-0.040522
+two-positive control (pp),control drift,15.0,192,-0.022881
+two-positive control (pp),control drift,15.0,256,-0.010661
+two-positive control (pp),control drift,20.0,128,-0.062834
+two-positive control (pp),control drift,20.0,192,-0.038561
+two-positive control (pp),control drift,20.0,256,-0.021796
+two-positive control (pp),control drift,60.0,128,0.149027
+two-positive control (pp),control drift,60.0,192,0.079938
+two-positive control (pp),control drift,60.0,256,0.035858

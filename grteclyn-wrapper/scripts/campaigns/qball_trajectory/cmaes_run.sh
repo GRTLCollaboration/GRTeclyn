@@ -11,7 +11,7 @@
 #
 # Overrides:
 #   RUN_NAME=qball_traj_bicomplex_cmaes_v1
-#   WARM_START_TRAJECTORY=../runs/grtresna_qd/qball_traj_bicomplex_v1/trajectory.jsonl
+#   WARM_START_TRAJECTORY=../runs/neuralspacetime/search/map_elites/qball_traj_bicomplex_v1/trajectory.jsonl
 #   WARM_START_TOP_K=1 TARGET_EVALS=150 GPU_IDS="0 1 2 3 4 5 6 7"
 #   DRY_RUN=1   # smoke without GPU
 set -euo pipefail
@@ -24,8 +24,8 @@ REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)"
 
 # --- CMA-ES run identity ---
 export RUN_NAME="${RUN_NAME:-qball_traj_bicomplex_cmaes_v1}"
-export RUNS_DIR="${RUNS_DIR:-${REPO_ROOT}/runs/grtresna_cmaes}"
-export WARM_START_TRAJECTORY="${WARM_START_TRAJECTORY:-${REPO_ROOT}/runs/grtresna_qd/qball_traj_bicomplex_v1/trajectory.jsonl}"
+export RUNS_DIR="${RUNS_DIR:-${REPO_ROOT}/runs/neuralspacetime/search/cma_es}"
+export WARM_START_TRAJECTORY="${WARM_START_TRAJECTORY:-${REPO_ROOT}/runs/neuralspacetime/search/map_elites/qball_traj_bicomplex_v1/trajectory.jsonl}"
 export WARM_START_TOP_K="${WARM_START_TOP_K:-1}"
 export WARM_START_JITTER="${WARM_START_JITTER:-0.05}"
 export SIGMA0="${SIGMA0:-0.05}"

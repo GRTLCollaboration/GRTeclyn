@@ -50,7 +50,36 @@ gpu_held() {
   return 1
 }
 
-echo "[chain-gpu] waiting for '${WAIT_DIR}' to release its GPU before starting ${TAG}"
+# The predecessor does a CPU-only constraint solve (up to ~70 min at N=256)
+# BEFORE it ever touches the GPU.  Waiting only for main3d to be ABSENT would
+# fire immediately during that solve -- which is exactly what happened on
+# 2026-08-17, launching a whole successor ladder hours early.  So wait for the
+# evolution to appear first, and only then for it to finish.  If the
+# predecessor's launcher dies without ever reaching the GPU (failed solve),
+# stop waiting rather than hanging forever.
+launcher_alive() {
+  local pid cmd
+  for pid in $(pgrep -f "${WAIT_DIR}" 2>/dev/null); do
+    [ "${pid}" = "$$" ] && continue
+    cmd="$(tr '\0' ' ' < "/proc/${pid}/cmdline" 2>/dev/null || true)"
+    case "${cmd}" in
+      *chain_next.sh*|*chain_on_gpu_free.sh*) continue ;;
+      *replay_eval.py*|*run_pair_selfgrav.sh*|*run_single_selfgrav.sh*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+echo "[chain-gpu] waiting for '${WAIT_DIR}' to reach its GPU before starting ${TAG}"
+while ! gpu_held; do
+  if ! launcher_alive; then
+    echo "[chain-gpu] '${WAIT_DIR}' exited without reaching the GPU -- not waiting further"
+    break
+  fi
+  sleep 30
+done
+
+echo "[chain-gpu] waiting for '${WAIT_DIR}' to release its GPU"
 while gpu_held; do
   sleep 30
 done

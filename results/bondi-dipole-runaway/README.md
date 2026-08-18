@@ -124,6 +124,12 @@ The two `boxC` cells trade resolution for reach: 256³ spread over twice the
 width gives cell size 0.50, so compare them against the `n128` column, not
 `n256`. Their drifts are measured from the box centre `64 64 64`, not `32 32 32`.
 
+A second phase is running (launched 2026-08-17 evening) and will appear here as
+`convA_mm_n128/192/256` — the two-phantom control on the same ladder, which so
+far rests on a single adaptive-mesh run — and `convA_pm_sep12_n128/192/256`,
+the pair started 12 apart instead of 8, to test whether the runaway survives at
+a constant gap. Re-running the pack script picks them up automatically.
+
 ### What the campaign shows
 
 Full tables: [`analysis/convergence_check.md`](analysis/convergence_check.md).

@@ -14,8 +14,8 @@ export CAMPAIGN_NAME="bicomplex_cmaes_v1"
 export MANIFEST="${MANIFEST:-${CAMPAIGN_DIR}/manifest.json}"
 export VALIDATION_LAUNCH_LOG_DIR="${VALIDATION_LAUNCH_LOG_DIR:-${GRTECLYN_ROOT}/research/neuralspacetime/validation/bicomplex_cmaes/launches}"
 
-export LIVE_RUN="${LIVE_RUN:-${GRTECLYN_ROOT}/runs/grtresna_cmaes/qball_traj_bicomplex_cmaes_v1}"
-export FREEZE_ROOT="${FREEZE_ROOT:-${GRTECLYN_ROOT}/runs/grtresna_promote/sources/qball_traj_bicomplex_cmaes_v1}"
+export LIVE_RUN="${LIVE_RUN:-${GRTECLYN_ROOT}/runs/neuralspacetime/search/cma_es/qball_traj_bicomplex_cmaes_v1}"
+export FREEZE_ROOT="${FREEZE_ROOT:-${GRTECLYN_ROOT}/runs/neuralspacetime/hq/sources/qball_traj_bicomplex_cmaes_v1}"
 
 # Physics (must match QD/CMA search).
 export RL_PUMP_STOP_TIME="${RL_PUMP_STOP_TIME:-4}"

@@ -11,7 +11,7 @@ _campaign_resolve_python
 
 export GRTRESNA_ROOT="${GRTRESNA_ROOT:-$(cd -- "${GRTECLYN_ROOT}/.." && pwd)/GRTresna}"
 
-RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/grtresna_cmaes}"
+RUNS_DIR="${RUNS_DIR:-${GRTECLYN_ROOT}/runs/neuralspacetime/search/cma_es}"
 MAX_GENERATIONS="${MAX_GENERATIONS:-25}"
 GPU_IDS="${GPU_IDS:-0 1 2 3 4 5 6 7}"
 # Population defaults to 4x the GPU slots, NOT #GPUs: CMA-ES blocks at every

@@ -7,7 +7,7 @@
 #
 #   --dry-run    print what would be killed, kill nothing
 #   arguments    absolute runs dir, or a name resolved under
-#                runs/grtresna_qd/<name> then runs/<name>
+#                runs/neuralspacetime/search/map_elites/<name> then runs/<name>
 #
 # Why this exists (2026-08-05 post-mortem, bondi_dipole_v1): stopping a
 # detached campaign by the pid captured at launch, or by pattern-killing its
@@ -41,7 +41,7 @@ resolve_dir() {
   local arg="$1"
   if [[ -d "$arg" ]]; then (cd -- "$arg" && pwd); return 0; fi
   local base
-  for base in "${REPO_ROOT}/runs/grtresna_qd" "${REPO_ROOT}/runs"; do
+  for base in "${REPO_ROOT}/runs/neuralspacetime/search/map_elites" "${REPO_ROOT}/runs/neuralspacetime/search/cma_es" "${REPO_ROOT}/runs/neuralspacetime/hq" "${REPO_ROOT}/runs"; do
     if [[ -d "${base}/${arg}" ]]; then echo "${base}/${arg}"; return 0; fi
   done
   return 1

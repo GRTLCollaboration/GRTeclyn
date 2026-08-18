@@ -52,4 +52,4 @@ GPU_ID="${rf_start}" bash "${RUN}" BCMA-RF
 
 echo
 echo "Series = RC + RM + RF under ${CAMPAIGN_NAME}"
-echo "  ls -lt ${GRTECLYN_ROOT}/runs/grtresna_promote/bcma_*_hq_eval* | head"
+echo "  ls -lt ${GRTECLYN_ROOT}/runs/neuralspacetime/hq/bcma_*_hq_eval* | head"

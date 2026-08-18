@@ -34,7 +34,9 @@ T_REF = (15.0, 20.0)   # fixed reference times quoted in the write-ups
 GROUPS = (
     ("runaway pair (pm)", "convA_pm_n"),
     ("equal-mass pair (pm_eqm)", "convA_pm_eqm_n"),
-    ("control (pp)", "convA_pp_n"),
+    ("wider pair, separation 12 (pm_sep12)", "convA_pm_sep12_n"),
+    ("two-positive control (pp)", "convA_pp_n"),
+    ("two-phantom control (mm)", "convA_mm_n"),
 )
 
 
@@ -67,11 +69,18 @@ def quantities(prefix: str, rows) -> dict[str, float | None]:
         c = interp(rows, t, 1)
         p = interp(rows, t, 2)
         out = {}
-        if not math.isnan(p):  # mixed cell: pair drift + gap
+        if not math.isnan(c) and not math.isnan(p):
+            # mixed cell: both sectors occupied
             out["pair drift"] = 0.5 * (c + p) - CENTER
             out["gap"] = c - p
-        else:                  # control cell: canonical drift = the artefact
+        elif not math.isnan(c):
+            # two-positive control: only the canonical sector exists, and its
+            # barycentre covers both stars -- any drift is the artefact
             out["control drift"] = c - CENTER
+        elif not math.isnan(p):
+            # two-phantom control: same, but both stars live in the phantom
+            # sector, so the canonical column is the empty one
+            out["control drift"] = p - CENTER
         return out
     return at
 

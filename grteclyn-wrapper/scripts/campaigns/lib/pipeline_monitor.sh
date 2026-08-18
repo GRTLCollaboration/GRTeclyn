@@ -8,8 +8,8 @@ ftl_pipeline_monitor_begin() {
 
   FTL_PIPELINE_QD_NAME="${qd_name}"
   FTL_PIPELINE_GPU_IDS="${gpu_ids}"
-  FTL_PIPELINE_LOG_DIR="${GRTECLYN_ROOT}/runs/_logs"
-  FTL_PIPELINE_RUN_DIR="${GRTECLYN_ROOT}/runs/grtresna_qd/${qd_name}"
+  FTL_PIPELINE_LOG_DIR="${GRTECLYN_ROOT}/runs/neuralspacetime/_logs"
+  FTL_PIPELINE_RUN_DIR="${GRTECLYN_ROOT}/runs/neuralspacetime/search/map_elites/${qd_name}"
   FTL_PIPELINE_LOG="${FTL_PIPELINE_LOG_DIR}/${qd_name}.log"
   FTL_PIPELINE_GPU_SAMPLES="${FTL_PIPELINE_LOG_DIR}/${qd_name}.gpu_samples.csv"
   FTL_PIPELINE_MONITOR_CSV="${FTL_PIPELINE_LOG_DIR}/${qd_name}.pipeline_monitor.csv"
