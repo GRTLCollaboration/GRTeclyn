@@ -12,6 +12,7 @@
 
 // State of AHFinder (h and v for all particles) to be evolved by amrex
 // timeintegrator
+struct AHState
 {
     std::vector<double> h;
     std::vector<double> v;
