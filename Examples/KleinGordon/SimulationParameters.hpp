@@ -11,7 +11,6 @@
 #include "GRParmParse.hpp"
 
 // Problem specific includes:
-#include "ArrayTools.hpp"
 #include "SineGordon.hpp"
 #include "Wave.hpp"
 

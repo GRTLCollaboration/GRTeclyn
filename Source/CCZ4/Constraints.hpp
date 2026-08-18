@@ -20,7 +20,6 @@
 #include "TensorAlgebra.hpp"
 
 // AMReX includes
-#include <AMReX_Array.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_REAL.H>
 

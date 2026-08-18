@@ -78,7 +78,6 @@ void GRAMRLevel::variableCleanUp()
     derive_lst.clear();
 }
 
-// TODO: See if this is used, as boundaries and nan_check not set
 GRAMRLevel::GRAMRLevel() = default;
 
 GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,

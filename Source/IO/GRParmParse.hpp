@@ -134,7 +134,7 @@ class GRParmParse : public amrex::ParmParse
         std::string error_message = "Error in parameter " +
                                     this->prefixedName(name) +
                                     " with message: " + a_error_message;
-        if (amrex::ParallelDescriptor::MyProc() == 0)
+        if (amrex::ParallelDescriptor::IOProcessor())
         {
             amrex::Abort(error_message.c_str());
         }
@@ -145,7 +145,7 @@ class GRParmParse : public amrex::ParmParse
         std::string warning_message = "Warning from parameter " +
                                       this->prefixedName(name) +
                                       " with message: " + a_warning_message;
-        if (amrex::ParallelDescriptor::MyProc() == 0)
+        if (amrex::ParallelDescriptor::IOProcessor())
         {
             amrex::Warning(warning_message.c_str());
         }

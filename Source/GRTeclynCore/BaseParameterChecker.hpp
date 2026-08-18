@@ -11,15 +11,10 @@
 #include "BoundaryConditions.hpp"
 #include "FilesystemTools.hpp"
 #include "GRParmParse.hpp"
-#include "StateVariables.hpp"
-#include "VariableType.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <string>
 #include <unistd.h> // gives 'access'
-
-// add this type alias here for backwards compatibility
 
 class BaseParameterChecker
 {

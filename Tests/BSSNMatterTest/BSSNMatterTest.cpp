@@ -119,8 +119,6 @@ void run_bssn_matter_test()
                           FourthOrderDerivatives>
             current_ccz4_rhs{dx, G_Newton};
 
-        FourthOrderDerivatives deriv{dx};
-
         // Set up the constraints
         constexpr int num_bssn_matter_vars = c_Pi + 1;
         constexpr int dcomp                = num_bssn_matter_vars;

@@ -10,7 +10,6 @@
 #include "BaseParameterChecker.hpp"
 
 // Problem specific includes:
-#include "ArrayTools.hpp"
 #include "BoostedBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
 #include "PunctureTracker.hpp"
