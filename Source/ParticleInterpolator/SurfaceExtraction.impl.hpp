@@ -242,11 +242,15 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
                              "derived groups!");
             }
         }
-        a_interpolator->interp(query, derived_name, m_time);
+        a_interpolator->interp(query, false, derived_name,
+                               m_time); // do not refresh particles as we assume
+                                        // the query remains the same
     }
     else
     {
-        a_interpolator->interp(query);
+        a_interpolator->interp(query,
+                               false); // do not refresh particles as we assume
+                                       // the query remains the same
     }
 
     m_done_extraction = true;

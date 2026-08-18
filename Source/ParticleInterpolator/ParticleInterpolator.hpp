@@ -148,8 +148,8 @@ class ParticleInterpolator
     // a_refresh_particles flag allows to "refresh" the particles, if e.g. the
     // user opts to change the query in the interpolation
     void interp(const InterpolationQueryParticle &query,
-                const std::string &name_derived = "", double time_derived = 0.0,
-                bool a_refresh_particles = false);
+                bool a_refresh_particles, const std::string &name_derived = "",
+                double time_derived = 0.0);
 
     void ensure_redistributed();
 

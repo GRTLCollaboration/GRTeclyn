@@ -296,8 +296,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 // It uses/collates together all the methods defined in this class
 template <int num_components>
 void ParticleInterpolator<num_components>::interp(
-    const InterpolationQueryParticle &query, const std::string &name_derived,
-    double time_derived /*=0.0*/, bool a_refresh_particles /*=false*/)
+    const InterpolationQueryParticle &query, bool a_refresh_particles,
+    const std::string &name_derived, double time_derived /*=0.0*/)
 {
     AMREX_ASSERT(m_initialized);
 
