@@ -50,8 +50,7 @@ template <int num_components> void AHFinder<num_components>::find()
 {
     // Create amrex time integrator
     // Allows for different (explicit) time stepping methods
-    AHState S = m_state;
-    m_integrator = std::make_unique<amrex::TimeIntegrator<AHState>>(S);
+    m_integrator = std::make_unique<amrex::TimeIntegrator<AHState>>(m_state);
     m_integrator->set_rhs(
         [this](AHState &rhs, AHState &state, amrex::Real time)
         { this->compute_rhs(rhs, state, time); });
@@ -59,8 +58,8 @@ template <int num_components> void AHFinder<num_components>::find()
     int n_iter = 0;
 
 
-    this->set_particle_positions(S.h);
-    compute_theta(S.h);
+    this->set_particle_positions(m_state.h);
+    compute_theta(m_state.h);
 
     double theta_old = inf_norm(m_theta_vals);
 
@@ -90,18 +89,18 @@ template <int num_components> void AHFinder<num_components>::find()
     };
     write_particles(n_iter);
 
-    AHState S_new = S;
+    AHState new_state = m_state;
 
     while (theta_old > m_tol)
     {
         // Advance one pseudo-time step with the AMReX integrator.
         m_integrator->set_time_step(dt);
-        m_integrator->advance(S, S_new, n_iter * dt, dt);
-        std::swap(S, S_new);
+        m_integrator->advance(m_state, new_state, n_iter * dt, dt);
+        std::swap(m_state, new_state);
 
         // Evaluate Theta at the new state
-        this->set_particle_positions(S.h);
-        compute_theta(S.h);
+        this->set_particle_positions(m_state.h);
+        compute_theta(m_state.h);
 
         double theta_new = inf_norm(m_theta_vals);
 
@@ -112,7 +111,7 @@ template <int num_components> void AHFinder<num_components>::find()
         amrex::AllPrint() << "-------------------------\n";
 
         // Adapt the global timestep for the next step.
-        dt = update_dt(dt, theta_old, theta_new, S.h);
+        dt = update_dt(dt, theta_old, theta_new, m_state.h);
         amrex::Print() << "dt = " << dt << "\n";
 
         theta_old = theta_new;
@@ -127,8 +126,6 @@ template <int num_components> void AHFinder<num_components>::find()
     theta_log.close();
     dt_log.close();
 
-    // Update internal state
-    m_state = S;
 
     amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "
                       << theta_old << " in " << n_iter << " iterations\n";
