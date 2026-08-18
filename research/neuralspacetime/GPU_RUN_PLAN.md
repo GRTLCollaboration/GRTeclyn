@@ -89,8 +89,12 @@ rule** → HQ → matrix — is missing its refinement stage. That run comes fir
 - **4 GPUs, ~81 GB each, one node, single rank.** MPI is broken; never raise
   RANKS. The old RF (N = 384, 3 ranks) and DL (N = 320, 2 ranks) **cannot be
   reproduced** — the proven single-GPU ceiling at max_level 3 is N = 256
-  (BCMA-RM). Anything above 256 gets a short memory probe (§12.4) before it
-  enters the queue.
+  (BCMA-RM), and N = 384 **OOMs outright on one GPU** (confirmed 2026-08-18).
+  The measured budget (bondi node): **8.8 GB at N = 128 scaling as N³** →
+  ~30 GB at 192, ~47 GB at 224, ~70 GB at 256, **~100 GB at 288 — over the
+  card even before AMR overhead**. So the ladder plans on 192/224/256 and
+  treats anything above 256 as a probe-only curiosity (§12.4), never a
+  dependency.
 - **CMA-ES population ≥ 4 × GPU slots, never = GPU count** (the generation
   barrier starves the pipeline otherwise).
 - **Composite constraint norms are mandatory.** Every paper-tier run must be
@@ -149,10 +153,12 @@ anything else runs.
 | FMAX-RM (headline HQ) | FMAX-champ | L = 128, N = 256, max_level 3, regrid 0.02, **t = 64**, emission sweep t_emit = 0…48 step 2, 5 rays, 3 axes, dense metric stack | 0 |
 | DEPTH-X (Pareto exhibit) | depth eval 195 (pack) | same config, objective `f_geo_depth` | 1 |
 | DEPTH-A (fallback exhibit) | depth eval 185 (pack) | same — the clean-branch genome, so the branch question answers itself in one phase | 2 |
-| memory probes | FMAX-champ | N = 320 and N = 288 at max_level 3, t = 2, watch `nvidia-smi` | 3 |
+| memory probes | FMAX-champ | N = 288 and N = 240 at max_level 3, t = 2, watch `nvidia-smi` — 288 is expected to fail (for the record); if 240 fits it upgrades the intermediate rung from 224 | 3 |
 
 (Candidate-146 re-measure runs were dropped 2026-08-18: the paper is rebuilt
-on post-fix provenance only — §12.9.)
+on post-fix provenance only — §12.9. The GPU column is the nominal
+assignment; in practice every run goes through the §12.10 queue and takes
+whichever GPU frees first, with its constraint solve prestaged on CPU.)
 
 **Decisions this phase makes:**
 
@@ -186,14 +192,14 @@ framework that ran the candidate-146 matrix:
 |---|---|---|---|---|
 | FMAX-RC | 128 | 192 | 0.667 | coarse |
 | FMAX-RM | 128 | 256 | 0.500 | reference — reuse Phase 2 |
-| FMAX-RF | 128 | 288–320 | 0.44–0.40 | fine — as the probe allows; say plainly in the paper that N = 384 is not reachable single-rank |
+| FMAX-RI | 128 | 224 | 0.571 | intermediate rung — the ladder is **192/224/256**; N ≥ 288 does not fit one card (§2 memory table) and N = 384 OOMs, so 256 is the finest grid and the paper says so plainly |
 | FMAX-DS | 96 | 192 | 0.500 | domain ladder |
-| FMAX-DL | 160 | 320 | 0.500 | domain ladder — only if the N = 320 probe passed; else drop and rely on DS + the search-tier L = 64 vs 128 comparison |
+| FMAX-DS2 | 112 | 224 | 0.500 | second domain rung — replaces the old DL: L = 160/N = 320 needs ~137 GB, impossible single-GPU; the domain series is L = 96/112/128 at fixed h |
 | FMAX-PF | 128 | 256 | 0.500 | pump-free twin (t_pump = 0), t = 64 |
 | freefall companions | — | — | — | `manifest_freefall.json` cells on the stored stacks |
 | DEPTH-RC | 128 | 192 | 0.667 | **depth mini-ladder** — result 2 gets its own error bar |
-| DEPTH-RM | 128 | 256 | 0.500 | = the Phase-2 DEPTH-X run, reused |
-| DEPTH-RF | 128 | 288–320 | 0.44–0.40 | probe-gated, same N as FMAX-RF; no domain ladder for depth |
+| DEPTH-RI | 128 | 224 | 0.571 | same intermediate rung as FMAX |
+| DEPTH-RM | 128 | 256 | 0.500 | = the Phase-2 DEPTH-X run, reused as the finest rung |
 
 The depth mini-ladder (commands in §12.5) is deliberately small: its job is
 to turn the ~48 % from a search-tier window-clipped number into a defensible
@@ -316,10 +322,12 @@ Before the rewrite is called done, walk both debug logs' claim tables:
 | 6 | Phase 4: FRONTIER-1 efficiency-frontier search | 4 | ~1 day |
 | 7 | Phase 5: NM-1 pilot (NM-2 only on green light); f_ff curve + close-outs on CPU in parallel | 1–4 | 0.5–1 day |
 
-Total ≈ 8–9 GPU-days after the bondi ladders clear. Chain each slot off the
-previous (§12.2) rather than babysitting launches. If the queue must be cut,
-FRONTIER-1 is the first thing to drop and the depth mini-ladder the second —
-both improve the paper, neither blocks it.
+Total ≈ 8–9 GPU-days after the bondi ladders clear — and less wall-clock
+than that suggests, because the §12.10 queue prestages every constraint
+solve on CPU and re-feeds freed GPUs continuously (the old chain pattern
+idled each card up to ~70 min per cell during its solve). If the program
+must be cut, FRONTIER-1 is the first thing to drop and the depth mini-ladder
+the second — both improve the paper, neither blocks it.
 
 ---
 
@@ -348,6 +356,11 @@ both improve the paper, neither blocks it.
 Everything runs from `grteclyn-wrapper/` unless stated. Conventions follow
 [`results/bondi-dipole-runaway/LAUNCH.md`](../../results/bondi-dipole-runaway/LAUNCH.md)
 and the wrapper [`README.md`](../../grteclyn-wrapper/README.md).
+
+§12.3–12.7 give the per-run commands; **§12.10 wraps them in the work queue**
+so the whole program runs hands-off — GPUs re-fed continuously, constraint
+solves prestaged on CPU, nothing babysat. Prefer the queue; the raw commands
+remain the reference for what each job does.
 
 **Run tree (restructured 2026-08-18, see `runs/neuralspacetime/README.md`):**
 everything this paper produces lives under one root —
@@ -411,7 +424,8 @@ cp -r scripts/campaigns/promote/bicomplex_cmaes_v1 scripts/campaigns/promote/fge
 #    manifest.json   : ids FMAX-*, objective_mode f_geo_max,
 #                      defaults stop_time 64, geo_emit_interval 2, geo_max_emissions 25,
 #                      evolution_mpi_ranks 1 on EVERY cell (multi-rank is dead),
-#                      ladder N 192/256/<probe result>, DS L96/N192, DL L160/N320 (probe-gated)
+#                      ladder N 192/224/256 (nothing above 256 — §2 memory table),
+#                      DS L96/N192, DS2 L112/N224
 #    manifest_pumpfree.json / manifest_freefall.json : same edits, t_pump=0 twin + observer cells
 
 # 2. Validate without GPUs:
@@ -426,7 +440,10 @@ DRY_RUN=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh --list
 #     existing descriptor tests; smoke it with QD_TARGET_EVALS=2 before the
 #     real launch.
 
-# 3. Chain Phase 1 to fire when the bondi ladders finish (detached):
+# 3. Chain Phase 1 to fire when the bondi ladders finish (detached).
+#    NOTE: superseded by the §12.10 queue for everything replay-shaped —
+#    keep this until-loop only for the CMA-ES stage itself, which manages
+#    its own 4-GPU pipeline and is not a queue job:
 setsid nohup bash -c 'until ! pgrep -f "bondi_sg_pair" >/dev/null; do sleep 600; done; \
   bash scripts/campaigns/qball_trajectory/cmaes_run.sh' \
   > ../runs/neuralspacetime/search/cma_es/fgeo_max_chain.log 2>&1 < /dev/null & disown
@@ -520,10 +537,12 @@ setsid nohup /usr/bin/env \
   > ../runs/neuralspacetime/hq/depth185_hq.launch.log 2>&1 < /dev/null & disown
 ```
 
-Memory probes for the Phase-3 fine legs (kill after t = 2; ~10 min each):
+Memory probes for the Phase-3 intermediate rung (kill after t = 2; ~10 min
+each — 288 is expected to OOM per the §2 memory table; run it once for the
+record, and if 240 fits use 240 instead of 224):
 
 ```bash
-for N in 320 288; do
+for N in 288 240; do
   .venv/bin/python scripts/campaigns/hq/replay_eval.py \
     "$(ls -d ../runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1/eval_* | head -1)" \
     --name mem_probe_N${N} --runs-dir ../runs/neuralspacetime/hq/probes \
@@ -534,17 +553,17 @@ done
 # watch in a second shell: nvidia-smi --query-gpu=index,memory.used --format=csv -l 10
 ```
 
-Largest N that stays comfortably under ~75 GB becomes FMAX-RF (and gates
-FMAX-DL) in the manifest.
+Largest N that stays comfortably under ~75 GB becomes the FMAX-RI grid in
+the manifest (224 is the safe default; nothing above 256 enters the queue).
 
 ### 12.5 Phase 3 — the matrix
 
 ```bash
 cd grteclyn-wrapper
 GPU_ID=0 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-RC
-GPU_ID=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-RF
+GPU_ID=1 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-RI
 GPU_ID=2 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-DS
-GPU_ID=3 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-DL   # only if probe passed
+GPU_ID=3 bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-DS2
 
 # pump-free twin + freefall companions, same runner, different manifest:
 MANIFEST=scripts/campaigns/promote/fgeo_max_cmaes_v1/manifest_pumpfree.json \
@@ -561,8 +580,8 @@ DEPTH-X command, only the grid changes; slot each onto whichever GPU frees
 first. DEPTH-RM is the Phase-2 run, reused as the middle rung:
 
 ```bash
-for CELL in "depth195_hq_L128_N192_t64 192 2" "depth195_hq_L128_N288_t64 288 3"; do
-  set -- $CELL   # $1 = name, $2 = N (288 → whatever the §12.4 probe passed), $3 = GPU
+for CELL in "depth195_hq_L128_N192_t64 192 2" "depth195_hq_L128_N224_t64 224 3"; do
+  set -- $CELL   # $1 = name, $2 = N (224 → 240 if the §12.4 probe passed), $3 = GPU
   setsid nohup /usr/bin/env \
     GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25 \
     GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1 \
@@ -692,3 +711,110 @@ caveats. Consequences, all applied:
 - `scripts/campaigns/promote/bicomplex_cmaes_v1/` is retired as a live
   campaign and kept only as the clone template for `fgeo_max_cmaes_v1`
   (§12.2).
+
+### 12.10 The queue — press and forget (2026-08-18)
+
+Two pipeline problems, both fixed and tested:
+
+1. **GPUs were chained pairwise, not queued.** Each successor watched one
+   predecessor; nothing generic handed the next job to whichever GPU freed
+   first. New: `scripts/campaigns/lib/gpu_queue.sh` — one detached runner
+   per pool, one worker per slot, jobs claimed atomically from `pending/` in
+   name order, failures isolated in `failed/`, follow-up jobs picked up
+   whenever they appear. Tests: `tests/scripts/test_gpu_queue.py`.
+2. **The constraint solve blocked the GPU.** Every production cell runs a
+   CPU-only GRTresna solve (up to ~70 min at N = 256) before touching its
+   card — the measured bondi bottleneck. New: `--solve-only` on
+   `replay_eval.py` (and `SOLVE_ONLY=1` through the promote framework's
+   `run_batch.sh`) runs just the solve + CPU gates and writes the
+   `initial_data.gridinit`; the evolve job then reuses it via the
+   already-existing `--gridinit` / `GRIDINIT=` path and starts on the GPU
+   instantly. Tests: `tests/search/test_evaluation_phases.py`
+   (solve-only cases).
+
+**Start the runners once — today is fine.** The GPU workers gate on
+`nvidia-smi` used memory, so they wait politely while bondi still owns a
+card and take each device over the moment it clears (this supersedes the
+§12.2 chain-off-bondi until-loop):
+
+```bash
+cd grteclyn-wrapper
+QROOT="$PWD/../runs/neuralspacetime/_queue"
+mkdir -p "$QROOT/gpu/pending" "$QROOT/solve/pending"
+
+setsid nohup /usr/bin/env QUEUE_GPU_MEM_MAX_MB=2000 \
+  bash scripts/campaigns/lib/gpu_queue.sh "$QROOT/gpu" 0 1 2 3 \
+  > "$QROOT/gpu_runner.log" 2>&1 < /dev/null & disown
+# CPU solve pool: 2 slots while bondi still needs the cores, raise to 4 after
+setsid nohup /usr/bin/env \
+  bash scripts/campaigns/lib/gpu_queue.sh "$QROOT/solve" s1 s2 \
+  > "$QROOT/solve_runner.log" 2>&1 < /dev/null & disown
+pgrep -af gpu_queue.sh   # verify both runners per §12.1
+```
+
+**The prestage pattern** (worked example: DEPTH-X). The evolve job is staged
+next to the queue; the solve job releases it only when its gridinit is
+ready, so the GPU pool never sees a job it cannot start instantly. The depth
+exhibits' solves can be enqueued **today** — their genomes exist; FMAX cells
+join after the Phase-1 freeze:
+
+```bash
+cat > "$QROOT/staged_200_depth195_evolve.job" <<EOF
+cd "$PWD"
+export GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25
+export GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1
+.venv/bin/python scripts/campaigns/hq/replay_eval.py \
+  ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+  --name depth195_hq_L128_N256_t64 --runs-dir ../runs/neuralspacetime/hq \
+  --gpu "\$QUEUE_GPU" --n-full 256 --l-full 128 --max-level 3 \
+  --regrid-threshold 0.02 --stop-time 64 --plot-interval 72 \
+  --objective-mode f_geo_depth --evolving-geodesic \
+  --gridinit ../runs/neuralspacetime/hq/presolve/depth195_presolve_N256/initial_data.gridinit \
+  --consumer-radii 12 18 24
+EOF
+
+cat > "$QROOT/solve/pending/100_depth195_solve.job" <<EOF
+cd "$PWD"
+.venv/bin/python scripts/campaigns/hq/replay_eval.py \
+  ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+  --name depth195_presolve_N256 --runs-dir ../runs/neuralspacetime/hq/presolve \
+  --n-full 256 --l-full 128 --max-level 3 \
+  --objective-mode f_geo_depth \
+  --grtresna-ranks 1 --grtresna-iterations 50 --grtresna-timeout 7200 \
+  --solve-only
+mv "$QROOT/staged_200_depth195_evolve.job" "$QROOT/gpu/pending/"
+EOF
+```
+
+Repeat the pair for DEPTH-A (via its §12.4 stub), the depth mini-ladder
+(§12.5 grids), NM-1, and — after the freeze — every FMAX matrix cell
+through the promote framework:
+
+```bash
+# CPU prestage of a matrix cell (solve job body):
+RUNS_DIR=../runs/neuralspacetime/hq/presolve SOLVE_ONLY=1 FOREGROUND=1 GPU_ID=0 \
+  bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-RC
+# matching evolve job body (glob resolves the presolved episode by prefix):
+GRIDINIT="$(ls ../runs/neuralspacetime/hq/presolve/*RC*_hq_eval*/initial_data.gridinit)" \
+  FOREGROUND=1 GPU_ID="$QUEUE_GPU" \
+  bash scripts/campaigns/promote/fgeo_max_cmaes_v1/run.sh FMAX-RC
+```
+
+**Rules that keep it hands-off:**
+
+- Jobs run in the **foreground** of their worker (`FOREGROUND=1` for
+  promote cells; never `setsid`/`nohup` inside a job) — the runner is the
+  only thing detached.
+- Enqueue evolve jobs only via their solve job's `mv` (or directly when no
+  solve is needed, e.g. memory probes) — the GPU pool must never wait on a
+  solve.
+- On-the-fly plotfile extraction is already configured per tier
+  (`CONSUMER_JOBS=2` for HQ AMR cells — the NFS-validated sweet spot; the
+  bondi-style unigrid cells validated 8) and the drain is off for promote
+  cells, so the post-GPU CPU tail per job is minutes, not the bondi hour.
+- **Stop dispatch:** `touch "$QROOT/gpu/STOP"` (running cells finish; same
+  for the solve pool). **Stop a running cell:** `stop_campaign.sh` on its
+  run dir as always — the queue marks that job failed and moves on. Requeue
+  with `mv failed/X pending/X`.
+- One runner per pool (`runner.lock` enforces it); after a node reboot just
+  restart the runners — stale claims are requeued automatically.

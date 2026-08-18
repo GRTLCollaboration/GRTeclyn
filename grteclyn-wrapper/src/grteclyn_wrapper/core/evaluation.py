@@ -472,8 +472,12 @@ def evaluate_overrides(
     gpu_pool: GpuPool | None = None,
     scoring_pool: "ScoringPool | None" = None,
     cleanup_plotfiles: bool = True,
+    solve_only: bool = False,
 ) -> Evaluation:
     overrides = dict(overrides)
+
+    if solve_only and not grtresna:
+        raise ValueError("solve_only requires grtresna=True (there is no solve to run)")
 
     if constrained and not grtresna:
         constrained_overrides(overrides, phantom=phantom)
@@ -516,6 +520,21 @@ def evaluate_overrides(
             return cpu_phase
         cpu_result = cpu_phase
         episode = cpu_result.episode
+        if solve_only:
+            # CPU prestage: the solve ran and passed its gates; leave the
+            # gridinit for a later --gridinit (gpu-only) replay and release
+            # without ever requesting a GPU.
+            update_metadata(episode, {"solve_only": True})
+            return Evaluation(
+                score=0.0,
+                components={},
+                notes=[f"solve_only: gridinit ready at {cpu_result.gridinit_path}"],
+                episode_path=str(episode.path),
+                exit_code=0,
+                preflight_rejected=False,
+                reason=None,
+                metrics={},
+            )
     else:
         episode = create_episode(
             out_dir,

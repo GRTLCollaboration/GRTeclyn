@@ -163,6 +163,9 @@ for entry in "${CANDIDATE_ENTRIES[@]}"; do
 
   gridinit_args=()
   [[ -n "${GRIDINIT:-}" ]] && gridinit_args=(--gridinit "${GRIDINIT}")
+  # SOLVE_ONLY=1: run only the GRTresna solve + CPU gates and exit before any
+  # GPU work — pairs with a later GRIDINIT= run (CPU prestage for the queue).
+  [[ "${SOLVE_ONLY:-0}" == "1" ]] && gridinit_args+=(--solve-only)
 
   geodesic_args=()
   if [[ "${OBJECTIVE_MODE}" != "critical_collapse" && "${OBJECTIVE_MODE}" != "gw_beam" ]]; then

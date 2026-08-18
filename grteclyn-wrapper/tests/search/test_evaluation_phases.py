@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -220,3 +222,84 @@ def test_postload_disabled_skips_gpu_gate(tmp_path: Path, episode) -> None:
             postload_gate_config=None,
         )
     mock_postload.assert_not_called()
+
+
+def test_solve_only_returns_after_cpu_phase_without_gpu(tmp_path: Path, episode) -> None:
+    gridinit = tmp_path / "initial_data.gridinit"
+    gridinit.write_bytes(b"x")
+    cpu_result = CpuGateResult(
+        episode=episode,
+        gte_overrides={"recipe_initial_data_file": str(gridinit)},
+        gridinit_path=gridinit,
+        gate_config=GRTresnaPreEvolutionGateConfig(),
+    )
+    with patch(
+        "grteclyn_wrapper.core.evaluation._run_cpu_grtresna_gates",
+        return_value=cpu_result,
+    ) as mock_cpu, patch(
+        "grteclyn_wrapper.core.evaluation._run_gpu_session"
+    ) as mock_gpu:
+        result = evaluate_overrides(
+            {"grtresna_lumps": 1},
+            out_dir=tmp_path,
+            name="eval_000001",
+            example=resolve_example("RadialRecipe"),
+            template=resolve_example("RadialRecipe").template,
+            executable=None,
+            dry_run=True,
+            grtresna=True,
+            solve_only=True,
+        )
+    mock_cpu.assert_called_once()
+    mock_gpu.assert_not_called()
+    assert result.exit_code == 0
+    assert not result.reason
+    assert any("solve_only" in note for note in result.notes)
+    assert str(gridinit) in result.notes[0]
+    meta = json.loads((episode.path / "metadata.json").read_text())
+    assert meta.get("solve_only") is True
+
+
+def test_solve_only_requires_grtresna(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="solve_only requires grtresna"):
+        evaluate_overrides(
+            {},
+            out_dir=tmp_path,
+            name="eval_000001",
+            example=resolve_example("RadialRecipe"),
+            template=resolve_example("RadialRecipe").template,
+            executable=None,
+            dry_run=True,
+            grtresna=False,
+            solve_only=True,
+        )
+
+
+def test_solve_only_propagates_cpu_rejection(tmp_path: Path) -> None:
+    rejection = Evaluation(
+        score=-80.0,
+        components={"grtresna_rejection": -80.0},
+        notes=["rejected"],
+        episode_path=str(tmp_path),
+        exit_code=None,
+        preflight_rejected=False,
+        reason="rejected",
+        metrics={},
+    )
+    with patch(
+        "grteclyn_wrapper.core.evaluation._run_cpu_grtresna_gates",
+        return_value=rejection,
+    ), patch("grteclyn_wrapper.core.evaluation._run_gpu_session") as mock_gpu:
+        result = evaluate_overrides(
+            {"grtresna_lumps": 1},
+            out_dir=tmp_path,
+            name="eval_000001",
+            example=resolve_example("RadialRecipe"),
+            template=resolve_example("RadialRecipe").template,
+            executable=None,
+            dry_run=True,
+            grtresna=True,
+            solve_only=True,
+        )
+    mock_gpu.assert_not_called()
+    assert result.reason == "rejected"

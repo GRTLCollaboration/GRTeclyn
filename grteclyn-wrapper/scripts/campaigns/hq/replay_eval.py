@@ -295,6 +295,14 @@ def main() -> int:
         help="Reuse an existing initial_data.gridinit and skip the GRTresna solve",
     )
     parser.add_argument(
+        "--solve-only",
+        action="store_true",
+        help="Run only the GRTresna solve + CPU gates, write "
+        "initial_data.gridinit into the episode dir, and exit without "
+        "requesting a GPU. Pair with a later --gridinit run to evolve — "
+        "lets initial data be prestaged on CPU while the GPUs are busy.",
+    )
+    parser.add_argument(
         "--objective-mode",
         default="general_ftl",
         choices=OBJECTIVE_MODES,
@@ -423,6 +431,9 @@ def main() -> int:
     )
     overrides = {**overrides, **domain.evolution_overrides()}
 
+    if args.solve_only and args.gridinit is not None:
+        parser.error("--solve-only and --gridinit are mutually exclusive")
+
     use_grtresna = args.gridinit is None
     grtresna_config = None
     grtresna_convergence_config = GRTresnaConvergenceConfig(
@@ -488,7 +499,7 @@ def main() -> int:
     example = resolve_example("RadialRecipe")
     template = example.template
     executable = None
-    if not args.dry_run:
+    if not args.dry_run and not args.solve_only:
         executable = resolve_executable(
             None,
             example=example,
@@ -498,7 +509,12 @@ def main() -> int:
             debug=False,
         )
 
-    mode = "grtresna+gpu" if use_grtresna else "gpu-only"
+    if args.solve_only:
+        mode = "solve-only"
+    elif use_grtresna:
+        mode = "grtresna+gpu"
+    else:
+        mode = "gpu-only"
     print(
         f"[replay] {source_eval.name} -> {runs_dir / args.name} "
         f"(L={l_full:g}, N={n}, t={args.stop_time}, GPU={args.gpu}, mode={mode})",
@@ -532,6 +548,7 @@ def main() -> int:
         grtresna_base=grtresna_config,
         grtresna_solved_ftl_gate=False,
         grtresna_convergence_config=grtresna_convergence_config,
+        solve_only=args.solve_only,
     )
     print(
         json.dumps(
