@@ -27,7 +27,7 @@ void AHFinder<num_components>::init(
     m_c      = 1.0;
     m_min_dt = 1e-4;
     m_r      = 1.15;
-    m_eta    = 5;
+    m_eta    = 3;
 
     m_dt_shrink   = 0.8;
     m_dt_grow     = 1.25;
@@ -48,28 +48,37 @@ void AHFinder<num_components>::init(
 
 template <int num_components> void AHFinder<num_components>::find()
 {
-    amrex::Real theta_old;
-    amrex::Real theta_new;
+    // Create amrex time integrator
+    // Allows for different (explicit) time stepping methods
+    AHState S = m_state;
+    m_integrator = std::make_unique<amrex::TimeIntegrator<AHState>>(S);
+    m_integrator->set_rhs(
+        [this](AHState &rhs, AHState &state, amrex::Real time)
+        { this->compute_rhs(rhs, state, time); });
 
     int n_iter = 0;
 
-    h_derivs();
-    h_hessian();
-    compute_theta();
 
-    theta_old    = inf_norm(m_theta_vals);
-    m_theta_prev = m_theta_vals;
+    this->set_particle_positions(S.h);
+    h_derivs(S.h);
+    h_hessian(S.h);
+    compute_theta(S.h);
+
+    double theta_old = inf_norm(m_theta_vals);
+
+    // Global pseudo-timeste
+    amrex::Real dt = 1e-2;
 
     // Temp logging
     amrex::AllPrint() << "\n AHFinder expansion Theta inf "
                          "norm = "
-                      << inf_norm(m_theta_vals) << "\n";
+                      << theta_old << "\n";
 
     std::ofstream theta_log("theta_vs_iter.csv");
     theta_log << n_iter << "," << theta_old << std::endl;
 
     std::ofstream dt_log("dt_vs_iter.csv");
-    dt_log << n_iter << "," << m_dt[0] << std::endl;
+    dt_log << n_iter << "," << dt << std::endl;
 
     std::filesystem::create_directory("particles");
     auto write_particles = [&](int iter)
@@ -83,16 +92,22 @@ template <int num_components> void AHFinder<num_components>::find()
     };
     write_particles(n_iter);
 
+    AHState S_new = S;
+
     while (theta_old > m_tol)
     {
-        this->update_v();
-        this->move_radial();
+        // Advance one pseudo-time step with the AMReX integrator.
+        m_integrator->set_time_step(dt);
+        m_integrator->advance(S, S_new, n_iter * dt, dt);
+        std::swap(S, S_new);
 
-        h_derivs();
-        h_hessian();
-        compute_theta();
+        // Evaluate Theta at the new state
+        this->set_particle_positions(S.h);
+        h_derivs(S.h);
+        h_hessian(S.h);
+        compute_theta(S.h);
 
-        theta_new = inf_norm(m_theta_vals);
+        double theta_new = inf_norm(m_theta_vals);
 
         amrex::AllPrint() << "\n theta_old = " << theta_old << "\n";
 
@@ -100,17 +115,24 @@ template <int num_components> void AHFinder<num_components>::find()
 
         amrex::AllPrint() << "-------------------------\n";
 
+        // Adapt the global timestep for the next step.
+        dt = update_dt(dt, theta_old, theta_new, S.h);
+        amrex::Print() << "dt = " << dt << "\n";
+
         theta_old = theta_new;
 
         n_iter++;
 
         theta_log << n_iter << "," << theta_old << std::endl;
-        dt_log << n_iter << "," << m_dt[0] << std::endl;
+        dt_log << n_iter << "," << dt << std::endl;
         write_particles(n_iter);
     }
 
     theta_log.close();
     dt_log.close();
+
+    // Update internal state
+    m_state = S;
 
     amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "
                       << theta_old << " in " << n_iter << " iterations\n";
@@ -144,11 +166,14 @@ void AHFinder<num_components>::generate_spherical_query()
             double phi = j * 2. * M_PI / m_ring_size;
             int idx    = i * m_ring_size + j;
 
-            interp_coords_x[idx] =
-                m_center[0] + m_guess_radius * cos(phi) * sin(theta);
-            interp_coords_y[idx] =
-                m_center[1] + m_guess_radius * sin(phi) * sin(theta);
-            interp_coords_z[idx] = m_center[2] + m_guess_radius * cos(theta);
+            // Calculate normalised vector pointing to centre
+            m_dir_x[idx] = cos(phi) * sin(theta);
+            m_dir_y[idx] = sin(phi) * sin(theta);
+            m_dir_z[idx] = cos(theta);
+
+            interp_coords_x[idx] = m_center[0] + m_guess_radius * m_dir_x[idx];
+            interp_coords_y[idx] = m_center[1] + m_guess_radius * m_dir_y[idx];
+            interp_coords_z[idx] = m_center[2] + m_guess_radius * m_dir_z[idx];
         }
     }
 
@@ -206,48 +231,33 @@ void AHFinder<num_components>::init_particle_vals()
     for (int id = 0; id < m_num_particles; ++id)
     {
         // Height from centre
-        m_h[id] = std::sqrt(std::pow(interp_coords_x[id] - m_center[0], 2) +
-                            std::pow(interp_coords_y[id] - m_center[1], 2) +
-                            std::pow(interp_coords_z[id] - m_center[2], 2));
+        m_state.h[id] =
+            std::sqrt(std::pow(interp_coords_x[id] - m_center[0], 2) +
+                      std::pow(interp_coords_y[id] - m_center[1], 2) +
+                      std::pow(interp_coords_z[id] - m_center[2], 2));
 
         // Since h = v - eta * h, start velocity at eta * h so we don't
         // immediately collapse inwards
-        m_v[id]  = m_eta * m_h[id];
-        m_dt[id] = 1e-2;
+        m_state.v[id] = m_eta * m_state.h[id];
     }
 }
 
-template <int num_components> void AHFinder<num_components>::move_radial()
+template <int num_components>
+void AHFinder<num_components>::set_particle_positions(
+    const std::vector<double> &h)
 {
+    // Set particles' positions based on their radius from the centre
     for (int id = 0; id < m_num_particles; ++id)
     {
-        const double h = m_h[id];
-        const double v = m_v[id];
-        double dt      = m_dt[id];
+        const double r = h[id];
 
-        double *pos[AMREX_SPACEDIM] = {
-            &interp_coords_x[id], &interp_coords_y[id], &interp_coords_z[id]};
+        interp_coords_x[id] = m_center[0] + r * m_dir_x[id];
+        interp_coords_y[id] = m_center[1] + r * m_dir_y[id];
+        interp_coords_z[id] = m_center[2] + r * m_dir_z[id];
 
-        amrex::GpuArray<double, AMREX_SPACEDIM> coords;
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-        {
-            // Get normalised direction to m_center
-            const double center_direction = (*pos[i] - m_center[i]) / h;
-
-            // Update position
-            *pos[i] += dt * (center_direction * (v - m_eta * h));
-
-            coords[i] = *pos[i];
-        }
-
-        m_theta_prev[id] = m_theta_vals[id];
-
+        amrex::GpuArray<double, AMREX_SPACEDIM> coords = {
+            interp_coords_x[id], interp_coords_y[id], interp_coords_z[id]};
         this->check_domain(coords);
-
-        // Update h
-        m_h[id] = std::sqrt(std::pow(interp_coords_x[id] - m_center[0], 2) +
-                            std::pow(interp_coords_y[id] - m_center[1], 2) +
-                            std::pow(interp_coords_z[id] - m_center[2], 2));
     }
 
     // Push positions to particles
@@ -255,54 +265,65 @@ template <int num_components> void AHFinder<num_components>::move_radial()
     this->update_particle_positions();
 }
 
-template <int num_components> void AHFinder<num_components>::update_v()
+template <int num_components>
+void AHFinder<num_components>::compute_rhs(AHState &rhs, AHState &state,
+                                           amrex::Real /* time */)
 {
+    this->set_particle_positions(state.h);
+
+    // Calculate Theta
+    h_derivs(state.h);
+    h_hessian(state.h);
+    compute_theta(state.h);
+
+    //   h_dot = v - eta * h
+    //   v_dot = -c^2 * Theta
+    rhs.h.assign(m_num_particles, 0.0);
+    rhs.v.assign(m_num_particles, 0.0);
     for (int id = 0; id < m_num_particles; ++id)
     {
-        // Calculate new timestep
-        double dt      = m_dt[id];
-        const double h = m_h[id];
-
-        // Expansion (big) theta from the previous iteration
-        const double p_theta = m_theta_prev[id];
-
-        // // Get CFL number for max stable step
-        double cfl_factor = 1.;
-
-        int ring_num = id / m_ring_size;
-
-        // Angular (little) theta
-        double theta = (ring_num + 0.5) * M_PI / m_n_rings;
-
-        double d_theta = h * M_PI / m_n_rings;
-        double d_phi   = h * sin(theta) * 2.0 * M_PI / m_ring_size;
-
-        double max_dt = cfl_factor * std::min(d_theta, d_phi);
-
-        // Update time step based on ratio of old to new theta,
-        // making sure it doesn't grow or shrink too fast
-        const double theta_now = m_theta_vals[id];
-        double ratio           = (std::abs(theta_now) > m_theta_floor)
-                                     ? m_r * p_theta / theta_now
-                                     : m_r;
-        ratio                  = std::max(ratio, m_dt_shrink);
-        ratio                  = std::min(ratio, m_dt_grow);
-
-        dt *= ratio;
-
-        // Ensure timestep doesn't grow too large or small
-        dt = std::max(dt, m_min_dt);
-        dt = std::min(dt, max_dt);
-
-        if (id == 0)
-        {
-            amrex::Print() << "dt at p0 = " << dt << "\n";
-        }
-
-        m_dt[id] = dt;
-
-        m_v[id] -= m_dt[id] * std::pow(m_c, 2) * m_theta_vals[id];
+        rhs.h[id] = state.v[id] - m_eta * state.h[id];
+        rhs.v[id] = -std::pow(m_c, 2) * m_theta_vals[id];
     }
+}
+
+template <int num_components>
+amrex::Real AHFinder<num_components>::update_dt(
+    amrex::Real dt, double theta_old, double theta_new,
+    const std::vector<double> &h) const
+{
+    // Update dt based on ratio of improvement of theta
+    double cfl_factor = 7.0;
+    double max_dt     = std::numeric_limits<double>::max();
+
+    // Limit timestep by CFL condition of closest pair of particles
+    for (int id = 0; id < m_num_particles; ++id)
+    {
+        const int ring_num = id / m_ring_size;
+        const double theta = (ring_num + 0.5) * M_PI / m_n_rings;
+        const double r     = h[id];
+
+        const double d_theta = r * M_PI / m_n_rings;
+        const double d_phi   = r * sin(theta) * 2.0 * M_PI / m_ring_size;
+
+        max_dt = std::min(max_dt, cfl_factor * std::min(d_theta, d_phi));
+    }
+
+    // Update time step based on ratio of old to new theta
+    // Ensure it doesn't grow or shrink too fast.
+    double ratio = (std::abs(theta_new) > m_theta_floor)
+                       ? m_r * theta_old / theta_new
+                       : m_r;
+    ratio        = std::max(ratio, m_dt_shrink);
+    ratio        = std::min(ratio, m_dt_grow);
+
+    dt *= ratio;
+
+    // Ensure the timestep doesn't grow too large or small.
+    dt = std::max(dt, m_min_dt);
+    dt = std::min(dt, max_dt);
+
+    return dt;
 }
 
 template <int num_components>
@@ -349,10 +370,11 @@ AHFinder<num_components>::ring_gradient(const double *field_ptr, int north_idx,
     return {dx, dy, dz};
 }
 
-template <int num_components> void AHFinder<num_components>::h_derivs()
+template <int num_components>
+void AHFinder<num_components>::h_derivs(const std::vector<double> &h)
 {
     // Calculate dh/dx, dh/dy, dh/dz for all particles.
-    const double *h_ptr = m_h.data();
+    const double *h_ptr = h.data();
     double *dhdx_ptr    = m_dhdx.data();
     double *dhdy_ptr    = m_dhdy.data();
     double *dhdz_ptr    = m_dhdz.data();
@@ -379,11 +401,12 @@ template <int num_components> void AHFinder<num_components>::h_derivs()
     }
 }
 
-template <int num_components> void AHFinder<num_components>::h_hessian()
+template <int num_components>
+void AHFinder<num_components>::h_hessian(const std::vector<double> &h)
 {
     // Calculate the Hessian of h
     // Must be called after h_derivs() has populated m_dhdx/m_dhdy/m_dhdz.
-    const double *h_ptr    = m_h.data();
+    const double *h_ptr    = h.data();
     const double *dhdx_ptr = m_dhdx.data();
     const double *dhdy_ptr = m_dhdy.data();
     const double *dhdz_ptr = m_dhdz.data();
@@ -490,7 +513,8 @@ void AHFinder<num_components>::setup_metric_query()
     }
 }
 
-template <int num_components> void AHFinder<num_components>::compute_theta()
+template <int num_components>
+void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
 {
     this->m_query = &m_metric_query_state;
     this->interp(m_metric_query_state);
@@ -511,7 +535,7 @@ template <int num_components> void AHFinder<num_components>::compute_theta()
     amrex::GpuArray<amrex::GpuArray<const double *, 7>, 3> d1_metric_ptr{
         dx_ptr, dy_ptr, dz_ptr};
 
-    const double *h_ptr = m_h.data();
+    const double *h_ptr = h.data();
 
     const double *pos_ptr[AMREX_SPACEDIM] = {
         interp_coords_x.data(), interp_coords_y.data(), interp_coords_z.data()};

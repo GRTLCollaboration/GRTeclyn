@@ -4,8 +4,11 @@
 #include <AMReX_Array.H>
 #include <AMReX_ParIter.H>
 #include <AMReX_Particles.H>
+#include <AMReX_TimeIntegrator.H>
 #include <array>
+#include <memory>
 
+#include "AHFinderState.hpp"
 #include "ParticleInterpolator.hpp"
 
 template <int num_components>
@@ -27,8 +30,7 @@ class AHFinder : public ParticleInterpolator<num_components>
     amrex::Real m_r;
 
     // Bounds on the per-iteration change in dt, and the magnitude of theta
-    // below which the SER ratio is not trusted. Without these the timestep
-    // can collapse in one step when theta crosses zero (see update_v()).
+    // below which the SER ratio is not trusted.
     amrex::Real m_dt_shrink;
     amrex::Real m_dt_grow;
     amrex::Real m_theta_floor;
@@ -37,22 +39,24 @@ class AHFinder : public ParticleInterpolator<num_components>
     // seeding in populate_from_query(); not used for interpolation itself.
     InterpolationQueryParticle query;
 
-    // All of the per-particle surface state below is indexed by particle id,
-    // i.e. by the query index the particle was seeded from. It is deliberately
-    // *not* stored in the particle tiles: the surface stencils in
-    // ring_gradient() read a particle's four (theta, phi) neighbours, which in
-    // general sit in a different box or on a different rank, so no tile-local
-    // view of the data is sufficient. The particles themselves therefore carry
-    // nothing but their position, which move_radial() pushes back out to them
-    // via update_particle_positions().
+    // Coords for particleinterpolator query
     std::vector<double> interp_coords_x{};
     std::vector<double> interp_coords_y{};
     std::vector<double> interp_coords_z{};
 
-    // Radius, radial velocity and pseudo-timestep per particle
-    std::vector<double> m_h{};
-    std::vector<double> m_v{};
-    std::vector<double> m_dt{};
+    // Normalised directions to AHFinder centre for each particle
+    std::vector<double> m_dir_x{};
+    std::vector<double> m_dir_y{};
+    std::vector<double> m_dir_z{};
+
+    // State storing h and v values for all particles. Stored off particles
+    // since we need h from other particles to compute its derivative, and 
+    // this cannot be accessed from another particle if they are not on the
+    // same tile
+    AHState m_state{};
+
+    // AMReX time integrator for evolution of h and v.
+    std::unique_ptr<amrex::TimeIntegrator<AHState>> m_integrator;
 
     std::array<double, AMREX_SPACEDIM> m_center;
     double m_guess_radius;
@@ -83,28 +87,30 @@ class AHFinder : public ParticleInterpolator<num_components>
 
     std::vector<double> m_theta_vals{};
 
-    // Theta from the previous iteration, for adapting the timestep
-    std::vector<double> m_theta_prev{};
-
     void generate_spherical_query();
 
     // Returns the indices of the 4 neighbours of particle j on the ring
-    // grid, ordered {north, south, east, west}. East/west wrap around
-    // longitude; north/south clamp at the poles (returning j itself).
+    // grid, ordered {north, south, east, west}
     amrex::GpuArray<int, 4> neighbours(int j) const;
-    void move_radial();
     void init_particle_vals();
-    void update_v();
-    void h_derivs();
-    void h_hessian();
+
+    // Set particles' coordinates according to their distance from the centre
+    void set_particle_positions(const std::vector<double> &h);
+
+    // RHS function to allow amrex time integrator to update h and v
+    void compute_rhs(AHState &rhs, AHState &state, amrex::Real time);
+
+    // Update pseudo-timestep based on ratio of improvement of Theta between steps
+    amrex::Real update_dt(amrex::Real dt, double theta_old, double theta_new,
+                          const std::vector<double> &h) const;
+
+    void h_derivs(const std::vector<double> &h);
+    void h_hessian(const std::vector<double> &h);
     void setup_metric_query();
-    void compute_theta();
+    void compute_theta(const std::vector<double> &h);
     double inf_norm(std::vector<double>);
 
-    // Differentiates a scalar field defined on the ring grid (e.g. h, or
-    // one of its Cartesian derivatives) with respect to (theta, phi) via a
-    // central difference across the given neighbours, then converts to a
-    // Cartesian gradient via the spherical Jacobian at (theta, phi, r).
+    // Differentiates a scalar field defined on the ring grid
     AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE static amrex::GpuArray<amrex::Real, 3>
     ring_gradient(const double *field_ptr, int north_idx, int south_idx,
@@ -122,15 +128,17 @@ class AHFinder : public ParticleInterpolator<num_components>
              double guess_radius = 1.0)
         : m_num_particles(num_particles), query(num_particles),
           interp_coords_x(num_particles), interp_coords_y(num_particles),
-          interp_coords_z(num_particles), m_h(num_particles),
-          m_v(num_particles), m_dt(num_particles), m_center(center),
+          interp_coords_z(num_particles), m_dir_x(num_particles),
+          m_dir_y(num_particles), m_dir_z(num_particles),
+          m_state(std::vector<double>(num_particles),
+                  std::vector<double>(num_particles)),
+          m_center(center),
           m_guess_radius(guess_radius), m_dhdx(num_particles),
           m_dhdy(num_particles), m_dhdz(num_particles), m_d2h_xx(num_particles),
           m_d2h_yy(num_particles), m_d2h_zz(num_particles),
           m_d2h_xy(num_particles), m_d2h_xz(num_particles),
           m_d2h_yz(num_particles), m_metric_query_state(num_particles),
-          m_metric_query_deriv(num_particles), m_theta_vals(num_particles),
-          m_theta_prev(num_particles)
+          m_metric_query_deriv(num_particles), m_theta_vals(num_particles)
     {
     }
 

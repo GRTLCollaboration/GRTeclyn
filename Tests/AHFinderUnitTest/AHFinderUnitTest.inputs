@@ -50,6 +50,14 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 max_steps = 1
 
 #################################################
+# AH finder pseudo-time integrator (AMReX TimeIntegrator)
+# type: ForwardEuler or RungeKutta
+integration.type = RungeKutta
+# Butcher tableau for RungeKutta (2=Trapezoid, 3=SSPRK3, 4=RK4); ignored for
+# ForwardEuler.
+integration.rk.type = 4
+
+#################################################
 # Extraction parameters
 
 num_points = 30
