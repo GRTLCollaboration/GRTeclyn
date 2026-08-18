@@ -19,7 +19,7 @@
 #include <iostream>
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-int runGRTeclyn(int /*argc*/, char * /*argv*/[])
+int runGRTeclyn(int argc, char *argv[])
 {
     BL_PROFILE("runGRTeclyn()");
 
@@ -27,7 +27,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     // To add more parameters edit the SimulationParameters file.
     GRParmParse pp; // NOLINT(readability-identifier-length)
 
-    if (pp.contains("check_params"))
+    if (just_check_params(argc, argv))
     {
         return 0;
     }

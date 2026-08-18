@@ -13,13 +13,18 @@
 #include "KleinGordonLevel.hpp"
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-int runGRTeclyn(int /*argc*/, char * /*argv*/[])
+int runGRTeclyn(int argc, char *argv[])
 {
     BL_PROFILE("runGRTeclyn()");
 
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
     GRParmParse pp; // NOLINT(readability-identifier-length)
+
+    if (just_check_params(argc, argv))
+    {
+        return 0;
+    }
 
     std::string model{};
     pp.get("klein_gordon.model", model);

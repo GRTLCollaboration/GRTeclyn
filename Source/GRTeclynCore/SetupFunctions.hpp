@@ -26,10 +26,24 @@
 
 #include <fstream>
 #include <iostream>
+#include <string_view>
 
 #ifndef GRTECLYN_VERSION
 #define GRTECLYN_VERSION "unknown"
 #endif
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+inline bool just_check_params(int argc, char *argv[])
+{
+    for (int i = 1; i < argc; ++i)
+    {
+        if (std::string_view(argv[i]) == "-check_params")
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 /// This function calls MPI_Init
