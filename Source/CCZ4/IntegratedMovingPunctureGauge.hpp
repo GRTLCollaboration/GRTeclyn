@@ -7,7 +7,6 @@
 #define INTEGRATEDMOVINGPUNCTUREGAUGE_HPP_
 
 #include "CCZ4Vars.hpp"
-#include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 #include "MovingPunctureGauge.hpp"
 

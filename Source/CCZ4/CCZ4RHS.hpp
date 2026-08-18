@@ -8,7 +8,6 @@
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
-#include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
 #include "MovingPunctureGauge.hpp"

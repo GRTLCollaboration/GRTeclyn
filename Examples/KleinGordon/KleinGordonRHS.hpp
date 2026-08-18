@@ -7,7 +7,6 @@
 #define KLEINGORDONRHS_HPP_
 
 // GRTeclyn includes
-#include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
 #include "TensorAlgebra.hpp"

@@ -27,6 +27,10 @@
 
 #include <iostream>
 
+#ifndef GRTECLYN_VERSION
+#define GRTECLYN_VERSION "unknown"
+#endif
+
 // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 /// This function calls MPI_Init
 void mainSetup(int argc, char *argv[]);
@@ -48,6 +52,9 @@ void mainSetup(int argc, char *argv[])
         GRParmParse pp;
         pp.prettyPrintTable(ofs);
     }
+
+    amrex::Print() << "GRTeclyn (" << GRTECLYN_VERSION << ") initialized"
+                   << '\n';
 
 #ifdef EQUATION_DEBUG_MODE
     EquationDebugging::check_no_omp();

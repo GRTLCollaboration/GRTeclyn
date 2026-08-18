@@ -8,7 +8,6 @@
 #define POSITIVECHIANDLAPSE_HPP_
 
 #include "CCZ4Vars.hpp"
-#include "Cell.hpp"
 #include "GRParmParse.hpp"
 #include "StateVariables.hpp"
 
@@ -28,10 +27,11 @@ class PositiveChiAndLapse
         pp.get("min_lapse", m_min_lapse);
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
-
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Create non-const CellData for writing into
         const amrex::CellData<amrex::Real> &state_cell_data =

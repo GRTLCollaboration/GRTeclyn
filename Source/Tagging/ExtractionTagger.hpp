@@ -6,7 +6,6 @@
 #ifndef EXTRACTIONTAGGER_HPP_
 #define EXTRACTIONTAGGER_HPP_
 
-#include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
 #include "SphericalExtraction.hpp"

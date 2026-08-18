@@ -6,7 +6,6 @@
 #ifndef FOURTHORDERDERIVATIVES_HPP_
 #define FOURTHORDERDERIVATIVES_HPP_
 
-#include "Cell.hpp"
 #include "DimensionDefinitions.hpp"
 
 #include "StateVariables.hpp"
@@ -140,14 +139,15 @@ class FourthOrderDerivatives
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         const auto strides        = get_strides(state);
 
+        int ivar{ivar_0};
         FOR (icomp, jcomp)
         {
-            const int ivar      = sym_var_idx(ivar_0, icomp, jcomp);
             const auto *var_ptr = get_var_ptr(ivar, state_ptr_xyz, strides);
             FOR (idir)
             {
                 d1(icomp, jcomp, idir) = diff1(var_ptr, strides[idir]);
             }
+            ++ivar;
         }
         return d1;
     }
@@ -286,7 +286,7 @@ class FourthOrderDerivatives
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         auto strides              = get_strides(state);
 
-        int ivar{0};
+        int ivar{ivar_0};
         FOR (icomp)
             FOR (jcomp)
             {
