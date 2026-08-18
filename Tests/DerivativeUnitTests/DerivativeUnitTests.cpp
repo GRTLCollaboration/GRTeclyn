@@ -87,9 +87,10 @@ void validate_derivatives(const amrex::Box &box,
                 "Failed mixed diff2 (", order_name, ") at ", iv);
 
             // Advection and dissipation tests
-            // diss_factor and diss_power are different between Fourth and Sixth
-            // Order Derivatives The SixthOrderDerivatives use 8th order
-            // dissipation
+            // The order of Kreiss-Oliger (KO) dissipation used in the
+            // 4th and 6th order derivative stencils is different. See the
+            // SUBCASEs below for the specific diss_factor and diss_power used
+            // in each case.
             amrex::Real expected_diss =
                 diss_factor * (1. + z * (z - 1.)) * pow(dx, diss_power);
 
@@ -175,8 +176,14 @@ void run_derivative_unit_tests()
             amrex::Gpu::streamSynchronize();
             AMREX_GPU_ERROR_CHECK();
 
-            validate_derivatives(box, out_fab, dx, "fourth order", 1.0 / 64.0,
-                                 5.0);
+            // 6th-order Kreiss-Oliger dissipation (k=3) for 4th-order schemes.
+            // Scales as dx^(2k-1) = dx^5 with coefficient (-1)^(k+1) / 2^(2k) =
+            // 1/64.
+            constexpr amrex::Real ko_diss_factor = 1.0 / 64.0;
+            constexpr amrex::Real ko_diss_power  = 5.0;
+
+            validate_derivatives(box, out_fab, dx, "fourth order",
+                                 ko_diss_factor, ko_diss_power);
         }
 
         SUBCASE("Sixth order derivatives")
@@ -193,8 +200,14 @@ void run_derivative_unit_tests()
             amrex::Gpu::streamSynchronize();
             AMREX_GPU_ERROR_CHECK();
 
-            validate_derivatives(box, out_fab, dx, "sixth order", -1.0 / 256.0,
-                                 7.0);
+            // 8th-order Kreiss-Oliger dissipation (k=4) for 6th-order schemes.
+            // Scales as dx^(2k-1) = dx^7 with coefficient (-1)^(k+1) / 2^(2k) =
+            // -1/256.
+            constexpr amrex::Real ko_diss_factor = -1.0 / 256.0;
+            constexpr amrex::Real ko_diss_power  = 7.0;
+
+            validate_derivatives(box, out_fab, dx, "sixth order",
+                                 ko_diss_factor, ko_diss_power);
         }
     }
     amrex::Finalize();
