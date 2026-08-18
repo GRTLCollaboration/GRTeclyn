@@ -20,18 +20,17 @@ void BoostedBHInitialData::params_t::check_params(int id)
 
     double mass;
     bh_pp.get("mass", mass);
-    if (mass < 0)
+    if (mass <= 0.0)
     {
-        bh_pp.warning("mass", "should be >= 0");
+        bh_pp.error("mass", "must be > 0");
     }
 
     std::array<double, AMREX_SPACEDIM> momentum;
     bh_pp.get("momentum", momentum);
     if (std::sqrt(ArrayTools::norm2(momentum)) >= 0.3 * mass)
     {
-        bh_pp.warning(
-            "momentum",
-            "approximation used for boosted BH only valid for small boosts");
+        bh_pp.warning("momentum", "approximation used for boosted BH is only "
+                                  "valid when |P| / mass is small");
     }
 
     GRParmParse geom_pp("geometry");
