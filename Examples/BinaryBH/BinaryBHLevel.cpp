@@ -442,33 +442,4 @@ void BinaryBHLevel::specificPostTimeStep()
             my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
         }
     }
-
-#if 0
-    bool calculate_constraint_norms{};
-    pp.get("calculate_constraint_norms", calculate_constraint_norms);
-
-
-    if (calculate_constraint_norms)
-    {
-        fillAllGhosts();
-        BoxLoops::loop(Constraints(m_dx, c_Ham, Interval(c_Mom1, c_Mom3)),
-                       m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
-        if (m_level == 0)
-        {
-            AMRReductions<VariableType::derived> amr_reductions(m_gr_amr);
-            double L2_Ham = amr_reductions.norm(c_Ham);
-            double L2_Mom = amr_reductions.norm(Interval(c_Mom1, c_Mom3));
-            SmallDataIO constraints_file(m_p.data_path + "constraint_norms",
-                                         m_dt, m_time, m_restart_time,
-                                         SmallDataIO::APPEND, first_step);
-            constraints_file.remove_duplicate_time_data();
-            if (first_step)
-            {
-                constraints_file.write_header_line({"L^2_Ham", "L^2_Mom"});
-            }
-            constraints_file.write_time_data_line({L2_Ham, L2_Mom});
-        }
-    }
-
-#endif
 }

@@ -71,25 +71,12 @@ class SimulationParameters
             pp.add("ccz4.kappa3", 0.0);
         }
 
-        // Do we want puncture tracking and constraint norm calculation?
+        // Do we want puncture tracking?
         bool puncture_tracking_enabled{false};
         pp.queryAdd("puncture_tracking.enabled", puncture_tracking_enabled);
         if (puncture_tracking_enabled)
         {
             puncture_tracker_params_t::check_params();
-        }
-
-        bool calculate_constraint_norms = false;
-        pp.queryAdd("calculate_constraint_norms", calculate_constraint_norms);
-
-        int max_level{};
-        pp.get("amr.max_level", max_level);
-        int puncture_tracking_level = max_level;
-        pp.queryAdd("puncture_tracking_level", puncture_tracking_level);
-        if (puncture_tracking_level < 0 || puncture_tracking_level > max_level)
-        {
-            pp.error("puncture_tracking_level",
-                     "must be between 0 and max_level (inclusive)");
         }
     }
 };
