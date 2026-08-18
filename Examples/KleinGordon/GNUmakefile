@@ -24,8 +24,7 @@ src_dirs := $(GRTECLYN_SOURCE)/ParticleInterpolator \
             $(GRTECLYN_SOURCE)/GRTeclynCore \
             $(GRTECLYN_SOURCE)/IO \
             $(GRTECLYN_SOURCE)/Maths \
-            $(GRTECLYN_SOURCE)/Tagging \
-            $(GRTECLYN_SOURCE)/CCZ4 \
+            $(GRTECLYN_SOURCE)/Tagging
 
 
 src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)

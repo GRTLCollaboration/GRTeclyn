@@ -13,7 +13,6 @@
 #include "FilesystemTools.hpp"
 #include "GRAMR.hpp"
 #include "GRParmParse.hpp"
-#include "GRTeclyn_Version.hpp"
 #include "IntegrationMethodSetup.hpp"
 #include "SimulationParameters.hpp"
 
@@ -25,6 +24,7 @@
 #include <omp.h>
 #endif
 
+#include <fstream>
 #include <iostream>
 
 #ifndef GRTECLYN_VERSION
@@ -48,7 +48,7 @@ void mainSetup(int argc, char *argv[])
     if (amrex::ParallelDescriptor::IOProcessor())
     {
         std::ofstream ofs("parameters_and_version.txt");
-        ofs << "Using GRTeclyn version (" << GRTECLYN_GIT_VERSION << ")\n\n";
+        ofs << "Using GRTeclyn version (" << GRTECLYN_VERSION << ")\n\n";
         GRParmParse pp;
         pp.prettyPrintTable(ofs);
     }

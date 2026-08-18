@@ -4,13 +4,13 @@
 #################################################
 # Filesystem parameters
 
-amrex.verbose = 1
-amr.verbose = 0
+verbosity = 0
 
 # location / naming of output files
+# output_path = "" # Main path for all files. Must exist!
 chk_prefix = ScalarField_
 plot_prefix = ScalarFieldp_
-# amr.restart = chk00000
+# restart_file = ScalarField_000000.3d.hdf5
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
 checkpoint_interval = 500
@@ -20,8 +20,15 @@ plot_interval = 1
 num_plot_vars = 2
 plot_vars = chi phi
 
-# subpaths (these are created at runtime)
+# subpaths - specific directories for hdf5, pout, extraction data
+# (these are created at runtime)
+hdf5_subpath = "hdf5"
+pout_subpath = "pout"
 data_subpath = "data"
+
+# change the name of output files
+# pout_prefix = "pout"
+print_progress_only_to_rank_0 = 1
 
 # ignore_checkpoint_name_mismatch = 0
 # write_plot_ghosts = 0
