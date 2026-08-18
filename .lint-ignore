@@ -13,7 +13,6 @@ external/*
 # These directories/files have yet to be ported to AMReX
 Source/AMRInterpolator/*
 Source/ParticleInterpolators/*
-Source/Grids/SixthOrderDerivatives.hpp
 Source/CCZ4/GammaCalculator.hpp
 Source/CCZ4/IntegratedMovingPunctureGauge.hpp
 Source/BlackHoles/KerrBH*
