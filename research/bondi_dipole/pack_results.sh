@@ -64,8 +64,21 @@ for spec in "${CELLS[@]}"; do
   # ~2 MB each).  Downsample to dt = 0.5 -- plenty for a drift/violation curve.
   for stream in constraint_norms energy_conditions curvature_invariants collapse_diagnostics; do
     [[ -f "${src}/data/${stream}.dat" ]] || continue
-    header=""
-    [[ "${stream}" == collapse_diagnostics ]] && header="time min_lapse min_chi max_abs_K min_lapse_x min_lapse_y min_lapse_z max_ah_r min_theta_plus r_at_min_theta_plus min_phi max_phi min_Pi max_Pi pump_work"
+    # None of these four streams writes its own header line, so supply the
+    # column names the evolution code emits (RadialRecipeLevel.cpp
+    # write_header_line).  Header-only addition: the columns are untouched and
+    # every reader already skips '#' lines.  Kept in step with pack_campaign.sh.
+    case "${stream}" in
+      constraint_norms)
+        header="time L2_Ham L2_Mom min_rho_req max_rho_req integral_neg_rho L2_Ham_rel L2_Mom_rel pump_force_L2 governor pump_fi_L2 L2_Ham_amr L2_Mom_amr L2_Ham_amr_rel L2_Mom_amr_rel Linf_Ham_amr L2_Ham_amr_ref" ;;
+      energy_conditions)
+        header="time matter_min_NEC matter_min_WEC matter_min_SEC matter_min_DEC matter_integral_NEC_violation" ;;
+      curvature_invariants)
+        header="time max_abs_ricci_scalar max_ricci_tensor_sq max_Kij_sq L2_ricci_scalar" ;;
+      collapse_diagnostics)
+        header="time min_lapse min_chi max_abs_K min_lapse_x min_lapse_y min_lapse_z max_ah_r min_theta_plus r_at_min_theta_plus min_phi max_phi min_Pi max_Pi pump_work" ;;
+      *) header="" ;;
+    esac
     HEADER="${header}" python3 - "${src}/data/${stream}.dat" "${out}/${stream}.dat" <<'PY'
 import os, sys
 
@@ -80,8 +93,8 @@ with open(src, encoding="utf-8") as fh, open(dst, "w", encoding="utf-8") as out:
             wrote_header = True
             continue
         if not wrote_header:
-            # collapse_diagnostics ships without a header line; supply the
-            # column names the evolution code writes.
+            # These streams ship without a header line; supply the column
+            # names the evolution code writes.
             if os.environ.get("HEADER"):
                 out.write("# " + os.environ["HEADER"] + "\n")
             wrote_header = True

@@ -90,7 +90,9 @@ evolution grid; measured values are row 1 of `sector_barycenters.dat`.
 Predictions were 15.92 / 5.05 (canonical), 20.99 / 5.43 (phantom at ω = 0.550)
 and 17.05 / 5.16 (phantom at ω = 0.56598); the pair cells reproduce twice the
 single-star integral where both lumps share a sector. All agree to ≲ 0.2 %.
-Constraint residuals are inside the 0.1 % gate everywhere.
+Constraint residuals are inside the 0.1 % gate everywhere. These are the
+*initial-data* residuals; how the violation behaves once the evolution starts
+is in [`analysis/constraint_check.md`](analysis/constraint_check.md) and §7.
 
 ## 4. The runaway
 
@@ -237,6 +239,8 @@ canonicals) drives χ down to 0.44 as the pair merges.
 | **No horizon in the measured window** | θ₊ stays positive and no apparent horizon is found in every cell stopped at t = 60; the lapse only dips to ≈ 0.55 | the runaway is not a collapse artefact |
 | **Collapse after contact** | the two t = 90 double-box cells form a trapped surface at t = 68.5 (mixed) and t = 69.5 (control) | end state is black-hole formation; measured at one cell size only, not convergence-tested |
 | **Single-rank only** | MPI is unusable on this node | performance only; no physics impact |
+| **Constraint violation is floored by the initial data** | the evolution's Hamiltonian violation is identical on all three grids (coarse ÷ fine = 1.00× at every sampled time) because one elliptic solve on a fixed grid feeds the whole ladder | no convergence order is quotable from this campaign; quote the grid-to-grid spread instead, and refine the solve alongside the grid if an order is wanted — [`analysis/constraint_check.md`](analysis/constraint_check.md) |
+| **Violation grows through the run** | box-averaged Hamiltonian 1.1e−3 at t = 15 → 6.9e−3 at t = 60 for the mixed pair, worst single point 1.9e−2 → 8.4e−1 | consistent with the t ≲ 50 trust window; the late rise tracks the canonical star compactifying toward collapse, not a code failure |
 
 ## 8. What is established, and what is not
 

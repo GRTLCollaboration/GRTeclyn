@@ -1,4 +1,5 @@
 # downsampled to dt=0.5 from the every-step stream
+# time max_abs_ricci_scalar max_ricci_tensor_sq max_Kij_sq L2_ricci_scalar
    0.0100000    1.6355830307e-02    9.0613336120e-05    4.7416929615e-09    7.3002758418e-01
    0.5100000    8.2463001479e-03    2.3362359728e-05    3.0869086253e-07    3.6706677678e-01
    1.0100000    5.3963432966e-03    9.7068680494e-06    7.7156918190e-07    2.5133627509e-01

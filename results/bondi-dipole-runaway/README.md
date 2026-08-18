@@ -57,8 +57,8 @@ Every `.dat` stream carries its own `#` header line naming each column.
 | `confinement.dat` | core health / grip | 3 `peak_activity`, 5 `confined_frac`, 18 `min_chi` |
 | `psi4_mode_l2m0.dat`, `psi4_mode_l2_all.dat`, `psi4_directional.dat` | radiation extraction at R = 8, 16 | — |
 | `shell_profiles.dat` | metric on extraction shells (χ, lapse, K) | — |
-| `constraint_norms.dat` | **constraint violation during the evolution** (downsampled to Δt = 0.5) | 1 `t`, 2 `L2_Ham`, 3 `L2_Mom`, 7 `L2_Ham_rel`, 8 `L2_Mom_rel` |
-| `energy_conditions.dat`, `curvature_invariants.dat` | NEC/WEC monitors and invariants (downsampled) | — |
+| `constraint_norms.dat` | **constraint violation during the evolution** (downsampled to Δt = 0.5; column names are supplied by the pack script, the raw stream has none) | 1 `t`, 2 `L2_Ham`, 3 `L2_Mom`, 16 `Linf_Ham_amr` (worst single point). Columns 7–8 are relative measures — see the caution in the constraint section |
+| `energy_conditions.dat`, `curvature_invariants.dat` | NEC/WEC monitors and invariants (downsampled; column names supplied by the pack script) | — |
 | `collapse_diagnostics.dat` | **horizon watch** — how deep the gravity well gets and whether a trapped surface appears (downsampled; column names are supplied by the pack script, the raw stream has none) | 1 `t`, 2 `min_lapse`, 3 `min_chi`, 4 `max_abs_K`, 8 `max_ah_r`, 9 `min_theta_plus` |
 | `boundary_flux.dat`, `areal_radius.dat`, `ftl_timeseries.dat` | outflow, minimal areal radius, geodesic diagnostics | — |
 | `grtresna_params.txt` | the constraint-solve input (couplings, per-lump seeds, tolerances) | — |
@@ -81,10 +81,12 @@ the streams are absolute; drifts quoted anywhere in this pack are
 | `newtonian_reference.csv` | point-mass Bondi integration with the measured ADM masses, aligned to the NR output |
 | `convergence_check.csv`, `convergence_check.md` | drift / gap / control artefact across grid resolutions, with the spread between grids |
 | `wave_check.csv`, `wave_check.md` | gravitational-wave amplitude on each extraction shell in retarded time, and whether the shells agree |
+| `constraint_check.csv`, `constraint_check.md` | constraint violation at both stages — the initial-data solve and the evolution — plus whether refining the grid reduces it |
 | `make_tables.py` | regenerates `summary.*` and `trajectories.csv` from `data/` |
 | `newtonian_reference.py` | regenerates the point-mass reference (pure stdlib RK4) |
 | `convergence_check.py` | regenerates `convergence_check.*` from `campaign/` |
 | `wave_check.py` | regenerates `wave_check.*` from `campaign/` |
+| `constraint_check.py` | regenerates `constraint_check.*` from `campaign/` |
 | `star_family_scan.py` | regenerates `stars/star_family.csv` (needs the wrapper venv) |
 
 ## campaign/ — the error-bar campaign (2026-08-17, complete)
@@ -152,6 +154,8 @@ noise. The runaway does not depend on one star outweighing the other.
 at 0.2–1.6, below the 1.41 that any positive convergence order requires, so the
 error is dominated by initial-data offsets (~1e-3) rather than by a clean
 truncation term. Quote the grid-to-grid spread as the error bar, not an order.
+The constraint section below measures that directly: the violation is the same
+on all three grids because they share one elliptic solve.
 
 **Trust window: t ≲ 50.** Both lumps stay localized (spread ≈ 10, separation
 ≈ 5) up to there. Past t ≈ 55 their spreads exceed their separation, and in the
@@ -171,6 +175,71 @@ surface appears at **t = 68.5** in the mixed pair (horizon radius ≈ 2.5) and a
 0.06 and 0.01 by t = 80. So a canonical–phantom contact ends in collapse, not
 in mutual annihilation. That end state comes from a single cell size (0.50) and
 has not been convergence-tested; treat it as observed, not measured.
+
+### Constraint violation
+
+Full tables: [`analysis/constraint_check.md`](analysis/constraint_check.md).
+
+Einstein's equations carry four constraints that a correct solution must
+satisfy at all times. They are never exactly zero numerically, and their size —
+plus whether refining the grid shrinks them — is what says how far the reported
+physics can be trusted. Two stages fail independently and are reported
+separately.
+
+**Initial data.** Every cell's elliptic solve converged below the 0.1 % exit
+tolerance before the evolution began:
+
+| family | iterations | Hamiltonian | momentum |
+|---|---|---|---|
+| runaway pair (all separations) | 7 | 0.083 % | 0.075 % |
+| equal-mass pair | 7 | 0.082 % | 0.079 % |
+| two-positive control | 4 | 0.004 % | 0.045 % |
+| two-phantom control | 7 | 0.094 % | 0.035 % |
+
+**Evolution.** Box-averaged violation for the runaway pair, identical on all
+three grids to three or four digits:
+
+| t | Hamiltonian (L2) | momentum (L2) | worst single point |
+|---|---|---|---|
+| 15 | 1.07e−3 | 1.20e−4 | 1.9e−2 |
+| 30 | 2.48e−3 | 1.51e−4 | 5.5e−2 |
+| 45 | 4.07e−3 | 2.43e−4 | 1.8e−1 |
+| 60 | 6.91e−3 | 7.46e−4 | 8.4e−1 |
+
+Momentum violation runs about ten times below the Hamiltonian throughout. The
+sharp rise in the worst-point column past t ≈ 45 tracks the canonical star
+compactifying toward the collapse documented above; it is not a code failure,
+and it sits outside the t ≲ 50 trust window in any case.
+
+**Refining the grid does not reduce the violation, and that is the reason no
+convergence order is quotable.** Dividing the coarsest grid by the finest gives
+1.00× at every sampled time for both mixed-pair ladders, where a second-order
+scheme over a 2× refinement would give 4×. The cause is structural rather than
+a code defect: the initial data is solved once on its own fixed elliptic grid
+(box 128, 3 levels) and handed unchanged to all three evolution grids, so the
+solve's residual is a floor that evolution refinement cannot get under. The
+first-step numbers confirm it — the violation *rises* with resolution there
+(1.0e−2 → 2.3e−2 → 4.8e−2), exactly what happens when a fixed error field is
+drawn more sharply. Getting a genuine order out of this campaign would require
+refining the elliptic solve alongside the evolution grid, which is a fresh set
+of runs.
+
+**The two-phantom control is the quietest cell in the campaign**, as it is for
+drift: at t = 60 its box-averaged violation is half the mixed pair's (3.3e−3
+against 7.0e−3) and its worst single point is 27× smaller (3.0e−2 against
+8.3e−1). Positive masses attract and pile into a sharp lump; negative masses
+repel and stay smooth.
+
+Two cautions when reading the raw stream:
+
+- `L2_Ham_rel`/`L2_Mom_rel` (columns 7 and 8) sit near 1 for these cells and are
+  **not** a useful measure here. Both numerator and denominator are averaged
+  over a box that is almost entirely empty space, where the constraint terms
+  are individually at noise level and there is nothing to cancel. Use the
+  absolute norms.
+- The box-averaged norms are not comparable across box sizes: `boxC` looks 3×
+  quieter than the small box at t = 60 purely because it averages over eight
+  times the empty volume.
 
 ### Gravitational waves
 

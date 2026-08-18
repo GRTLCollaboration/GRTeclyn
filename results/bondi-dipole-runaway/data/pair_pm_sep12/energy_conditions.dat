@@ -1,4 +1,5 @@
 # downsampled to dt=0.5 from the every-step stream
+# time matter_min_NEC matter_min_WEC matter_min_SEC matter_min_DEC matter_integral_NEC_violation
    0.0100000   -1.1214071660e-04   -6.9453545981e-04   -7.0956804659e-04   -2.8863563923e-04    1.0147139093e-01
    0.5100000   -1.1211985876e-04   -6.9448262191e-04   -7.0934725483e-04   -2.8862759256e-04    1.0191260393e-01
    1.0100000   -1.1214441278e-04   -6.9473450365e-04   -7.0938132737e-04   -2.9031340329e-04    1.0225242996e-01
