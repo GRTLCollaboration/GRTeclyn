@@ -87,8 +87,8 @@ void run_ccz4_rhs_test()
 
         amrex::Real sigma = 0.3;
 
-        CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> current_ccz4_rhs{
-            dx};
+        CCZ4RHS<FourthOrderDerivatives> current_ccz4_rhs{dx};
+        MovingPunctureGauge<FourthOrderDerivatives> moving_puncture_gauge(dx);
 
         Old::CCZ4RHS<Old::MovingPunctureGauge, Old::FourthOrderDerivatives>
             old_ccz4_rhs{old_ccz4_params, dx, sigma};
@@ -132,7 +132,7 @@ void run_ccz4_rhs_test()
         amrex::ParallelFor(box,
                            [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
-                               current_ccz4_rhs.calculate_gauge_rhs(
+                               moving_puncture_gauge.calculate_gauge_rhs(
                                    ix, iy, iz, current_out_array, in_c_array);
                                current_ccz4_rhs.apply_dissipation(
                                    ix, iy, iz, current_out_array, in_c_array);

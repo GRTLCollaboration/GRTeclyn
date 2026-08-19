@@ -28,11 +28,11 @@
 
 template <class matter_t, class gauge_t = MovingPunctureGaugeWithMatter,
           class deriv_t = FourthOrderDerivatives>
-class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
+class CCZ4RHSWithMatter : public CCZ4RHS<deriv_t>
 {
   public:
     // Use this alias for the same template instantiation as this class
-    using CCZ4 = CCZ4RHS<gauge_t, deriv_t>;
+    using CCZ4 = CCZ4RHS<deriv_t>;
 
     using params_t = CCZ4_params_t;
 

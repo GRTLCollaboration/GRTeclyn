@@ -8,6 +8,7 @@
 
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
 #include <AMReX_Array.H>
 #include <AMReX_GpuQualifiers.H>
@@ -21,7 +22,7 @@
  * f(lapse) = -c*lapse^(p-2)
  * and a Gamma-driver shift condition
  **/
-class MovingPunctureGauge
+template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
 {
   public:
     struct params_t
@@ -116,9 +117,10 @@ class MovingPunctureGauge
 
   protected:
     params_t m_params{};
+    deriv_t m_deriv;
 
   public:
-    MovingPunctureGauge() { m_params.fill_params(); }
+    MovingPunctureGauge(double a_dx) : m_deriv(a_dx) { m_params.fill_params(); }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     // NOLINTBEGIN(bugprone-easily-swappable-parameters,
@@ -145,6 +147,37 @@ class MovingPunctureGauge
                 m_params.shift_advec_coeff * advec_Gamma(i) +
                 rhs_cell_data[c_Gamma1 + i] - m_params.eta * vars.B(i);
         }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    calculate_gauge_rhs(int ix, int iy, int iz,
+                        const amrex::Array4<amrex::Real> &rhs,
+                        const amrex::Array4<const amrex::Real> &state) const
+    {
+        const amrex::CellData<amrex::Real> &rhs_cell_data =
+            rhs.cellData(ix, iy, iz);
+        const amrex::CellData<const amrex::Real> &state_cell_data =
+            state.cellData(ix, iy, iz);
+
+        CCZ4Vars vars(state_cell_data);
+
+        Tensor::Rank1 shift_vector(
+            {vars.shift(0), vars.shift(1), vars.shift(2)});
+
+        amrex::Real advec_lapse =
+            m_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_lapse);
+
+        Tensor::Rank1 advec_shift =
+            m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_shift1);
+
+        Tensor::Rank1 advec_B =
+            m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_B1);
+
+        Tensor::Rank1 advec_Gamma =
+            m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
+
+        rhs_gauge(rhs_cell_data, vars, advec_lapse, advec_shift, advec_B,
+                  advec_Gamma);
     }
 };
 

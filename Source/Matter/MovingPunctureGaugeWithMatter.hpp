@@ -22,11 +22,15 @@
 /// This class adds the matter terms to the RHS of the gauge equation
 /// for the moving puncture gauge
 
-class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
+class MovingPunctureGaugeWithMatter
+    : public MovingPunctureGauge<FourthOrderDerivatives>
 {
 
   public:
-    MovingPunctureGaugeWithMatter() = default;
+    MovingPunctureGaugeWithMatter(double a_dx)
+        : MovingPunctureGauge<FourthOrderDerivatives>(a_dx)
+    {
+    }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void
     rhs_gauge_add_matter_terms(const amrex::CellData<amrex::Real> &rhs,

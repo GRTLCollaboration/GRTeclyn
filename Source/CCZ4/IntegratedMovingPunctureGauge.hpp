@@ -22,7 +22,7 @@
 class IntegratedMovingPunctureGauge
 {
   public:
-    using params_t = MovingPunctureGauge::params_t;
+    using params_t = MovingPunctureGauge<FourthOrderDerivatives>::params_t;
 
   protected:
     params_t m_params;
