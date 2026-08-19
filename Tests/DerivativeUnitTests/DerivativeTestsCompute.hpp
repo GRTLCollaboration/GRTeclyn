@@ -53,7 +53,8 @@ template <class deriv_t> class DerivativeTestsCompute
 
   public:
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE DerivativeTestsCompute(double dx)
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    DerivativeTestsCompute(amrex::Real dx)
         : m_deriv(dx)
     {
     }
@@ -90,7 +91,7 @@ template <class deriv_t> class DerivativeTestsCompute
         const amrex::Real out_advec_up =
             m_deriv.advection(ix, iy, iz, in, shift_up, c_advec_up);
 
-        double sigma = 1.0;
+        amrex::Real sigma = 1.0;
         amrex::Real out_diss =
             m_deriv.calculate_dissipation(ix, iy, iz, in, sigma, c_diss);
 
