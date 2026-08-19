@@ -304,9 +304,10 @@ fig:shortcut_cartoon
   data/peak_metric_fit.json       — removed GW / peak-fit section
   data/psi4_rm.txt                — removed Psi4 section
 
-Stale figures still on disk (not included in research.tex):
-  research/neuralspacetime/figures/fig_eval118_lump_trajectories.png
-  research/neuralspacetime/figures/fig_eval118_peak_metric_fit.png
+The candidate-118 figures and validation certificates were deleted on
+2026-08-19: that candidate ran on the pre-bicomplex pipeline (broken Cauchy
+pairing, pump violating conservation) and its results are void. See git
+history if the record is ever needed.
 
 
 Promote-run directory map (candidate 146)
