@@ -153,7 +153,9 @@ void run_bssn_matter_test()
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
-                const CCZ4Vars vars(in_c_array[ibox].cellData(ix, iy, iz));
+                const amrex::CellData<const amrex::Real> &state_cell_data =
+                    in_c_array[ibox].cellData(ix, iy, iz);
+                const CCZ4Vars vars(state_cell_data);
                 const Tensor::Rank2 h_UU =
                     CCZ4Geometry::compute_inverse_metric(vars);
                 const einstein_sources_t source =

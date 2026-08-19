@@ -29,25 +29,6 @@ class IntegratedMovingPunctureGauge
     params_t m_params;
     deriv_t m_deriv;
 
-    /// Vars needed internally in 'compute'
-    template <class data_t> struct Vars
-    {
-        Tensor::Rank1 shift;
-        Tensor::Rank1 Gamma; //!< Conformal connection functions
-
-        /// Defines the mapping between members of Vars and Chombo grid
-        /// variables (enum in User_Variables)
-        template <typename mapping_function_t>
-        AMREX_GPU_HOST_DEVICE void
-        enum_mapping(mapping_function_t mapping_function)
-        {
-            VarsTools::define_enum_mapping(
-                mapping_function, GRInterval<c_shift1, c_shift3>(), shift);
-            VarsTools::define_enum_mapping(
-                mapping_function, GRInterval<c_Gamma1, c_Gamma3>(), Gamma);
-        }
-    };
-
   public:
     IntegratedMovingPunctureGauge(double a_dx) : m_deriv(a_dx)
     {
@@ -85,47 +66,6 @@ class IntegratedMovingPunctureGauge
                 m_params.shift_Gamma_coeff * vars.Gamma(i) -
                 m_params.eta * vars.shift(i) - vars.B(i);
             rhs_cell_data[c_B1 + i] = 0.0;
-        }
-    }
-
-    // set the initial B^i to the initial condition equivalent to:
-    // \partial_t shift - advec_coeff * advec.shift = 0
-    // Include in your Example in GRAMRLevel::initial_data as:
-    // fillAllGhosts();
-    // BoxLoops::loop(IntegratedMovingPunctureGauge<FourthOrderDerivatives>(dx),
-    // m_state_new, m_state_new, EXCLUDE_GHOST_CELLS);
-    void compute(Cell<amrex::Real> current_cell) const
-    {
-        // TODO: Port this class
-        // We've just removed templating over data_t
-        const auto vars = current_cell.template load_vars<Vars>();
-
-        Tensor::Rank1 B; // NOLINT(readability-identifier-length)
-        FOR (i)
-        {
-            B(i) = m_params.shift_Gamma_coeff * vars.Gamma(i) -
-                   m_params.eta * vars.shift(i);
-        }
-
-        current_cell.store_vars(B, GRInterval<c_B1, c_B3>());
-    }
-
-    template <template <class> class vars_t, class d2_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_gauge(vars_t<amrex::Real> &rhs, const vars_t &vars<amrex::Real>,
-              const vars_t<Tensor::Rank1> &d1, const d2_vars_t &d2,
-              const vars_t<amrex::Real> &advec) const
-    {
-        rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
-                    m_params.lapse_coeff *
-                        pow(vars.lapse, m_params.lapse_power) *
-                        (vars.K - 2 * vars.Theta);
-        FOR (i)
-        {
-            rhs.shift(i) = m_params.shift_advec_coeff * advec.shift(i) +
-                           m_params.shift_Gamma_coeff * vars.Gamma(i) -
-                           m_params.eta * vars.shift(i) - vars.B(i);
-            rhs.B(i) = 0.; // static, stays the same to save initial condition
         }
     }
 };
