@@ -107,10 +107,14 @@ void run_bssn_matter_test()
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
-        CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGaugeWithMatter,
+        CCZ4RHSWithMatter<DefaultScalarField,
+                          MovingPunctureGaugeWithMatter<FourthOrderDerivatives>,
                           FourthOrderDerivatives>
             current_ccz4_rhs{dx};
-        MovingPunctureGaugeWithMatter moving_puncture_gauge(dx);
+        MovingPunctureGaugeWithMatter<FourthOrderDerivatives>
+            moving_puncture_gauge_with_matter(dx);
+        DefaultScalarField scalar_field;
+        FourthOrderDerivatives deriv(dx);
 
         // Set up the constraints
         constexpr int num_bssn_matter_vars = c_Pi + 1;
@@ -150,8 +154,16 @@ void run_bssn_matter_test()
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
-                moving_puncture_gauge.calculate_gauge_rhs(
-                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+                const CCZ4Vars vars(in_c_array[ibox].cellData(ix, iy, iz));
+                const Tensor::Rank2 h_UU =
+                    CCZ4Geometry::compute_inverse_metric(vars);
+                const einstein_sources_t source =
+                    scalar_field.compute_einstein_sources(
+                        ix, iy, iz, in_c_array[ibox], deriv, h_UU);
+
+                moving_puncture_gauge_with_matter.calculate_gauge_rhs(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox], h_UU,
+                    source);
             });
 
         // calculate the matter contribution

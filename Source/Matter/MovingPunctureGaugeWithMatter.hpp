@@ -22,14 +22,32 @@
 /// This class adds the matter terms to the RHS of the gauge equation
 /// for the moving puncture gauge
 
-class MovingPunctureGaugeWithMatter
-    : public MovingPunctureGauge<FourthOrderDerivatives>
+template <class deriv_t = FourthOrderDerivatives>
+class MovingPunctureGaugeWithMatter : public MovingPunctureGauge<deriv_t>
 {
+    using base_t = MovingPunctureGauge<deriv_t>;
 
   public:
-    MovingPunctureGaugeWithMatter(double a_dx)
-        : MovingPunctureGauge<FourthOrderDerivatives>(a_dx)
+    MovingPunctureGaugeWithMatter(double a_dx) : base_t(a_dx) {}
+
+    using base_t::calculate_gauge_rhs;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    calculate_gauge_rhs(int ix, int iy, int iz,
+                        const amrex::Array4<amrex::Real> &rhs,
+                        const amrex::Array4<const amrex::Real> &state,
+                        const Tensor::Rank2 &h_UU,
+                        const einstein_sources_t &source) const
     {
+        base_t::calculate_gauge_rhs(ix, iy, iz, rhs, state);
+
+        const amrex::CellData<amrex::Real> &rhs_cell_data =
+            rhs.cellData(ix, iy, iz);
+        const amrex::CellData<const amrex::Real> &state_cell_data =
+            state.cellData(ix, iy, iz);
+        const CCZ4Vars vars(state_cell_data);
+
+        rhs_gauge_add_matter_terms(rhs_cell_data, vars, h_UU, source);
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void

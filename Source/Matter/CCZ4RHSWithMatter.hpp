@@ -26,7 +26,8 @@
    an example of a matter_t. \sa CCZ4RHS(), ScalarField()
 */
 
-template <class matter_t, class gauge_t = MovingPunctureGaugeWithMatter,
+template <class matter_t,
+          class gauge_t = MovingPunctureGaugeWithMatter<FourthOrderDerivatives>,
           class deriv_t = FourthOrderDerivatives>
 class CCZ4RHSWithMatter : public CCZ4RHS<deriv_t>
 {
