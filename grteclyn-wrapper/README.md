@@ -1057,9 +1057,29 @@ of whichever node the pod currently sits on, not of this repo.
 | Layer | Status | Last verified |
 |---|---|---|
 | `mpirun` itself (local OpenMPI) | **works** — 1 and 4 ranks, correct rank ids | 2026-08-19 |
-| GRTresna solver multi-rank | built, **not** re-verified since the node change | — |
-| GRTeclyn RadialRecipe MPI+CUDA | **crashes** under AMR, see below | 2026-07 |
+| GRTeclyn RadialRecipe MPI+CUDA | **works** — 2 ranks, AMR max_level 3, clean past the old crash point | 2026-08-19 |
+| GRTresna solver multi-rank | **works** — 8 ranks reproduce the serial residuals digit-for-digit | 2026-08-19 |
 | GRTeclyn RotatingWormholeCollapse MPI+CUDA | worked multi-GPU, but only on an **older node** | 2026-06 |
+
+**The July RadialRecipe AMR crash does not reproduce (retested 2026-08-19).**
+A 2-rank run on `N=240, L=128, max_level 3` advanced cleanly through all four
+levels with zero errors. Memory genuinely splits — **26 GB per card against
+49.8 GB on one** — which is the point: multi-GPU buys *headroom*, not speed.
+Throughput was 30.7 code units/h on two cards versus 29.4 on one, i.e.
+unchanged. So use it to fit a grid that will not fit on one card, and do not
+expect a run to finish sooner. Launch with
+`--gpu 0,1 --evolution-mpi-ranks 2` (or `GPU_ID="0,1" EVOLUTION_MPI_RANKS=2`
+through a promote campaign, which expands a bare `GPU_ID` into consecutive
+ids automatically).
+
+**GRTresna multi-rank solves are ~6× faster at no cost in accuracy.** At
+`N=256`, 8 ranks ran ~74 s per nonlinear iteration against ~7.7 min
+single-rank — a 6-iteration production solve drops from ~46 min to ~8 min —
+and iterations 1–4 reproduced the single-rank Ham/Mom residuals to all seven
+printed digits. This supersedes the older observation that 8 ranks converged
+*worse* than 1 (0.93 % vs 0.63 % Ham); that predates the Chombo rebuild.
+Pass `--grtresna-ranks 8`. Load stayed near 11 of 128 cores, so wider is
+available if it ever pays.
 
 **Two distinct failures have been mistaken for each other. Keep them apart:**
 

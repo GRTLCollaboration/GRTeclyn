@@ -65,14 +65,30 @@ numbered gaps map to §1 "What the paper still lacks".*
 
 **Corrections pending against this document**
 
-- §2 says *"MPI is broken; never raise RANKS."* **That is no longer true.**
-  On 2026-08-19 `mpirun` was verified working on the current node at 1 and 4
-  ranks with correct rank ids; the old failure belonged to a node the pod has
-  since left. What remains unproven is (a) GRTresna multi-rank solves and (b)
-  RadialRecipe MPI+CUDA, which last crashed on the *first* AMR advance in
-  July — on a different node, with code that has changed since, and untested
-  since. Single-GPU AMR is unaffected and is what runs today. §340's "no MPI
-  repair unless the matrix fails its acceptance band" trigger has now fired.
+- §2 says *"MPI is broken; never raise RANKS."* **That is dead — MPI works,
+  at every layer, verified 2026-08-19.** The old failure belonged to a node
+  the pod has since left. Three separate checks, all passing:
+  1. `mpirun` itself — 1 and 4 ranks, correct rank ids.
+  2. **RadialRecipe MPI+CUDA multi-GPU** — the July "first AMR advance"
+     segfault **does not reproduce**. A 2-rank run at `N=240, max_level 3`
+     advanced cleanly through all four levels. Memory splits properly:
+     **26 GB per card vs 49.8 GB on one**. Throughput is *unchanged*
+     (30.7 vs 29.4 units/h) — multi-GPU buys **headroom, not speed**.
+  3. **GRTresna multi-rank solves** — 8 ranks at `N=256` reproduced the
+     single-rank Ham/Mom residuals **exactly at all 7 printed digits for all
+     6 iterations** (final 0.5087497 % / 0.6866979 %), in **6 min 59 s
+     against ~46 min**. A 6.6× speedup at zero accuracy cost. Use
+     `--grtresna-ranks 8`. This also retires the old note that 8 ranks
+     converged *worse* than 1 — that predates the Chombo rebuild to
+     `-march=x86-64-v3`.
+
+  **Consequences for this plan.** §340's "no MPI repair unless the matrix
+  fails" trigger fired and the repair is done. The claim that RF (N = 384)
+  and DL (N = 320) "cannot be reproduced" is now **wrong in principle** —
+  they need ≥ 2 cards, which we have. Every Phase-3 cell should take
+  `--grtresna-ranks 8`, saving ~38 min each (~5 h across the 8 queued
+  solves). Caveat: with only 3 GPUs a 2-rank evolution leaves just one card
+  free, so multi-GPU is for grids that do not otherwise fit — not a default.
 - Missing manifests: the **depth mini-ladder has none**, and the fgeo_max
   Phase-3 manifest lacks **FMAX-PF** and the free-fall companions that §6
   requires.
@@ -156,9 +172,11 @@ rule** → HQ → matrix — is missing its refinement stage. That run comes fir
   and fan-out at three concurrent slots. Anywhere below that says "4 GPUs"
   predates this and is wrong: wall-clock estimates stretch by ~4/3, and the
   CMA-ES population floor (next bullet) becomes **≥ 12**, not 16.
-- **Single rank, for now.** The old RF (N = 384, 3 ranks) and DL (N = 320,
-  2 ranks) **cannot currently be
-  reproduced** — the proven single-GPU ceiling at max_level 3 is N = 256
+- **MPI works (2026-08-19) — see §0.** Multi-rank GRTresna solves (`8` ranks,
+  6.6× faster, digit-identical) and multi-GPU RadialRecipe evolutions
+  (`--gpu 0,1 --evolution-mpi-ranks 2`) are both verified. RF (N = 384) and
+  DL (N = 320) are therefore no longer impossible, only expensive: they need
+  ≥ 2 of our 3 cards. The **single-GPU** ceiling at max_level 3 is N = 256
   (BCMA-RM), and N = 384 **OOMs outright on one GPU** (confirmed 2026-08-18).
   The measured budget (bondi node): **8.8 GB at N = 128 scaling as N³** →
   ~30 GB at 192, ~47 GB at 224, ~70 GB at 256, **~100 GB at 288 — over the

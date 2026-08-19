@@ -144,6 +144,7 @@ def _promotion_overrides(
     plot_interval: int,
     max_level: int,
     regrid_threshold: float,
+    checkpoint_interval: int = -1,
 ) -> dict:
     promoted_max_level = int(max_level)
     overrides = dict(base)
@@ -156,7 +157,7 @@ def _promotion_overrides(
             "extraction_center": f"{half:g} {half:g} {half:g}",
             "stop_time": float(stop_time),
             "plot_interval": int(plot_interval),
-            "checkpoint_interval": -1,
+            "checkpoint_interval": int(checkpoint_interval),
             "max_level": promoted_max_level,
             # CMA-ES/QD metadata may carry a shorter list from a lower max_level;
             # AMReX aborts if regrid_interval has fewer entries than max_level+1.
@@ -249,6 +250,14 @@ def main() -> int:
         type=int,
         default=_QD_PLOT_INTERVAL,
         help="Plotfile cadence in steps (QD default: 320 → ~6 dumps at t=16, dt≈0.01).",
+    )
+    parser.add_argument(
+        "--checkpoint-interval",
+        type=int,
+        default=-1,
+        help="Checkpoint cadence in steps (default -1 = never). Set this for any "
+        "multi-hour run: without a checkpoint an Arena OOM or a node blip loses "
+        "the whole evolution with no restart point.",
     )
     parser.add_argument("--ftl-L", type=float, default=8.0)
     parser.add_argument("--grtresna-ranks", type=int, default=8)
@@ -379,6 +388,7 @@ def main() -> int:
         plot_interval=args.plot_interval,
         max_level=args.max_level,
         regrid_threshold=args.regrid_threshold,
+        checkpoint_interval=args.checkpoint_interval,
     )
 
     # Apply --extra-override KEY=VALUE pairs last (highest priority).
