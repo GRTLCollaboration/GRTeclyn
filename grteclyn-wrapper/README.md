@@ -1048,10 +1048,85 @@ uv run python grteclyn-wrapper/scripts/campaigns/hq/replay_eval.py \
 env. The runner wraps each rank with
 `CUDA_VISIBLE_DEVICES=${GRTECLYN_GPU_IDS[LOCAL_RANK]}`.
 
-**Known limitation (2026-07):** RadialRecipe MPI+CUDA currently segfaults at the
-first RK4 advance under AMR (`storeRKCoarseData` / `m_fillpatcher`) even when
-VRAM is fine. Single-GPU remains the production path until that AMReX/GRAMR
-path is fixed. Use multi-GPU only after a smoke advance past `t>0` succeeds.
+#### MPI status and triage runbook
+
+**Do not trust any "MPI is broken" claim without re-running the checks below.**
+That status has flipped twice. It is recorded per date because it is a property
+of whichever node the pod currently sits on, not of this repo.
+
+| Layer | Status | Last verified |
+|---|---|---|
+| `mpirun` itself (local OpenMPI) | **works** — 1 and 4 ranks, correct rank ids | 2026-08-19 |
+| GRTresna solver multi-rank | built, **not** re-verified since the node change | — |
+| GRTeclyn RadialRecipe MPI+CUDA | **crashes** under AMR, see below | 2026-07 |
+| GRTeclyn RotatingWormholeCollapse MPI+CUDA | worked multi-GPU, but only on an **older node** | 2026-06 |
+
+**Two distinct failures have been mistaken for each other. Keep them apart:**
+
+1. *Node-level.* On one node every MPI job died in PRRTE daemon start-up —
+   even `mpirun -np 1 hostname`. Nothing in this repo could fix it; it went
+   away when the pod moved. If this is happening, stop and check the node, do
+   not rebuild anything.
+2. *Toolchain-level.* GRTresna died with SIGILL from mismatched
+   `-march=native` objects. Fixed by rebuilding Chombo's MPI libs
+   consistently: `scripts/build/rebuild_grtresna_mpi.sh` (it ends with its own
+   2-rank smoke test).
+3. *Application-level.* RadialRecipe MPI+CUDA segfaults at the **first RK4
+   advance under AMR**, inside `amrex::FillPatchIterator::Initialize`
+   (`amrex/Src/Amr/AMReX_AmrLevel.cpp:1004`, reached via
+   `AmrLevel::FillPatch`). VRAM is fine when it happens. This is specific to
+   this example's code path — the wormhole example does not hit it.
+
+**Triage order — run these before concluding anything:**
+
+```bash
+export PATH="$OPENMPI_ROOT/bin:$PATH"
+export LD_LIBRARY_PATH="$OPENMPI_ROOT/lib:${LD_LIBRARY_PATH:-}"
+
+# 1. Is MPI alive at all on this node?  (If this fails, it is the node.)
+mpirun -np 1 hostname
+mpirun -np 4 bash -c 'echo "rank $OMPI_COMM_WORLD_RANK of $OMPI_COMM_WORLD_SIZE"'
+
+# 2. Does the CPU solver run multi-rank?  (Wins ~40 min per HQ constraint solve.)
+bash grteclyn-wrapper/scripts/build/rebuild_grtresna_mpi.sh   # only if step 1 passed
+
+# 3. Does RadialRecipe survive one AMR advance on 2 GPUs?
+#    Short stop-time, max_level>0 — the crash is at the FIRST advance, so a
+#    run that reaches t>0 has cleared it.  Never launch a long multi-GPU run
+#    before this passes.
+```
+
+The RadialRecipe MPI+CUDA binary is normally already built and current — check
+its timestamp against `RadialRecipeLevel.cpp` before spending a rebuild. A
+rebuild does **not** address failure mode 3, which is a code path, not a link.
+
+#### Arena OOM part-way through a long AMR run
+
+A run can start comfortably and still die of GPU memory hours later: as matter
+disperses, more cells get tagged and the Arena grows. Observed on a single
+H100 at `N=256, L=128, max_level=3`: **62 GB at t=0 climbing to 77 GB, aborting
+at t≈37 of 64** while asking for a further 17 MiB. The abort looks like this,
+and is *not* the segfault above:
+
+```
+amrex::Abort::0::Arena out of memory!!!
+Error: cudaMalloc returned 2: out of memory
+[The Arena] space allocated (MB): 77208
+Free  GPU global memory (MB): 2
+```
+
+What to do:
+
+- **Set `checkpoint_interval` > 0 for any multi-hour run.** With the default
+  `-1` there is no restart point and the whole run is lost. This is the single
+  most valuable change.
+- Budget headroom, not just the starting footprint. Measured on one H100:
+  N=240 → 49.8 GB, N=256 → 62 GB *initially*, N=288 → OOMs immediately
+  (77.8 GB allocated, 2 MB free). A run that starts at 62 GB has far less
+  margin than it appears.
+- If it recurs at a resolution you need: raise `regrid_threshold` so fewer
+  cells are tagged, lower `max_level`, or step down one grid size — in that
+  order, since the first two change the least about the physics.
 
 #### Build the RotatingWormholeCollapse binary (MPI + CUDA)
 
