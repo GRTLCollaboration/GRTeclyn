@@ -43,14 +43,14 @@
       "stop_time": 64.0,
       "plot_interval": 72,
       "grteclyn_frames": 1,
-      "evolution_mpi_ranks": 1,
+      "evolution_mpi_ranks": 3,
       "consumer_radii": [
         12.0,
         18.0,
         24.0
       ],
       "name_prefix": "fmax_rm_L128_N256_t64",
-      "notes": "HQ headline + Richardson medium (h=0.5). 1 GPU. Metrics-only."
+      "notes": "HQ headline + Richardson medium (h=0.5). 1 GPU. Metrics-only. Raised 1 -> 3 GPUs on 2026-08-19 after the single- and dual-card attempts failed the same way: the mesh keeps refining, so speed decays (22 -> 2.3 units/h by t=44) while per-card memory grows ~6 GB/h, and attempt 1 OOMed. Splitting the domain across 3 ranks cuts the per-card footprint by about a third and moves the ceiling out past t=64. Compute layout only - physics_frozen untouched."
     },
     {
       "id": "FMAX-RC",

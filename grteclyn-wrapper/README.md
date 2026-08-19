@@ -1058,6 +1058,7 @@ of whichever node the pod currently sits on, not of this repo.
 |---|---|---|
 | `mpirun` itself (local OpenMPI) | **works** — 1 and 4 ranks, correct rank ids | 2026-08-19 |
 | GRTeclyn RadialRecipe MPI+CUDA | **works** — 2 ranks, AMR max_level 3, clean past the old crash point | 2026-08-19 |
+| GRTeclyn RadialRecipe MPI+CUDA, 3 ranks | **works** — 3 ranks on `N=256, L=128, max_level 3`, first AMR advance clean, 22–23 GB per card | 2026-08-19 |
 | GRTresna solver multi-rank | **works** — 8 ranks reproduce the serial residuals digit-for-digit | 2026-08-19 |
 | GRTeclyn RotatingWormholeCollapse MPI+CUDA | worked multi-GPU, but only on an **older node** | 2026-06 |
 
@@ -1119,6 +1120,65 @@ bash grteclyn-wrapper/scripts/build/rebuild_grtresna_mpi.sh   # only if step 1 p
 The RadialRecipe MPI+CUDA binary is normally already built and current — check
 its timestamp against `RadialRecipeLevel.cpp` before spending a rebuild. A
 rebuild does **not** address failure mode 3, which is a code path, not a link.
+
+#### Multi-GPU pipeline start — what goes wrong before step 1
+
+Everything here was seen on 2026-08-19 bringing a 3-rank `RadialRecipe` run up.
+None of it is a code bug; all of it looks like a code bug from the log.
+
+**1. Relaunching straight after killing a multi-GPU job deadlocks the start.**
+The new ranks reach `AMReX … initialized` and stop. The log ends there, every
+rank sits at 100 % CPU, GPU utilisation is 0 %, and each card holds only its
+~590 MB CUDA context. It never recovers. The same command, run again once the
+cards report `0 MiB`, starts normally — so this is the driver still tearing
+down the previous job, not a rank-count limit. **Wait for `nvidia-smi` to show
+the cards actually free before relaunching.** Confirmed by running the same
+`check_params=1` pass standalone at 2 and 3 ranks: both exit 0 in seconds.
+
+**2. A spinning rank looks identical to a working one unless you measure it.**
+On this node `ps -o etimes,pcpu` reports `0` for live processes, so the obvious
+check says nothing. Read the CPU counters instead — ticks climbing with no log
+growth and no GPU work is a spin-wait, i.e. a hung collective:
+
+```bash
+for p in $(pgrep -f main3d); do awk '{print $1, "utime="$14}' /proc/$p/stat; done
+# sample twice; rising utime + static log size + 0 % GPU = hung, not busy
+```
+
+**3. `mpirun` is not on `PATH` in a plain shell.** Manual triage fails with
+`timeout: failed to run command 'mpirun': No such file or directory`, which
+reads like a broken install. The launchers set this up themselves; a hand-run
+check has to do it first:
+
+```bash
+export PATH="$OPENMPI_ROOT/bin:$PATH"
+export LD_LIBRARY_PATH="$OPENMPI_ROOT/lib:${LD_LIBRARY_PATH:-}"
+```
+
+**4. Reusing initial data is opt-in.** Nothing infers a saved solve. Without an
+explicit `GRIDINIT=…` (or `--gridinit`), a promote relaunch re-runs the whole
+elliptic solve — ~30 min wasted, and the restart is no longer bit-identical to
+the run it replaces. Pass it whenever you are re-running the same genome:
+
+```bash
+GRIDINIT=<abs path to saved initial_data.gridinit> \
+GPU_ID=0,1,2 EVOLUTION_MPI_RANKS=3 \
+bash scripts/campaigns/promote/<campaign>/run.sh <CELL>
+```
+
+The run log confirms the reuse with `mode=gpu-only`; a fresh solve says
+otherwise. Verify on the live process, not on intent:
+
+```bash
+tr '\0' ' ' < /proc/$(pgrep -f replay_eval | head -1)/cmdline | grep -o '\-\-gridinit [^ ]*'
+```
+
+**5. Extra cards do not make the run finish sooner.** Worth repeating here
+because it is the usual reason someone reaches for more GPUs: throughput is
+flat (30.7 units/h on two cards vs 29.4 on one), the win is per-card memory.
+Adding cards converts an arena OOM into a run that survives — at the same wall
+clock. If the deadline is the problem, cut `stop_time` or change the grid; do
+not add cards.
 
 #### Arena OOM part-way through a long AMR run
 

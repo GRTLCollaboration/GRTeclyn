@@ -217,13 +217,25 @@ mkdir -p "${LAUNCH_LOG_DIR}"
 LAUNCH_RECORD="${LAUNCH_LOG_DIR}/${RUN_ID}_$(date -u +%Y%m%dT%H%M%SZ).json"
 python3 - <<PY
 import json, os, subprocess, pathlib
+
+_ROOT = "${GRTECLYN_ROOT}"
+
+def _rel(path):
+    """Repo-relative so launch records never carry host/user/home literals."""
+    if not path:
+        return path
+    try:
+        return os.path.relpath(path, _ROOT)
+    except ValueError:
+        return path
+
 rec = {
   "run_id": "${RUN_ID}",
   "campaign": "${CAMPAIGN_SLUG}",
   "phase": int("${PHASE}"),
   "role": "${RUN_ROLE}",
-  "manifest": "${MANIFEST}",
-  "source_run": "${SOURCE_RUN}",
+  "manifest": _rel("${MANIFEST}"),
+  "source_run": _rel("${SOURCE_RUN}"),
   "eval_id": int("${EVAL_ID}"),
   "n_full": int("${N_FULL}"),
   "l_full": float("${L_FULL}"),
@@ -233,7 +245,7 @@ rec = {
   "max_level": int("${MAX_LEVEL}"),
   "gpu_id": "${GPU_ID}",
   "evolution_mpi_ranks": int("${EVOLUTION_MPI_RANKS}"),
-  "out_dir": "${OUT_DIR}",
+  "out_dir": _rel("${OUT_DIR}"),
   "git_commit": subprocess.check_output(["git", "-C", "${GRTECLYN_ROOT}", "rev-parse", "HEAD"], text=True).strip(),
 }
 pathlib.Path("${LAUNCH_RECORD}").write_text(json.dumps(rec, indent=2) + "\n")

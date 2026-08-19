@@ -34,9 +34,8 @@ mkdir -p "${OUT}"
 # NOTE: /usr/bin/env, spelled out, is NOT optional on this machine.
 # Two shared-workspace directories sit ahead of /usr/bin on PATH and each
 # contains an executable named `env` which is really a PATH-setup snippet meant
-# to be sourced:
-#     /home/jovyan/bureev/.local/share/../bin/env
-#     /workspace/aigorbulev/bin/env
+# to be sourced (they live under other users' home and shared-workspace bin
+# directories -- run `type -a env` to see which ones are shadowing it for you).
 # Invoked as `env VAR=x cmd` they prepend their own directory to PATH and exit 0
 # WITHOUT EVER RUNNING cmd.  A bare `env` here therefore launches nothing,
 # silently, with a success exit code and an empty log.

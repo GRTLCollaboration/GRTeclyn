@@ -88,4 +88,7 @@ __pycache__/
 !/results/
 !/results/**
 !results/**/*.dat
+# ...but never compiled artifacts: .pyc files embed absolute build paths.
+/results/**/__pycache__/
+/results/**/*.pyc
 *.ex.*

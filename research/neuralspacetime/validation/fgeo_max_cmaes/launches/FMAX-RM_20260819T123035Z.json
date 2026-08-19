@@ -12,8 +12,8 @@
   "stop_time": 64.0,
   "plot_interval": 72,
   "max_level": 3,
-  "gpu_id": "0,1",
-  "evolution_mpi_ranks": 2,
+  "gpu_id": "0,1,2",
+  "evolution_mpi_ranks": 3,
   "out_dir": "runs/neuralspacetime/hq/fmax_rm_L128_N256_t64_hq_eval000193",
-  "git_commit": "76bcad6dac415216fd81b42679d56dab270f1fa5"
+  "git_commit": "ac902f2bded9fbd132d490b9a5ff6691e630d12c"
 }
