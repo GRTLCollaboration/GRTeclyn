@@ -1,0 +1,244 @@
+[optimize] Starting CMA-ES: 39D, popsize=16, max_gen=13, GPUs=[0, 1, 2, 3], pipeline=True
+[optimize] target_evals=200
+[optimize] loaded 5 warm-start vectors
+[optimize] eval 2 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 4 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 3 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 6 score=3064.0815 status=gpu_ok
+[optimize] eval 1 score=3066.6398 status=gpu_ok
+[optimize] eval 7 score=3107.8177 status=gpu_ok
+[optimize] eval 5 score=147.4335 status=gpu_ok
+[optimize] eval 8 score=3165.7296 status=gpu_ok
+[optimize] eval 9 score=3168.8012 status=gpu_ok
+[optimize] eval 10 score=3180.5970 status=gpu_ok
+[optimize] eval 11 score=3016.2532 status=gpu_ok
+[optimize] eval 13 score=39.1305 status=gpu_failed
+[optimize] eval 12 score=3261.1970 status=gpu_ok
+[optimize] eval 14 score=26.4738 status=gpu_ok
+[optimize] eval 15 score=24.8053 status=gpu_ok
+[optimize] eval 16 score=693.9736 status=gpu_ok
+[optimize] gen 1/13: best=3261.1970 mean=1603.9334 all-time-best=3261.1970 evals=16
+[optimize] eval 20 score=3091.3233 status=gpu_ok
+[optimize] eval 19 score=3270.0993 status=gpu_ok
+[optimize] eval 17 score=3304.0473 status=gpu_ok
+[optimize] eval 18 score=3200.1047 status=gpu_ok
+[optimize] eval 21 score=3083.9573 status=gpu_ok
+[optimize] eval 22 score=3251.9317 status=gpu_ok
+[optimize] eval 23 score=3234.8086 status=gpu_ok
+[optimize] eval 24 score=3119.9950 status=gpu_ok
+[optimize] eval 26 score=3298.7625 status=gpu_ok
+[optimize] eval 25 score=3127.9491 status=gpu_ok
+[optimize] eval 27 score=3151.7720 status=gpu_ok
+[optimize] eval 28 score=3246.5033 status=gpu_ok
+[optimize] eval 30 score=1320.1013 status=gpu_ok
+[optimize] eval 29 score=160.1253 status=gpu_ok
+[optimize] eval 32 score=173.9014 status=gpu_ok
+[optimize] eval 31 score=35.9620 status=gpu_ok
+[optimize] gen 2/13: best=3304.0473 mean=2504.4590 all-time-best=3304.0473 evals=32
+[qd] pruned 12 eval dirs; kept 20 + protected [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+[optimize] eval 36 score=3410.8958 status=gpu_ok
+[optimize] eval 38 score=3358.0536 status=gpu_ok
+[optimize] eval 39 score=3199.3253 status=gpu_ok
+[optimize] eval 35 score=3351.5637 status=gpu_ok
+[optimize] eval 34 score=3274.7136 status=gpu_ok
+[optimize] eval 37 score=3137.9215 status=gpu_ok
+[optimize] eval 33 score=3412.0179 status=gpu_ok
+[optimize] eval 40 score=3254.5103 status=gpu_ok
+[optimize] eval 46 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 41 score=3227.4874 status=gpu_ok
+[optimize] eval 42 score=3280.8030 status=gpu_ok
+[optimize] eval 43 score=3195.1191 status=gpu_ok
+[optimize] eval 45 score=2916.1531 status=gpu_ok
+[optimize] eval 44 score=3384.7948 status=gpu_ok
+[optimize] eval 48 score=24.2794 status=gpu_failed
+[optimize] eval 47 score=65.8246 status=gpu_ok
+[optimize] gen 3/13: best=3412.0179 mean=2649.5915 all-time-best=3412.0179 evals=48
+[qd] pruned 15 eval dirs; kept 21 + protected [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]
+[optimize] eval 50 score=3329.6170 status=gpu_ok
+[optimize] eval 54 score=3442.6618 status=gpu_ok
+[optimize] eval 53 score=3434.2484 status=gpu_ok
+[optimize] eval 52 score=3348.2074 status=gpu_ok
+[optimize] eval 51 score=3344.9632 status=gpu_ok
+[optimize] eval 55 score=3410.5747 status=gpu_ok
+[optimize] eval 49 score=3346.8160 status=gpu_ok
+[optimize] eval 56 score=3444.9422 status=gpu_ok
+[optimize] eval 57 score=3423.8203 status=gpu_ok
+[optimize] eval 59 score=3369.0422 status=gpu_ok
+[optimize] eval 58 score=3360.4956 status=gpu_ok
+[optimize] eval 62 score=24.9900 status=gpu_ok
+[optimize] eval 64 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 61 score=35.0084 status=gpu_ok
+[optimize] eval 60 score=3353.0390 status=gpu_ok
+[optimize] eval 63 score=149.2871 status=gpu_ok
+[optimize] gen 4/13: best=3444.9422 mean=2544.8571 all-time-best=3444.9422 evals=64
+[qd] pruned 16 eval dirs; kept 21 + protected [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+[optimize] eval 66 score=3474.3898 status=gpu_ok
+[optimize] eval 67 score=3449.6552 status=gpu_ok
+[optimize] eval 68 score=3299.8943 status=gpu_ok
+[optimize] eval 65 score=3451.2763 status=gpu_ok
+[optimize] eval 69 score=3452.2004 status=gpu_ok
+[optimize] eval 70 score=3419.8165 status=gpu_ok
+[optimize] eval 71 score=3428.3032 status=gpu_ok
+[optimize] eval 74 score=3508.9946 status=gpu_ok
+[optimize] eval 73 score=3426.0168 status=gpu_ok
+[optimize] eval 72 score=3439.1423 status=gpu_ok
+[optimize] eval 77 score=-13.8037 status=gpu_ok
+[optimize] eval 78 score=-14.1060 status=gpu_ok
+[optimize] eval 75 score=3385.0179 status=gpu_ok
+[optimize] eval 76 score=3460.9075 status=gpu_ok
+[optimize] eval 80 score=36.2261 status=gpu_failed
+[optimize] eval 79 score=80.0994 status=gpu_ok
+[optimize] gen 5/13: best=3508.9946 mean=2580.2519 all-time-best=3508.9946 evals=80
+[qd] pruned 15 eval dirs; kept 22 + protected [65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80]
+[optimize] eval 84 score=3549.6294 status=gpu_ok
+[optimize] eval 86 score=3451.8610 status=gpu_ok
+[optimize] eval 85 score=3468.6112 status=gpu_ok
+[optimize] eval 87 score=3512.9402 status=gpu_ok
+[optimize] RESUMED from cmaes_state.pkl: gen=5, evals=80, all-time-best=3508.9946
+[optimize] Starting CMA-ES: 39D, popsize=16, max_gen=13, GPUs=[0, 1, 2, 3], pipeline=True
+[optimize] target_evals=200
+[optimize] loaded 5 warm-start vectors
+[optimize] RESUMED from cmaes_state.pkl: gen=5, evals=80, all-time-best=3508.9946
+[optimize] Starting CMA-ES: 39D, popsize=16, max_gen=13, GPUs=[0, 1, 2, 3], pipeline=True
+[optimize] target_evals=200
+[optimize] loaded 5 warm-start vectors
+[optimize] eval 81 score=3234.3746 status=gpu_ok
+[optimize] eval 82 score=3290.2471 status=gpu_ok
+[optimize] eval 86 score=66.6602 status=gpu_ok
+[optimize] eval 84 score=3549.6294 status=gpu_ok
+[optimize] eval 83 score=3527.2510 status=gpu_ok
+[optimize] eval 85 score=66.9961 status=gpu_ok
+[optimize] eval 87 score=3512.9402 status=gpu_ok
+[optimize] eval 89 score=3421.7606 status=gpu_ok
+[optimize] eval 88 score=3473.6565 status=gpu_ok
+[optimize] eval 94 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 90 score=3521.9267 status=gpu_ok
+[optimize] eval 91 score=3416.9115 status=gpu_ok
+[optimize] eval 93 score=128.1191 status=gpu_ok
+[optimize] eval 96 score=19.9887 status=gpu_failed
+[optimize] eval 92 score=3460.0796 status=gpu_ok
+[optimize] eval 95 score=51.0806 status=gpu_ok
+[optimize] gen 6/13: best=3549.6294 mean=2165.1014 all-time-best=3549.6294 evals=96
+[qd] pruned 18 eval dirs; kept 20 + protected [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96]
+[optimize] eval 98 score=3503.8776 status=gpu_ok
+[optimize] eval 101 score=3491.0813 status=gpu_ok
+[optimize] eval 99 score=3531.5695 status=gpu_ok
+[optimize] eval 103 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 100 score=3550.7362 status=gpu_ok
+[optimize] eval 104 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 97 score=3448.2844 status=gpu_ok
+[optimize] eval 102 score=3517.6411 status=gpu_ok
+[optimize] eval 105 score=3494.2702 status=gpu_ok
+[optimize] eval 112 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 106 score=3424.5207 status=gpu_ok
+[optimize] eval 107 score=3488.0180 status=gpu_ok
+[optimize] eval 110 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 108 score=3558.9966 status=gpu_ok
+[optimize] eval 109 score=3377.2719 status=gpu_ok
+[optimize] eval 111 score=27.2575 status=gpu_ok
+[optimize] gen 7/13: best=3558.9966 mean=2375.8453 all-time-best=3558.9966 evals=112
+[qd] pruned 13 eval dirs; kept 23 + protected [97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112]
+[optimize] eval 115 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 119 score=3543.3481 status=gpu_ok
+[optimize] eval 116 score=3498.8019 status=gpu_ok
+[optimize] eval 117 score=3569.2108 status=gpu_ok
+[optimize] eval 114 score=3525.4999 status=gpu_ok
+[optimize] eval 123 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 118 score=3538.1865 status=gpu_ok
+[optimize] eval 113 score=3541.0891 status=gpu_ok
+[optimize] eval 124 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 120 score=3616.6617 status=gpu_ok
+[optimize] eval 125 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 121 score=3551.8394 status=gpu_ok
+[optimize] eval 122 score=3479.5578 status=gpu_ok
+[optimize] eval 128 score=-2.7319 status=gpu_failed
+[optimize] eval 127 score=409.1687 status=gpu_ok
+[optimize] eval 126 score=42.7379 status=gpu_ok
+[optimize] gen 8/13: best=3616.6617 mean=1994.5856 all-time-best=3616.6617 evals=128
+[qd] pruned 16 eval dirs; kept 23 + protected [113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128]
+[optimize] eval 134 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 133 score=3543.9539 status=gpu_ok
+[optimize] eval 132 score=3596.8483 status=gpu_ok
+[optimize] eval 129 score=3599.4536 status=gpu_ok
+[optimize] eval 130 score=3539.8851 status=gpu_ok
+[optimize] eval 136 score=3558.6619 status=gpu_ok
+[optimize] eval 135 score=3580.1758 status=gpu_ok
+[optimize] eval 139 score=3606.0697 status=gpu_ok
+[optimize] eval 131 score=3555.2080 status=gpu_ok
+[optimize] eval 137 score=3596.3063 status=gpu_ok
+[optimize] eval 141 score=37.8560 status=gpu_failed
+[optimize] eval 138 score=3598.3533 status=gpu_ok
+[optimize] eval 144 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 142 score=26.9771 status=gpu_ok
+[optimize] eval 140 score=3441.5680 status=gpu_ok
+[optimize] eval 143 score=29.9196 status=gpu_ok
+[optimize] gen 9/13: best=3606.0697 mean=2444.4523 all-time-best=3616.6617 evals=144
+[qd] pruned 17 eval dirs; kept 22 + protected [129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144]
+[optimize] eval 150 score=3564.8088 status=gpu_ok
+[optimize] eval 147 score=3597.7616 status=gpu_ok
+[optimize] eval 145 score=3476.2836 status=gpu_ok
+[optimize] eval 149 score=3604.1174 status=gpu_ok
+[optimize] eval 148 score=3472.9849 status=gpu_ok
+[optimize] eval 146 score=3560.6205 status=gpu_ok
+[optimize] eval 153 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 151 score=3572.2360 status=gpu_ok
+[optimize] eval 152 score=3589.4738 status=gpu_ok
+[optimize] eval 158 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 154 score=3636.1457 status=gpu_ok
+[optimize] eval 155 score=3609.1117 status=gpu_ok
+[optimize] eval 156 score=3592.4836 status=gpu_ok
+[optimize] eval 157 score=544.4130 status=gpu_ok
+[optimize] eval 159 score=24.6616 status=gpu_ok
+[optimize] eval 160 score=30.8630 status=gpu_ok
+[optimize] gen 10/13: best=3636.1457 mean=2479.7478 all-time-best=3636.1457 evals=160
+[qd] pruned 13 eval dirs; kept 25 + protected [145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160]
+[optimize] eval 163 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 165 score=3605.9128 status=gpu_ok
+[optimize] eval 166 score=3595.6525 status=gpu_ok
+[optimize] eval 164 score=3548.7998 status=gpu_ok
+[optimize] eval 162 score=3656.5518 status=gpu_ok
+[optimize] eval 168 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 170 score=3640.2765 status=gpu_ok
+[optimize] eval 167 score=3621.9140 status=gpu_ok
+[optimize] eval 174 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 173 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 169 score=3634.4583 status=gpu_ok
+[optimize] eval 176 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 161 score=3532.8674 status=gpu_ok
+[optimize] eval 171 score=3614.9089 status=gpu_ok
+[optimize] eval 172 score=3560.3864 status=gpu_ok
+[optimize] eval 175 score=98.0053 status=gpu_ok
+[optimize] gen 11/13: best=3656.5518 mean=2225.6083 all-time-best=3656.5518 evals=176
+[qd] pruned 18 eval dirs; kept 23 + protected [161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176]
+[optimize] eval 177 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 181 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 182 score=3619.0662 status=gpu_ok
+[optimize] eval 180 score=3576.9734 status=gpu_ok
+[optimize] eval 179 score=3636.2346 status=gpu_ok
+[optimize] eval 185 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 186 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 178 score=3612.4941 status=gpu_ok
+[optimize] eval 187 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 183 score=3586.7920 status=gpu_ok
+[optimize] eval 184 score=3627.7480 status=gpu_ok
+[optimize] eval 189 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 188 score=3618.8669 status=gpu_ok
+[optimize] eval 190 score=25.3586 status=gpu_ok
+[optimize] eval 191 score=31.6371 status=gpu_failed
+[optimize] eval 192 score=18.7958 status=gpu_ok
+[optimize] gen 12/13: best=3636.2346 mean=1547.1229 all-time-best=3656.5518 evals=192
+[qd] pruned 13 eval dirs; kept 26 + protected [177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192]
+[optimize] eval 194 score=-100.0000 status=postload_rejected reason=post-load constraints exceed threshold
+[optimize] eval 195 score=3641.1346 status=gpu_ok
+[optimize] eval 196 score=3602.9171 status=gpu_ok
+[optimize] eval 197 score=3660.0840 status=gpu_ok
+[optimize] eval 199 score=263.4188 status=gpu_ok
+[optimize] eval 198 score=3627.6611 status=gpu_ok
+[optimize] eval 193 score=3665.7738 status=gpu_ok
+[optimize] eval 200 score=173.7572 status=gpu_ok
+[optimize] gen 13/13: best=3665.7738 mean=2316.8433 all-time-best=3665.7738 evals=200
+[qd] pruned 16 eval dirs; kept 18 + protected [193, 194, 195, 196, 197, 198, 199, 200]
+[optimize] Done. 13 generations, 200 evaluations.
+[optimize] Best score: 3665.7738
+[optimize] Best episode: runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1/eval_000193
+[optimize] Results: runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1

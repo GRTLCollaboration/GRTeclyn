@@ -955,7 +955,7 @@ Run-by-run results live outside this README:
 | [`MapElites.md`](../research/neuralspacetime/MapElites.md) | FTL search lab journal (SH, shell, wormhole) |
 | [`MapElitesDynamics.md`](../research/neuralspacetime/MapElitesDynamics.md) | Trajectory FTL campaign lab journal |
 | [`grlab/LabJournal.md`](../research/grlab/LabJournal.md) | GW beam + splash lab journal |
-| [`results/`](../results/) | Git-friendly campaign extracts, e.g. [`qball-trajectory-evolving-geodesic-shortcut-search/CAMPAIGN_RESULTS.md`](../results/qball-trajectory-evolving-geodesic-shortcut-search/CAMPAIGN_RESULTS.md) |
+| [`results/`](../results/) | Git-friendly campaign extracts, e.g. [`qball-trajectory-evolving-geodesic-shortcut-search/CAMPAIGN_RESULTS.md`](../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-evolving-geodesic-shortcut-search/CAMPAIGN_RESULTS.md) |
 | [`NextSteps.md`](NextSteps.md) | Critical review of the claims' validity + hardening plan |
 
 Three takeaways that shape current work: (1) genuine gauge-invariant FTL

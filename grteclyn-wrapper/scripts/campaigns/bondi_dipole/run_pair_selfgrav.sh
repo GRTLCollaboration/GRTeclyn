@@ -36,7 +36,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd -- "${WRAPPER_DIR}/.." && pwd)"
 
-SOURCE_EVAL="${REPO_ROOT}/results/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
+SOURCE_EVAL="${REPO_ROOT}/results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
 GPU="${BONDI_GPU:-3}"
 STOP_TIME="${BONDI_STOP_TIME:-60}"
 SEP="${BONDI_SEP:-8}"

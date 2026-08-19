@@ -376,7 +376,7 @@ bash research/bondi_dipole/pack_campaign.sh   # campaign cells  -> campaign/ + c
 ```
 
 Both copy only small artefacts and scrub absolute machine paths at runtime
-(`research/bondi_dipole/scrub_paths.py`) — no host, user, or site identity
+(`grteclyn-wrapper/src/grteclyn_wrapper/packaging/scrub_paths.py`) — no host, user, or site identity
 enters git. To re-run the physics itself, see [`LAUNCH.md`](LAUNCH.md).
 
 ## Provenance

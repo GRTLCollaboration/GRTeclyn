@@ -23,9 +23,9 @@ is production-tier yet.
 
 | campaign (pack) | objective | headline |
 |---|---|---|
-| [`qball-trajectory-evolving-geodesic-shortcut-search`](../../results/qball-trajectory-evolving-geodesic-shortcut-search/CAMPAIGN_RESULTS.md) | `f_geo_max` — **persistence-gated** (the paper's agenda) | eval 322: 24 % depth with 25 % retention; ≥ 2 phantom lumps required |
-| [`qball-trajectory-geodesic-depth-search`](../../results/qball-trajectory-geodesic-depth-search/CAMPAIGN_RESULTS.md) | `f_geo_depth` — raw depth, no gating | 45.9 %, window-clipped; QD could not beat its seed |
-| [`qball-trajectory-cmaes-refinement`](../../results/qball-trajectory-cmaes-refinement/CAMPAIGN_RESULTS.md) | `f_geo_depth` | 48.38 % (eval 195) / 47.97 % clean-branch (eval 185), window-clipped |
+| [`qball-trajectory-evolving-geodesic-shortcut-search`](../../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-evolving-geodesic-shortcut-search/CAMPAIGN_RESULTS.md) | `f_geo_max` — **persistence-gated** (the paper's agenda) | eval 322: 24 % depth with 25 % retention; ≥ 2 phantom lumps required |
+| [`qball-trajectory-geodesic-depth-search`](../../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-geodesic-depth-search/CAMPAIGN_RESULTS.md) | `f_geo_depth` — raw depth, no gating | 45.9 %, window-clipped; QD could not beat its seed |
+| [`qball-trajectory-cmaes-refinement`](../../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement/CAMPAIGN_RESULTS.md) | `f_geo_depth` | 48.38 % (eval 195) / 47.97 % clean-branch (eval 185), window-clipped |
 | [`bondi-dipole-runaway`](../../results/bondi-dipole-runaway/README.md) | — | dressed ultraweak stars, stable solitons; separate paper; phase 2 on the GPUs now |
 
 **Scope ruling.** The paper's contribution is the *gated* search — transport
@@ -552,7 +552,7 @@ setsid nohup /usr/bin/env \
   GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1 \
   GEODESIC_EMIT_MIN_TIME=4 \
   .venv/bin/python scripts/campaigns/hq/replay_eval.py \
-  ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+  ../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement/run/eval_000195 \
   --name depth195_hq_L128_N256_t64 --runs-dir ../runs/neuralspacetime/hq \
   --gpu 1 --n-full 256 --l-full 128 --max-level 3 --regrid-threshold 0.02 \
   --stop-time 64 --plot-interval 72 \
@@ -579,7 +579,7 @@ keys are the same campaign constants):
 mkdir -p ../runs/neuralspacetime/hq/sources/depth_eval185_stub
 .venv/bin/python - <<'PY'
 import json, pathlib
-pack = pathlib.Path('../results/qball-trajectory-cmaes-refinement')
+pack = pathlib.Path('../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement')
 base = json.loads((pack / 'run/eval_000195/metadata.json').read_text())
 genome = json.loads((pack / 'genomes/best_clean_branch_eval185_familyA.json').read_text())
 assert set(genome['overrides']) <= set(base['overrides'])
@@ -659,7 +659,7 @@ for CELL in "depth195_hq_L128_N192_t64 192 2" "depth195_hq_L128_N224_t64 224 3";
     GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1 \
     GEODESIC_EMIT_MIN_TIME=4 \
     .venv/bin/python scripts/campaigns/hq/replay_eval.py \
-    ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+    ../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement/run/eval_000195 \
     --name "$1" --runs-dir ../runs/neuralspacetime/hq \
     --gpu "$3" --n-full "$2" --l-full 128 --max-level 3 --regrid-threshold 0.02 \
     --stop-time 64 --plot-interval 72 \
@@ -727,7 +727,7 @@ setsid nohup /usr/bin/env \
   QD_TARGET_EVALS=200 SEED=13 \
   SEED_EVAL_DIRS="$(ls -d ../runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1/eval_* 2>/dev/null | head -1) \
 ../runs/neuralspacetime/search/map_elites/qball_traj_fgeo_v1/eval_000322 \
-../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement/run/eval_000195 \
 ../runs/neuralspacetime/hq/sources/depth_eval185_stub" \
   GPU_IDS="0 1 2 3" RANKS=1 \
   bash scripts/campaigns/qball_trajectory/run_fgeo.sh \
@@ -865,7 +865,7 @@ export GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25
 export GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1
 export GEODESIC_EMIT_MIN_TIME=4
 .venv/bin/python scripts/campaigns/hq/replay_eval.py \
-  ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+  ../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement/run/eval_000195 \
   --name depth195_hq_L128_N256_t64 --runs-dir ../runs/neuralspacetime/hq \
   --gpu "\$QUEUE_GPU" --n-full 256 --l-full 128 --max-level 3 \
   --regrid-threshold 0.02 --stop-time 64 --plot-interval 72 \
@@ -877,7 +877,7 @@ EOF
 cat > "$QROOT/solve/pending/100_depth195_solve.job" <<EOF
 cd "$PWD"
 .venv/bin/python scripts/campaigns/hq/replay_eval.py \
-  ../results/qball-trajectory-cmaes-refinement/run/eval_000195 \
+  ../results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement/run/eval_000195 \
   --name depth195_presolve_N256 --runs-dir ../runs/neuralspacetime/hq/presolve \
   --n-full 256 --l-full 128 --max-level 3 \
   --objective-mode f_geo_depth \

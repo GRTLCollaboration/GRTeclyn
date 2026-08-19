@@ -17,8 +17,11 @@ Authoritative provenance map (also copied here):
 Regenerate this pack after new HQ / search runs:
 
 ```bash
-bash research/neuralspacetime/pack_publishable_results.sh
+bash research/neuralspacetime/pack_publishable_results.sh   # everything except search/
+bash research/neuralspacetime/pack_search_campaigns.sh      # search/ only
 ```
+
+The two scripts own disjoint subtrees and never touch each other's files.
 
 Re-packing is **append-only** under `runs/`: existing run extracts are kept, so
 a re-pack can never silently swap out the data the published figures were made
@@ -42,6 +45,13 @@ results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/
 ├── figures/                           ← raster figures used by research.tex
 ├── manifests/                         ← promote manifests (e.g. pump-free)
 ├── validation/                        ← matrix / launch certificates (JSON)
+├── search/                            ← the five trajectory-search campaigns
+│   ├── README.md                      ←   start here: lineage + what is what
+│   ├── qball-trajectory-pump-seed-search/          ← ancestor, warm-start seeds
+│   ├── qball-trajectory-evolving-geodesic-shortcut-search/  ← MAP-Elites, gated
+│   ├── qball-trajectory-geodesic-depth-search/     ← MAP-Elites, raw depth
+│   ├── qball-trajectory-cmaes-refinement/          ← CMA-ES, raw depth (48.38 %)
+│   └── qball-trajectory-fgeo-max-refinement/       ← CMA-ES, gated (35.94 %) ★
 └── runs/                              ← light extracts mirroring /runs paths
     ├── grtresna_qd/
     │   ├── qball_traj_bicomplex_v1/   ← MAP-Elites (ME-87)

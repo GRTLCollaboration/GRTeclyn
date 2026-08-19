@@ -1,0 +1,16 @@
+{"eval": 2, "event": "crowned", "metric": "f_geo_evol", "replaced_eval": null, "replaced_value": null, "score": 137.1369547880709, "t_at_peak": null, "value": 0.12458242173641021}
+{"eval": 2, "event": "crowned", "metric": "ftl_geo_evolving", "replaced_eval": null, "replaced_value": null, "score": 137.1369547880709, "t_at_peak": null, "value": 0.031417541086340706}
+{"eval": 2, "event": "crowned", "metric": "f_op_peak", "replaced_eval": null, "replaced_value": null, "score": 137.1369547880709, "t_at_peak": 9.59999999999984, "value": 0.12241995742433444}
+{"eval": 2, "event": "crowned", "metric": "max_local_speed", "replaced_eval": null, "replaced_value": null, "score": 137.1369547880709, "t_at_peak": 20.0000000000003, "value": 1.7455650305586414}
+{"eval": 2, "event": "crowned", "metric": "superluminal_fraction", "replaced_eval": null, "replaced_value": null, "score": 137.1369547880709, "t_at_peak": 9.59999999999984, "value": 0.9624827293017324}
+{"eval": 2, "event": "crowned", "metric": "ftl_lifetime_fraction", "replaced_eval": null, "replaced_value": null, "score": 137.1369547880709, "t_at_peak": null, "value": 1.0}
+{"eval": 4, "event": "crowned", "metric": "f_geo_evol", "replaced_eval": 2, "replaced_value": 0.12458242173641021, "score": 88.92642166412618, "t_at_peak": null, "value": 0.17451084762792837}
+{"eval": 4, "event": "crowned", "metric": "f_op_peak", "replaced_eval": 2, "replaced_value": 0.12241995742433444, "score": 88.92642166412618, "t_at_peak": 20.0000000000003, "value": 0.35890828176752065}
+{"eval": 4, "event": "crowned", "metric": "max_local_speed", "replaced_eval": 2, "replaced_value": 1.7455650305586414, "score": 88.92642166412618, "t_at_peak": 20.0000000000003, "value": 1.9867211841400594}
+{"eval": 4, "event": "crowned", "metric": "superluminal_fraction", "replaced_eval": 2, "replaced_value": 0.9624827293017324, "score": 88.92642166412618, "t_at_peak": 15.9999999999997, "value": 1.0}
+{"eval": 9, "event": "crowned", "metric": "max_local_speed", "replaced_eval": 4, "replaced_value": 1.9867211841400594, "score": 152.81394479568357, "t_at_peak": 20.0000000000003, "value": 2.5376927530655964}
+{"eval": 12, "event": "crowned", "metric": "ftl_geo_evolving", "replaced_eval": 2, "replaced_value": 0.031417541086340706, "score": 223.92377658095978, "t_at_peak": null, "value": 0.09622015487449621}
+{"eval": 13, "event": "crowned", "metric": "f_geo_evol", "replaced_eval": 4, "replaced_value": 0.17451084762792837, "score": 559.5946679702222, "t_at_peak": null, "value": 0.22548164619383787}
+{"eval": 13, "event": "crowned", "metric": "ftl_geo_evolving", "replaced_eval": 12, "replaced_value": 0.09622015487449621, "score": 559.5946679702222, "t_at_peak": null, "value": 0.22148599654194034}
+{"eval": 68, "event": "crowned", "metric": "f_geo_evol", "replaced_eval": 13, "replaced_value": 0.22548164619383787, "score": 439.4790664784518, "t_at_peak": null, "value": 0.2661870728534674}
+{"eval": 165, "event": "crowned", "metric": "max_local_speed", "replaced_eval": 9, "replaced_value": 2.5376927530655964, "score": 149.0923485306671, "t_at_peak": 20.0000000000003, "value": 2.6442020270149644}

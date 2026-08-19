@@ -1,0 +1,37 @@
+{
+  "f_geo_evol": {
+    "eval": 109,
+    "value": 0.2800404225134582,
+    "episode": "runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1/eval_000109",
+    "score": 3377.271901543293,
+    "t_at_peak": null
+  },
+  "ftl_geo_evolving": {
+    "eval": 193,
+    "value": 0.35939313564540487,
+    "episode": "runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1/eval_000193",
+    "score": 3665.7738460829682,
+    "t_at_peak": null
+  },
+  "f_op_peak": {
+    "eval": 175,
+    "value": 0.28212761655589375,
+    "episode": "runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1/eval_000175",
+    "score": 98.00533294119553,
+    "t_at_peak": 22.4000000000007
+  },
+  "max_local_speed": {
+    "eval": 95,
+    "value": 2.12731798134644,
+    "episode": "runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1/eval_000095",
+    "score": 51.08057542728833,
+    "t_at_peak": 22.4000000000007
+  },
+  "superluminal_fraction": {
+    "eval": 81,
+    "value": 1.0,
+    "episode": "runs/neuralspacetime/search/cma_es/qball_traj_fgeo_max_cmaes_v1/eval_000081",
+    "score": 3234.3745835283257,
+    "t_at_peak": 6.39999999999991
+  }
+}

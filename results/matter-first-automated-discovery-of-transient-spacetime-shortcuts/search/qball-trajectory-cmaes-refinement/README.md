@@ -63,6 +63,6 @@ Replaying the winner from this pack:
 
 ```bash
 python grteclyn-wrapper/scripts/campaigns/hq/replay_eval.py \
-  --trajectory results/qball-trajectory-cmaes-refinement/run/trajectory.jsonl \
+  --trajectory results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement/run/trajectory.jsonl \
   --eval 195 --objective-mode f_geo_depth
 ```

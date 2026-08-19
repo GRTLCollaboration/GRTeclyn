@@ -8,7 +8,8 @@
 # per cell), plotfiles, gridinit and movies stay in the gitignored /runs tree.
 #
 # Machine identity is never hard-coded: absolute paths are scrubbed at runtime
-# by scrub_paths.py using tokens derived from the environment.
+# by grteclyn_wrapper.packaging.scrub_paths using tokens derived from the
+# environment.
 #
 # Usage: bash research/bondi_dipole/pack_results.sh
 set -euo pipefail
@@ -21,7 +22,7 @@ DEST="${ROOT}/results/bondi-dipole-runaway"
 GRTRESNA_ROOT="${GRTRESNA_ROOT:-${SIM_ROOT}/GRTresna}"
 
 export ROOT SIM_ROOT
-scrub() { python3 "${SCRIPT_DIR}/scrub_paths.py" "$@"; }
+scrub() { python3 "${ROOT}/grteclyn-wrapper/src/grteclyn_wrapper/packaging/scrub_paths.py" "$@"; }
 
 # cell | run subdir | evolution stop time
 CELLS=(

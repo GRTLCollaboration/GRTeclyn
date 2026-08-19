@@ -351,8 +351,8 @@ Excluded on purpose, as with every pack in `results/`: `initial_data.gridinit` (
 
 ### Launcher
 
-[`grteclyn-wrapper/scripts/campaigns/qball_trajectory/cmaes_run.sh`](../../grteclyn-wrapper/scripts/campaigns/qball_trajectory/cmaes_run.sh)
-→ [`scripts/campaigns/cmaes/run.sh`](../../grteclyn-wrapper/scripts/campaigns/cmaes/run.sh)
+[`grteclyn-wrapper/scripts/campaigns/qball_trajectory/cmaes_run.sh`](../../../../grteclyn-wrapper/scripts/campaigns/qball_trajectory/cmaes_run.sh)
+→ [`scripts/campaigns/cmaes/run.sh`](../../../../grteclyn-wrapper/scripts/campaigns/cmaes/run.sh)
 → `grteclyn_wrapper … optimize`.
 
 The exact detached launch used for this run:
@@ -416,7 +416,7 @@ therefore has no checkpoint file** — it completed, so none was needed.
 
 ```bash
 python scripts/campaigns/hq/replay_eval.py \
-  --trajectory results/qball-trajectory-cmaes-refinement/run/trajectory.jsonl \
+  --trajectory results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-cmaes-refinement/run/trajectory.jsonl \
   --eval 195 --objective-mode f_geo_depth
 ```
 

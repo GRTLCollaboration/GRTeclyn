@@ -1,0 +1,57 @@
+{
+  "f_geo": 0.16778882852066015,
+  "f_geo_frozen_peak": null,
+  "t_emit": 4.0,
+  "t_arrival": 15.983840869302496,
+  "t_flat": 14.400000000000002,
+  "n_rays": 3,
+  "n_reached": 3,
+  "max_h_drift": 0.0004860857680815827,
+  "h_quality_ok": true,
+  "max_h_rel_drift": 0.0006057229774738753,
+  "notes": [
+    "evolving end-to-end trace t_emit=4.000",
+    "probe_axis=y",
+    "best_direction=y",
+    "emit_sweep: t=0.00->f=0.147(n3), t=2.00->f=0.158(n3), t=4.00->f=0.168(n3), t=6.00->f=0.132(n3), t=8.00->f=0.000(n0), t=10.00->f=0.000(n0), t=12.00->f=0.000(n0)",
+    "peak f_geo=0.168 at t_emit=4.00 over 7 launches (emit floor: kept 5/7 launches with t_emit>=4)"
+  ],
+  "emit_sweep": [
+    [
+      0.0,
+      0.14712232792705895,
+      3
+    ],
+    [
+      2.0,
+      0.15767993487178178,
+      3
+    ],
+    [
+      4.0,
+      0.16778882852066015,
+      3
+    ],
+    [
+      6.0,
+      0.13170972354866872,
+      3
+    ],
+    [
+      8.0,
+      0.0,
+      0
+    ],
+    [
+      10.0,
+      0.0,
+      0
+    ],
+    [
+      12.0,
+      0.0,
+      0
+    ]
+  ],
+  "n_captured": 0
+}

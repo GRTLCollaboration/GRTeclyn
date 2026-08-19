@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-07-30T13:36:36.337613+00:00",
+  "cuda_devices": "0",
+  "example": "RadialRecipe",
+  "executable": "Examples/RadialRecipe/main3d.gnu.MPI.CUDA.ex",
+  "git_commit": "07faff43add33c5512350a775af9d3d7d3443a42",
+  "gridinit": "runs/grtresna_qd/qball_traj_pump_v2/eval_000013/initial_data.gridinit",
+  "mode": "postload_gate",
+  "mpi_ranks": 1,
+  "plotfile_dir": "/tmp/grteclyn_scratch/postload_gate_postload_gate_90e176c2",
+  "repo_root": "$GRTECLYN_ROOT",
+  "simulation_elapsed_seconds": 2.4784248983487487,
+  "simulation_exit_code": 0
+}

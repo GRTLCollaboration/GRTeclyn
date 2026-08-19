@@ -13,7 +13,8 @@
 #     equal-mass series is picked up automatically when it appears;
 #   - cells with no data yet are skipped with a note, never an error.
 #
-# Machine identity is scrubbed at runtime by scrub_paths.py (see the
+# Machine identity is scrubbed at runtime by the shared scrubber in the
+# wrapper package (grteclyn_wrapper.packaging.scrub_paths) -- see the
 # no-identity-in-git rule); PNG frames carry no paths.
 #
 # Usage: bash research/bondi_dipole/pack_campaign.sh
@@ -26,7 +27,7 @@ RUNS="${ROOT}/runs/bondi_rerun"
 DEST="${ROOT}/results/bondi-dipole-runaway"
 
 export ROOT SIM_ROOT
-scrub() { python3 "${SCRIPT_DIR}/scrub_paths.py" "$@"; }
+scrub() { python3 "${ROOT}/grteclyn-wrapper/src/grteclyn_wrapper/packaging/scrub_paths.py" "$@"; }
 
 mkdir -p "${DEST}/campaign"
 
