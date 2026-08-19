@@ -74,7 +74,7 @@
       "id": "FMAX-RI",
       "phase": 3,
       "role": "richardson_intermediate",
-      "n_full": 224,
+      "n_full": 240,
       "l_full": 128.0,
       "stop_time": 64.0,
       "plot_interval": 72,
@@ -85,8 +85,8 @@
         18.0,
         24.0
       ],
-      "name_prefix": "fmax_ri_L128_N224_t64",
-      "notes": "Richardson intermediate rung (h=0.571). Replaces the retired N=384 fine rung (OOMs on one GPU; ladder capped at 256 per GPU_RUN_PLAN.md 2). Raise to N=240 iff the 12.4 memory probe passes."
+      "name_prefix": "fmax_ri_L128_N240_t64",
+      "notes": "Richardson intermediate rung (h=0.533). Replaces the retired N=384 fine rung (OOMs on one GPU; ladder capped per GPU_RUN_PLAN.md 2). Raised 224 -> 240 on 2026-08-19: the memory probe passed (N=240 -> 49.8 GB and 29.4 units/h on one card; N=288 OOMs), so 240 is the finest rung that fits a single GPU. Ladder is now h = 0.500 / 0.533 / 0.667 (N = 256 / 240 / 192 at L=128)."
     },
     {
       "id": "FMAX-DS",

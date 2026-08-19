@@ -74,7 +74,7 @@
       "id": "FMAX-RI-FF",
       "phase": 3,
       "role": "freefall_observer",
-      "n_full": 224,
+      "n_full": 240,
       "l_full": 128.0,
       "stop_time": 64.0,
       "plot_interval": 72,
@@ -85,7 +85,7 @@
         18.0,
         24.0
       ],
-      "name_prefix": "fmax_ri_freefall_L128_N224_t64",
+      "name_prefix": "fmax_ri_freefall_L128_N240_t64",
       "notes": "Free-fall observer companion of FMAX-RI (was RF-FF at the retired N=384)."
     }
   ]

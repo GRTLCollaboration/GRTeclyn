@@ -17,7 +17,7 @@ a pack under `results/` that regenerates it.**
 
 ## 0. Scoreboard — what the paper needs, and where each piece stands
 
-*Last updated 2026-08-19 06:05. Update this block whenever a run lands; the
+*Last updated 2026-08-19 07:12. Update this block whenever a run lands; the
 numbered gaps map to §1 "What the paper still lacks".*
 
 > **Capacity changed 2026-08-19: we have 3 GPUs, not 4.** GPU 3 is reserved
@@ -40,14 +40,26 @@ numbered gaps map to §1 "What the paper still lacks".*
 
 | run | source | where | state |
 |---|---|---|---|
-| FMAX-RM (attempt 3) | fgeo_max eval 193 | GPU 0 + 1, 2 MPI ranks | started 05:52, 27.9 units/h, **32 GB per card**, frames rendering, ETA ≈ 08:10 |
+| FMAX-RM (attempt 3) | fgeo_max eval 193 | GPU 0 + 1, 2 MPI ranks | started 05:52, t = 26.6 / 64 at 07:16 — slowed 21.3 → **~16 units/h** as the mesh refines (same growth pattern that OOM'd attempt 1, but 35 GB per card leaves plenty of room), frames rendering, ETA ≈ **09:40–10:00** |
+| DEPTH-X extended | depth eval 195 | GPU 2, 1 rank | started 06:20, `--stop-time 96`, **HQ trace mode**, 45 emissions out to t = 88, gridinit reused, t = 20.2 / 96 at 07:16 → 21.4 units/h, ETA ≈ **10:50–11:30** |
 
-GPU 2 is idle. This attempt differs from the OOM'd attempt 1 in four ways: it
+All three cards are busy. The FMAX attempt differs from the OOM'd attempt 1 in four ways: it
 runs on two cards (the OOM fix), it reuses the saved `initial_data.gridinit`
 under `runs/neuralspacetime/hq/sources/fmax_rm_saved_id/` instead of
 re-solving (saves ~46 min), it writes **no checkpoints** (9.6 GB each — not
 worth the disk), and **frames are on**. Attempt 2 was killed ~15 min in
 purely to turn frames on.
+
+The DEPTH-X extension exists to answer the one thing t = 64 could not: **is the
+emission sweep still clipped?** Acceptance criterion, fixed before the run: *the
+sweep is unclipped when the peak launch time sits at least two launches before
+the last allowed one* — i.e. peak `t_emit` ≤ 84 with launches running to 88.
+If the peak still lands on the last launch, the window is still short and the
+depth numbers remain lower bounds. Memory is the risk to watch: this genome
+grows only ~5 GB over 64 units (against FMAX's ~15), so a 96-unit single-card
+run should land near 65 GB of 81 — comfortable, not lavish. Measured
+07:16: the data footprint plateaued at 49.3 GB and has been flat since
+t ≈ 16, card at 61.7 GB — the risk has not materialised.
 
 **Done this cycle**
 
@@ -55,13 +67,58 @@ purely to turn frames on.
   DEPTH-A (eval 185), full 64.01 code units, zero errors, `h_quality_ok`
   true, `max_h_rel_drift ≈ 0.002`, 0 rays captured.
 
-  | run | `f_geo_evol` (authoritative, 4D) | search-tier value | frozen peak | peak at |
+  | run | `f_geo_evol` (HQ, authoritative) | was, search-tier | frozen ceiling | peak launch |
   |---|---|---|---|---|
-  | DEPTH-X / eval 195 | **57.46 %** | 48.38 % | 60.24 % | t ≈ 59.8 |
-  | DEPTH-A / eval 185 | **56.77 %** | 47.97 % | 60.28 % | t ≈ 59.8 |
+  | DEPTH-X / eval 195 | **59.30 %** | 57.46 % | 60.24 % | `t_emit` = 56 (last) |
+  | DEPTH-A / eval 185 | **58.74 %** | 56.77 % | 60.28 % | `t_emit` = 54 (last usable) |
+
+  Both were **re-traced at HQ from the cached 257³ metric stacks on 2026-08-19
+  06:41–07:05**, CPU-only, no GPU and no re-simulation
+  (`scripts/campaigns/rl/score_evolving_geodesic.py`, ~20 min per run, of which
+  ~7 min is the `cache_fidelity` gate — both passed on all 90 slices). The
+  search-tier files are preserved beside the new ones as
+  `evolving_geodesic.search_tier.json` / `ftl_timeseries.search_tier.dat`.
+  HQ is worth **+1.8 to +2.0 points** on this genome: 5/5 rays reached,
+  `max_h_rel_drift ≈ 0.002`, `h_quality_ok` true. The launch grid was also
+  extended from 25 to 29 emissions (`t_emit` 0 → 56), which the stored stack
+  supports without new GPU time.
 
   The two branches are within 0.7 points of each other, so the A/B that
   DEPTH-A exists to settle (§6) resolves as "no meaningful difference".
+
+  **Still clipped — now demonstrably.** The tail of the DEPTH-X sweep reads
+  0.568 → 0.569 → 0.573 → 0.590 → **0.593 at the final launch**: monotonically
+  rising with no turnover. DEPTH-A peaks at 54 only because its `t_emit` = 56
+  launch returns 0 rays — the no-frozen-tail guard drops it, so 54 is that
+  run's last *usable* launch and the peak again sits on the edge. Under the
+  acceptance criterion below (peak ≥ 2 launches inside the window) **both
+  fail**, exactly as at t = 64. What changed is the size of the prize: the gap
+  to the frozen ceiling is now **0.9 (X) / 1.5 (A) points**, down from ~3
+  points at search tier. The remaining headroom is small but real, which is
+  what the GPU-2 t = 96 run is there to collect.
+
+  **The A/B is unaffected.** X − A narrows from 0.69 to 0.56 points, so §6
+  still resolves as "no meaningful difference between the branches".
+
+  **The mid-run stall is real, not a fidelity artifact.** It reproduces at HQ
+  in both runs: climb to ≈ 0.53 by t ≈ 28, slide to ≈ 0.48 by t ≈ 38, then a
+  second climb that only regains the lost ground around t ≈ 46. ~6 points of
+  transport lost and ~15 units to recover, in both branches, identically. Not
+  yet explained — a candidate mechanism question for §5.
+
+  **How this happened — the *search* fidelity trap.**
+  `GRTECLYN_EVOLVING_GEODESIC_MODE` defaults to `search`, and the §12.4 launch
+  calls `replay_eval.py` directly, bypassing `run_batch.sh` /
+  `promote_common.sh` which are the only places that set it to `hq`. So the 4D
+  trace ran with 3 rays instead of 5, every 2nd slice, a 40-slice cap, 15 000
+  integration steps instead of 50 000, and `compute_frozen_peak` off — which is
+  why `f_geo_frozen_peak` is `None` in both `evolving_geodesic.json` files and
+  the frozen peaks above had to come from the snapshot path. The extended run
+  now on GPU 2 sets the mode explicitly, and both finished runs have been
+  re-traced offline (above), so the gap is closed. **Any future launch that
+  calls `replay_eval.py` directly must export
+  `GRTECLYN_EVOLVING_GEODESIC_MODE=hq` — the default is `search`.** §12.4's
+  command has been the standing example of getting this wrong.
 - **Resolution ceiling measured, not extrapolated.** N = 240 → 49.8 GB and
   29.4 code units/h; N = 256 → 62 GB at start and ~20.5 units/h; N = 288 →
   OOM. Per §5 the intermediate rung therefore **upgrades from 224 to 240**
@@ -103,13 +160,14 @@ purely to turn frames on.
 
 **Open questions blocking Phase 3**
 
-1. **Ray count contradicts the pre-registered criterion.** The manifest fixes
-   `acceptance/n_rays: 5`; the 4D evolving tracer's HQ default is **3** and
-   that is what both depth runs used (the frozen tracer did use 5). Three
-   rays per launch is thinner evidence than the criterion we fixed in
-   advance. Either the criterion moves to 3 or the default moves to 5 — and
-   the choice must be made *before* the Phase-2 exit gate freezes the
-   champion, because FMAX-RM is inheriting the same default right now.
+1. ~~Ray count contradicts the pre-registered criterion.~~ ✅ **Resolved
+   2026-08-19.** The premise was wrong: the HQ tracer's default is **5** rays
+   (`evolving_geodesic_options.py` — only *search* mode drops to 3), and the
+   depth runs only had 3-ray evidence while their numbers were search-tier.
+   The 06:41–07:05 HQ re-trace gave both depth exhibits full **5/5-ray**
+   evidence, and FMAX-RM is running with HQ mode live — so every number the
+   freeze will rely on meets the pre-registered `acceptance/n_rays: 5` as
+   written. No decision needed; nothing moves.
 2. **The emission sweep is still clipped even at t = 64.** Both depth runs
    peak at `t_emit = 48`, which is the **last** launch the 25-emission cap
    allows. The cap is now raised to 29 (last launch t = 56, rays arriving
@@ -234,7 +292,8 @@ rule** → HQ → matrix — is missing its refinement stage. That run comes fir
   (BCMA-RM), and N = 384 **OOMs outright on one GPU** (confirmed 2026-08-18).
   The measured budget (bondi node): **8.8 GB at N = 128 scaling as N³** →
   ~30 GB at 192, ~47 GB at 224, ~70 GB at 256, **~100 GB at 288 — over the
-  card even before AMR overhead**. So the ladder plans on 192/224/256 and
+  card even before AMR overhead**. Measured 2026-08-18: N = 240 → 49.8 GB and
+  29.4 units/h, N = 288 → OOM. So the ladder is **192/240/256** and
   treats anything above 256 as a probe-only curiosity (§12.4), never a
   dependency.
 - **CMA-ES population ≥ 4 × GPU slots, never = GPU count** (the generation
@@ -339,13 +398,13 @@ framework that ran the candidate-146 matrix:
 |---|---|---|---|---|
 | FMAX-RC | 128 | 192 | 0.667 | coarse |
 | FMAX-RM | 128 | 256 | 0.500 | reference — reuse Phase 2 |
-| FMAX-RI | 128 | 224 | 0.571 | intermediate rung — the ladder is **192/224/256**; N ≥ 288 does not fit one card (§2 memory table) and N = 384 OOMs, so 256 is the finest grid and the paper says so plainly |
+| FMAX-RI | 128 | 240 | 0.533 | intermediate rung — the ladder is **192/240/256**; raised from 224 on 2026-08-19 after the §12.4 memory probe measured N = 240 at 49.8 GB (N = 288 OOMs). N = 384 OOMs too, so 256 is the finest grid and the paper says so plainly |
 | FMAX-DS | 96 | 192 | 0.500 | domain ladder |
 | FMAX-DS2 | 112 | 224 | 0.500 | second domain rung — replaces the old DL: L = 160/N = 320 needs ~137 GB, impossible single-GPU; the domain series is L = 96/112/128 at fixed h |
 | FMAX-PF | 128 | 256 | 0.500 | pump-free twin (t_pump = 0), t = 64 |
 | freefall companions | — | — | — | `manifest_freefall.json` cells on the stored stacks |
 | DEPTH-RC | 128 | 192 | 0.667 | **depth mini-ladder** — result 2 gets its own error bar |
-| DEPTH-RI | 128 | 224 | 0.571 | same intermediate rung as FMAX |
+| DEPTH-RI | 128 | 240 | 0.533 | same intermediate rung as FMAX |
 | DEPTH-RM | 128 | 256 | 0.500 | = the Phase-2 DEPTH-X run, reused as the finest rung |
 
 The depth mini-ladder (commands in §12.5) is deliberately small: its job is
@@ -754,16 +813,17 @@ setsid nohup /usr/bin/env \
   > ../runs/neuralspacetime/hq/depth185_hq.launch.log 2>&1 < /dev/null & disown
 ```
 
-Memory probes for the Phase-3 intermediate rung (kill after t = 2; ~10 min
-each — 288 is expected to OOM per the §2 memory table; run it once for the
-record, and if 240 fits use 240 instead of 224):
+Memory probes for the Phase-3 intermediate rung — **done 2026-08-18, result:
+N = 240 fits at 49.8 GB / 29.4 units/h, N = 288 OOMs.** FMAX-RI, FMAX-RI-FF
+and DEPTH-RI were raised 224 → 240 in the manifests on 2026-08-19. Kept for
+the record / to re-probe after any memory-affecting change:
 
 ```bash
 for N in 288 240; do
   .venv/bin/python scripts/campaigns/hq/replay_eval.py \
     "$(ls -d ../runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1/eval_* | head -1)" \
     --name mem_probe_N${N} --runs-dir ../runs/neuralspacetime/hq/probes \
-    --gpu 3 --n-full ${N} --l-full 128 --max-level 3 --regrid-threshold 0.02 \
+    --gpu 2 --n-full ${N} --l-full 128 --max-level 3 --regrid-threshold 0.02 \
     --stop-time 2 --objective-mode f_geo_max \
     --grtresna-ranks 1 --grtresna-timeout 7200
 done
@@ -771,7 +831,7 @@ done
 ```
 
 Largest N that stays comfortably under ~75 GB becomes the FMAX-RI grid in
-the manifest (224 is the safe default; nothing above 256 enters the queue).
+the manifest. Nothing above 256 enters the queue.
 
 ### 12.5 Phase 3 — the matrix
 
@@ -799,10 +859,12 @@ DEPTH-X command, only the grid changes; slot each onto whichever GPU frees
 first. DEPTH-RM is the Phase-2 run, reused as the middle rung:
 
 ```bash
-for CELL in "depth195_hq_L128_N192_t64 192 2" "depth195_hq_L128_N224_t64 224 3"; do
-  set -- $CELL   # $1 = name, $2 = N (224 → 240 if the §12.4 probe passed), $3 = GPU
+# One cell at a time — only GPUs 0/1/2 are ours and all three are usually busy.
+for CELL in "depth195_hq_L128_N192_t64 192 2" "depth195_hq_L128_N240_t64 240 2"; do
+  set -- $CELL   # $1 = name, $2 = N, $3 = GPU  (NEVER 3 — see 2)
   setsid nohup /usr/bin/env \
-    GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=25 \
+    GRTECLYN_EVOLVING_GEODESIC_MODE=hq \
+    GRTECLYN_GEO_EMIT_INTERVAL=2 GRTECLYN_GEO_MAX_EMISSIONS=29 \
     GRTECLYN_METRIC_STACK_N_SPACE=257 GRTECLYN_FREEFALL_OBSERVER_TIMING=1 \
     GEODESIC_EMIT_MIN_TIME=4 \
     .venv/bin/python scripts/campaigns/hq/replay_eval.py \
