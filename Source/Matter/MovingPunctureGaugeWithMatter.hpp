@@ -6,9 +6,10 @@
 #ifndef MOVINGPUNCTUREGAUGEWITHMATTER_HPP_
 #define MOVINGPUNCTUREGAUGEWITHMATTER_HPP_
 
-#include "CCZ4RHSWithMatter.hpp"
+#include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "DimensionDefinitions.hpp"
+#include "MovingPunctureGauge.hpp"
 
 #include <cmath>
 

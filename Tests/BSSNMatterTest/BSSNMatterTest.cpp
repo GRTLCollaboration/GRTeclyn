@@ -18,6 +18,7 @@
 #include "ConstraintsWithMatter.hpp"
 #include "DefaultPotential.hpp"
 #include "GRParmParse.hpp"
+#include "MovingPunctureGaugeWithMatter.hpp"
 #include "ScalarField.hpp"
 
 // AMReX headers
@@ -107,9 +108,7 @@ void run_bssn_matter_test()
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
-        CCZ4RHSWithMatter<DefaultScalarField,
-                          MovingPunctureGaugeWithMatter<FourthOrderDerivatives>,
-                          FourthOrderDerivatives>
+        CCZ4RHSWithMatter<DefaultScalarField, FourthOrderDerivatives>
             current_ccz4_rhs{dx};
         MovingPunctureGaugeWithMatter<FourthOrderDerivatives>
             moving_puncture_gauge_with_matter(dx);
