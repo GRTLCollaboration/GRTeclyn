@@ -789,12 +789,7 @@ void SmallDataIO::get_specific_data_line(
                 "SmallDataIO : Data to be read in at coord not found in file");
         }
     }
-    // now broadcast the vector to all ranks using Chombo broadcast function
-    // need to convert std::vector to Vector first
-    // xxxxx    amrex::Vector<amrex::Real> data_Vect(a_out_data);
-    // xxxxx    int broadcast_rank = 0;
-    // xxxxx broadcast(data_Vect, broadcast_rank);
-    // xxxxx    a_out_data = data_Vect;
+    // Optionally, broadcast the data using SmallDataIO::broadcast_data
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
