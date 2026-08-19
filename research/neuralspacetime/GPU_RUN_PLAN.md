@@ -15,6 +15,70 @@ a pack under `results/` that regenerates it.**
 
 ---
 
+## 0. Scoreboard — what the paper needs, and where each piece stands
+
+*Last updated 2026-08-19 04:15. Update this block whenever a run lands; the
+numbered gaps map to §1 "What the paper still lacks".*
+
+> **Capacity changed 2026-08-19: we have 3 GPUs, not 4.** GPU 3 is reserved
+> for other users — never schedule it (§2). Every "4 GPUs" and every
+> wall-clock estimate further down this document predates that and runs ~4/3
+> long.
+
+| # | Goal | Status |
+|---|---|---|
+| 1 | In-scope (gated) CMA-ES refinement stage | ✅ **done** — `qball-trajectory-fgeo-max-refinement`, champion eval 193 |
+| 2 | Production replay of a post-fix champion | ⚠️ **partly** — both depth exhibits ran; the *gated headline* died mid-run |
+| 3 | Convergence + domain matrix for the new result | ⬜ not started (Phase 3, gated on #2) |
+| 4 | Depth numbers are lower bounds → measure the true peak | 🔄 **in progress** — first t = 64 runs finishing now |
+| 5 | Mechanism for the new champions (ablation + free-fall) | ⬜ not started |
+| 6 | Post-fix canonical-only control under the gated objective | ⬜ not started |
+| 7 | Dead numbers in the draft | ✅ resolved by exclusion — candidate 146 left the paper (§12.9) |
+| 8 | Efficiency accounting / exotic-matter frontier | ⬜ not started (Phase 4) |
+
+**Running now**
+
+| run | source | where | state |
+|---|---|---|---|
+| DEPTH-X | depth eval 195 | GPU 1 | t ≈ 60 of 64, healthy — finishing ~04:05 |
+| DEPTH-A | depth eval 185 | GPU 2 | t ≈ 60 of 64, healthy — finishing ~04:05 |
+
+**Done this cycle**
+
+- **Resolution ceiling measured, not extrapolated.** N = 240 → 49.8 GB and
+  29.4 code units/h; N = 256 → 62 GB at start and ~20.5 units/h; N = 288 →
+  OOM. Per §5 the intermediate rung therefore **upgrades from 224 to 240**
+  (applies to FMAX-RI and DEPTH-RI).
+- **MPI re-verified and the §2 constraint is now wrong** — see below.
+
+**Failed this cycle**
+
+- **FMAX-RM (gated headline, eval 193) — Arena OOM at t = 36.6 of 64.** The
+  Arena grew 62 → 77 GB as the matter dispersed and more cells were tagged;
+  it aborted asking for 17 MiB more. `checkpoint_interval` was `-1`, so there
+  was no restart point and the run was lost outright. Artifacts deleted
+  2026-08-19. **This is the blocker: the Phase-2 exit gate freezes the FMAX
+  champion, so Phase 3 cannot open until FMAX-RM is re-run** — with
+  checkpoints on, and at a grid/refinement setting that leaves headroom (see
+  the wrapper README's "Arena OOM part-way through a long AMR run").
+- N = 288 memory probe — OOM, expected and recorded (§12.4).
+
+**Corrections pending against this document**
+
+- §2 says *"MPI is broken; never raise RANKS."* **That is no longer true.**
+  On 2026-08-19 `mpirun` was verified working on the current node at 1 and 4
+  ranks with correct rank ids; the old failure belonged to a node the pod has
+  since left. What remains unproven is (a) GRTresna multi-rank solves and (b)
+  RadialRecipe MPI+CUDA, which last crashed on the *first* AMR advance in
+  July — on a different node, with code that has changed since, and untested
+  since. Single-GPU AMR is unaffected and is what runs today. §340's "no MPI
+  repair unless the matrix fails its acceptance band" trigger has now fired.
+- Missing manifests: the **depth mini-ladder has none**, and the fgeo_max
+  Phase-3 manifest lacks **FMAX-PF** and the free-fall companions that §6
+  requires.
+
+---
+
 ## 1. Where we stand, and the scope ruling
 
 All three post-bugfix search campaigns are done and packed. Everything they
@@ -86,8 +150,14 @@ rule** → HQ → matrix — is missing its refinement stage. That run comes fir
 
 ## 2. Standing constraints (apply to every run below)
 
-- **4 GPUs, ~81 GB each, one node, single rank.** MPI is broken; never raise
-  RANKS. The old RF (N = 384, 3 ranks) and DL (N = 320, 2 ranks) **cannot be
+- **3 usable GPUs — 0, 1 and 2 only — ~81 GB each, one node.** Changed
+  2026-08-19: **GPU 3 belongs to other users and must never be scheduled.**
+  Never pass `--gpu 3` or include 3 in a `--gpus` list, and cap every queue
+  and fan-out at three concurrent slots. Anywhere below that says "4 GPUs"
+  predates this and is wrong: wall-clock estimates stretch by ~4/3, and the
+  CMA-ES population floor (next bullet) becomes **≥ 12**, not 16.
+- **Single rank, for now.** The old RF (N = 384, 3 ranks) and DL (N = 320,
+  2 ranks) **cannot currently be
   reproduced** — the proven single-GPU ceiling at max_level 3 is N = 256
   (BCMA-RM), and N = 384 **OOMs outright on one GPU** (confirmed 2026-08-18).
   The measured budget (bondi node): **8.8 GB at N = 128 scaling as N³** →
