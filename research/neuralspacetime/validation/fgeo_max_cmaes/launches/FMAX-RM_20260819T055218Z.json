@@ -15,5 +15,5 @@
   "gpu_id": "0,1",
   "evolution_mpi_ranks": 2,
   "out_dir": "/home/jovyan/nachevsky/test/simulation/GRTeclyn/runs/neuralspacetime/hq/fmax_rm_L128_N256_t64_hq_eval000193",
-  "git_commit": "805604cd0d5cd50119691e60f243696d23eeb788"
+  "git_commit": "76bcad6dac415216fd81b42679d56dab270f1fa5"
 }

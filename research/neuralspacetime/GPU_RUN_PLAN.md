@@ -17,7 +17,7 @@ a pack under `results/` that regenerates it.**
 
 ## 0. Scoreboard — what the paper needs, and where each piece stands
 
-*Last updated 2026-08-19 04:15. Update this block whenever a run lands; the
+*Last updated 2026-08-19 06:05. Update this block whenever a run lands; the
 numbered gaps map to §1 "What the paper still lacks".*
 
 > **Capacity changed 2026-08-19: we have 3 GPUs, not 4.** GPU 3 is reserved
@@ -28,9 +28,9 @@ numbered gaps map to §1 "What the paper still lacks".*
 | # | Goal | Status |
 |---|---|---|
 | 1 | In-scope (gated) CMA-ES refinement stage | ✅ **done** — `qball-trajectory-fgeo-max-refinement`, champion eval 193 |
-| 2 | Production replay of a post-fix champion | ⚠️ **partly** — both depth exhibits ran; the *gated headline* died mid-run |
+| 2 | Production replay of a post-fix champion | ⚠️ **partly** — both depth exhibits landed at t = 64; the *gated headline* is on its second attempt, running now |
 | 3 | Convergence + domain matrix for the new result | ⬜ not started (Phase 3, gated on #2) |
-| 4 | Depth numbers are lower bounds → measure the true peak | 🔄 **in progress** — first t = 64 runs finishing now |
+| 4 | Depth numbers are lower bounds → measure the true peak | ⚠️ **partly** — t = 64 raised the numbers but the sweep is *still* clipped (see below) |
 | 5 | Mechanism for the new champions (ablation + free-fall) | ⬜ not started |
 | 6 | Post-fix canonical-only control under the gated objective | ⬜ not started |
 | 7 | Dead numbers in the draft | ✅ resolved by exclusion — candidate 146 left the paper (§12.9) |
@@ -40,34 +40,33 @@ numbered gaps map to §1 "What the paper still lacks".*
 
 | run | source | where | state |
 |---|---|---|---|
-| DEPTH-X | depth eval 195 | GPU 1 | t ≈ 60 of 64, healthy — finishing ~04:05 |
-| DEPTH-A | depth eval 185 | GPU 2 | t ≈ 60 of 64, healthy — finishing ~04:05 |
+| FMAX-RM (attempt 3) | fgeo_max eval 193 | GPU 0 + 1, 2 MPI ranks | started 05:52, 27.9 units/h, **32 GB per card**, frames rendering, ETA ≈ 08:10 |
+
+GPU 2 is idle. This attempt differs from the OOM'd attempt 1 in four ways: it
+runs on two cards (the OOM fix), it reuses the saved `initial_data.gridinit`
+under `runs/neuralspacetime/hq/sources/fmax_rm_saved_id/` instead of
+re-solving (saves ~46 min), it writes **no checkpoints** (9.6 GB each — not
+worth the disk), and **frames are on**. Attempt 2 was killed ~15 min in
+purely to turn frames on.
 
 **Done this cycle**
 
+- **Both depth exhibits completed at t = 64, clean.** DEPTH-X (eval 195) and
+  DEPTH-A (eval 185), full 64.01 code units, zero errors, `h_quality_ok`
+  true, `max_h_rel_drift ≈ 0.002`, 0 rays captured.
+
+  | run | `f_geo_evol` (authoritative, 4D) | search-tier value | frozen peak | peak at |
+  |---|---|---|---|---|
+  | DEPTH-X / eval 195 | **57.46 %** | 48.38 % | 60.24 % | t ≈ 59.8 |
+  | DEPTH-A / eval 185 | **56.77 %** | 47.97 % | 60.28 % | t ≈ 59.8 |
+
+  The two branches are within 0.7 points of each other, so the A/B that
+  DEPTH-A exists to settle (§6) resolves as "no meaningful difference".
 - **Resolution ceiling measured, not extrapolated.** N = 240 → 49.8 GB and
   29.4 code units/h; N = 256 → 62 GB at start and ~20.5 units/h; N = 288 →
   OOM. Per §5 the intermediate rung therefore **upgrades from 224 to 240**
   (applies to FMAX-RI and DEPTH-RI).
-- **MPI re-verified and the §2 constraint is now wrong** — see below.
-
-**Failed this cycle**
-
-- **FMAX-RM (gated headline, eval 193) — Arena OOM at t = 36.6 of 64.** The
-  Arena grew 62 → 77 GB as the matter dispersed and more cells were tagged;
-  it aborted asking for 17 MiB more. `checkpoint_interval` was `-1`, so there
-  was no restart point and the run was lost outright. Artifacts deleted
-  2026-08-19. **This is the blocker: the Phase-2 exit gate freezes the FMAX
-  champion, so Phase 3 cannot open until FMAX-RM is re-run** — with
-  checkpoints on, and at a grid/refinement setting that leaves headroom (see
-  the wrapper README's "Arena OOM part-way through a long AMR run").
-- N = 288 memory probe — OOM, expected and recorded (§12.4).
-
-**Corrections pending against this document**
-
-- §2 says *"MPI is broken; never raise RANKS."* **That is dead — MPI works,
-  at every layer, verified 2026-08-19.** The old failure belonged to a node
-  the pod has since left. Three separate checks, all passing:
+- **MPI re-verified at all three layers — the old §2 constraint is dead.**
   1. `mpirun` itself — 1 and 4 ranks, correct rank ids.
   2. **RadialRecipe MPI+CUDA multi-GPU** — the July "first AMR advance"
      segfault **does not reproduce**. A 2-rank run at `N=240, max_level 3`
@@ -82,16 +81,71 @@ numbered gaps map to §1 "What the paper still lacks".*
      converged *worse* than 1 — that predates the Chombo rebuild to
      `-march=x86-64-v3`.
 
-  **Consequences for this plan.** §340's "no MPI repair unless the matrix
-  fails" trigger fired and the repair is done. The claim that RF (N = 384)
-  and DL (N = 320) "cannot be reproduced" is now **wrong in principle** —
-  they need ≥ 2 cards, which we have. Every Phase-3 cell should take
-  `--grtresna-ranks 8`, saving ~38 min each (~5 h across the 8 queued
-  solves). Caveat: with only 3 GPUs a 2-rank evolution leaves just one card
-  free, so multi-GPU is for grids that do not otherwise fit — not a default.
-- Missing manifests: the **depth mini-ladder has none**, and the fgeo_max
-  Phase-3 manifest lacks **FMAX-PF** and the free-fall companions that §6
-  requires.
+  **Consequences.** §340's "no MPI repair unless the matrix fails" trigger
+  fired and the repair is done. The claim that RF (N = 384) and DL (N = 320)
+  "cannot be reproduced" is now **wrong in principle** — they need ≥ 2 cards,
+  which we have. Every Phase-3 cell should take `--grtresna-ranks 8`, saving
+  ~38 min each (~5 h across the 8 queued solves). Caveat: with only 3 GPUs a
+  2-rank evolution leaves just one card free, so multi-GPU is for grids that
+  do not otherwise fit — not a default.
+- **Initial data is now reusable.** A converged `initial_data.gridinit` can be
+  handed to a re-run with `--gridinit`, skipping the solve entirely. Saved
+  champion IDs live under `runs/neuralspacetime/hq/sources/`.
+
+**Failed this cycle**
+
+- **FMAX-RM attempt 1 — Arena OOM at t = 36.6 of 64, on one card.** The Arena
+  grew 62 → 77 GB as the matter dispersed and more cells were tagged; it
+  aborted asking for 17 MiB more. Root cause is AMR cell growth over the run,
+  not a startup sizing error, so the fix is more memory, not a smaller start.
+  Artifacts deleted 2026-08-19; the initial data was salvaged first.
+- N = 288 memory probe — OOM, expected and recorded (§12.4).
+
+**Open questions blocking Phase 3**
+
+1. **Ray count contradicts the pre-registered criterion.** The manifest fixes
+   `acceptance/n_rays: 5`; the 4D evolving tracer's HQ default is **3** and
+   that is what both depth runs used (the frozen tracer did use 5). Three
+   rays per launch is thinner evidence than the criterion we fixed in
+   advance. Either the criterion moves to 3 or the default moves to 5 — and
+   the choice must be made *before* the Phase-2 exit gate freezes the
+   champion, because FMAX-RM is inheriting the same default right now.
+2. **The emission sweep is still clipped even at t = 64.** Both depth runs
+   peak at `t_emit = 48`, which is the **last** launch the 25-emission cap
+   allows. The cap is now raised to 29 (last launch t = 56, rays arriving
+   ≈ 62 — a ray takes ≈ 6.1 units to cross), but that only pushes the wall
+   back; it does not prove the peak is inside the window. Goal #4 closes only
+   by running **past t = 64**, not by adding emissions to a t = 64 run.
+3. **Missing manifests:** the depth mini-ladder has none, and the fgeo_max
+   Phase-3 manifest lacks **FMAX-PF** and the free-fall companions §6
+   requires.
+
+**Disk — pruned 2026-08-19, 169 GB → 91 GB**
+
+Initial-data solves were 97 GB across 162 files. They are **not** duplicates —
+every one is a distinct solve — but they are *regenerable input*, and since
+the MPI repair a re-solve costs ~7 min at N = 256 with `--grtresna-ranks 8`
+instead of ~46. So 145 of them (77.5 GB) were deleted; the inventory of what
+went is `runs/GRIDINIT_PRUNED.md`, and each entry can be rebuilt from its own
+run's `params.txt`.
+
+Kept deliberately: the three N = 256 solves we may still re-run (depth185,
+depth195, and the fmax_rm champion under `hq/sources/`), the whole `fgeo_max`
+champion search lineage, and all of `bondi_rerun/published/`.
+
+What still dominates the remaining 91 GB:
+
+| what | size | note |
+|---|---|---|
+| `small_data/metric_stack` | **59 GB** | 29 GB per finished t = 64 run — the dense 4D slabs the geodesic tracer reads |
+| `initial_data.gridinit` (17 files) | 20 GB | after the prune |
+| rendered `frames/` | 4.2 GB | ~100 MB per run — cheap, and now mandatory (§2) |
+| run logs | 3.1 GB | |
+
+Standing prune policy: delete a run's gridinit once its score is packed, and
+delete `metric_stack` once the 4D trace has been scored and the numbers are
+in a pack. Do **not** enable checkpoints to buy safety — at 9.6 GB apiece
+they cost more disk than a re-run costs time.
 
 ---
 
@@ -194,6 +248,11 @@ rule** → HQ → matrix — is missing its refinement stage. That run comes fir
   gate on `min_chi`. Never `--force` a failed fidelity gate.
 - **Emission-sweep honesty:** report per-launch bundle completeness; a
   launch without a full bundle is "unmeasured", never "zero".
+- **Frames are mandatory on every HQ / production-tier run.** Rendering costs
+  ~100 MB per run and cannot be recovered afterwards — the plotfiles are
+  deleted as they are consumed, so a run without frames has no visual record
+  of what the geometry did. `grteclyn_frames: 1` in every matrix manifest.
+- **No checkpoints.** 9.6 GB each; re-running is cheaper than storing them.
 - Stop detached campaigns only via `stop_campaign.sh` (orchestrator first),
   then verify with `pgrep` — killing workers only advances the queue.
 - Packs scrub machine identity at pack time; grep before committing.
