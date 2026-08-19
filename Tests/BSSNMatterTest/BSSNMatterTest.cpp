@@ -46,7 +46,7 @@ void run_bssn_matter_test()
 
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 3;
-        constexpr amrex::Real dx = 0.5 / (num_cells - 1);
+        constexpr amrex::Real dx = 0.5 / ((amrex::Real)num_cells - 1.0);
 
         amrex::Box box(
             amrex::IntVect(0, 0, 0),

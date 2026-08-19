@@ -81,7 +81,7 @@ void run_particle_interpolator_test()
         // Read from params
         const int num_points       = sim_params.num_points;
         bool verbosity             = sim_params.verbosity;
-        amrex::Real extract_radius = sim_params.L / 4;
+        amrex::Real extract_radius = sim_params.L / 4.0;
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();
@@ -166,7 +166,7 @@ void run_particle_interpolator_test()
             amrex::Real z = interp_z_local[ipoint] - sim_params.center[2];
 
             amrex::Real A_known = 42. + x * x + y * y * z * z;
-            amrex::Real B_known = pow(z, 3);
+            amrex::Real B_known = pow(z, 3.);
 
             INFO("Interpolated A is "
                  << A_local[ipoint] << " at point x = " << x << " y = " << y

@@ -150,7 +150,7 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
                                 int ncycle)
 {
     BL_PROFILE("GRAMRLevel::advance()");
-    amrex::Real seconds_per_hour = 3600;
+    amrex::Real seconds_per_hour = 3600.;
     amrex::Real evolution_speed = (time - get_gramr_ptr()->get_restart_time()) *
                                   seconds_per_hour /
                                   get_gramr_ptr()->get_walltime_since_start();

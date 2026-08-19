@@ -38,7 +38,7 @@ void run_positive_chi_and_lapse_unit_test()
                            {
                                const amrex::IntVect iv{ix, iy, iz};
                                amrex::Real value =
-                                   (ix < N_GRID / 2) ? 1 : 1e-10;
+                                   (ix < N_GRID / 2.) ? 1. : 1e-10;
 
                                in_array(iv, c_chi)   = value;
                                in_array(iv, c_lapse) = value;
@@ -60,7 +60,7 @@ void run_positive_chi_and_lapse_unit_test()
             {
                 const amrex::IntVect iv(ix, iy, iz);
 
-                amrex::Real correct_value = (ix < N_GRID / 2) ? 1 : 1e-4;
+                amrex::Real correct_value = (ix < N_GRID / 2.) ? 1. : 1e-4;
                 INFO("At " << iv);
                 CHECK(in_array(iv, c_chi) ==
                       doctest::Approx(correct_value).epsilon(test_threshold));

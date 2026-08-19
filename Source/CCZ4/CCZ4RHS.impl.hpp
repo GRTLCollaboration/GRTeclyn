@@ -246,7 +246,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
                      vars.K() * vars.K() -
                  2.0 * vars.Theta() * vars.K()) -
             0.5 * vars.Theta() * kappa1_times_lapse *
-                (((amrex::Real)GR_SPACEDIM + 1) +
+                (((amrex::Real)GR_SPACEDIM + 1.0) +
                  m_params.kappa2 * ((amrex::Real)GR_SPACEDIM - 1.0)) -
             Z_dot_d1lapse - vars.lapse() * m_cosmological_constant;
 

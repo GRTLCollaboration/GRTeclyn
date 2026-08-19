@@ -24,7 +24,7 @@ class Coordinates
 
     AMREX_GPU_HOST_DEVICE
     Coordinates(amrex::IntVect integer_coords, amrex::Real dx,
-                std::array<amrex::Real, AMREX_SPACEDIM> center = {0})
+                std::array<amrex::Real, AMREX_SPACEDIM> center = {0.0})
         : m_center(center)
     {
         compute_coord(x, integer_coords[0], dx, center[0]);
@@ -45,7 +45,7 @@ class Coordinates
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static void
     compute_coord(amrex::Real &out, int position, amrex::Real dx,
-                  amrex::Real center_distance = 0)
+                  amrex::Real center_distance = 0.0)
     {
         out = (position + 0.5) * dx - center_distance;
     }
@@ -64,7 +64,7 @@ class Coordinates
     /// for when no coordinates object exists.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static amrex::Real
     get_radius(amrex::IntVect integer_coords, amrex::Real dx,
-               std::array<amrex::Real, AMREX_SPACEDIM> center = {0})
+               std::array<amrex::Real, AMREX_SPACEDIM> center = {0.0})
     {
         amrex::Real x = NAN;
         amrex::Real y = NAN;
