@@ -1,6 +1,6 @@
 # Findings
 
-Everything below is reproducible from `data/` with the scripts in `analysis/`.
+Everything below is reproducible from `campaign/` with the scripts in `analysis/`.
 Numbers are quoted in code units (G = c = 1, scalar mass m = 1); drifts are
 `x(t) − x(0)` along the pair axis.
 

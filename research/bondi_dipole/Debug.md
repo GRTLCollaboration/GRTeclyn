@@ -263,7 +263,7 @@ onto the hardware.
   quote convergence order + error bars for 50–150×, 0.6–3.4%, ~10%.
 - **B. Momentum-balance diagnostic** — **MEASURED 2026-08-17** (`PM` and
   `PM-eq` reruns to t=60 with `GRTECLYN_SECTOR_DYNAMICS=1`; streams in
-  `results/bondi-dipole-runaway/data/pair_pm{,_eqm}_v2/sector_dynamics.dat`,
+  `results/bondi-dipole-runaway/campaign/pair_pm{,_eqm}_v2/sector_dynamics.dat`,
   analysis in `analysis/momentum_balance.py` → `momentum_balance.csv`).
   Findings, science window t ≤ 30:
   - Sector momenta grow to ±(5–7)×10⁻³ by t=30 and cancel in the signed sum
@@ -551,7 +551,7 @@ figure took Fig. 8) needs to be re-made from the improved runs).
     chirpless ramp in PM vs oscillatory wander in PP/MM at R = 16.
   - **WARNING — wormhole pipeline on this data**: running
     `process_wave/plot_extracted_psi4.py --combined` on
-    `data/pair_pm/psi4_mode_l2m0.dat` works mechanically but most panels
+    `campaign/pair_pm/psi4_mode_l2m0.dat` works mechanically but most panels
     are physically invalid on near-zone data: the strain/LIGO panel reports
     "445 Hz, SNR 133 at 10 Mpc, horizon 166 Mpc" and E_rad = 1.9e-4 M —
     these assume wave-zone radiation and MUST NOT be quoted anywhere; the

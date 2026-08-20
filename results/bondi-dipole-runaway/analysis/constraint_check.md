@@ -31,6 +31,10 @@ Percent error per solver iteration; the solve stops below 0.1 %.
 | convA_pp_n128 | 4 | 0.00 → 0.0037 | 100.00 → 0.0472 | yes |
 | convA_pp_n192 | 4 | 0.00 → 0.0019 | 100.00 → 0.0481 | yes |
 | convA_pp_n256 | 4 | 0.00 → 0.0011 | 100.00 → 0.0451 | yes |
+| pair_mp_mirror | 7 | 100.00 → 0.0832 | 100.00 → 0.0742 | yes |
+| pair_pm | 7 | 100.00 → 0.0832 | 100.00 → 0.0742 | yes |
+| single_m | 7 | 100.00 → 0.0890 | 100.00 → 0.0520 | yes |
+| single_p | 4 | 0.00 → 0.0031 | 100.00 → 0.0181 | yes |
 
 ## Evolution — constraint norms over time
 
@@ -139,6 +143,22 @@ single point.  Read down a column to see growth in time.
 | convA_pp_n256 | 30 | 2.241e-03 | 3.429e-04 | 3.306e-02 |
 | convA_pp_n256 | 45 | 3.343e-03 | 4.179e-04 | 9.454e-02 |
 | convA_pp_n256 | 60 | 6.145e-03 | 8.474e-04 | 3.715e-01 |
+| pair_mp_mirror | 0 | 1.402e-03 | 3.429e-06 | 1.612e-02 |
+| pair_mp_mirror | 15 | 1.062e-03 | 1.195e-04 | 1.842e-02 |
+| pair_mp_mirror | 30 | 2.474e-03 | 1.514e-04 | 5.491e-02 |
+| pair_mp_mirror | 45 | 4.071e-03 | 2.442e-04 | 1.725e-01 |
+| pair_mp_mirror | 60 | 7.049e-03 | 7.964e-04 | 9.035e-01 |
+| pair_pm | 0 | 9.853e-04 | 3.334e-06 | 1.020e-02 |
+| pair_pm | 15 | 1.062e-03 | 1.195e-04 | 1.872e-02 |
+| pair_pm | 30 | 2.471e-03 | 1.507e-04 | 5.496e-02 |
+| pair_pm | 45 | 4.048e-03 | 2.416e-04 | 1.709e-01 |
+| pair_pm | 60 | 6.991e-03 | 7.733e-04 | 8.794e-01 |
+| single_m | 0 | 4.021e-03 | 5.212e-06 | 1.675e-02 |
+| single_m | 15 | 7.938e-04 | 9.507e-05 | 1.426e-02 |
+| single_m | 30 | 1.773e-03 | 1.085e-04 | 2.721e-02 |
+| single_p | 0 | 3.078e-03 | 1.653e-04 | 7.436e-03 |
+| single_p | 15 | 6.287e-04 | 7.806e-05 | 1.764e-02 |
+| single_p | 30 | 1.803e-03 | 2.596e-04 | 4.038e-02 |
 
 ## Does refining the grid reduce the violation?
 

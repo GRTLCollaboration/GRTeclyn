@@ -34,9 +34,10 @@ M_CANON = 0.06395
 M_PHANT_UNEQUAL = -0.07696  # omega = 0.550
 M_PHANT_EQUAL = -0.06395  # omega = 0.56598, |ADM| matched to the canonical star
 
+# Finest grid of the convergence campaign (dx = 0.25).
 CASES = [
-    ("pair_pm", M_CANON, M_PHANT_UNEQUAL),
-    ("pair_pm_eqm", M_CANON, M_PHANT_EQUAL),
+    ("convA_pm_n256", M_CANON, M_PHANT_UNEQUAL),
+    ("convA_pm_eqm_n256", M_CANON, M_PHANT_EQUAL),
 ]
 X0_CANON, X0_PHANT = 4.0, -4.0  # grid centre subtracted (run coords: 36 / 28)
 T_END, DT = 60.0, 0.01
@@ -72,7 +73,7 @@ def integrate(m1: float, m2: float) -> list[tuple[float, float, float]]:
 
 
 def read_observed(pack: pathlib.Path, cell: str) -> dict[float, tuple[float, float]]:
-    path = pack / "data" / cell / "sector_barycenters.dat"
+    path = pack / "campaign" / cell / "sector_barycenters.dat"
     rows = []
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.startswith("#") or not line.strip():

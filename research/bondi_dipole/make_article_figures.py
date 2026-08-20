@@ -88,8 +88,6 @@ def read_csv(path):
 
 
 TRAJ = read_csv(os.path.join(PACK, "analysis", "trajectories.csv"))
-NEWT = read_csv(os.path.join(PACK, "analysis", "newtonian_reference.csv"))
-SEPS = read_csv(os.path.join(PACK, "analysis", "separation_scaling.csv"))
 
 
 def series(rows, cell, ykey, xkey="t"):
@@ -101,15 +99,15 @@ def series(rows, cell, ykey, xkey="t"):
     return np.array(xs), np.array(ys)
 
 
-def at_time(cell, key, t):
-    xs, ys = series(TRAJ, cell, key)
-    return float(np.interp(t, xs, ys))
-
-
 # -------------------------------------------------- campaign-cell helpers
-# The quantitative anchor of the article is the uniform-grid campaign
-# (campaign/convA_*, boxC_*); the data/ cells are used only where the
-# campaign has no twin (the mirrored pair, the single stars).
+# The quantitative anchor of the article is the uniform-grid convergence
+# campaign, campaign/convA_* (dx = 0.50/0.33/0.25) and campaign/boxC_*.
+# Alongside them campaign/ also holds the earlier production runs at
+# dx = 0.5, named without a prefix (pair_pm, pair_mp_mirror, single_p,
+# single_m, and the *_v2 momentum cells).  Those are used only where the
+# convergence campaign has no twin -- the mirrored pair, the single stars,
+# and the sector-momentum streams -- and every figure that touches them
+# says "dx = 0.5" on its face.
 
 M_CANON, M_PHANT = 0.06395, -0.07696  # dressed ADM masses at omega = 0.550
 
@@ -741,13 +739,6 @@ def fig_constraints():
 
 
 # ------------------------------------------------------------------ fig: velocity
-def read_barycenters(cell):
-    """t, x_canon, x_phantom from the continuously sampled barycentre stream."""
-    path = os.path.join(PACK, "data", cell, "sector_barycenters.dat")
-    d = np.loadtxt(path)
-    return d[:, 0], d[:, 2], d[:, 7]
-
-
 def central_diff(t, x, width=2.0):
     """Centred difference over +-width time units, whatever the cadence."""
     v = np.full_like(x, np.nan)
@@ -940,7 +931,7 @@ def fig_weyl():
     t_eq, modes_eq = read_l2_modes("convA_pm_eqm_n256")
     ax.plot(t_eq, l2_amplitude(modes_eq, 16), color="0.35", ls="-.", lw=0.9,
             zorder=4)
-    t_mp, modes_mp = read_l2_modes("pair_mp_mirror", tree="data")
+    t_mp, modes_mp = read_l2_modes("pair_mp_mirror", tree="campaign")
     A_mp = l2_amplitude(modes_mp, 16)
     ax.plot(t_mp[::5], A_mp[::5], ls="none", marker="o", ms=2.7,
             markerfacecolor="white", markeredgewidth=0.7,
@@ -1016,8 +1007,8 @@ def fig_weyl():
     print("  growth convA_pm_sep12_n256: "
           f"{np.mean(A_ref[(t_ref >= 55) & (t_ref <= 60)]) / np.mean(A_ref[(t_ref >= 0) & (t_ref <= 10)]):.0f}x")
     # the mirror run exists only at dx=0.5: compare it against its own-
-    # resolution reference (data/pair_pm) so the test is same-numerics
-    t_pmamr, modes_pmamr = read_l2_modes("pair_pm", tree="data")
+    # resolution reference (campaign/pair_pm) so the test is same-numerics
+    t_pmamr, modes_pmamr = read_l2_modes("pair_pm", tree="campaign")
     A_pmamr = l2_amplitude(modes_pmamr, 16)
     Ai_mp = np.interp(t_pmamr, t_mp, A_mp)
     rel = np.max(np.abs(A_pmamr - Ai_mp)) / np.max(A_pmamr)

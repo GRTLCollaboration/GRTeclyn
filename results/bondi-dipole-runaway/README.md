@@ -47,8 +47,7 @@ the quantitative gravity tests, and the honest caveats are in
 | [`DEBUGGING.md`](DEBUGGING.md) | how the matter was made to stop dispersing — two root causes, the falsifications that found them |
 | [`MATTER_MODEL.md`](MATTER_MODEL.md) | the bicomplex model, where the sign flip lives, dressed-star initial data, code map |
 | [`LAUNCH.md`](LAUNCH.md) | exact launch command and full configuration for every cell |
-| `data/<cell>/` | per-cell time series + provenance (see the data dictionary below) |
-| `campaign/<cell>/` | the error-bar campaign: same streams at three resolutions + a double-size box (see the campaign section below) |
+| `campaign/<cell>/` | every run: the `convA_*`/`boxC_*` convergence campaign at three resolutions plus a double-size box, and the four unprefixed `pair_*`/`single_*` production cells at Δx = 0.5 (see the data dictionary below) |
 | `stars/` | dressed-star profile tables `r φ₀(r) α(r)` + the M(ω) family scan |
 | `analysis/` | derived tables and the scripts that regenerate them |
 | `figures/<cell>/` | curated frames: matter activity and geometry at t = 0 → end |
@@ -56,7 +55,7 @@ the quantitative gravity tests, and the honest caveats are in
 | `patches/` | the matter-model modifications this campaign required |
 | `debug_log/` | the full campaign journal, verbatim |
 
-### Data dictionary — `data/<cell>/`
+### Data dictionary — `campaign/<cell>/`
 
 Every `.dat` stream carries its own `#` header line naming each column.
 
@@ -92,7 +91,7 @@ the streams are absolute; drifts quoted anywhere in this pack are
 | `convergence_check.csv`, `convergence_check.md` | drift / gap / control artefact across grid resolutions, with the spread between grids |
 | `wave_check.csv`, `wave_check.md` | gravitational-wave amplitude on each extraction shell in retarded time, and whether the shells agree |
 | `constraint_check.csv`, `constraint_check.md` | constraint violation at both stages — the initial-data solve and the evolution — plus whether refining the grid reduces it |
-| `make_tables.py` | regenerates `summary.*` and `trajectories.csv` from `data/` |
+| `make_tables.py` | regenerates `summary.*` and `trajectories.csv` for the Δx = 0.5 production cells |
 | `newtonian_reference.py` | regenerates the point-mass reference (pure stdlib RK4) |
 | `convergence_check.py` | regenerates `convergence_check.*` from `campaign/` |
 | `wave_check.py` | regenerates `wave_check.*` from `campaign/` |
@@ -105,8 +104,8 @@ The headline numbers above come from adaptive-mesh runs at a single resolution.
 To attach error bars, the same physics was rerun on **uniform** grids (no mesh
 refinement — the convergence math needs a single cell size everywhere) at three
 sharpness levels, plus a double-size box for wave extraction. Every
-`campaign/<cell>/` folder carries the same streams and provenance files as
-`data/<cell>/` (same data dictionary), plus reference frames under `frames/` —
+`convA_*`/`boxC_*` folder carries the same streams and provenance files as
+the production cells (same data dictionary), plus reference frames under `frames/` —
 matter (`scalar_activity_z`) and geometry (`chi_minus_1_z`) on the z slice,
 one every Δt = 10 plus the final state, named by simulation time
 (`scalar_activity_z_t0030.png` is that field at t = 30). That is 7 per field
@@ -330,7 +329,7 @@ which is not a claim this pack makes.
 
 ### Reading notes
 
-- These are uniform-grid runs; the AMR twin of the mixed pair is `data/pair_pm`.
+- These are uniform-grid runs; the AMR twin of the mixed pair is `campaign/pair_pm`.
 - `boxC` drifts are `bary_x − 64`, not `− 32` as everywhere else in this pack.
 - Re-running the pack script rebuilds every cell folder from scratch; nothing
   outside `campaign/` and the `analysis/*_check.*` tables is touched.
@@ -371,7 +370,7 @@ they were built from.
 Regenerate this whole pack from the run tree:
 
 ```bash
-bash research/bondi_dipole/pack_results.sh    # published cells -> data/ stars/ figures/ movies/
+bash research/bondi_dipole/pack_results.sh    # dx=0.5 cells   -> campaign/ stars/ figures/ movies/
 bash research/bondi_dipole/pack_campaign.sh   # campaign cells  -> campaign/ + convergence tables
 ```
 

@@ -19,6 +19,10 @@ convA_pm_sep16_n256,initial_data,,8.319523e-02,7.601438e-02,,percent; 7 iteratio
 convA_pp_n128,initial_data,,3.697248e-03,4.717358e-02,,percent; 4 iterations
 convA_pp_n192,initial_data,,1.883608e-03,4.805272e-02,,percent; 4 iterations
 convA_pp_n256,initial_data,,1.095332e-03,4.505702e-02,,percent; 4 iterations
+pair_mp_mirror,initial_data,,8.322661e-02,7.420144e-02,,percent; 7 iterations
+pair_pm,initial_data,,8.322664e-02,7.420134e-02,,percent; 7 iterations
+single_m,initial_data,,8.904960e-02,5.204582e-02,,percent; 7 iterations
+single_p,initial_data,,3.087646e-03,1.807895e-02,,percent; 4 iterations
 boxC_pm_L128_n256,evolution,0,1.158539e-04,1.395338e-06,2.186882e-02,
 boxC_pm_L128_n256,evolution,15,3.749887e-04,4.227202e-05,1.880070e-02,
 boxC_pm_L128_n256,evolution,30,8.729486e-04,5.319412e-05,5.493913e-02,
@@ -119,6 +123,22 @@ convA_pp_n256,evolution,15,6.222170e-04,1.054541e-04,1.072586e-02,
 convA_pp_n256,evolution,30,2.241295e-03,3.429406e-04,3.305978e-02,
 convA_pp_n256,evolution,45,3.343048e-03,4.178518e-04,9.454019e-02,
 convA_pp_n256,evolution,60,6.145330e-03,8.474357e-04,3.714996e-01,
+pair_mp_mirror,evolution,0,1.402010e-03,3.428921e-06,1.612200e-02,
+pair_mp_mirror,evolution,15,1.062222e-03,1.195030e-04,1.842483e-02,
+pair_mp_mirror,evolution,30,2.474481e-03,1.513818e-04,5.490796e-02,
+pair_mp_mirror,evolution,45,4.071190e-03,2.442302e-04,1.724942e-01,
+pair_mp_mirror,evolution,60,7.048672e-03,7.964064e-04,9.034597e-01,
+pair_pm,evolution,0,9.853395e-04,3.333922e-06,1.019923e-02,
+pair_pm,evolution,15,1.061581e-03,1.195190e-04,1.872207e-02,
+pair_pm,evolution,30,2.470838e-03,1.507207e-04,5.496258e-02,
+pair_pm,evolution,45,4.048444e-03,2.416148e-04,1.709334e-01,
+pair_pm,evolution,60,6.990895e-03,7.733277e-04,8.794063e-01,
+single_m,evolution,0,4.020755e-03,5.212270e-06,1.675134e-02,
+single_m,evolution,15,7.937656e-04,9.506803e-05,1.425514e-02,
+single_m,evolution,30,1.773412e-03,1.085141e-04,2.720532e-02,
+single_p,evolution,0,3.078029e-03,1.653299e-04,7.435997e-03,
+single_p,evolution,15,6.286831e-04,7.805572e-05,1.763704e-02,
+single_p,evolution,30,1.802806e-03,2.595558e-04,4.037541e-02,
 convA_mm,ladder_ratio,0,0.3707,,0.9636,coarse n128 / fine n256
 convA_mm,ladder_ratio,15,1.1063,,0.9585,coarse n128 / fine n256
 convA_mm,ladder_ratio,30,0.9393,,0.9723,coarse n128 / fine n256

@@ -137,7 +137,7 @@ boundaries and begins to contaminate the drift measurement beyond that.
 
 Both scripts replay a stored evaluation for the numerics and override the
 physics. The full expanded inputs are packed per cell as
-`data/<cell>/grtresna_params.txt` and `data/<cell>/evolution_params.txt`.
+`campaign/<cell>/grtresna_params.txt` and `campaign/<cell>/evolution_params.txt`.
 
 **Grid / evolution**
 

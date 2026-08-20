@@ -26,17 +26,15 @@ SB = {"t": 0, "tot_c": 1, "x_c": 2, "rms_c": 5, "tot_p": 6, "x_p": 7, "rms_p": 1
 CF = {"t": 0, "peak": 2, "conf": 4, "min_chi": 17}
 
 # cell -> (sectors present, geometry description)
+# The dx = 0.5 production runs that the convergence campaign never twinned:
+# the single stars and the mirrored pair, plus the unmirrored pair they are
+# compared against.  Everything else that used to live here was superseded by
+# the convA_* ladder and is covered by convergence_check.py instead.
 CELLS = [
     ("single_p", "canonical", "1 star at grid centre"),
     ("single_m", "phantom", "1 star at grid centre"),
     ("pair_pm", "canonical + phantom", "x = +4 / -4, sep 8"),
-    ("pair_pp", "canonical x2", "x = +4 / -4, sep 8"),
-    ("pair_mm", "phantom x2", "x = +4 / -4, sep 8"),
-    ("pair_pm_eqm", "canonical + phantom (equal |ADM|)", "x = +4 / -4, sep 8"),
-    # Phase 1 scrutiny cells.
     ("pair_mp_mirror", "phantom + canonical (mirror control)", "x = +4 / -4, sep 8, sectors swapped"),
-    ("pair_pm_sep12", "canonical + phantom", "x = +6 / -6, sep 12"),
-    ("pair_pm_sep16", "canonical + phantom", "x = +8 / -8, sep 16"),
 ]
 SAMPLE_DT = 4.0  # trajectories.csv row spacing in code time
 
@@ -64,7 +62,7 @@ def finite(value: float) -> float | str:
 
 def main(argv: list[str]) -> int:
     pack = pathlib.Path(argv[0]) if argv else pathlib.Path(__file__).resolve().parent.parent
-    data = pack / "data"
+    data = pack / "campaign"
     out = pack / "analysis"
     out.mkdir(parents=True, exist_ok=True)
 

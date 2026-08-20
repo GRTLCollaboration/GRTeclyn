@@ -2,8 +2,10 @@
 # Pack light extracts of the convergence / big-box campaign into
 # results/bondi-dipole-runaway/campaign/.
 #
-# Companion to pack_results.sh, which owns the published paper cells under
-# data/ — this script never touches data/, stars/, figures/ or movies/.
+# Companion to pack_results.sh, which owns the dx = 0.5 production cells.
+# Both now write into campaign/, under disjoint cell names: this script owns
+# convA_*/boxC_*, pack_results.sh owns the unprefixed pair_*/single_* cells.
+# Neither touches stars/, figures/ or movies/.
 #
 # Safe to re-run at any time, including while runs are live:
 #   - each campaign cell's output folder is rebuilt from scratch on every run,

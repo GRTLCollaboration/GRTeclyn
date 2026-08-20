@@ -24,10 +24,19 @@ N = 128/192/256, i.e. Δx = 0.50/0.33/0.25) and `boxC_*` (L = 128, N = 256).
 The reference configuration is the **separation-12 mixed pair**,
 `convA_pm_sep12_n256`.
 
-The older AMR tree `results/bondi-dipole-runaway/data/` is used **only** where
-the campaign has no twin: the mirrored pair (`pair_mp_mirror`) and the single
-stars.  Those cells run at Δx = 0.5 and are always labelled as such in the
-figure itself.
+Four earlier production runs at Δx = 0.5 live in the same `campaign/`
+directory under **unprefixed** names — `pair_pm`, `pair_mp_mirror`,
+`single_p`, `single_m`, plus the `*_v2` cells holding the sector-momentum
+streams.  They are used **only** where the convergence campaign has no twin:
+the mirror test, the single-star controls, and the momentum bookkeeping.  Any
+figure that touches them says Δx = 0.5 on its face.
+
+(There used to be a separate `data/` tree holding these.  It was folded into
+`campaign/` on 2026-08-20 and deleted; the five cells it held that the
+`convA_*` ladder had already superseded — `pair_pp`, `pair_mm`,
+`pair_pm_eqm`, `pair_pm_sep12`, `pair_pm_sep16` — went with it.  The move was
+verified by regenerating every figure and diffing: all eleven PDFs and every
+printed number came out unchanged.)
 
 ## Drawing conventions
 
@@ -38,6 +47,30 @@ figure itself.
 * Resolution ladders always use dotted = 0.50, dashed = 0.33, solid = 0.25.
 * No unlabelled guide lines: the old vertical t = 30 markers were removed; the
   clean analysis window is stated in the captions instead.
+
+---
+
+## Order in the article
+
+As of the 2026-08-20 rewrite of `../bondi_dipole.tex` (17 pages, compiles clean):
+
+| article | file | section |
+|---|---|---|
+| Fig. 1 | `fig_schematic` | I, Introduction |
+| Fig. 2 | `fig_family` | III, Initial data |
+| Fig. 3 | `fig_chase_frames` | V A, The runaway |
+| Fig. 4 | `fig_trajectories` | V A |
+| Fig. 5 | `fig_velocity` | V A |
+| Fig. 6 | `fig_controls` | V B, Only the mixed pair moves |
+| Fig. 7 | `fig_mirror` | V C, The mirror control |
+| Fig. 8 | `fig_convergence` | V D, Grid convergence |
+| Fig. 9 | `fig_weyl` | VI A, The near-zone signal |
+| Fig. 10 | `fig_waveconv` | VI B, One outgoing wave |
+| Fig. 11 | `fig_constraints` | Appendix A |
+
+The article's reference configuration is `convA_pm_sep12_n256` throughout; the
+$d_0=8$ cells appear only as the strong-signal illustration and are labelled
+contact-contaminated wherever they are used.
 
 ---
 
@@ -93,8 +126,8 @@ The "only the mixed pair moves" figure.
 
 ### `fig_mirror.pdf` — the mirror test, sector by sector
 Same test as `fig_controls` (a) but resolved per star and at fixed numerics:
-`data/pair_pm` (lines) against `data/pair_mp_mirror` reflected about x = 0
-(markers), both at Δx = 0.5.  Reproduction to ≈ 5 %.
+`campaign/pair_pm` (lines) against `campaign/pair_mp_mirror` reflected about
+x = 0 (markers), both at Δx = 0.5.  Reproduction to ≈ 5 %.
 
 ### `fig_convergence.pdf` — the convergence study
 * **(a)** the reference cell's resolution ladder in time: the three mixed-pair

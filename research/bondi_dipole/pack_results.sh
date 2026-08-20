@@ -48,7 +48,7 @@ mkdir -p "${DEST}"/{data,stars,figures,patches,debug_log,analysis}
 for spec in "${CELLS[@]}"; do
   IFS='|' read -r cell sub _stop <<<"${spec}"
   src="${RUNS}/${sub}"
-  out="${DEST}/data/${cell}"
+  out="${DEST}/campaign/${cell}"
   if [[ ! -d "${src}" ]]; then
     echo "[pack] WARNING: missing run dir for ${cell} (${src}) -- skipping"
     continue
@@ -106,7 +106,7 @@ with open(src, encoding="utf-8") as fh, open(dst, "w", encoding="utf-8") as out:
 PY
   done
   scrub "${out}"/*.txt "${out}"/*.json
-  echo "[pack] data/${cell}: $(ls "${out}" | wc -l) files"
+  echo "[pack] campaign/${cell}: $(ls "${out}" | wc -l) files"
 done
 
 # ---------------------------------------------------------------------------

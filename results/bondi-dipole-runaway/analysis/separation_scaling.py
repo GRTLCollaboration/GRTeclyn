@@ -31,7 +31,9 @@ import sys
 
 # Dressed-star ADM masses at omega = 0.550 (stars/star_family.csv).
 M_CANON, M_PHANT = 0.06395, -0.07696
-CELLS = {8: "pair_pm", 12: "pair_pm_sep12", 16: "pair_pm_sep16"}
+# Finest grid of the convergence campaign (dx = 0.25), which is where the
+# article's separation numbers come from.
+CELLS = {8: "convA_pm_n256", 12: "convA_pm_sep12_n256", 16: "convA_pm_sep16_n256"}
 SAMPLE_TIMES = (20, 30, 40, 50)
 DT = 0.01
 
@@ -79,7 +81,7 @@ def main(argv: list[str]) -> int:
     print("phantom drift, NR vs its own point-mass reference")
     print(" sep |" + "".join(f"   t={t:<3d}" for t in SAMPLE_TIMES))
     for sep, cell in CELLS.items():
-        path = pack / "data" / cell / "sector_barycenters.dat"
+        path = pack / "campaign" / cell / "sector_barycenters.dat"
         if not path.is_file():
             print(f" {sep:3d} | (missing {cell})")
             continue

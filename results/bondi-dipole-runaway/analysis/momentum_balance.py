@@ -76,7 +76,7 @@ def main(argv: list[str]) -> int:
     out_rows: list[dict[str, object]] = []
 
     for cell, m_phantom in CELLS.items():
-        stream = pack / "data" / cell / "sector_dynamics.dat"
+        stream = pack / "campaign" / cell / "sector_dynamics.dat"
         if not stream.is_file():
             print(f"[momB] {cell}: no sector_dynamics.dat -- skipped")
             continue
