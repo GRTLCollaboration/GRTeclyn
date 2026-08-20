@@ -55,7 +55,10 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)"
 cd "${REPO_ROOT}"
 
-ROOT="${BONDI_NEXT_ROOT:-${REPO_ROOT}/runs/bondi_next}"
+# Lives under the existing bondi_rerun tree rather than a new top-level dir.
+# pack_campaign.sh skips "next" by name -- these are follow-up cells, not part
+# of the published pack, and must not be swept into it.
+ROOT="${BONDI_NEXT_ROOT:-${REPO_ROOT}/runs/bondi_rerun/next}"
 QDIR="${ROOT}/_queue"
 GPUS="${BONDI_NEXT_GPUS:-0 1 2 3}"
 DRYRUN="${BONDI_NEXT_DRYRUN:-0}"
@@ -133,6 +136,14 @@ for cell in ${CELLS}; do
     printf 'BONDI_S0=0 BONDI_S1=1 BONDI_GPU="${QUEUE_GPU}" %s \\\n' "$(cell_env "${cell}")"
     printf '  BONDI_RUNS_DIR="%s" \\\n' "${runs_dir}"
     printf '  bash "%s"\n' "${LAUNCHER}"
+    printf 'rc=$?\n'
+    # Drop the constraint solve once the evolution has consumed it: 4.1 GB per
+    # N=256 cell, 18.8 GB across this queue, and regenerable from the cell's own
+    # params.txt.  Nothing downstream reads it -- each cell solves for itself,
+    # and the analysis works off data/ and small_data/.  Only on success, so a
+    # cell that died mid-evolution keeps its initial data for inspection.
+    printf 'if [ "$rc" -eq 0 ]; then find "%s" -name initial_data.gridinit -delete; fi\n' "${runs_dir}"
+    printf 'exit "$rc"\n'
   } > "${job}"
   echo "[next] enqueued ${tag} -> ${runs_dir}"
 done

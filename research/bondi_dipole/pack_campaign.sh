@@ -11,7 +11,7 @@
 #   - each campaign cell's output folder is rebuilt from scratch on every run,
 #     so partial extracts from a still-running cell are replaced cleanly;
 #   - cells are discovered dynamically (every top-level dir in
-#     runs/bondi_rerun except published/, experiments/, logs/), so the queued
+#     runs/bondi_rerun except published/, experiments/, logs/, next/), so the queued
 #     equal-mass series is picked up automatically when it appears;
 #   - cells with no data yet are skipped with a note, never an error.
 #
@@ -35,7 +35,7 @@ mkdir -p "${DEST}/campaign"
 
 for celldir in "${RUNS}"/*/; do
   cell="$(basename "${celldir}")"
-  case "${cell}" in published|experiments|logs) continue ;; esac
+  case "${cell}" in published|experiments|logs|next) continue ;; esac
   run="$(find "${celldir}" -maxdepth 1 -type d -name 'bondi_sg_*' | head -n 1)"
   if [[ -z "${run}" ]] || ! compgen -G "${run}/small_data/*.dat" > /dev/null; then
     echo "[pack-campaign] ${cell}: no time series yet -- skipping"
