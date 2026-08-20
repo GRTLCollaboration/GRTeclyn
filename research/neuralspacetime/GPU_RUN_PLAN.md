@@ -17,7 +17,7 @@ a pack under `results/` that regenerates it.**
 
 ## 0. Scoreboard — what the paper needs, and where each piece stands
 
-*Last updated 2026-08-20 00:45. Update this block whenever a run lands; the
+*Last updated 2026-08-20 02:40. Update this block whenever a run lands; the
 numbered gaps map to §1 "What the paper still lacks".*
 
 > **Capacity, 2026-08-20: all 4 GPUs are ours again.** GPU 3 was reserved for
@@ -30,21 +30,36 @@ numbered gaps map to §1 "What the paper still lacks".*
 |---|---|---|
 | 1 | In-scope (gated) CMA-ES refinement stage | ✅ **done** — `qball-trajectory-fgeo-max-refinement`, champion eval 193 |
 | 2 | Production replay of a post-fix champion | ⚠️ **capped by hardware** — both depth exhibits landed at t = 64; the *gated headline* reached **t = 51.1 of 64** on the third attempt and cannot go further on this machine (memory ceiling, below) |
-| 3 | Convergence + domain matrix for the new result | 🔄 **running** — all 4 cells launched 2026-08-20 00:35 at t = 32, one per card |
+| 3 | Convergence + domain matrix for the new result | ✅ **done 2026-08-20 02:2x** — all 4 cells reached t = 32, exit 0, zero errors. Frozen peak spans **0.4080–0.4105 (0.6 %)** across 3 box sizes and 3 grids; the 4D observable itself matches to **0.6 %** under N192 → N256 (§12.11) |
 | 4 | Depth numbers are lower bounds → measure the true peak | ❌ **not closable by extending** — t = 96 also peaks on its last launch. Transport rises monotonically 0.201 → 0.784 across all 45 launches with no turnover (below) |
-| 5 | Mechanism for the new champions (ablation + free-fall) | ⬜ not started |
+| 5 | Mechanism for the new champions (ablation + free-fall) | 🔄 **running** — 3 free-fall companions + the pump-free twin launched 2026-08-20 02:35, one per card, t = 64 (§12.11) |
 | 6 | Post-fix canonical-only control under the gated objective | ⬜ not started |
 | 7 | Dead numbers in the draft | ✅ resolved by exclusion — candidate 146 left the paper (§12.9) |
 | 8 | Efficiency accounting / exotic-matter frontier | ⬜ not started (Phase 4) |
 
-**Running now**
+**Running now** — mechanism set, launched 2026-08-20 02:35, one card each,
+`stop_time = 64`, frames on:
 
-| cell | grid | h | card | state |
+| cell | manifest | grid | card | expected reach |
 |---|---|---|---|---|
-| FMAX-RC | N = 192, L = 128 | 0.667 | 0 | launched 00:35, constraint solve (CPU, 8 ranks) |
-| FMAX-RI | N = 240, L = 128 | 0.533 | 1 | launched 00:35, constraint solve |
-| FMAX-DS | N = 192, L = 96 | 0.5 | 2 | launched 00:35, constraint solve |
-| FMAX-DS2 | N = 224, L = 112 | 0.5 | 3 | launched 00:35, constraint solve |
+| FMAX-RM-FF | freefall | N = 256, L = 128 | 0 | ~t = 37 (one-card ceiling) |
+| FMAX-RC-FF | freefall | N = 192, L = 128 | 1 | likely full t = 64 |
+| FMAX-RI-FF | freefall | N = 240, L = 128 | 2 | ~t = 45 |
+| FMAX-PF | pumpfree | N = 256, L = 128 | 3 | ~t = 37 (pump off — dispersion, hence memory growth, may differ) |
+
+These are launched at the manifests' own `stop_time = 64` rather than the
+matrix's 32: they are controls **against the headline run**, which was itself
+launched at 64 and truncated by memory at 51.1. Running them short would make
+the comparison unmatched by construction. On one card each they are expected to
+truncate near t = 37–45 instead; a fully RM-matched comparison would need 3
+cards per cell, i.e. one cell at a time.
+
+**Both mechanism manifests shipped with `grteclyn_frames: 0`**, which violates
+the §2 frames rule. Set to 1 in `manifest_freefall.json` and
+`manifest_pumpfree.json` on 2026-08-20 before launch. There is no env override
+— `run_matrix.sh:142` does a bare `export GRTECLYN_FRAMES="${FRAMES}"` from the
+manifest — so the manifest is the only place to fix it. Check this field on
+every new manifest.
 
 **The whole Phase-3 matrix runs at `stop_time = 32`, not 64** — see the window
 ruling below. Each cell is one card, one rank; all four run concurrently, so
@@ -1251,3 +1266,126 @@ GRIDINIT="$(ls ../runs/neuralspacetime/hq/presolve/*RC*_hq_eval*/initial_data.gr
   with `mv failed/X pending/X`.
 - One runner per pool (`runner.lock` enforces it); after a node reboot just
   restart the runners — stale claims are requeued automatically.
+
+### 12.11 Phase-3 matrix results and the post-hoc 4D trace (2026-08-20)
+
+**All four matrix cells completed** at `stop_time = 32`, exit code 0, zero
+errors in any log, one card each:
+
+| cell | L | N | wall | frozen peak f_geo | peak local speed |
+|---|---|---|---|---|---|
+| FMAX-RC | 128 | 192 | 66 min | 0.4105 | 2.64 c |
+| FMAX-RI | 128 | 240 | 103 min | 0.4092 | **4.48 c** |
+| FMAX-DS | 96 | 192 | 79 min | 0.4080 | 2.24 c |
+| FMAX-DS2 | 112 | 224 | 94 min | 0.4094 | 2.25 c |
+
+Spread on the headline quantity is **0.6 %** across three box sizes and three
+grids. Matched-time values (same coordinate time, not same step):
+
+| t | RC 192/128 | RI 240/128 | DS 192/96 | DS2 224/112 |
+|---|---|---|---|---|
+| 8 | 0.2260 | 0.2264 | 0.2141 | 0.2146 |
+| 16 | 0.2389 | 0.2397 | 0.2558 | 0.2569 |
+| 24 | 0.3193 | 0.3197 | 0.3171 | 0.3181 |
+| 30 | 0.3803 | 0.3909 | 0.3714 | 0.3728 |
+
+RC vs RI is the pure resolution refinement at fixed box: agreement to <0.2 % at
+t = 8 and t = 24. DS/DS2 read ~7 % high at t = 16 and re-converge by t = 24 —
+a transient, not a bias.
+
+**Open: `max_local_speed` does not converge.** RI (the finest grid) reads
+4.48 c against ~2.24 c on the two h = 0.5 cells and 2.64 c on RC — roughly
+double, and it is the *only* quantity in the matrix that fails to converge.
+Consistent with the measure tracking the sharpest grid-resolvable feature
+rather than a physical speed. **Do not quote a superluminal-speed figure until
+this is resolved.**
+
+#### The 4D trace is never run by the campaign
+
+`consume_plotfiles --evolving-geodesic` does **not** perform the 4D trace. It
+only sets `GRTECLYN_EVOLVING_GEODESIC=1` in the consumer's environment and
+switches on the `small_data/metric_stack` cache. The trace lives in
+`metrics.aggregation.collector`, which no campaign queue script calls — so
+cols 13/14 of `ftl_timeseries.dat` (`f_geo_evol`, `f_geo_evol_ok`) stay at the
+placeholder `0.0  0` on **every row of every campaign run**, and no
+`evolving_geodesic.json` is written. This is documented in the header of
+`scripts/campaigns/rl/score_evolving_geodesic.py`; it is not a fault, but it
+means every campaign run needs a post-hoc pass.
+
+**The post-hoc script silently degrades without three exports.** It is a
+separate process and inherits nothing from the campaign. Unset, it falls back
+to the `SEARCH_OPTIONS` profile — 3 rays, `slice_stride 2`, single launch at
+t = 0, no emission sweep — exits 0, and **writes that number into
+`evolving_geodesic.json` and patches `ftl_timeseries.dat`**. The only tell is
+`mode=search` on the first stdout line. On FMAX-RC this produced 0.184 where
+the correct answer is 0.315.
+
+```bash
+export GRTECLYN_EVOLVING_GEODESIC_MODE=hq      # 5 rays, no stride, full steps
+export GRTECLYN_GEO_EMIT_INTERVAL=2.0
+export GRTECLYN_GEO_MAX_EMISSIONS=13           # 13 for t=32, 29 for t=64 — from the manifest
+grteclyn-wrapper/.venv/bin/python \
+  grteclyn-wrapper/scripts/campaigns/rl/score_evolving_geodesic.py \
+  runs/neuralspacetime/hq/<run> --ftl-l 8
+# verify the first line says mode=hq before trusting the number.
+# use --dry-run for any --max-time comparison: without it the truncated
+# result overwrites the full-window one on disk.
+```
+
+#### FMAX-RM's 4D number, and a resolution check for the observable itself
+
+Traced post-hoc from the 72 cached 257³ slices (fidelity PASS):
+
+**`f_geo_evol = 0.503` at `t_emit = 40`, 5/5 rays, axis y, 26 launches.**
+
+This is the gated headline and it agrees with the t = 51 replay's 0.51.
+Launch-time sweep: 0.181 (t = 0) → 0.329 (t = 20) → **0.503 (t = 40)** → 0.447
+(t = 42, only 4/5 rays) → 0 from t = 44. The zeros are the window ending, not
+physics: a ray launched that late has too little remaining geometry to arrive.
+Safe launches are those with ≳ 12 code units of stack left, so **t ≤ 38 is
+trustworthy and the curve is still rising there — 0.503 remains a floor.**
+
+Truncating the *same* run to t ≤ 32 (`--max-time 32 --dry-run`, 45/72 slices)
+puts it on RC's exact window and launch grid:
+
+| | N = 192 (FMAX-RC) | N = 256 (FMAX-RM ⊂ 32) |
+|---|---|---|
+| peak `f_geo_evol` | 0.3149 | 0.3170 |
+| at `t_emit` | 18 | 18 |
+| falls off from | t = 20 | t = 20 |
+
+**0.6 % apart, same peak launch time, same truncation cliff.** Until now the
+convergence evidence covered only the frozen snapshot proxy; this is a
+resolution check on the 4D observable the headline actually rests on. The
+identical cliff position across resolutions confirms it is the truncation
+guard, not a physical feature.
+
+#### Consequence: a 32-unit window cannot produce a 4D headline
+
+At `stop_time = 32` only launches up to t ≈ 18 are valid, and the curve is
+still climbing when the data runs out. So the matrix cells' `f_geo_evol` values
+are floors set by window length, and at t = 32 the evolving number lands
+*below* the frozen one (0.315 vs 0.411) while on the t = 96 depth run it lands
+well *above* (0.784 vs 0.420). **Same code, opposite ordering, purely from
+window length.** Any table carrying both columns across runs of different
+lengths must say so, or it reads as an inconsistency.
+
+The matrix stays valid: it was built to test convergence of the frozen number,
+and it does that cleanly. The 4D headline stays with the long production run.
+
+#### Still open
+
+- **The mid-run dip.** FMAX-RM's sweep dips at t = 22 (0.329 → 0.281 → 0.364);
+  the two depth runs dip at t = 30–38 and recover by t = 46, at *identical*
+  coordinate times as each other. Different genomes dip at different times, so
+  the earlier "fixed coordinate time ⇒ regrid artefact" reading does not hold.
+  **The matrix cannot test it** — no 32-unit cell produces a valid launch past
+  t = 18. Testing it needs a long run, not these.
+- `structure_coherence` is `nan` on every row of every run.
+- `max_local_speed` convergence (above).
+
+#### Housekeeping
+
+The five runs that lacked a 4D number were exactly FMAX-RM plus the four matrix
+cells; every older run already had `evolving_geodesic.json`. New metric-stack
+caches from this cycle total ~64 GB (12–18 GB per cell); NFS at 85 %.

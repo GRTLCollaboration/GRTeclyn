@@ -1,0 +1,19 @@
+{
+  "run_id": "FMAX-RC-FF",
+  "campaign": "fgeo_max_cmaes_freefall_observer",
+  "phase": 3,
+  "role": "freefall_observer",
+  "manifest": "grteclyn-wrapper/scripts/campaigns/promote/fgeo_max_cmaes_v1/manifest_freefall.json",
+  "source_run": "runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1",
+  "eval_id": 193,
+  "n_full": 192,
+  "l_full": 128.0,
+  "h": 0.6666666666666666,
+  "stop_time": 64.0,
+  "plot_interval": 72,
+  "max_level": 3,
+  "gpu_id": "1",
+  "evolution_mpi_ranks": 1,
+  "out_dir": "runs/neuralspacetime/hq/fmax_rc_freefall_L128_N192_t64_hq_eval000193",
+  "git_commit": "3693664286e15e1837372529625db2861a53affd"
+}

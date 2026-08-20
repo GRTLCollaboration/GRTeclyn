@@ -21,7 +21,7 @@
   "defaults": {
     "stop_time": 64.0,
     "plot_interval": 72,
-    "grteclyn_frames": 0,
+    "grteclyn_frames": 1,
     "grteclyn_psi4": 1,
     "grteclyn_psi4_n_points": 128,
     "consumer_radii": [
@@ -44,7 +44,7 @@
       "l_full": 128.0,
       "stop_time": 64.0,
       "plot_interval": 72,
-      "grteclyn_frames": 0,
+      "grteclyn_frames": 1,
       "evolution_mpi_ranks": 1,
       "consumer_radii": [
         12.0,
