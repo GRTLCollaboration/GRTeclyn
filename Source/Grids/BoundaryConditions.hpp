@@ -41,7 +41,8 @@ class BoundaryConditions
         std::array<int, AMREX_SPACEDIM> lo_condition{};
         std::array<bool, AMREX_SPACEDIM> is_periodic{};
 
-        std::array<double, NUM_VARS> vars_asymptotic_values{};
+        std::array<double, NUM_VARS> vars_asymptotic_values =
+            StateVariables::asymptotic_values;
         params_t() = default;
         void fill_params();
         static void check_params();

@@ -5,7 +5,6 @@
 
 // Other includes
 #include "BoundaryConditions.hpp"
-#include "StateVariablesParmParse.hpp"
 
 #include <algorithm>
 #include <array>
@@ -85,18 +84,6 @@ void BoundaryConditions::params_t::fill_params()
 
     hi_condition = read_conditions(boundary_pp, "hi_condition");
     lo_condition = read_conditions(boundary_pp, "lo_condition");
-
-    if (boundary_exists(SOMMERFELD_BC))
-    {
-        size_t num_values = 0;
-        std::vector<int> nonzero_asymptotic_vars;
-        StateVariablesParmParse::load_vars_to_vector(
-            boundary_pp, "nonzero_asymptotic_vars", nonzero_asymptotic_vars);
-        const double default_value = 0.0;
-        StateVariablesParmParse::load_values_to_array(
-            boundary_pp, "nonzero_asymptotic_values", nonzero_asymptotic_vars,
-            vars_asymptotic_values, default_value);
-    }
 }
 
 void BoundaryConditions::params_t::check_params()
@@ -161,6 +148,7 @@ void BoundaryConditions::set_vars_asymptotic_values(
     std::array<double, NUM_VARS> &vars_asymptotic_values)
 {
     m_params.vars_asymptotic_values = vars_asymptotic_values;
+    m_asymptotic_values.clear();
 }
 
 void BoundaryConditions::write_reflective_conditions(int idir)
