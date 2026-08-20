@@ -27,6 +27,11 @@
 #   BONDI_S0=0 BONDI_S1=1 BONDI_GPU=3 bash scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
 # Overrides: BONDI_GPU (default 3), BONDI_STOP_TIME (default 60),
 #            BONDI_RUNS_DIR, BONDI_SEP (default 8), BONDI_S0/BONDI_S1.
+#   BONDI_NL_TOL / BONDI_NL_STALL_TOL: elliptic-solve stopping rule.  Scale
+#     BONDI_NL_TOL as dx^4 across a ladder to get a convergence order out of it.
+#   BONDI_SPONGE=1: switch on the boundary sponge (inner/outer/strength/ramp
+#     via BONDI_SPONGE_INNER etc.) to run past t=60.
+#   BONDI_DRYRUN=1: resolve and print the parameters, then exit -- no solve, no GPU.
 #   BONDI_S1_OMEGA: per-lump star frequency for lump1 (equal-|ADM| cells --
 #     the phantom star at omega=0.56598 weighs the canonical star's 0.0640;
 #     its t=0 fingerprint becomes total ~= 17.05 / rms ~= 5.16).  Appends
@@ -64,6 +69,55 @@ DT_MULT="${BONDI_DT_MULT:-0.02}"
 #     fire until t~47.5 (mixed) and never in the singles -- so max_level=0
 #     reproduces it over the window that matters.
 MAXLEVEL="${BONDI_MAXLEVEL:-1}"
+
+# Elliptic-solve stopping rule.  The published campaign exited every rung of
+# the resolution ladder on the same criterion, so all three stopped at the same
+# 0.0832% Hamiltonian violation -- identical to four digits at N=128, 192, 256.
+# The floor is this tolerance, not the grid, which is why the published pack
+# quotes no convergence order.  Scale it as dx^4 across a ladder to measure one:
+#   N=128 -> 0.1     N=192 -> 0.019     N=256 -> 0.00625
+# The stall guard has to come down with it, or the iteration halts on "no
+# further progress" before the tighter exit is ever reached.
+NL_TOL="${BONDI_NL_TOL:-0.1}"
+NL_STALL_TOL="${BONDI_NL_STALL_TOL:-0.002}"
+# Tighter tolerances take more Newton iterations and so more wall clock; the
+# published solves used 7 of a permitted 50 and finished well inside 7200 s.
+GRTRESNA_TIMEOUT="${BONDI_GRTRESNA_TIMEOUT:-7200}"
+
+# Numerical sponge zone (Source/Grids/SpongeZone.hpp): a radially-ramped band
+# of extra Kreiss-Oliger dissipation, off by default.  Massive-scalar radiation
+# cannot leave through the massless-wave boundaries, washes back over the stars
+# and caps every mixed run at t=60; the sponge is what buys t >> 60.  Two
+# things to check on the first cell rather than assume: it was validated
+# against *massless* reflections elsewhere, and a band placed at 24/32 starts
+# eating the canonical star's own halo once its rms radius crosses r=16
+# (t ~ 51), which moves the domain-integrated barycentre.  Run BONDI_SCRUTINY=1
+# alongside any sponge cell so the halo the sponge removes can be told apart
+# from the halo the diagnostic was mis-counting.
+SPONGE="${BONDI_SPONGE:-0}"
+SPONGE_INNER="${BONDI_SPONGE_INNER:-24}"
+SPONGE_OUTER="${BONDI_SPONGE_OUTER:-32}"
+SPONGE_STRENGTH="${BONDI_SPONGE_STRENGTH:-4.0}"
+SPONGE_RAMP="${BONDI_SPONGE_RAMP:-4}"
+
+# Print the resolved parameter set and exit without solving or touching a GPU.
+# Worth spending on a new cell: the alternative is discovering a mis-set knob
+# after the solve has already burned an hour of CPU and the card is committed.
+dryrun_args=()
+if [[ "${BONDI_DRYRUN:-0}" != "0" ]]; then
+  dryrun_args=(--dry-run)
+fi
+
+sponge_args=()
+if [[ "${SPONGE}" != "0" ]]; then
+  sponge_args=(
+    --extra-override sponge_enabled=1
+    --extra-override sponge_inner_radius="${SPONGE_INNER}"
+    --extra-override sponge_outer_radius="${SPONGE_OUTER}"
+    --extra-override sponge_strength="${SPONGE_STRENGTH}"
+    --extra-override sponge_ramp_power="${SPONGE_RAMP}"
+  )
+fi
 
 S1_OMEGA="${BONDI_S1_OMEGA:-}"
 
@@ -118,11 +172,11 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --ftl-L 8.0 \
   --grtresna-ranks "${GRTRESNA_RANKS}" \
   --grtresna-iterations 50 \
-  --grtresna-nl-exit-tolerance 0.1 \
-  --grtresna-nl-stall-tolerance 0.002 \
+  --grtresna-nl-exit-tolerance "${NL_TOL}" \
+  --grtresna-nl-stall-tolerance "${NL_STALL_TOL}" \
   --grtresna-max-level 3 \
   --grtresna-domain-l 128 \
-  --grtresna-timeout 7200 \
+  --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --consumer-radii ${RADII} \
   --consumer-keep-last 2 \
   --objective-mode weighted \
@@ -154,6 +208,8 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --extra-override trajectory_lump1_omega_rot=0 \
   --extra-override trajectory_lump1_well_depth=0.15 \
   --extra-override trajectory_lump1_exotic="${S1}" \
-  ${S1_OMEGA:+--extra-override trajectory_lump1_bs_omega="${S1_OMEGA}"}
+  ${S1_OMEGA:+--extra-override trajectory_lump1_bs_omega="${S1_OMEGA}"} \
+  ${sponge_args[@]+"${sponge_args[@]}"} \
+  ${dryrun_args[@]+"${dryrun_args[@]}"}
 
 echo "[bondi] pair cell complete: ${RUNS_DIR}/${out_name}"
