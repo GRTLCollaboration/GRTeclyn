@@ -100,7 +100,7 @@ BONDI_SCRUTINY=1 BONDI_SEP=12 BONDI_NFULL=256 BONDI_MAXLEVEL=0 \
   bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
 ```
 
-### 3. A sponge layer, then the constant-gap test
+### 3. Switch the sponge on, then the constant-gap test
 
 **Why.**  The one headline the paper cannot claim is the textbook Bondi
 runaway — a pair accelerating forever at *fixed* separation.  It is not reached
@@ -115,15 +115,48 @@ where the gap stays open long enough for the constant-gap claim to be tested.
 Also the energy budget (item 4), whose extraction window closes at `u ≈ 25` for
 the same reason.
 
-**Blocker — a code change, not a launch.**  There is no sponge in `GRTeclyn`
-here.  Doubling the box (`boxC`) buys light-crossing time but does not remove
-the bath.  Note the stars are the *least* affected part: between `L = 64` and
-`L = 128` at the same `Δx` the extremal conformal factor agrees to `0.01%`
-through `t = 40`, so what the returning bath corrupts is the halo diagnostics,
-not the cores.
+**Not blocked — the sponge already exists, and this campaign never switched it
+on.**  `Source/Grids/SpongeZone.hpp` has been in the tree since `1b567cf1`
+(2026-07-10), five weeks before these runs, and it is wired into
+`Examples/RadialRecipe` — the very executable the Bondi cells use
+(`RadialRecipeMatterDispatch.hpp:348`).  It is a radially-ramped band of extra
+Kreiss--Oliger dissipation between `sponge_inner_radius` and
+`sponge_outer_radius`, off by default, exposed as five parameters, and already
+in production elsewhere: the `gw_beam` campaign runs it at `24/32`,
+`strength = 4.0`, quartic ramp, precisely so it can reach `stop_time = 40`
+without boundary reflections, and the wormhole campaign has a `--sponge` flag.
+It reaches the Bondi launcher through the same `--extra-override` channel that
+already carries `dt_multiplier`.
+
+**Two things to establish on the first cell rather than assume.**  The sponge is
+extra dissipation, not a true outgoing boundary, and it was validated against
+*massless* wave reflections in a canonical-matter campaign — whether it clears
+this campaign's *massive* scalar bath is the empirical question the first run
+answers.  And the default `24/32` band is sized for `L = 64`: the Weyl shells at
+`R = 8` and `16` sit safely inside it, but the canonical envelope's rms radius
+crosses `r = 16` by `t ≈ 51`, so at late times a sponge placed there starts
+eating the star's own halo.  That moves the barycentric diagnostic, which
+integrates over the domain — so run item 2's peak tracker alongside any sponge
+cell, or the halo the sponge removes cannot be told apart from the halo the
+diagnostic was mis-counting.
 
 **Cost.**  `≈3.4` GPU-hours per `L = 128` cell to `t = 90` at `Δx = 0.5`; more
-for a longer stop time or a wider box.
+for a longer stop time or a wider box.  Launchable today, and with four cards it
+can run alongside items 1 and 2.
+
+```bash
+BONDI_SCRUTINY=1 BONDI_SEP=16 BONDI_LFULL=128 BONDI_NFULL=256 \
+  BONDI_MAXLEVEL=0 BONDI_RADII="16 24 32 40" BONDI_STOP_TIME=120 \
+  BONDI_S0=0 BONDI_S1=1 BONDI_GPU=2 \
+  BONDI_RUNS_DIR="$PWD/runs/bondi_sponge/pm_sep16_sponge" \
+  bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
+# with the launcher passing, alongside its existing overrides:
+#   --extra-override sponge_enabled=1 \
+#   --extra-override sponge_inner_radius=40 \
+#   --extra-override sponge_outer_radius=60 \
+#   --extra-override sponge_strength=4.0 \
+#   --extra-override sponge_ramp_power=4
+```
 
 ### 4. ADM surface integrals for the energy budget
 
@@ -138,9 +171,9 @@ construction.
 **Blocker — mostly not GPU work.**  The odd-`ℓ` half is *already on disk*:
 `boxC_pm_L128_n256/psi4_mode_higher_l.dat` carries `ℓ = 3` and `ℓ = 4`, all
 `m`, on all four shells, `227` rows to `t = 90`, and nothing reads it yet.
-**Analyse that before launching anything.**  What genuinely needs new runs is
-the surface-integral diagnostic (a code change) and the longer window from
-item 3.
+**Analyse that before launching anything.**  The longer extraction window is
+now item 3's parameter rather than a code change, so the only code left here is
+the ADM surface-integral diagnostic itself.
 
 **Cost.**  Zero until the diagnostic exists; then it rides along with item 3.
 
@@ -195,12 +228,12 @@ Everything here runs on the CPU, against data already in the pack:
 |---|---|---|
 | 1. tolerance-scaled ladder | 6.2 | `BONDI_NL_TOL` knob |
 | 2. reference cell + peak tracker | 4.4–6.2 | nothing |
-| 3. sponge + constant gap | 3.4 per cell | sponge layer in the code |
-| 4. energy budget | rides on item 3 | surface-integral diagnostic; read the `ℓ = 3` data first |
+| 3. sponge on + constant gap | 3.4 per cell | nothing — `sponge_enabled=1` |
+| 4. energy budget | rides on item 3 | the surface-integral diagnostic; read the `ℓ = 3` data first |
 | 5. wider lever arm | 8.8 | a CPU star solve at `ω = 0.615` |
 
-Roughly `20` GPU-hours of evolution for items 1, 2 and 5 — the three that are
-launchable today or after a one-line launcher change — against the `55`
-GPU-hours the published campaign cost in total, so under a day of wall clock on
-the four-GPU node.  Items 3 and 4 are code work
-first and device time second.
+Items 1, 2, 3 and 5 are all launchable today or after a one-line launcher
+change — roughly `25` GPU-hours against the `55` the published campaign cost in
+total, so about a day of wall clock on the four-GPU node.  Only item 4 needs
+code written first, and even there the analysis that has to come before the code
+is already paid for.
