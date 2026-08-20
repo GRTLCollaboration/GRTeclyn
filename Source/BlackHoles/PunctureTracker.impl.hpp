@@ -78,6 +78,12 @@ void puncture_tracker_params_t::fill_params()
 {
     amrex::ParmParse puncture_tracking_pp("puncture_tracking");
 
+    puncture_tracking_pp.get("enabled", enabled);
+    if (!enabled)
+    {
+        return;
+    }
+
     puncture_tracking_pp.get("output_path", output_path);
     puncture_tracking_pp.get("filename", filename);
     full_filename     = output_path + "/" + filename;
@@ -91,11 +97,17 @@ void puncture_tracker_params_t::fill_params()
     puncture_tracking_pp.get("initial_coords", initial_coords);
 }
 
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::configure()
+{
+    m_params.fill_params();
+}
+
 //! Set up puncture tracker
 template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::initialize(GRAMR *a_gr_amr)
 {
-    m_params.fill_params();
+    AMREX_ASSERT(m_params.enabled);
     AMREX_ASSERT(a_gr_amr != nullptr);
     m_gr_amr = a_gr_amr;
 

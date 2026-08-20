@@ -13,6 +13,7 @@
 
 struct puncture_tracker_params_t
 {
+    bool enabled{};          // whether puncture tracking is enabled
     bool disable_writeout{}; // if true, don't write .dat file (doesn't
                              // affect checkpoint and plotfiles)
     std::string filename;
@@ -59,9 +60,15 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     //! The constructor
     using amrex::ParticleContainer<AMREX_SPACEDIM, 1>::ParticleContainer;
 
+    //! Load the puncture tracker parameters
+    void configure();
+
     //! Initialize the tracker. Note that this does not set up the underlying
     //! ParticleContainer
     void initialize(GRAMR *a_gr_amr);
+
+    //! Whether puncture tracking is enabled
+    [[nodiscard]] bool is_enabled() const { return m_params.enabled; }
 
     //! start the puncture tracker from the initial punctures
     void start_from_initial_punctures();

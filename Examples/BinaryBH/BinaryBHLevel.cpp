@@ -131,7 +131,7 @@ void BinaryBHLevel::initData()
 #endif
     amrex::Gpu::streamSynchronize();
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled && Level() == 0)
+    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         // need to set the puncture coordinates as we use it for the puncture
         // tagging
@@ -317,8 +317,10 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     constexpr auto num_puncture_coords =
         static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
     std::array<amrex::Real, num_puncture_coords> puncture_coords{};
+    const bool puncture_tracking_enabled =
+        get_bhamr_ptr()->puncture_tracking_enabled();
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled)
+    if (puncture_tracking_enabled)
     {
         puncture_coords = get_puncture_tracker().get_puncture_coords();
     }
@@ -327,8 +329,6 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     double bh2_mass{};
     pp.get("bh1.mass", bh1_mass);
     pp.get("bh2.mass", bh2_mass);
-
-    bool puncture_tracking_enabled = get_bhamr_ptr()->puncture_tracking_enabled;
 
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
@@ -355,7 +355,7 @@ void BinaryBHLevel::specific_post_init()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_init()");
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled())
     {
         get_puncture_tracker().start_from_initial_punctures();
     }
@@ -365,7 +365,7 @@ void BinaryBHLevel::specific_post_restart()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_restart()");
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled())
     {
         std::string restart_checkpoint{};
         GRParmParse pp("amr");
@@ -377,7 +377,7 @@ void BinaryBHLevel::specific_post_restart()
 void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
                                            std::ostream &a_os)
 {
-    if (get_bhamr_ptr()->puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled())
     {
         get_puncture_tracker().write_plotfile(a_dir);
     }
@@ -386,7 +386,7 @@ void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
 void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
                                              std::ostream & /*a_os*/)
 {
-    if (get_bhamr_ptr()->puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled())
     {
         get_puncture_tracker().checkpoint(a_chk_dir);
     }
@@ -396,7 +396,7 @@ void BinaryBHLevel::specificPostTimeStep()
 {
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled)
+    if (get_bhamr_ptr()->puncture_tracking_enabled())
     {
         GRParmParse puncture_tracking_pp("puncture_tracking");
         int puncture_tracking_level{};
