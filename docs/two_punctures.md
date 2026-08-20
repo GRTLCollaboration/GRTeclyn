@@ -29,7 +29,7 @@ export TWOPUNCTURES_HOME=/mypath/to/twopunctures
 ```
 cd /path/to/GRTeclyn/Examples/BinaryBH
 ```
-then 
+then
 ```
 make -j 4 USE_TWOPUNCTURES=TRUE
 ```
@@ -42,9 +42,14 @@ We provide an example parameter file for TwoPunctures runs in the `BinaryBH` exa
 
 They are all scoped by the prefix `two_punctures`. They should be self explanatory and are mostly the same as in GRChombo and other TwoPunctures implementations. Commented out values have their default value assigned to them.
 
+See the [Parameters guide](parameters.md) for more info.
+
 A few tips:
 
 - the offsets are by default in the x direction, which means for circular inspirals the main momenta should be in the y direction to keep them in the x-y plane. For head on mergers it is conventional to switch to a collision along the z axis (meaning that the weyl scalars only have m=0 components for our chosen tetrad).
 
 - Since TwoPunctures does not support interpolation on the GPU, the interpolation of data onto the grid is done on the CPU into a MultiFab which has a host memory arena. The data is then copied asynchronously to the usual state MultiFab. In the case spectral interpolation is used (`two_punctures.use_spectral_interpolation = true`), the initial data interpolation is very slow and this is further exacerbated by the larger number of cells per MPI process one typically has when running on GPUs. It may take several hours. The easiest workaround is to compute the initial data in a CPU-only run with more MPI processes, write a checkpoint file and then restart on GPUs from that.
 
+!!! warning "The `swap_xz` convention"
+
+    This option is useful when doing head on mergers, as it makes sense for the merger axis to be aligned with the one used for the extraction of Weyl scalars (since then only $m=0$ modes are active). However, the convention here is a bit confusing. TwoPunctures always solves with the punctures on its internal x axis. Setting `two_punctures.swap_xz = true` exchanges the x and z axes during interpolation, so `offset_plus` and `offset_minus` describe physical z offsets instead of x offsets. This is an axis exchange, not a proper rotation, and the momentum and spin inputs use the internal TwoPunctures convention. In particular, with `swap_xz` enabled, a physical spin in the positive z direction is entered as a negative x component. Check vector components and signs carefully when enabling this option.
