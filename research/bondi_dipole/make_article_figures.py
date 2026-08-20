@@ -1057,6 +1057,41 @@ def fig_waveconv():
         sml = float(np.interp(uu + 16.0, ts, np.abs(small[16.0])))
         print(f"  u={uu:.0f}: box L=128 vs 64 at R=16: {abs(big - sml) / big * 100:.2f}%")
 
+    # propagation speed: slide the r = 16 waveform onto each outer shell at
+    # fixed amplitude and read off the lag that best aligns them over the
+    # clean window.  A free amplitude scale would make a monotone ramp align
+    # at any lag, so the scale is held at one.
+    u1 = np.linspace(10.0, 25.0, 600)
+    f1 = np.interp(u1 + 16.0, t, np.abs(modes[16.0]))
+    for R in (24.0, 32.0, 40.0):
+        dr = R - 16.0
+        taus = np.linspace(0.5 * dr, 1.8 * dr, 3000)
+        err = [np.sum((f1 - np.interp(u1 + 16.0 + tau, t, np.abs(modes[R]))) ** 2)
+               for tau in taus]
+        tau = float(taus[int(np.argmin(err))])
+        print(f"  r=16 -> {R:.0f}: lag {tau:.2f} over baseline {dr:.0f}"
+              f" -> v = {dr / tau:.3f}")
+
+    # the same lag from threshold crossings, which fix the scale differently
+    def crossing(R, level):
+        a = np.abs(modes[R])   # read_mode_shells already carries the r factor
+        i0 = int(np.searchsorted(t, R + 5.0))
+        hit = np.where(a[i0:] >= level)[0]
+        if len(hit) == 0:
+            return None
+        j = i0 + int(hit[0])
+        return float(t[j - 1] + (level - a[j - 1]) * (t[j] - t[j - 1])
+                     / (a[j] - a[j - 1]))
+
+    fits = []
+    for level in (0.008, 0.010, 0.012, 0.014, 0.016):
+        cr = [crossing(R, level) for R in styles]
+        if any(c is None for c in cr):
+            continue
+        fits.append(float(np.polyfit(cr, list(styles), 1)[0]))
+    print(f"  threshold-crossing speed: {np.mean(fits):.2f}"
+          f" (range {min(fits):.2f}-{max(fits):.2f})")
+
 
 if __name__ == "__main__":
     fig_chase_frames()

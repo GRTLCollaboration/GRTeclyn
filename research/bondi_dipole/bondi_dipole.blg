@@ -26,6 +26,7 @@ Warning--I didn't find a database entry for "alcubierre1994"
 Warning--I didn't find a database entry for "shinkai2002"
 Warning--I didn't find a database entry for "gonzalez2009"
 Warning--I didn't find a database entry for "dzhunushaliev2014"
+Warning--I didn't find a database entry for "clough2024"
 Warning--I didn't find a database entry for "trivedi_loeb2026"
 Warning--I didn't find a database entry for "nojiri2026"
 Warning--I didn't find a database entry for "grteclyn"
@@ -39,18 +40,18 @@ Warning--I didn't find a database entry for "coleman1985"
 Warning--I didn't find a database entry for "friedberg1987"
 Warning--I didn't find a database entry for "carroll2003"
 Warning--I didn't find a database entry for "cline2004"
-Warning--I didn't find a database entry for "alic2012"
-Warning--I didn't find a database entry for "grtresna"
 Warning--I didn't find a database entry for "kaup1968"
 Warning--I didn't find a database entry for "ruffini1969"
 Warning--I didn't find a database entry for "liebling2023"
 Warning--I didn't find a database entry for "cttk"
 Warning--I didn't find a database entry for "helfer2022"
+Warning--I didn't find a database entry for "alic2012"
 Warning--I didn't find a database entry for "bona1995"
 Warning--I didn't find a database entry for "campanelli2006"
 Warning--I didn't find a database entry for "baker2006"
 Warning--I didn't find a database entry for "mbarek2014"
 Warning--I didn't find a database entry for "mann1997"
+Warning--I didn't find a database entry for "grtresna"
 control{REVTEX42Control}, control.key{N/A}, control.author{N/A}, control.editor{N/A}, control.title{N/A}, control.pages{N/A}, control.year{N/A}, control.eprint{N/A}, 
 control{apsrev42Control}, control.key{N/A}, control.author{08}, control.editor{1}, control.title{0}, control.pages{0}, control.year{1}, control.eprint{N/A}, 
 Warning--jnrlst (dependency: not reversed) set 1
@@ -66,7 +67,7 @@ Control: year (1) truncated
 Control: production of eprint (0) enabled
 You've used 2 entries,
             6079 wiz_defined-function locations,
-            1674 strings with 15462 characters,
+            1675 strings with 15472 characters,
 and the built_in function-call counts, 991 in all, are:
 = -- 12
 > -- 16
@@ -105,4 +106,4 @@ warning$ -- 1
 while$ -- 11
 width$ -- 0
 write$ -- 52
-(There were 40 warnings)
+(There were 41 warnings)

@@ -22,7 +22,7 @@ described by its grid spacing.
 > `pair_pm_eqm`, `pair_pm_sep12`, `pair_pm_sep16`).  The merge was verified by
 > regenerating every figure and every printed number, unchanged.  (The paper's
 > 2026-08-20 shortening pass later dropped two figures and merged two tables;
-> the mapping below reflects the current nine-figure, three-table layout.)
+> the mapping below reflects the current nine-figure, four-table layout.)
 
 ---
 
@@ -119,6 +119,9 @@ Figure and table numbers refer to the compiled `research/bondi_dipole/bondi_dipo
 | `pair_mp_mirror` | Fig. 5, Fig. 7a, Table I |
 | `single_p`, `single_m` | Table I and Sec. V F (single-star stability records) |
 | `pair_pm_v2`, `pair_pm_eqm_v2` | Sec. VI C and Discussion item (4) — the signed-momentum balance |
+
+Table IV (computational cost) is aggregate: it comes from the run logs, not
+from any one cell's streams.
 
 ---
 
