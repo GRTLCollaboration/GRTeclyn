@@ -17,7 +17,7 @@ a pack under `results/` that regenerates it.**
 
 ## 0. Scoreboard — what the paper needs, and where each piece stands
 
-*Last updated 2026-08-20 02:40. Update this block whenever a run lands; the
+*Last updated 2026-08-20 03:05. Update this block whenever a run lands; the
 numbered gaps map to §1 "What the paper still lacks".*
 
 > **Capacity, 2026-08-20: all 4 GPUs are ours again.** GPU 3 was reserved for
@@ -1356,9 +1356,33 @@ puts it on RC's exact window and launch grid:
 
 **0.6 % apart, same peak launch time, same truncation cliff.** Until now the
 convergence evidence covered only the frozen snapshot proxy; this is a
-resolution check on the 4D observable the headline actually rests on. The
-identical cliff position across resolutions confirms it is the truncation
-guard, not a physical feature.
+resolution check on the 4D observable the headline actually rests on.
+
+#### The full 4D matrix — all five cells on the same window
+
+Every matrix cell was traced post-hoc in `mode=hq` (13 launches, interval 2,
+5 rays, 257³ cache, fidelity PASS on all). `f_geo_evol` by launch time:
+
+| t_emit | RC 192/128 | RI 240/128 | DS 192/96 | DS2 224/112 | RM 256/128 ⊂32 |
+|---|---|---|---|---|---|
+| 0 | 0.184 | 0.182 | 0.179 | 0.181 | 0.181 |
+| 8 | 0.233 | 0.235 | 0.233 | 0.234 | 0.234 |
+| 12 | 0.258 | 0.261 | 0.259 | 0.260 | 0.261 |
+| **16** | **0.293** | **0.294** | **0.292** | **0.293** | **0.294** |
+| 18 | 0.315 | *0.267* | *0.268* | 0.316 | 0.317 |
+| 20 | *0.241* | *0.244* | *0.237* | *0.238* | *0.243* |
+| 22 | — | — | — | — | — |
+
+*Italic = truncation-affected; — = no ray arrives.*
+
+**t = 16 is the last launch unaffected by truncation in every cell, and there
+all five agree within 0.7 % (0.292–0.294)** across three box sizes and four
+grids. This is the convergence statement to quote for the 4D observable.
+
+The cliff does **not** fall at the same launch time in every cell: RC, DS2 and
+RM hold through t = 18 and break at t = 20, while RI and DS break one launch
+earlier. Slice count does not explain it (DS has 46, RC has 35), so do not
+read a cell's own peak launch time as physical — compare at t = 16.
 
 #### Consequence: a 32-unit window cannot produce a 4D headline
 
