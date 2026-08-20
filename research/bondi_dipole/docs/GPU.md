@@ -63,8 +63,17 @@ iterations, so there is headroom.
 | `N = 192` | 0.33 | `0.019` | 86 min | 32 min, ditto |
 | `N = 256` | 0.25 | `0.00625` | 266 min | 70 min, ditto |
 
-**Cost.**  `≈6.2` GPU-hours for the evolutions, whatever the tightened solves
-add on the CPU side.  Cheap for what it buys.
+**Cost.**  Three cells, `≈6.2` GPU-hours for the evolutions, whatever the
+tightened solves add on the CPU side.  Cheap for what it buys.
+
+**Run it together with item 2.**  Both are the same configuration --- `d₀ = 12`,
+`L = 64`, uniform, the `128/192/256` ladder --- differing only in which flag is
+set, and `BONDI_SCRUTINY` adds a diagnostic stream without touching the
+evolution.  One set of three cells therefore delivers both results.  The only
+thing lost is that the halo bias then comes from cells solved at the new
+tolerance rather than the published one; the tolerance change perturbs the
+initial data slightly, and core-against-barycentre is a within-run comparison
+anyway, so this is a footnote rather than an obstacle.
 
 ```bash
 # after BONDI_NL_TOL exists, is committed, pushed and pulled;
@@ -91,7 +100,8 @@ This is the cheapest credibility gain in the queue.
 **No blocker.**  `BONDI_SCRUTINY=1` already exists; it costs `≈1.6` s per
 plotfile.
 
-**Cost.**  `4.4` GPU-hours for the `n256` cell alone, `6.2` for the full ladder.
+**Cost.**  `4.4` GPU-hours for the `n256` cell alone, `6.2` for the full
+ladder --- or nothing extra, if it rides on item 1's three cells.
 
 ```bash
 BONDI_SCRUTINY=1 BONDI_SEP=12 BONDI_NFULL=256 BONDI_MAXLEVEL=0 \
@@ -140,9 +150,21 @@ integrates over the domain — so run item 2's peak tracker alongside any sponge
 cell, or the halo the sponge removes cannot be told apart from the halo the
 diagnostic was mis-counting.
 
-**Cost.**  `≈3.4` GPU-hours per `L = 128` cell to `t = 90` at `Δx = 0.5`; more
-for a longer stop time or a wider box.  Launchable today, and with four cards it
-can run alongside items 1 and 2.
+**Cost.**  `≈3.4` GPU-hours per `L = 128` cell to `t = 90` at `Δx = 0.5`,
+`≈4.5` to `t = 120`.  Launchable today, and with four cards it can run alongside
+items 1 and 2.  Two cells are the minimum: one repeat of `boxC_pm_L128_n256`
+with the sponge on, which is the validation against its existing sponge-off
+twin, and one long `d₀ = 16` cell, which is the test itself.
+
+**A decision to take before counting further cells.**  `d₀ = 16` is quoted as a
+bound today because its drift spreads `53%` across the resolution ladder, and
+making the constant-gap result a *measurement* rather than a bound means a
+grid-stable `d₀ = 16` --- which does not simply cost two more cells.  A ladder
+at `L = 128` runs out of card: `N = 384` needs `≈156` GB against the `80` GB
+available.  Either the ladder stays at `L = 64` with the sponge moved inward,
+and accepts that it will absorb some of the stars' own halo, or the `L = 128`
+ladder is built downward in resolution from `Δx = 0.5`, which is coarser than
+the reference cell.  Neither is free; pick one before booking the cells.
 
 ```bash
 BONDI_SCRUTINY=1 BONDI_SEP=16 BONDI_LFULL=128 BONDI_NFULL=256 \
@@ -186,7 +208,8 @@ run, not what is solvable: the dressed phantom family spans
 `|M₋|/M₊ = 0.13` to `1.55`, so a factor-of-two contrast is available downward
 (the heavy branch ends just below `ω = 0.53`).
 
-**Cost.**  Two cells, `≈8.8` GPU-hours at `N = 256`, plus a CPU-side star solve
+**Cost.**  One cell, `≈4.4` GPU-hours at `N = 256` --- the partner it is
+measured against, `convA_pm_n256`, is already in the pack --- plus a CPU-side star solve
 at the new frequency — `ω = 0.615` gives `|M₋|/M₊ = 0.62`.  The trade to state
 up front: lighter phantoms are more diffuse, so a longer lever arm buys a worse
 point-mass comparison.
@@ -224,16 +247,22 @@ Everything here runs on the CPU, against data already in the pack:
 
 ## Total if the queue is run in full
 
-| item | GPU-hours | blocked on |
-|---|---|---|
-| 1. tolerance-scaled ladder | 6.2 | `BONDI_NL_TOL` knob |
-| 2. reference cell + peak tracker | 4.4–6.2 | nothing |
-| 3. sponge on + constant gap | 3.4 per cell | nothing — `sponge_enabled=1` |
-| 4. energy budget | rides on item 3 | the surface-integral diagnostic; read the `ℓ = 3` data first |
-| 5. wider lever arm | 8.8 | a CPU star solve at `ω = 0.615` |
+| item | cells | GPU-hours | blocked on |
+|---|---|---|---|
+| 1 + 2. tolerance ladder with the tracker on | 3 | 6.2 | `BONDI_NL_TOL` knob |
+| 3a. sponge validation against the existing twin | 1 | 3.4 | nothing — `sponge_enabled=1` |
+| 3b. long `d₀ = 16` constant-gap cell | 1 | 4.5 | nothing |
+| 4. energy budget | 0 | rides on 3a/3b | the surface-integral diagnostic; read the `ℓ = 3` data first |
+| 5. wider lever arm | 1 | 4.4 | a CPU star solve at `ω = 0.615` |
+| **total** | **6** | **≈18.5** | |
 
-Items 1, 2, 3 and 5 are all launchable today or after a one-line launcher
-change — roughly `25` GPU-hours against the `55` the published campaign cost in
-total, so about a day of wall clock on the four-GPU node.  Only item 4 needs
-code written first, and even there the analysis that has to come before the code
-is already paid for.
+**Six cells, `≈18.5` GPU-hours** — a third of what the published campaign cost,
+and about five hours of wall clock with one cell per card.  All six are
+launchable today or after a one-line launcher change; only item 4 needs code
+written first, and even there the analysis that has to come before the code is
+already paid for.
+
+That count is the *minimum that answers each question once*.  It does not
+include making `d₀ = 16` grid-stable, which is what would turn the constant-gap
+result from a bound into a measurement — see item 3 for why that is a planning
+decision rather than two more cells.
