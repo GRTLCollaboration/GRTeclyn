@@ -11,8 +11,6 @@
 
 struct surface_extraction_params_t
 {
-    virtual ~surface_extraction_params_t() = default;
-
     int num_surfaces{}; //!< number of surfaces over which to extraction
     amrex::Gpu::ManagedVector<double>
         surface_param_values; //!< the values of the
@@ -38,7 +36,7 @@ struct surface_extraction_params_t
                                   extraction_levels.end()));
     }
 
-    virtual void fill_params() {}
+    void fill_params() {}
 };
 
 #endif /* SURFACEEXTRACTIONPARAMETERS_HPP_ */

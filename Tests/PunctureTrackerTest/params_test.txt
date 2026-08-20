@@ -1,11 +1,12 @@
 #################################################
-# Filesystem parameters
+# Puncture tracker test parameters
 
 amrex.verbose = 1
 amr.verbose = 0
 
-
+# Number of level-0 time steps between checkpoint files; -1 disables output
 amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
 amr.plot_int = -1
 amr.plot_vars = shift2
 
@@ -17,21 +18,23 @@ geometry.prob_extent = 8 8 4
 
 amr.max_level = 2 # There are (max_level+1) levels
 
+# Supply one shared value or max_level values, one per coarse-to-fine
+# transition
 amr.regrid_int = 0 0
 
+# Maximum number of cells along each side of a grid box
 amr.max_grid_size = 16
+# Grid box side lengths must be divisible by this value
 amr.blocking_factor = 8
 
 #################################################
-# Boundary Conditions parameters
+# Boundary condition parameters
 
-# Periodic directions - 0 = false, 1 = true
+# Periodic directions: 0 = false, 1 = true
 geometry.is_periodic = 0 0 0
-# if not periodic, then specify the boundary type
-# 0 = static, 1 = sommerfeld, 2 = reflective
-# (see BoundaryConditions.hpp for details)
-boundary.hi_condition = 0 0 0
-boundary.lo_condition = 0 0 2
+# Options are currently STATIC_BC, SOMMERFELD_BC, or REFLECTIVE_BC
+boundary.hi_condition = "STATIC_BC" "STATIC_BC" "STATIC_BC"
+boundary.lo_condition = "STATIC_BC" "STATIC_BC" "REFLECTIVE_BC"
 
 #################################################
 # Evolution parameters
@@ -42,7 +45,7 @@ evolution.dt_multiplier = 0.25
 evolution.max_steps = 2
 
 #################################################
-# Puncture Tracking parameters
+# Puncture tracking parameters
 
 puncture_tracking.enabled = 1
 puncture_tracking.level = 0

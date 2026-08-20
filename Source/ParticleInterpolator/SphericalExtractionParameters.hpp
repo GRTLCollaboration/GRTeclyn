@@ -141,8 +141,10 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         std::array<double, AMREX_SPACEDIM> prob_extent{};
 
         GRParmParse boundary_pp("boundary");
-        boundary_pp.get("lo_condition", lo_condition);
-        boundary_pp.get("hi_condition", hi_condition);
+        lo_condition = BoundaryConditions::params_t::read_conditions(
+            boundary_pp, "lo_condition");
+        hi_condition = BoundaryConditions::params_t::read_conditions(
+            boundary_pp, "hi_condition");
         geom_pp.get("prob_extent", prob_extent);
 
         std::array<double, AMREX_SPACEDIM> reflective_domain_lo{};
@@ -238,7 +240,7 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         extraction_pp.queryAdd("integral_file_prefix", integral_file_prefix);
     }
 
-    void fill_params() override
+    void fill_params()
     {
         GRParmParse extraction_pp(m_param_scope);
 

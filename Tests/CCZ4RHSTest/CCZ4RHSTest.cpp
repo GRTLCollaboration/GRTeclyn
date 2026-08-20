@@ -74,7 +74,7 @@ void run_ccz4_rhs_test()
         pp.add("gauge.shift_advec_coeff", 0.0);
         pp.add("gauge.eta", 1.82);
 
-        pp.add("evolution.sigma", 3.0);
+        pp.add("evolution.sigma", 0.3);
         pp.add("ccz4.formulation", formulation);
 
         Old::CCZ4_params_t<Old::MovingPunctureGauge::params_t> old_ccz4_params;
@@ -89,7 +89,7 @@ void run_ccz4_rhs_test()
         old_ccz4_params.shift_advec_coeff = 0;
         old_ccz4_params.eta               = 1.82;
 
-        amrex::Real sigma = 3.;
+        amrex::Real sigma = 0.3;
 
         CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> current_ccz4_rhs{
             dx};

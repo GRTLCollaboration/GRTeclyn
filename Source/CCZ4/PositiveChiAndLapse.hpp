@@ -18,7 +18,6 @@ class PositiveChiAndLapse
     double m_min_lapse{};
 
   public:
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Constructor for class
     PositiveChiAndLapse()
     {
@@ -26,7 +25,6 @@ class PositiveChiAndLapse
         pp.get("ccz4.min_chi", m_min_chi);
         pp.get("ccz4.min_lapse", m_min_lapse);
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,

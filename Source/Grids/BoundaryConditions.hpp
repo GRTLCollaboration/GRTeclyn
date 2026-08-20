@@ -26,16 +26,12 @@
 class BoundaryConditions
 {
   public:
-    /// Boundary condition identifiers. Extrapolating and mixed conditions are
-    /// retained for a future implementation but rejected during parameter
-    /// checking.
+    /// Boundary condition identifiers
     enum
     {
         STATIC_BC,
         SOMMERFELD_BC,
-        REFLECTIVE_BC,
-        EXTRAPOLATING_BC,
-        MIXED_BC
+        REFLECTIVE_BC
     };
 
     /// Structure containing the boundary condition params
@@ -46,11 +42,11 @@ class BoundaryConditions
         std::array<bool, AMREX_SPACEDIM> is_periodic{};
 
         std::array<double, NUM_VARS> vars_asymptotic_values{};
-        std::map<int, int> mixed_bc_vars_map{};
-        int extrapolation_order{1};
         params_t() = default;
         void fill_params();
         static void check_params();
+        static std::array<int, AMREX_SPACEDIM>
+        read_conditions(GRParmParse &a_boundary_pp, const char *a_name);
         [[nodiscard]] bool
         boundary_exists(const int a_boundary_condition) const;
     };
@@ -159,9 +155,6 @@ class BoundaryConditions
 
     /// write out sommerfeld conditions
     static void write_sommerfeld_conditions(int idir, const params_t &a_params);
-
-    /// write out mixed conditions
-    static void write_mixed_conditions(int idir, const params_t &a_params);
 
     static void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box,
                                      const amrex::FArrayBox &soln_box,

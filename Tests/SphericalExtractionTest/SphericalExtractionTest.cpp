@@ -41,8 +41,7 @@ void run_spherical_extraction_test()
     // Use an input file that is in the same directory as this file
     std::filesystem::path this_file(__FILE__);
     std::filesystem::path input_file =
-        this_file.parent_path() /
-        std::filesystem::path("SphericalExtractionTest.inputs");
+        this_file.parent_path() / std::filesystem::path("params_test.txt");
     char *input_file_c_str = strdup(input_file.c_str());
 
     auto new_args = doctest::cli_args;

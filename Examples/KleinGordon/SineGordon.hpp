@@ -28,6 +28,10 @@ class SineGordon
             GRParmParse sg_pp("sine_gordon");
             amrex::Real alpha{1.0};
             sg_pp.queryAdd("alpha", alpha);
+            if (alpha < 0.0 || alpha > 1.0)
+            {
+                sg_pp.error("alpha", "must be >= 0 and <= 1");
+            }
         }
 
         void fill_params()

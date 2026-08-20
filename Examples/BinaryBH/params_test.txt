@@ -1,5 +1,5 @@
 # GRTeclyn BinaryBH parameter file for the GitHub Actions regression test
-# Commented parameters show default or suggested values.
+# Commented parameters show default or suggested values
 
 #################################################
 # Filesystem parameters
@@ -8,13 +8,15 @@
 amr.verbose = 1
 
 # Plotfiles default to <grteclyn.output_path>/plots and checkpoint files to
-# <grteclyn.output_path>/checkpoints.
+# <grteclyn.output_path>/checkpoints
 # amr.check_file = checkpoints/chk
 # amr.plot_file = plots/plt
 # amr.restart = checkpoints/chk00000
 # amr.file_name_digits = 5
 
+# Number of level-0 time steps between checkpoint files; -1 disables output
 amr.check_int = 0
+# Number of level-0 time steps between plot files; -1 disables output
 amr.plot_int = 8
 
 # amr.plot_vars = ALL
@@ -22,7 +24,7 @@ amr.derive_plot_vars = ALL
 
 #################################################
 # BH initial data parameters
-# These parameters are mostly ignored when using TwoPunctures initial data.
+# These parameters are mostly ignored when using TwoPunctures initial data
 
 bh1.mass = 0.5
 bh2.mass = 0.5
@@ -63,11 +65,13 @@ two_punctures.spin_minus     = 0.0 0.0 0.0
 # two_punctures.num_points_B   = 30
 # two_punctures.num_points_phi = 16
 
-# two_punctures.solver_tol    = 1.0e-10
-# two_punctures.solver_maxit  = 5
-# two_punctures.epsilon       = 1.0e-6
-# two_punctures.tiny          = 0.0
-# two_punctures.extend_radius = 0.0
+# Newton solver stopping tolerance and maximum number of iterations
+# two_punctures.solver_tolerance      = 1.0e-10
+# two_punctures.solver_max_iterations = 5
+# Low-level TwoPunctures regularisation parameters
+# two_punctures.epsilon               = 1.0e-6
+# two_punctures.tiny                  = 0.0
+# two_punctures.extend_radius         = 0.0
 
 # two_punctures.swap_xz = false
 # two_punctures.do_residuum_debug_output = false
@@ -76,19 +80,26 @@ two_punctures.spin_minus     = 0.0 0.0 0.0
 #################################################
 # Grid parameters
 
+# Number of cells and physical domain extent on the coarsest level
 amr.n_cell = 32 32 16
 geometry.prob_extent = 8 8 4
 # geometry.center = 4 4 0 # defaults based on the domain and boundaries
 
 amr.max_level = 0 # there are max_level + 1 levels
 
-# amr.regrid_int = -1 # no regridding with a single level
+# Regridding interval in level timesteps; -1 disables regridding
+# Supply one shared value or max_level values, one per coarse-to-fine
+# transition
+# amr.regrid_int = -1
 
-# Grid box sizes
+# Maximum number of cells along each side of a grid box
 amr.max_grid_size = 16
+# Grid box side lengths must be divisible by this value
 amr.blocking_factor = 16
+# Minimum fraction of tagged cells required in generated grids
+# amr.grid_eff = 0.7
 
-# Tag buffer size
+# Number of cells by which tagged regions are grown
 # amr.n_error_buf = 3
 
 #################################################
@@ -96,24 +107,18 @@ amr.blocking_factor = 16
 
 # Periodic directions: 0 = false, 1 = true
 geometry.is_periodic = 0 0 0
-# For non-periodic directions, specify the boundary type:
-# 0 = static, 1 = Sommerfeld, 2 = reflective
-# (see BoundaryConditions.hpp for details)
-boundary.hi_condition = 1 1 1
-boundary.lo_condition = 1 1 2
+# Options are currently STATIC_BC, SOMMERFELD_BC, or REFLECTIVE_BC
+boundary.hi_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
+boundary.lo_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "REFLECTIVE_BC"
 
-# Sommerfeld boundaries require nonzero asymptotic values.
+# Sommerfeld boundaries require nonzero asymptotic values
 boundary.nonzero_asymptotic_vars = chi h11 h22 h33 lapse
 boundary.nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
-
-# Extrapolating and mixed boundary conditions are not yet implemented.
-# boundary.extrapolation_order = 1
-# boundary.extrapolating_vars =
 
 #################################################
 # Evolution parameters
 
-# dt is dx * dt_multiplier on each grid level.
+# dt is dx * dt_multiplier on each grid level
 # evolution.dt_multiplier = 0.25
 # evolution.stop_time = 1.0
 evolution.max_steps = 8

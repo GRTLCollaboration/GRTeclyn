@@ -1,7 +1,7 @@
 #################################################
 # AMReX parameters
 
-amrex.the_arena_init_size = 0 # we run out of memomero otherwise since be default 3/4 of the system’s device memory is allocated
+amrex.the_arena_init_size = 0 # avoid preallocating most of the device memory
 
 #################################################
 # Filesystem parameters
@@ -9,7 +9,9 @@ amrex.the_arena_init_size = 0 # we run out of memomero otherwise since be defaul
 amr.verbose = 1
 amrex.verbose = 1
 
+# Number of level-0 time steps between checkpoint files; -1 disables output
 amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
 amr.plot_int = -1
 
 #################################################
@@ -19,11 +21,14 @@ amr.n_cell = 32 32 32
 geometry.prob_extent = 16 16 16
 
 amr.max_level = 1
-amr.regrid_int = 1 1
-#################################################
-# Boundary Conditions parameters
-#Periodic directions - 0 = false, 1 = true
+# Supply one shared value or max_level values, one per coarse-to-fine
+# transition
+amr.regrid_int = 1
 
+#################################################
+# Boundary condition parameters
+
+# Periodic directions: 0 = false, 1 = true
 geometry.is_periodic = 1 1 1
 
 #################################################
@@ -42,7 +47,7 @@ test_extraction_lo.num_points_phi = 12
 test_extraction_lo.num_points_theta = 13
 
 # High resolution extraction parameters. We are only checking the convergence
-# in theta integration, so double the number of theta subintervals.
+# in theta integration, so double the number of theta subintervals
 
 test_extraction_hi.enabled = 1
 test_extraction_hi.num_radii = 2

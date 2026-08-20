@@ -394,28 +394,30 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
 
 void BinaryBHLevel::specificPostTimeStep()
 {
-    GRParmParse pp;
-    int puncture_tracking_level{};
-    pp.get("puncture_tracking.level", puncture_tracking_level);
-    int puncture_tracking_writeout_level{};
-    pp.get("puncture_tracking.writeout_level",
-           puncture_tracking_writeout_level);
-
     BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
 
-    // do puncture tracking on requested level
-    if (get_bhamr_ptr()->puncture_tracking_enabled &&
-        Level() == puncture_tracking_level)
+    if (get_bhamr_ptr()->puncture_tracking_enabled)
     {
-        BL_PROFILE("PunctureTracking");
+        GRParmParse puncture_tracking_pp("puncture_tracking");
+        int puncture_tracking_level{};
+        puncture_tracking_pp.get("level", puncture_tracking_level);
+        int puncture_tracking_writeout_level{};
+        puncture_tracking_pp.get("writeout_level",
+                                 puncture_tracking_writeout_level);
 
-        // only do the write out when we're at at a multiple of the
-        // writeout_level
-        bool write_punctures =
-            at_level_timestep_multiple(puncture_tracking_writeout_level);
-        amrex::Real current_time = get_state_data(state_index).curTime();
-        amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
-        get_puncture_tracker().track(current_time, dt, write_punctures);
+        // do puncture tracking on requested level
+        if (Level() == puncture_tracking_level)
+        {
+            BL_PROFILE("PunctureTracking");
+
+            // only do the write out when we're at at a multiple of the
+            // writeout_level
+            bool write_punctures =
+                at_level_timestep_multiple(puncture_tracking_writeout_level);
+            amrex::Real current_time = get_state_data(state_index).curTime();
+            amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
+            get_puncture_tracker().track(current_time, dt, write_punctures);
+        }
     }
 
     spherical_extraction_params_t extraction_params("weyl_extraction");

@@ -278,9 +278,9 @@ class TwoPuncturesInitialData
 
         // solver parameters
         s_two_punctures.Newton_tol = 1.0e-10;
-        tp_pp.queryAdd("solver_tol", s_two_punctures.Newton_tol);
+        tp_pp.queryAdd("solver_tolerance", s_two_punctures.Newton_tol);
         s_two_punctures.Newton_maxit = 5;
-        tp_pp.queryAdd("solver_maxit", s_two_punctures.Newton_maxit);
+        tp_pp.queryAdd("solver_max_iterations", s_two_punctures.Newton_maxit);
         s_two_punctures.TP_epsilon = 1.0e-6;
         tp_pp.queryAdd("epsilon", s_two_punctures.TP_epsilon);
         s_two_punctures.TP_Tiny = 0.0;
@@ -501,18 +501,18 @@ class TwoPuncturesInitialData
             tp_pp.error("num_points_phi", "must be >= 4 and divisible by 4");
         }
 
-        int solver_maxit = 5;
-        tp_pp.queryAdd("solver_maxit", solver_maxit);
-        if (solver_maxit < 0)
+        int solver_max_iterations = 5;
+        tp_pp.queryAdd("solver_max_iterations", solver_max_iterations);
+        if (solver_max_iterations < 0)
         {
-            tp_pp.error("solver_maxit", "must be >= 0");
+            tp_pp.error("solver_max_iterations", "must be >= 0");
         }
 
-        double solver_tol = 1.0e-10;
-        tp_pp.queryAdd("solver_tol", solver_tol);
-        if (solver_tol < 0.0)
+        double solver_tolerance = 1.0e-10;
+        tp_pp.queryAdd("solver_tolerance", solver_tolerance);
+        if (solver_tolerance < 0.0)
         {
-            tp_pp.error("solver_tol", "must be >= 0.0");
+            tp_pp.error("solver_tolerance", "must be >= 0.0");
         }
 
         double epsilon = 1.0e-6;
@@ -555,10 +555,10 @@ class TwoPuncturesInitialData
         geom_pp.get("prob_extent", prob_extent);
 
         GRParmParse boundary_pp("boundary");
-        std::array<int, AMREX_SPACEDIM> lo_condition{};
-        std::array<int, AMREX_SPACEDIM> hi_condition{};
-        boundary_pp.get("lo_condition", lo_condition);
-        boundary_pp.get("hi_condition", hi_condition);
+        const auto lo_condition = BoundaryConditions::params_t::read_conditions(
+            boundary_pp, "lo_condition");
+        const auto hi_condition = BoundaryConditions::params_t::read_conditions(
+            boundary_pp, "hi_condition");
 
         const int offset_dir = swap_xz ? 2 : 0;
         const double domain_lo =

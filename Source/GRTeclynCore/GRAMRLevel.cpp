@@ -50,13 +50,6 @@ void GRAMRLevel::stateVariableSetUp()
                     bc.set(face, amrex::BCType::reflect_odd);
                 }
             }
-            else if (bctype == BoundaryConditions::EXTRAPOLATING_BC ||
-                     bctype == BoundaryConditions::MIXED_BC)
-            {
-                amrex::Abort(
-                    "Extrapolating and mixed boundary conditions are not "
-                    "implemented");
-            }
             else
             {
                 amrex::Abort("Unknown boundary condition type " +

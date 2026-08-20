@@ -14,6 +14,44 @@
 #include <numeric>
 #include <string>
 
+namespace
+{
+const std::map<std::string, int> boundary_conditions_by_name = {
+    {"STATIC_BC",     BoundaryConditions::STATIC_BC    },
+    {"SOMMERFELD_BC", BoundaryConditions::SOMMERFELD_BC},
+    {"REFLECTIVE_BC", BoundaryConditions::REFLECTIVE_BC}
+};
+
+} // namespace
+
+std::array<int, AMREX_SPACEDIM>
+BoundaryConditions::params_t::read_conditions(GRParmParse &a_boundary_pp,
+                                              const char *a_name)
+{
+    std::array<std::string, AMREX_SPACEDIM> condition_names{};
+    a_boundary_pp.get(a_name, condition_names);
+
+    std::array<int, AMREX_SPACEDIM> conditions{};
+    FOR (idir)
+    {
+        const auto boundary_condition_entry =
+            boundary_conditions_by_name.find(condition_names[idir]);
+        if (boundary_condition_entry == boundary_conditions_by_name.end())
+        {
+            a_boundary_pp.error(
+                a_name,
+                "entries must be STATIC_BC, SOMMERFELD_BC, or REFLECTIVE_BC");
+        }
+        else
+        {
+            // The map value is the integer identifier for the named boundary
+            // condition.
+            conditions[idir] = boundary_condition_entry->second;
+        }
+    }
+    return conditions;
+}
+
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 bool BoundaryConditions::params_t::boundary_exists(
     const int a_boundary_condition) const
@@ -45,8 +83,8 @@ void BoundaryConditions::params_t::fill_params()
         is_periodic[idir] = static_cast<bool>(is_periodic_int[idir]);
     }
 
-    boundary_pp.get("hi_condition", hi_condition);
-    boundary_pp.get("lo_condition", lo_condition);
+    hi_condition = read_conditions(boundary_pp, "hi_condition");
+    lo_condition = read_conditions(boundary_pp, "lo_condition");
 
     if (boundary_exists(SOMMERFELD_BC))
     {
@@ -59,35 +97,6 @@ void BoundaryConditions::params_t::fill_params()
             boundary_pp, "nonzero_asymptotic_values", nonzero_asymptotic_vars,
             vars_asymptotic_values, default_value);
     }
-    if (boundary_exists(EXTRAPOLATING_BC))
-    {
-        boundary_pp.get("extrapolation_order", extrapolation_order);
-    }
-    if (boundary_exists(MIXED_BC))
-    {
-        std::vector<int> extrapolating_vars;
-        StateVariablesParmParse::load_vars_to_vector(
-            boundary_pp, "extrapolating_vars", extrapolating_vars);
-        for (int icomp = 0; icomp < NUM_VARS; icomp++)
-        {
-            bool is_extrapolating = false;
-            // if the variable is not in extrapolating vars, it
-            // is assumed to be sommerfeld by default
-            for (auto &extrapolating_var : extrapolating_vars)
-            {
-                if (icomp == extrapolating_var)
-                {
-                    mixed_bc_vars_map.insert(
-                        std::make_pair(icomp, EXTRAPOLATING_BC));
-                    is_extrapolating = true;
-                }
-            }
-            if (!is_extrapolating)
-            {
-                mixed_bc_vars_map.insert(std::make_pair(icomp, SOMMERFELD_BC));
-            }
-        }
-    }
 }
 
 void BoundaryConditions::params_t::check_params()
@@ -98,13 +107,15 @@ void BoundaryConditions::params_t::check_params()
     GRParmParse geom_pp("geometry");
 
     // set defaults
-    std::array<int, AMREX_SPACEDIM> hi_condition{};
-    hi_condition.fill(STATIC_BC);
-    boundary_pp.queryAdd("hi_condition", hi_condition);
+    std::array<std::string, AMREX_SPACEDIM> hi_condition_names{};
+    hi_condition_names.fill("STATIC_BC");
+    boundary_pp.queryAdd("hi_condition", hi_condition_names);
+    read_conditions(boundary_pp, "hi_condition");
 
-    std::array<int, AMREX_SPACEDIM> lo_condition{};
-    lo_condition.fill(STATIC_BC);
-    boundary_pp.queryAdd("lo_condition", lo_condition);
+    std::array<std::string, AMREX_SPACEDIM> lo_condition_names{};
+    lo_condition_names.fill("STATIC_BC");
+    boundary_pp.queryAdd("lo_condition", lo_condition_names);
+    read_conditions(boundary_pp, "lo_condition");
 
     bool nonperiodic_boundaries_exist{false};
     std::array<int, AMREX_SPACEDIM> is_periodic_int{};
@@ -116,36 +127,9 @@ void BoundaryConditions::params_t::check_params()
             geom_pp.error("is_periodic", "entries must be either 0 or 1");
         }
 
-        if (hi_condition[idir] < STATIC_BC ||
-            hi_condition[idir] > REFLECTIVE_BC)
-        {
-            boundary_pp.error(
-                "hi_condition",
-                "entries must be 0 (static), 1 (Sommerfeld), or 2 "
-                "(reflective); extrapolating and mixed boundary conditions "
-                "are not implemented");
-        }
-        if (lo_condition[idir] < STATIC_BC ||
-            lo_condition[idir] > REFLECTIVE_BC)
-        {
-            boundary_pp.error(
-                "lo_condition",
-                "entries must be 0 (static), 1 (Sommerfeld), or 2 "
-                "(reflective); extrapolating and mixed boundary conditions "
-                "are not implemented");
-        }
-
         if (is_periodic_int[idir] == 0)
         {
             nonperiodic_boundaries_exist = true;
-            if (hi_condition[idir] == EXTRAPOLATING_BC ||
-                lo_condition[idir] == EXTRAPOLATING_BC)
-            {
-                int extrapolation_order = 1;
-                boundary_pp.queryAdd("extrapolation_order",
-                                     extrapolation_order);
-                break;
-            }
         }
     }
 
@@ -166,13 +150,7 @@ void BoundaryConditions::define(const amrex::Geometry &a_geom)
     GRParmParse pp;
     pp.get("evolution.num_ghosts", m_num_ghosts);
 
-    std::array<double, AMREX_SPACEDIM> center{};
-    pp.get("geometry.center", center);
-
-    FOR (i)
-    {
-        m_center[i] = center[i];
-    }
+    pp.getarr("geometry.center", m_center);
     m_geom     = a_geom;
     is_defined = true;
 }
@@ -216,31 +194,6 @@ void BoundaryConditions::write_sommerfeld_conditions(int /*idir*/,
     // not done for diagnostics
 }
 
-void BoundaryConditions::write_mixed_conditions(int idir,
-                                                const params_t &a_params)
-{
-    // check all the vars have been assigned a BC - this should always be the
-    // case because of how the params are assigned
-    AMREX_ASSERT(a_params.mixed_bc_vars_map.size() == NUM_VARS);
-
-    // now do the write out
-    amrex::Print()
-        << "The variables that use extrapolating bcs in this direction are : "
-        << '\n';
-    for (int icomp = 0; icomp < NUM_VARS; icomp++)
-    {
-        if (a_params.mixed_bc_vars_map.at(icomp) == EXTRAPOLATING_BC)
-        {
-            amrex::Print() << StateVariables::names[icomp] << "    ";
-        }
-    }
-    amrex::Print() << '\n';
-    amrex::Print()
-        << "The other variables all use Sommerfeld boundary conditions."
-        << '\n';
-    write_sommerfeld_conditions(idir, a_params);
-}
-
 /// write out boundary params (used during setup for debugging)
 void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
 {
@@ -249,11 +202,9 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
     amrex::Print() << "-----------------------------------" << '\n';
 
     const std::map<int, std::string> boundary_condition_names = {
-        {STATIC_BC,        "Static"       },
-        {SOMMERFELD_BC,    "Sommerfeld"   },
-        {REFLECTIVE_BC,    "Reflective"   },
-        {EXTRAPOLATING_BC, "Extrapolating"},
-        {MIXED_BC,         "Mixed"        }
+        {STATIC_BC,     "Static"    },
+        {SOMMERFELD_BC, "Sommerfeld"},
+        {REFLECTIVE_BC, "Reflective"}
     };
     FOR (idir)
     {
@@ -271,10 +222,6 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             {
                 write_sommerfeld_conditions(idir, a_params);
             }
-            else if (a_params.hi_condition[idir] == MIXED_BC)
-            {
-                write_mixed_conditions(idir, a_params);
-            }
             amrex::Print() << "\n" << '\n';
 
             amrex::Print() << "- "
@@ -288,10 +235,6 @@ void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
             else if (a_params.lo_condition[idir] == SOMMERFELD_BC)
             {
                 write_sommerfeld_conditions(idir, a_params);
-            }
-            else if (a_params.lo_condition[idir] == MIXED_BC)
-            {
-                write_mixed_conditions(idir, a_params);
             }
             amrex::Print() << "\n" << '\n';
         }
@@ -340,9 +283,6 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
             {
                 int bclo = get_boundary_condition(
                     amrex::Orientation(idim, amrex::Orientation::low));
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bclo != MIXED_BC,
-                                                 "Mixed boundary conditions "
-                                                 "are not implemented");
                 if (bclo == SOMMERFELD_BC)
                 {
                     const int len  = domain.length(idim);
@@ -353,9 +293,6 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                 }
                 int bchi = get_boundary_condition(
                     amrex::Orientation(idim, amrex::Orientation::high));
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bchi != MIXED_BC,
-                                                 "Mixed boundary conditions "
-                                                 "are not implemented");
                 if (bchi == SOMMERFELD_BC)
                 {
                     const int len  = domain.length(idim);

@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <string_view>
 #include <type_traits>
 
 class GRParmParse : public amrex::ParmParse
@@ -130,17 +131,15 @@ class GRParmParse : public amrex::ParmParse
              std::vector<data_t>(num_comp, default_value));
     }
 
-    void error(const char *name, const std::string &a_error_message) const
+    void error(const char *name, const std::string_view a_error_message) const
     {
         const std::string error_message =
             diagnostic_message("Error", name, a_error_message);
-        if (amrex::ParallelDescriptor::IOProcessor())
-        {
-            amrex::Abort(error_message.c_str());
-        }
+        amrex::Abort(error_message);
     }
 
-    void warning(const char *name, const std::string &a_warning_message) const
+    void warning(const char *name,
+                 const std::string_view a_warning_message) const
     {
         const std::string warning_message =
             diagnostic_message("Warning", name, a_warning_message);
@@ -153,7 +152,7 @@ class GRParmParse : public amrex::ParmParse
   protected:
     [[nodiscard]] std::string
     diagnostic_message(const char *a_diagnostic_type, const char *name,
-                       const std::string &a_message) const
+                       const std::string_view a_message) const
     {
         std::vector<std::string> values;
         getarr(name, values);
@@ -178,7 +177,7 @@ class GRParmParse : public amrex::ParmParse
 
         return std::string(a_diagnostic_type) + " from parameter " +
                this->prefixedName(name) + " = " + value_string + ": " +
-               a_message;
+               std::string(a_message);
     }
 
     template <typename data_t,

@@ -117,7 +117,7 @@ inline void CCZ4_params_t::check_params()
     if (formulation != CCZ4RHS<>::USE_CCZ4 &&
         formulation != CCZ4RHS<>::USE_BSSN)
     {
-        ccz4_pp.error("formulation", "must be 0 or 1");
+        ccz4_pp.error("formulation", "must be 0 (BSSN) or 1 (CCZ4)");
     }
 
     if (formulation == CCZ4RHS<>::USE_BSSN)

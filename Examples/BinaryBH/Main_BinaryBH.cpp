@@ -18,8 +18,7 @@
 #include <chrono>
 #include <iostream>
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-int runGRTeclyn(int argc, char *argv[])
+int runGRTeclyn()
 {
     BL_PROFILE("runGRTeclyn()");
 
@@ -27,7 +26,7 @@ int runGRTeclyn(int argc, char *argv[])
     // To add more parameters edit the SimulationParameters file.
     GRParmParse pp; // NOLINT(readability-identifier-length)
 
-    if (just_check_params(argc, argv))
+    if (just_check_params())
     {
         return 0;
     }
@@ -74,7 +73,7 @@ int main(int argc, char *argv[])
 {
     mainSetup(argc, argv);
 
-    int status = runGRTeclyn(argc, argv);
+    int status = runGRTeclyn();
 
     if (status == 0)
     {

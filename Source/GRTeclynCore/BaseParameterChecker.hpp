@@ -12,6 +12,7 @@
 #include "FilesystemTools.hpp"
 #include "GRParmParse.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 #include <unistd.h> // gives 'access'
@@ -102,17 +103,23 @@ class BaseParameterChecker
             amr_pp.error("n_error_buf", "must be >= 0");
         }
 
+        // Multiplier for the proper-nesting buffer. AMReX measures this in
+        // coarse-cell blocks of max(1, blocking_factor / ref_ratio).
         int n_proper = 1;
         amr_pp.queryAdd("n_proper", n_proper);
-        // assume ref_ratio is always 2
-        if (blocking_factor * n_proper < num_ghosts)
+        // GRTeclyn fixes the refinement ratio to 2 below.
+        constexpr int fixed_ref_ratio = 2;
+        const int proper_nesting_buffer =
+            n_proper * std::max(1, blocking_factor / fixed_ref_ratio);
+        if (proper_nesting_buffer < num_ghosts)
         {
-            amr_pp.error("n_proper", " times blocking_factor must be >= "
-                                     "num_ghosts for proper nesting");
+            amr_pp.error("n_proper",
+                         "times max(1, blocking_factor / ref_ratio) must be >= "
+                         "num_ghosts for proper nesting");
         }
 
-        double grid_eff =
-            0.7; // determines how fussy the regridding is about tags
+        // Minimum fraction of tagged cells required in each generated grid.
+        double grid_eff = 0.7;
         amr_pp.queryAdd("grid_eff", grid_eff);
         if (grid_eff <= 0.0 || grid_eff > 1.0)
         {
@@ -333,4 +340,4 @@ class BaseParameterChecker
     }
 };
 
-#endif /* CHOMBOPARAMETERS_HPP_ */
+#endif /* BASEPARAMETERCHECKER_HPP_ */

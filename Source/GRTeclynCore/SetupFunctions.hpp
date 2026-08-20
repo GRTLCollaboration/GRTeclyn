@@ -26,18 +26,20 @@
 
 #include <fstream>
 #include <iostream>
-#include <string_view>
 
 #ifndef GRTECLYN_VERSION
 #define GRTECLYN_VERSION "unknown"
 #endif
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-inline bool just_check_params(int argc, char *argv[])
+/// Return true when the GRTeclyn-only flag following the AMReX `--` separator
+/// requests parameter validation without running the simulation.
+[[nodiscard]] inline bool just_check_params()
 {
-    for (int i = 1; i < argc; ++i)
+    // AMReX reserves argument 0 for the executable name.
+    for (int argument_index = 1;
+         argument_index <= amrex::command_argument_count(); ++argument_index)
     {
-        if (std::string_view(argv[i]) == "-check_params")
+        if (amrex::get_command_argument(argument_index) == "-check_params")
         {
             return true;
         }
