@@ -1,0 +1,19 @@
+{
+  "run_id": "FMAX-DS2",
+  "campaign": "fgeo_max_cmaes_validation",
+  "phase": 3,
+  "role": "domain_mid",
+  "manifest": "grteclyn-wrapper/scripts/campaigns/promote/fgeo_max_cmaes_v1/manifest.json",
+  "source_run": "runs/neuralspacetime/hq/sources/qball_traj_fgeo_max_cmaes_v1",
+  "eval_id": 193,
+  "n_full": 224,
+  "l_full": 112.0,
+  "h": 0.5,
+  "stop_time": 32.0,
+  "plot_interval": 72,
+  "max_level": 3,
+  "gpu_id": "3",
+  "evolution_mpi_ranks": 1,
+  "out_dir": "runs/neuralspacetime/hq/fmax_ds2_L112_N224_t32_hq_eval000193",
+  "git_commit": "c5a62aa9f78db972ef6cb331c348109082dcf0f9"
+}

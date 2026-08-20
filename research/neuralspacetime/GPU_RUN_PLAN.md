@@ -17,20 +17,21 @@ a pack under `results/` that regenerates it.**
 
 ## 0. Scoreboard — what the paper needs, and where each piece stands
 
-*Last updated 2026-08-19 07:12. Update this block whenever a run lands; the
+*Last updated 2026-08-20 00:45. Update this block whenever a run lands; the
 numbered gaps map to §1 "What the paper still lacks".*
 
-> **Capacity changed 2026-08-19: we have 3 GPUs, not 4.** GPU 3 is reserved
-> for other users — never schedule it (§2). Every "4 GPUs" and every
-> wall-clock estimate further down this document predates that and runs ~4/3
-> long.
+> **Capacity, 2026-08-20: all 4 GPUs are ours again.** GPU 3 was reserved for
+> another group on 2026-08-19; the reservation was lifted on 2026-08-20 and
+> cards 0–3 are all schedulable. The "3 GPUs" note that stood here for one day
+> is retired. Still check `nvidia-smi` for foreign processes before launching —
+> the status has flipped once and can flip back.
 
 | # | Goal | Status |
 |---|---|---|
 | 1 | In-scope (gated) CMA-ES refinement stage | ✅ **done** — `qball-trajectory-fgeo-max-refinement`, champion eval 193 |
-| 2 | Production replay of a post-fix champion | ⚠️ **partly** — both depth exhibits landed at t = 64; the *gated headline* is on its second attempt, running now |
-| 3 | Convergence + domain matrix for the new result | ⬜ not started (Phase 3, gated on #2) |
-| 4 | Depth numbers are lower bounds → measure the true peak | ⚠️ **partly** — t = 64 raised the numbers but the sweep is *still* clipped (see below) |
+| 2 | Production replay of a post-fix champion | ⚠️ **capped by hardware** — both depth exhibits landed at t = 64; the *gated headline* reached **t = 51.1 of 64** on the third attempt and cannot go further on this machine (memory ceiling, below) |
+| 3 | Convergence + domain matrix for the new result | 🔄 **running** — all 4 cells launched 2026-08-20 00:35 at t = 32, one per card |
+| 4 | Depth numbers are lower bounds → measure the true peak | ❌ **not closable by extending** — t = 96 also peaks on its last launch. Transport rises monotonically 0.201 → 0.784 across all 45 launches with no turnover (below) |
 | 5 | Mechanism for the new champions (ablation + free-fall) | ⬜ not started |
 | 6 | Post-fix canonical-only control under the gated objective | ⬜ not started |
 | 7 | Dead numbers in the draft | ✅ resolved by exclusion — candidate 146 left the paper (§12.9) |
@@ -38,30 +39,131 @@ numbered gaps map to §1 "What the paper still lacks".*
 
 **Running now**
 
-| run | source | where | state |
-|---|---|---|---|
-| FMAX-RM (attempt 3) | fgeo_max eval 193 | GPU 0 + 1, 2 MPI ranks | started 05:52, t = 26.6 / 64 at 07:16 — slowed 21.3 → **~16 units/h** as the mesh refines (same growth pattern that OOM'd attempt 1, but 35 GB per card leaves plenty of room), frames rendering, ETA ≈ **09:40–10:00** |
-| DEPTH-X extended | depth eval 195 | GPU 2, 1 rank | started 06:20, `--stop-time 96`, **HQ trace mode**, 45 emissions out to t = 88, gridinit reused, t = 20.2 / 96 at 07:16 → 21.4 units/h, ETA ≈ **10:50–11:30** |
+| cell | grid | h | card | state |
+|---|---|---|---|---|
+| FMAX-RC | N = 192, L = 128 | 0.667 | 0 | launched 00:35, constraint solve (CPU, 8 ranks) |
+| FMAX-RI | N = 240, L = 128 | 0.533 | 1 | launched 00:35, constraint solve |
+| FMAX-DS | N = 192, L = 96 | 0.5 | 2 | launched 00:35, constraint solve |
+| FMAX-DS2 | N = 224, L = 112 | 0.5 | 3 | launched 00:35, constraint solve |
 
-All three cards are busy. The FMAX attempt differs from the OOM'd attempt 1 in four ways: it
-runs on two cards (the OOM fix), it reuses the saved `initial_data.gridinit`
-under `runs/neuralspacetime/hq/sources/fmax_rm_saved_id/` instead of
-re-solving (saves ~46 min), it writes **no checkpoints** (9.6 GB each — not
-worth the disk), and **frames are on**. Attempt 2 was killed ~15 min in
-purely to turn frames on.
+**The whole Phase-3 matrix runs at `stop_time = 32`, not 64** — see the window
+ruling below. Each cell is one card, one rank; all four run concurrently, so
+the matrix costs ~2 h of evolution rather than the days a 64-unit matrix would.
+Every cell needs its own solve (each is a different grid, so the saved
+`gridinit` does not transfer); `GRTRESNA_RANKS=8` is used, per the README's
+2026-08-19 re-verification, which turns ~46 min of solve into ~7.
 
-The DEPTH-X extension exists to answer the one thing t = 64 could not: **is the
-emission sweep still clipped?** Acceptance criterion, fixed before the run: *the
-sweep is unclipped when the peak launch time sits at least two launches before
-the last allowed one* — i.e. peak `t_emit` ≤ 84 with launches running to 88.
-If the peak still lands on the last launch, the window is still short and the
-depth numbers remain lower bounds. Memory is the risk to watch: this genome
-grows only ~5 GB over 64 units (against FMAX's ~15), so a 96-unit single-card
-run should land near 65 GB of 81 — comfortable, not lavish. Measured
-07:16: the data footprint plateaued at 49.3 GB and has been flat since
-t ≈ 16, card at 61.7 GB — the risk has not materialised.
+**The medium rung needs no run.** FMAX-RM's completed t = 51 run already covers
+t = 32; its value at the truncated window comes from the cached 257³ slices via
+`score_evolving_geodesic.py --max-time 32`, CPU-only.
 
 **Done this cycle**
+
+- **The headline run has a hardware ceiling at t ≈ 51, not a bug.** FMAX-RM was
+  attempted three times on the same genome (eval 193, identical
+  `initial_data.gridinit` reused every time, so the three are directly
+  comparable):
+
+  | attempt | cards | reached | why it ended |
+  |---|---|---|---|
+  | 1 | 1 | ~t = 37 | arena OOM at ~77 GB |
+  | 2 | 2 | t = 44.4 | stopped deliberately — 65 GB/card and 2.3 units/h, OOM was ~3 h away |
+  | 3 | 3 | **t = 51.1** | stopped deliberately — 74.7 GB/card of 82, ~3 units of headroom left |
+
+  The mechanism is the one the wrapper README documents under *Arena OOM
+  part-way through a long AMR run*: as matter disperses, more cells get tagged,
+  and both memory and cost per step grow without saturating. Measured on
+  attempt 3: **~2 GB per card per code unit**, dead steady, and the refined
+  region roughly doubled over the first 25 units (level 2: 0.46 % → 0.83 % of
+  the domain; level 3: 0.056 % → 0.11 %).
+
+  **Adding cards does not fix this, and the data now says so twice over.**
+  Speed is unchanged by rank count — attempt 3 tracked attempt 2 to within a
+  unit per hour at every point (20.1 vs 20.9 at t = 18; 15.1 vs 15.8 at t = 24;
+  1.0 vs ~1.2 at t = 51-extrapolated) — while per-card memory fell exactly as
+  the split predicts (17.9 GB/rank of data on 3 cards where 2 cards carried
+  26.8 GB at the same moment). Three cards bought **+7 code units** over two,
+  and a fourth would buy a few more. The README's own remedies — refine less
+  aggressively, fewer levels, smaller grid — are all pinned by
+  `physics_frozen`, so **t ≈ 51 is what this configuration can produce.**
+
+  Consequence for the paper: the headline exhibit is quoted over
+  **t ∈ [0, 51]**. This is defensible rather than a truncation, because the
+  transport **saturates inside the window**: 0.508 at t = 43.2, then
+  0.48–0.51 wobble to the end, peaking at **0.5103 at t = 47.5** (72 samples,
+  `geo_trustworthy` = 1 throughout, 5/5 rays, `max_h_rel_drift` = 0.0018,
+  peak local speed 2.75 c at t = 50.4). The 4D number is pending the
+  finalization pass and, failing that, the offline re-trace from the 72
+  cached 257³ slices. One diagnostic is broken: `structure_coherence` is
+  `nan` at every sample including the earliest — a reporting fault, not a
+  result; nothing currently depends on it.
+
+  **The saturation is genome-specific, and that is itself a result.** The
+  headline champion plateaus by t ≈ 45; the depth champion climbs
+  monotonically to its last launch at t = 88 and never turns over. Same code,
+  same machine, same day. So "the sweep is clipped" is a property of the depth
+  genome rather than of the measurement, which is the cleanest argument
+  available that the headline number is a real value and the depth number is a
+  window-dependent lower bound.
+
+- **The 64-unit target was never justified, and the matrix window is now 32.**
+  Two measured curves settle it. Transport: 0.28 at t = 22 → 0.508 at 43 →
+  0.510 at 48 — flat after ~43. Memory: 51 GB of data at t = 24, 57 at 30,
+  67 at 36, 92 at 42, **152 at 48** — nearly flat until 30, then tripling.
+  So the last third of a 64-unit run buys no signal at the highest possible
+  cost, and it is exactly the stretch that killed all three FMAX-RM attempts.
+
+  At t = 32 a cell needs ~58 GB and **fits on a single card**, which is what
+  makes a four-cell matrix runnable in one evening instead of days. The
+  convergence claim compares rungs against each other, so truncating the
+  window costs it nothing — only the *absolute* value would shift, and the
+  absolute value is quoted from the t = 51 RM run, not from the matrix.
+  Emissions were cut 29 → 13 to match: at interval 2 with a ~6.1-unit crossing
+  time, launches after t = 24 cannot arrive before the run ends, and leaving
+  29 in place would have produced launches that silently fail.
+
+- **Goal #4 is answered, and the answer is not the one the criterion assumed.**
+  DEPTH-X re-ran to `--stop-time 96` and finished clean (135 slices, 5/5 rays,
+  `h_quality_ok` true, `max_h_rel_drift ≈ 0.0035`). Its 45-launch sweep rises
+  **monotonically from f = 0.201 at `t_emit` = 0 to f = 0.784 at `t_emit` = 88**
+  — the last launch — with no turnover anywhere:
+
+  | `t_emit` | … | 78 | 80 | 82 | 84 | 86 | **88 (last)** |
+  |---|---|---|---|---|---|---|---|
+  | f | rising throughout | 0.681 | 0.704 | 0.721 | 0.735 | 0.762 | **0.784** |
+
+  At t = 64 the peak sat on the last launch; at t = 96 it sits on the last
+  launch again, 19 points higher. **Extending the window does not find a peak,
+  it just moves the number up** — so the pre-registered criterion (*peak at
+  least two launches inside the window*) cannot be satisfied by running longer,
+  and the depth figure is window-dependent rather than a property of the
+  spacetime. This needs a stated position in the paper before any depth number
+  is quoted; see open question 2.
+
+  Two things to check before leaning on it: the run reports
+  `f_geo_frozen_peak = 0.420` against an evolving `f_geo` of 0.784 — the
+  evolving value now sits *above* the frozen ceiling, where at t = 64 it sat
+  just below (59.30 vs 60.24). And shell extraction failed on 135 of the
+  processed plotfiles ("no valid samples at any radius"), starting from the
+  very first one, which did not stop the run but means the shell diagnostics
+  for this run are empty.
+
+- **Multi-GPU start-up failure modes documented** in the wrapper README
+  (*Multi-GPU pipeline start — what goes wrong before step 1*), all seen while
+  bringing the 3-rank run up: relaunching before the driver has released the
+  cards deadlocks every rank at 100 % CPU with 0 % GPU and no log output;
+  `ps -o etimes,pcpu` reads 0 on this node so a spinning rank looks idle;
+  `mpirun` is absent from a plain shell's PATH; and gridinit reuse is opt-in,
+  so a promote relaunch without `GRIDINIT=` silently re-solves and loses
+  bit-identity with the run it replaces. 3-rank RadialRecipe MPI+CUDA is now
+  recorded as **working** (`N=256, L=128, max_level 3`, first AMR advance
+  clean, 22–23 GB per card).
+
+- **Launch records no longer carry host paths.** `promote/lib/run_matrix.sh`
+  writes repo-relative paths; the existing records were rewritten; a comment
+  quoting other users' home directories was generalised; and a blanket
+  un-ignore under `results/` that was pulling compiled `.pyc` files (which
+  embed absolute build paths) into the tree has been re-ignored.
 
 - **Both depth exhibits completed at t = 64, clean.** DEPTH-X (eval 195) and
   DEPTH-A (eval 185), full 64.01 code units, zero errors, `h_quality_ok`
@@ -168,15 +270,36 @@ t ≈ 16, card at 61.7 GB — the risk has not materialised.
    evidence, and FMAX-RM is running with HQ mode live — so every number the
    freeze will rely on meets the pre-registered `acceptance/n_rays: 5` as
    written. No decision needed; nothing moves.
-2. **The emission sweep is still clipped even at t = 64.** Both depth runs
-   peak at `t_emit = 48`, which is the **last** launch the 25-emission cap
-   allows. The cap is now raised to 29 (last launch t = 56, rays arriving
-   ≈ 62 — a ray takes ≈ 6.1 units to cross), but that only pushes the wall
-   back; it does not prove the peak is inside the window. Goal #4 closes only
-   by running **past t = 64**, not by adding emissions to a t = 64 run.
-3. **Missing manifests:** the depth mini-ladder has none, and the fgeo_max
+2. **The sweep is clipped at every window we have tried, and extending does
+   not help.** t = 64 peaked on its last launch; t = 96 peaks on its last
+   launch too, 19 points higher, rising monotonically the whole way with no
+   turnover. So the pre-registered criterion — *peak at least two launches
+   inside the window* — is **not reachable by running longer**, and the depth
+   figure behaves as a function of how long we ran rather than a property of
+   the spacetime. Three ways out, and the paper has to pick one before any
+   depth number is quoted:
+   - quote the depth number **as a lower bound at a stated window**, which is
+     honest and cheap but weakens the claim;
+   - find the physical reason the sweep keeps climbing (does the transport
+     genuinely keep improving, or is the late-launch ray sampling a decaying
+     configuration that flatters the metric?) and re-define the observable;
+   - drop the depth exhibit from the headline claim and keep it as supporting
+     material.
+
+   Deciding this needs no GPU time — it is an analysis question on data we
+   already hold (135 cached slices at 257³).
+3. ~~The headline exhibit stops at t ≈ 51, not 64.~~ ✅ **Decided 2026-08-20.**
+   Quoted over **t ∈ [0, 51]**, and no physics leaves the freeze. The transport
+   saturates at t ≈ 43–45 inside the window, so 51 is a plateau rather than a
+   truncation, and the matrix runs at t = 32 where every cell fits one card.
+   Phase 3 is therefore unblocked and launched.
+4. **Missing manifests:** the depth mini-ladder has none, and the fgeo_max
    Phase-3 manifest lacks **FMAX-PF** and the free-fall companions §6
    requires.
+5. **`f_geo_frozen_peak` disagrees with the evolving number at t = 96**
+   (0.420 vs 0.784, where at t = 64 it was 60.24 vs 59.30). One of the two is
+   being computed on a different footing at the longer window. Resolve before
+   either is quoted.
 
 **Disk — pruned 2026-08-19, 169 GB → 91 GB**
 
