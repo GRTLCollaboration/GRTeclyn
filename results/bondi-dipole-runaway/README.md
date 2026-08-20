@@ -28,7 +28,7 @@ predicted t = 0 fingerprints:
 The co-drift is exclusive to the mixed cell — 20–80× above either control's
 residual wobble and 50–150× above the single-star noise floor. Full numbers,
 the quantitative gravity tests, and the honest caveats are in
-[`FINDINGS.md`](FINDINGS.md).
+[`FINDINGS.md`](../../research/bondi_dipole/docs/FINDINGS.md).
 
 > **Read the drift magnitudes with the separation in mind.** Every cell in the
 > table above starts the stars 8 apart, and each star is about 5 across, so
@@ -37,23 +37,19 @@ the quantitative gravity tests, and the honest caveats are in
 > separation 8, falling to 1.36× at 12 and 1.17× at 16. The runaway is real
 > and gravitational — the excess shrinks exactly as the stars are pulled
 > apart — but quote separation 12–16 for magnitudes. See the campaign section
-> and [`FINDINGS.md`](FINDINGS.md) §5.5.
+> and [`FINDINGS.md`](../../research/bondi_dipole/docs/FINDINGS.md) §5.5.
 
 ## What is where
 
 | path | contents |
 |---|---|
-| [`FINDINGS.md`](FINDINGS.md) | the physics: results, quantitative tests against a point-mass reference, caveats, open questions |
-| [`DEBUGGING.md`](DEBUGGING.md) | how the matter was made to stop dispersing — two root causes, the falsifications that found them |
 | [`MATTER_MODEL.md`](MATTER_MODEL.md) | the bicomplex model, where the sign flip lives, dressed-star initial data, code map |
 | [`LAUNCH.md`](LAUNCH.md) | exact launch command and full configuration for every cell |
 | `campaign/<cell>/` | every run: the `convA_*`/`boxC_*` convergence campaign at three resolutions plus a double-size box, and the four unprefixed `pair_*`/`single_*` production cells at Δx = 0.5 (see the data dictionary below) |
 | `stars/` | dressed-star profile tables `r φ₀(r) α(r)` + the M(ω) family scan |
 | `analysis/` | derived tables and the scripts that regenerate them |
-| `figures/<cell>/` | curated frames: matter activity and geometry at t = 0 → end |
 | `movies/<cell>/` | the views that carry the result (matter motion, geometry sign, signed energy density). Folders named `pair_*` / `single_*` are the original adaptive-mesh cells; folders named `convA_*` are the campaign cells, including the separation series |
 | `patches/` | the matter-model modifications this campaign required |
-| `debug_log/` | the full campaign journal, verbatim |
 
 ### Data dictionary — `campaign/<cell>/`
 
@@ -177,7 +173,7 @@ The trade-off is that the clean geometry is also the faint one: separation 16
 drifts about 40× less than separation 8, so the grid-to-grid spread grows from
 1.9 % to 40 % at t = 30. Separation 12 is the usable compromise. **Quote
 separation 12–16 for magnitudes, separation 8 for illustration.** Details and
-the full ladder are in [`FINDINGS.md`](FINDINGS.md) §5.5.
+the full ladder are in [`FINDINGS.md`](../../research/bondi_dipole/docs/FINDINGS.md) §5.5.
 
 **The two lumps do not stay the same size.** Through every mixed run the
 phantom lump stays compact while the canonical lump fades and spreads. Two
@@ -201,7 +197,7 @@ down to 0.44 while the two-phantom control holds it at 1.00. The total amount
 of field being tracked is *not* a conserved mass — it rises for almost every
 star here, and it rises faster for the canonical one. Practical consequence:
 the phantom side carries the quantitative tests, and late-time canonical
-numbers are upper bounds. See [`FINDINGS.md`](FINDINGS.md) §5.6 and §6.
+numbers are upper bounds. See [`FINDINGS.md`](../../research/bondi_dipole/docs/FINDINGS.md) §5.6 and §6.
 
 **No successive-difference order fit is quotable.** The three-grid ratios sit
 at 0.2–1.6, below the 1.41 that any positive convergence order requires, so the
@@ -350,7 +346,7 @@ Three campaign cells were added for the separation result: `convA_pm_n256`
 (8 apart, envelopes overlapping), `convA_pm_sep12_n256` (12 apart) and
 `convA_pm_sep16_n128` (16 apart, cleanly separated). Playing the three matter
 movies side by side is the quickest way to see the overlap argument of
-[`FINDINGS.md`](FINDINGS.md) §5.5.
+[`FINDINGS.md`](../../research/bondi_dipole/docs/FINDINGS.md) §5.5.
 
 Two cautions when reading them. **The colour scale on `chi_minus_1_z` is
 re-chosen for every frame**, because the gravity well starts almost flat and
@@ -370,7 +366,7 @@ they were built from.
 Regenerate this whole pack from the run tree:
 
 ```bash
-bash research/bondi_dipole/pack_results.sh    # dx=0.5 cells   -> campaign/ stars/ figures/ movies/
+bash research/bondi_dipole/pack_results.sh    # dx=0.5 cells   -> campaign/ stars/ movies/
 bash research/bondi_dipole/pack_campaign.sh   # campaign cells  -> campaign/ + convergence tables
 ```
 
@@ -384,7 +380,7 @@ enters git. To re-run the physics itself, see [`LAUNCH.md`](LAUNCH.md).
   matter with per-lump signs), single rank.
 - Evolution: **GRTeclyn** (`RadialRecipe`, CCZ4 + bicomplex scalar matter),
   single rank, one GPU per cell.
-- Campaign journal: [`debug_log/bondi_dipole_debug.md`](debug_log/bondi_dipole_debug.md)
+- Working notes (narrative, not part of this pack): [`research/bondi_dipole/docs/`](../../research/bondi_dipole/docs/)
   (working copy: `research/bondi_dipole_debug.md`).
 - Code state: wrapper commit recorded per cell in `data/<cell>/metadata.json`;
   the GRTresna matter modifications are in [`patches/`](patches/).

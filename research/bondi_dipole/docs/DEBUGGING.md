@@ -4,7 +4,7 @@ Before any runaway could be claimed, a single lump had to hold its own size.
 Four campaigns failed that gate. This is the diagnosis trail — useful for the
 article's methods section, and as a catalogue of failure modes for anyone
 seeding solitons into a constraint solver. The full chronological record is
-[`debug_log/bondi_dipole_debug.md`](debug_log/bondi_dipole_debug.md).
+[`debug_log/bondi_dipole_debug.md`](campaign_journal.md).
 
 ---
 
@@ -87,7 +87,7 @@ and lands on the light branch. Observed concretely — asking for the weak-rung
 ω = 0.55 star returned a **5× lighter ω = 0.75 star**. The working
 parameterisation bisects φ_c at fixed integration-frame ω and outer-iterates ω
 so the rescaled ω/α_∞ matches the request
-([`MATTER_MODEL.md`](MATTER_MODEL.md) §3.2).
+([`MATTER_MODEL.md`](../../../results/bondi-dipole-runaway/MATTER_MODEL.md) §3.2).
 
 ## 3. Root cause C — two painters that disagreed silently
 

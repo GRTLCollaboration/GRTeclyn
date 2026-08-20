@@ -17,7 +17,7 @@ has never been evolved in full 3+1 numerical relativity with dynamical,
 constraint-solved matter.
 
 The bicomplex scalar model supplies exactly the required sign structure
-(details in [`MATTER_MODEL.md`](MATTER_MODEL.md)): two complex scalar fields
+(details in [`MATTER_MODEL.md`](../../../results/bondi-dipole-runaway/MATTER_MODEL.md)): two complex scalar fields
 obeying the **same** Klein–Gordon equation — so both have positive inertial and
 passive gravitational mass — with the sign flip living **only** in the Einstein
 source, giving the phantom sector negative active mass.
@@ -92,7 +92,7 @@ and 17.05 / 5.16 (phantom at ω = 0.56598); the pair cells reproduce twice the
 single-star integral where both lumps share a sector. All agree to ≲ 0.2 %.
 Constraint residuals are inside the 0.1 % gate everywhere. These are the
 *initial-data* residuals; how the violation behaves once the evolution starts
-is in [`analysis/constraint_check.md`](analysis/constraint_check.md) and §7.
+is in [`analysis/constraint_check.md`](../../../results/bondi-dipole-runaway/analysis/constraint_check.md) and §7.
 
 ## 4. The runaway
 
@@ -364,7 +364,7 @@ canonicals) drives χ down to 0.44 as the pair merges.
 | **No horizon in the measured window** | θ₊ stays positive and no apparent horizon is found in every cell stopped at t = 60; the lapse only dips to ≈ 0.55 | the runaway is not a collapse artefact |
 | **Collapse after contact** | the two t = 90 double-box cells form a trapped surface at t = 68.5 (mixed) and t = 69.5 (control) | end state is black-hole formation; measured at one cell size only, not convergence-tested |
 | **Single-rank only** | MPI is unusable on this node | performance only; no physics impact |
-| **Constraint violation is floored by the initial data** | the evolution's Hamiltonian violation is identical on all three grids (coarse ÷ fine = 1.00× at every sampled time) because one elliptic solve on a fixed grid feeds the whole ladder | no convergence order is quotable from this campaign; quote the grid-to-grid spread instead, and refine the solve alongside the grid if an order is wanted — [`analysis/constraint_check.md`](analysis/constraint_check.md) |
+| **Constraint violation is floored by the initial data** | the evolution's Hamiltonian violation is identical on all three grids (coarse ÷ fine = 1.00× at every sampled time) because one elliptic solve on a fixed grid feeds the whole ladder | no convergence order is quotable from this campaign; quote the grid-to-grid spread instead, and refine the solve alongside the grid if an order is wanted — [`analysis/constraint_check.md`](../../../results/bondi-dipole-runaway/analysis/constraint_check.md) |
 | **Violation grows through the run** | box-averaged Hamiltonian 1.1e−3 at t = 15 → 6.9e−3 at t = 60 for the mixed pair, worst single point 1.9e−2 → 8.4e−1 | consistent with the t ≲ 50 trust window; the late rise tracks the canonical star compactifying toward collapse, not a code failure |
 | **The stars overlap at separation 8** | rms radii 5.05 and 5.43 against a gap of 8, so the envelopes interpenetrate from t = 0; the phantom drift is 2.1× the point-mass value at t = 30, falling to 1.17× at separation 16 | the baseline cell's drift *magnitude* is inflated by contact, not by gravity alone — quote separation 12–16 for magnitudes and separation 8 for illustration (§5.5) |
 | **The canonical sector leaks past the boundary** | it is the sector pushed toward +x; its tracked field falls −12 % by t = 40 and −61 % by t = 60 while every other cell in the campaign *gains* field | the canonical barycentre is biased low at late times and can even read negative in the widest cell; the quantitative tests use the phantom sector (§5.6) |

@@ -1,0 +1,108 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: bondi_dipole.aux
+The style file: apsrev4-2.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Database file #1: bondi_dipoleNotes.bib
+Warning--I didn't find a database entry for "bondi1957"
+Warning--I didn't find a database entry for "bonnor_swami1964"
+Warning--I didn't find a database entry for "bicak1983"
+Warning--I didn't find a database entry for "bonnor1989"
+Warning--I didn't find a database entry for "forward1990"
+Warning--I didn't find a database entry for "hoffmann1966"
+Warning--I didn't find a database entry for "martins1980"
+Warning--I didn't find a database entry for "schoen_yau1979"
+Warning--I didn't find a database entry for "witten1981"
+Warning--I didn't find a database entry for "mbarek2014"
+Warning--I didn't find a database entry for "mann1997"
+Warning--I didn't find a database entry for "caldwell2002"
+Warning--I didn't find a database entry for "morris_thorne1988"
+Warning--I didn't find a database entry for "alcubierre1994"
+Warning--I didn't find a database entry for "shinkai2002"
+Warning--I didn't find a database entry for "gonzalez2009"
+Warning--I didn't find a database entry for "dzhunushaliev2014"
+Warning--I didn't find a database entry for "trivedi_loeb2026"
+Warning--I didn't find a database entry for "nojiri2026"
+Warning--I didn't find a database entry for "grteclyn"
+Warning--I didn't find a database entry for "amrex"
+Warning--I didn't find a database entry for "grchombo"
+Warning--I didn't find a database entry for "shirokov2026"
+Warning--I didn't find a database entry for "gleiser2006"
+Warning--I didn't find a database entry for "friedberg1976"
+Warning--I didn't find a database entry for "coleman1985"
+Warning--I didn't find a database entry for "friedberg1987"
+Warning--I didn't find a database entry for "carroll2003"
+Warning--I didn't find a database entry for "cline2004"
+Warning--I didn't find a database entry for "alic2012"
+Warning--I didn't find a database entry for "grtresna"
+Warning--I didn't find a database entry for "kaup1968"
+Warning--I didn't find a database entry for "ruffini1969"
+Warning--I didn't find a database entry for "liebling2023"
+Warning--I didn't find a database entry for "cttk"
+Warning--I didn't find a database entry for "helfer2022"
+Warning--I didn't find a database entry for "bona1995"
+Warning--I didn't find a database entry for "campanelli2006"
+Warning--I didn't find a database entry for "baker2006"
+control{REVTEX42Control}, control.key{N/A}, control.author{N/A}, control.editor{N/A}, control.title{N/A}, control.pages{N/A}, control.year{N/A}, control.eprint{N/A}, 
+control{apsrev42Control}, control.key{N/A}, control.author{08}, control.editor{1}, control.title{0}, control.pages{0}, control.year{1}, control.eprint{N/A}, 
+Warning--jnrlst (dependency: not reversed) set 1
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 9000 items from 6000.
+apsrev4-2.bst 2019-01-14 (MD) hand-edited version of apsrev4-1.bst
+Control: key (0) 
+Control: author (8) initials jnrlst
+Control: editor formatted (1) identically to author
+Control: production of article title (0) allowed
+Control: page (0) single
+Control: year (1) truncated
+Control: production of eprint (0) enabled
+You've used 2 entries,
+            6079 wiz_defined-function locations,
+            1674 strings with 15462 characters,
+and the built_in function-call counts, 991 in all, are:
+= -- 12
+> -- 16
+< -- 35
++ -- 8
+- -- 20
+* -- 131
+:= -- 72
+add.period$ -- 0
+call.type$ -- 2
+change.case$ -- 0
+chr.to.int$ -- 12
+cite$ -- 2
+duplicate$ -- 137
+empty$ -- 17
+format.name$ -- 0
+if$ -- 127
+int.to.chr$ -- 1
+int.to.str$ -- 9
+missing$ -- 28
+newline$ -- 52
+num.names$ -- 0
+pop$ -- 68
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 33
+stack$ -- 0
+substring$ -- 12
+swap$ -- 110
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 10
+type$ -- 12
+warning$ -- 1
+while$ -- 11
+width$ -- 0
+write$ -- 52
+(There were 40 warnings)

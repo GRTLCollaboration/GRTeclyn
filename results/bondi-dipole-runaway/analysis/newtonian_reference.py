@@ -17,7 +17,7 @@ phantom is pulled), and is CONSTANT when the masses match.  Neither is what the
 NR runs do, because at separation 8 the stars (rms radius ~5) overlap heavily.
 
 Writes ``analysis/newtonian_reference.csv`` and prints the observed-vs-point-mass
-comparison table used in FINDINGS.md.
+comparison table quoted in the article (Table III).
 
 Usage: python3 analysis/newtonian_reference.py [PACK_DIR]
 """

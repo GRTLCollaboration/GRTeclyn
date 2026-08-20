@@ -96,7 +96,7 @@ Killing a worker directly just advances the orchestrator to the next cell.
 | `BONDI_S0` / `BONDI_S1` | — | sector per lump: 0 canonical, 1 phantom ⇒ suffix `pm`/`pp`/`mm` |
 | `BONDI_S1_OMEGA` | — | per-lump star frequency for lump 1; appends `_eqm` to the run name |
 
-### Rerun knobs (added 2026-08-17 for Debug.md §3)
+### Rerun knobs (added 2026-08-17 for docs/Debug.md §3)
 
 Every one defaults to the published campaign value, so an un-set environment
 reproduces the original cell. Both launchers accept all of them.
@@ -117,7 +117,7 @@ reproduces the original cell. Both launchers accept all of them.
 
 * `BONDI_DT_MULT=0.2` **fails** — the star disperses (rms 5.05 → 19.2 by t = 40
   against a ±10 % gate) and the tagger chases the resulting noise until the
-  refined region is 380× larger. Keep 0.02. Full numbers in Debug.md item I.
+  refined region is 380× larger. Keep 0.02. Full numbers in docs/Debug.md item I.
 * Convergence cells need `BONDI_MAXLEVEL=0`, for memory as much as for physics.
   A refined N = 128 cell measured **41 GB** of GPU memory against 8.8 GB
   unigrid; carried to N = 256 that would OOM an 80 GB H100 outright. Unigrid is
@@ -198,7 +198,7 @@ Pair cells with one lump per sector show both fingerprints in the same row;
 same-sector pairs show twice the single value. Also confirm the final row of
 `grtresna/Ham_and_Mom_errors.txt` is inside the 0.1 % gate, and that
 `grtresna/params.txt` carries `lump0_amp ≈ 0.019695` (the solved φ_c, not a
-clamped amplitude) — the failure mode described in [`DEBUGGING.md`](DEBUGGING.md) §1.
+clamped amplitude) — the failure mode described in [`DEBUGGING.md`](../../research/bondi_dipole/docs/DEBUGGING.md) §1.
 
 ## 5. Post-processing
 
