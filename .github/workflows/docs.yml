@@ -1,6 +1,10 @@
 name: Docs
 
-on: [push]
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

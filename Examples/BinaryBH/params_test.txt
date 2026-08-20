@@ -58,7 +58,7 @@ two_punctures.spin_plus      = 0.0 0.0 0.0
 two_punctures.spin_minus     = 0.0 0.0 0.0
 
 # two_punctures.use_spectral_interpolation = false
-# two_punctures.initial_lapse = "psi^n"
+# two_punctures.initial_lapse = "twopunctures-averaged"
 # two_punctures.initial_lapse_psi_exponent = -2.0
 
 # two_punctures.num_points_A   = 30

@@ -79,11 +79,11 @@ void BoundaryConditions::params_t::fill_params()
 
     FOR (idir)
     {
-        is_periodic[idir] = static_cast<bool>(is_periodic_int[idir]);
+        this->is_periodic[idir] = static_cast<bool>(is_periodic_int[idir]);
     }
 
-    hi_condition = read_conditions(boundary_pp, "hi_condition");
-    lo_condition = read_conditions(boundary_pp, "lo_condition");
+    this->hi_condition = read_conditions(boundary_pp, "hi_condition");
+    this->lo_condition = read_conditions(boundary_pp, "lo_condition");
 }
 
 void BoundaryConditions::params_t::check_params()

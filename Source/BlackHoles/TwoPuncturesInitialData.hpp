@@ -60,16 +60,17 @@ class TwoPuncturesInitialData
             solve();
         }
 
-        bh1_params.mass = s_two_punctures.par_m_plus;
-        bh2_params.mass = s_two_punctures.par_m_minus;
+        // Puncture ID 1 is the minus puncture and ID 2 is the plus puncture.
+        bh1_params.mass = s_two_punctures.par_m_minus;
+        bh2_params.mass = s_two_punctures.par_m_plus;
 
         bh1_params.center = m_center;
         bh2_params.center = m_center;
         int offset_dir    = (s_two_punctures.swap_xz) ? 2 : 0;
         bh1_params.center[offset_dir] +=
-            s_two_punctures.center_offset[offset_dir] + s_two_punctures.par_b;
-        bh2_params.center[offset_dir] +=
             s_two_punctures.center_offset[offset_dir] - s_two_punctures.par_b;
+        bh2_params.center[offset_dir] +=
+            s_two_punctures.center_offset[offset_dir] + s_two_punctures.par_b;
     }
 
     AMREX_FORCE_INLINE void
@@ -244,7 +245,7 @@ class TwoPuncturesInitialData
         s_two_punctures.grid_setup_method =
             (use_spectral_interpolation) ? "evaluation" : "Taylor expansion";
 
-        s_two_punctures.initial_lapse = "psi^n";
+        s_two_punctures.initial_lapse = "twopunctures-averaged";
         tp_pp.queryAdd("initial_lapse", s_two_punctures.initial_lapse);
 
         if (s_two_punctures.initial_lapse != "twopunctures-antisymmetric" &&
@@ -463,7 +464,7 @@ class TwoPuncturesInitialData
         tp_pp.queryAdd("use_spectral_interpolation",
                        use_spectral_interpolation);
 
-        std::string initial_lapse = "psi^n";
+        std::string initial_lapse = "twopunctures-averaged";
         tp_pp.queryAdd("initial_lapse", initial_lapse);
         if (initial_lapse != "twopunctures-antisymmetric" &&
             initial_lapse != "twopunctures-averaged" &&
