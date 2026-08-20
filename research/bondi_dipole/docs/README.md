@@ -14,6 +14,7 @@ setup looks the way it does.  Read the paper if you want the results.
 | [`FINDINGS.md`](FINDINGS.md) | the physics as it stood during the campaign: results, tests against the point-mass reference, caveats, open questions. Largely superseded by the article, kept for the reasoning trail |
 | [`DEBUGGING.md`](DEBUGGING.md) | how the matter was made to stop dispersing — two root causes and the falsifications that found them. Not in the paper, and the most useful document here if you are reproducing the setup |
 | [`Debug.md`](Debug.md) | the long-form scrutiny log: every objection raised against the result and what was done about it |
+| [`GPU.md`](GPU.md) | what still has to be run on a GPU and why: the queue for the next campaign, what each item unblocks, what blocks it, and what costs how much. Also what *not* to spend device time on |
 | [`campaign_journal.md`](campaign_journal.md) | the campaign journal, verbatim and unedited |
 
 ## Where everything else lives
