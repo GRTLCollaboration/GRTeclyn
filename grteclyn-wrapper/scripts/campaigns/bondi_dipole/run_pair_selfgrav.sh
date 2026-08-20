@@ -32,6 +32,8 @@
 #   BONDI_SPONGE=1: switch on the boundary sponge (inner/outer/strength/ramp
 #     via BONDI_SPONGE_INNER etc.) to run past t=60.
 #   BONDI_DRYRUN=1: resolve and print the parameters, then exit -- no solve, no GPU.
+#   BONDI_GRTRESNA_RANKS: MPI ranks for the elliptic solve (default 8).  The
+#     evolution is single-GPU regardless.
 #   BONDI_S1_OMEGA: per-lump star frequency for lump1 (equal-|ADM| cells --
 #     the phantom star at omega=0.56598 weighs the canonical star's 0.0640;
 #     its t=0 fingerprint becomes total ~= 17.05 / rms ~= 5.16).  Appends
@@ -40,6 +42,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd -- "${WRAPPER_DIR}/.." && pwd)"
+
+# Site paths (GRTRESNA_ENV -> mpirun on PATH).  Needed once the solve runs on
+# more than one rank: at a single rank the solver binary is exec'd directly and
+# mpirun is never looked up, which is why this was not required before and why
+# raising the rank count fails with "Could not locate 'mpirun'" without it.
+# shellcheck source=../../lib/env.sh
+source "${WRAPPER_DIR}/scripts/lib/env.sh"
+# env.sh exports a SCRIPT_DIR of its own and cds to the repo root -- put ours
+# back, or every sibling path below resolves against scripts/lib/ instead.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 SOURCE_EVAL="${REPO_ROOT}/results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
 GPU="${BONDI_GPU:-3}"
@@ -150,9 +162,19 @@ export GRTECLYN_SECTOR_DYNAMICS_LEVEL="${BONDI_SCRUTINY_LEVEL:-0}"
 export GRTECLYN_PSI4_HIGHER_L="${BONDI_PSI4_HIGHER_L:-0}"
 export GRTECLYN_PSI4_ELLS="${BONDI_PSI4_ELLS:-3 4}"
 
-# This node: mpirun segfaults cluster-wide -- GRTresna and the evolution both
-# run single-rank.  Do not raise.
-GRTRESNA_RANKS=1
+# The elliptic solve is the campaign's CPU bottleneck and it parallelises: at one
+# rank a single N=256 solve pegs one core for ~70 min while 47 sit idle, and the
+# GPU cannot start until it finishes.
+#
+# The "mpirun segfaults cluster-wide, do not raise" note that used to live here
+# was inherited from the OLD node.  This node's MPI is healthy -- verified
+# 2026-08-20 by launching 8 ranks, and the solver binary is an MPI build
+# (Main_BosonStarBH3d...MPI.ex).  The EVOLUTION is a separate matter and stays
+# single-rank: a RadialRecipe-specific AMR crash still blocks multi-GPU there.
+#
+# Ranks apply to the solve only.  Keep it modest: four cells solve concurrently,
+# so the queue's total core draw is 4 x this number.
+GRTRESNA_RANKS="${BONDI_GRTRESNA_RANKS:-8}"
 
 if [[ -d "${RUNS_DIR}/${out_name}" ]]; then
   echo "[bondi] ${out_name} already exists -- delete it or set BONDI_RUNS_DIR"
