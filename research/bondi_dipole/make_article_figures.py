@@ -20,6 +20,7 @@ Outputs (research/bondi_dipole/figures/):
 """
 
 import csv
+import json
 import os
 import subprocess
 
@@ -1093,6 +1094,88 @@ def fig_waveconv():
           f" (range {min(fits):.2f}-{max(fits):.2f})")
 
 
+
+# --------------------------------------------------- Sec. VII: caveat numbers
+def _named(path):
+    """t, {column name: array} for a stream whose header names its columns."""
+    head = None
+    with open(path) as f:
+        for line in f:
+            if line.startswith("#") and "time" in line:
+                head = line.lstrip("#").split()
+                break
+    d = np.loadtxt(path)
+    return d[:, 0], {n: d[:, i] for i, n in enumerate(head)}
+
+
+def caveat_stats():
+    """The numbers Sec. VII quotes for the halo bias and the trapped bath.
+
+    The peak tracker (sector_dynamics.dat) exists only on the four cells that
+    were run with the momentum stream enabled, all at d0 = 8, so the halo bias
+    is bounded there and carried over to the reference cell as a bound."""
+    print("caveat stats:")
+
+    def drifts(cell, stream, cx, px):
+        t, c = _named(os.path.join(PACK, "campaign", cell, stream))
+        at = lambda T, k: float(np.interp(T, t, c[k]) - c[k][0])
+        return lambda T: (at(T, cx), at(T, px))
+
+    core = drifts("pair_pm_v2", "sector_dynamics.dat",
+                  "core_x_canon", "core_x_phantom")
+    halo = drifts("pair_pm_v2", "sector_barycenters.dat",
+                  "bary_x_canon", "bary_x_phantom")
+    for T in (20.0, 30.0, 60.0):
+        (cc, cp), (hc, hp) = core(T), halo(T)
+        print(f"  d0=8 dx=0.5 t={T:.0f}: pair core {0.5 * (cc + cp):+.4f}"
+              f" vs halo {0.5 * (hc + hp):+.4f}"
+              f" ({(cc + cp) / (hc + hp):.3f}x) |"
+              f" canon halo/core {hc / cc:.3f} | phantom halo/core {hp / cp:.3f}")
+
+    coreB = drifts("boxC_pm_L128_n256", "sector_dynamics.dat",
+                   "core_x_canon", "core_x_phantom")
+    haloB = drifts("boxC_pm_L128_n256", "sector_barycenters.dat",
+                   "bary_x_canon", "bary_x_phantom")
+    a, b = sum(core(60.0)) / 2, sum(coreB(60.0)) / 2
+    c, d = sum(halo(60.0)) / 2, sum(haloB(60.0)) / 2
+    print(f"  box+refinement change at t=60: core {a:+.4f} -> {b:+.4f}"
+          f" ({abs(b - a) / a * 100:.2f}%), halo {c:+.4f} -> {d:+.4f}"
+          f" ({abs(d - c) / c * 100:.1f}%)")
+
+    # the trapped bath: L = 64 against L = 128 with nothing else changed
+    for T in (20.0, 30.0, 40.0, 60.0):
+        v = []
+        for cell in ("convA_pm_n128", "boxC_pm_L128_n256"):
+            t, c = _named(os.path.join(PACK, "campaign", cell,
+                                       "confinement.dat"))
+            v.append([float(np.interp(T, t, c[k]))
+                      for k in ("min_chi", "rms_radius_canon")])
+        print(f"  box L=64 vs 128 at t={T:.0f}: min_chi {v[0][0]:.4f} vs"
+              f" {v[1][0]:.4f} ({abs(v[1][0] - v[0][0]) / v[0][0] * 100:.2f}%),"
+              f" rms_canon {v[0][1]:.3f} vs {v[1][1]:.3f}"
+              f" ({abs(v[1][1] - v[0][1]) / v[0][1] * 100:.1f}%)")
+
+    # the elliptic floor: one solve per rung, all stopping on the same criterion
+    for n in (128, 192, 256):
+        m = json.load(open(os.path.join(
+            PACK, "campaign", f"convA_pm_sep12_n{n}", "metadata.json")))
+        g = m["grtresna_convergence"]
+        print(f"  solve N={n}: ham {g['ham_pct']:.5f}% mom {g['mom_pct']:.5f}%"
+              f" in {g['iteration']} iterations")
+
+    # the phantom family's mass range, for the lever-arm statement in Sec. V D
+    fam = []
+    with open(os.path.join(PACK, "stars", "star_radius.csv")) as f:
+        for r in csv.DictReader(f):
+            if r["status"] == "ok" and r["sector"] == "phantom":
+                fam.append((abs(float(r["adm_mass"])),
+                            float(r["compactness_iso"])))
+    mp = 0.0639509779808125
+    print(f"  phantom family |M-|/M+: {min(m for m, _ in fam) / mp:.2f}"
+          f" to {max(m for m, _ in fam) / mp:.2f}")
+
+
+
 if __name__ == "__main__":
     fig_chase_frames()
     fig_trajectories()
@@ -1105,4 +1188,5 @@ if __name__ == "__main__":
     fig_weyl()
     fig_waveconv()
     fig_constraints()
+    caveat_stats()
     print("wrote figures to", OUT)

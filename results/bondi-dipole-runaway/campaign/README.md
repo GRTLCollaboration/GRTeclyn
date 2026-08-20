@@ -106,19 +106,19 @@ Figure and table numbers refer to the compiled `research/bondi_dipole/bondi_dipo
 | `convA_pm_sep12_n256` | Fig. 3 (frames), Fig. 4a/b/c, Fig. 7a, Table I, Table III |
 | `convA_pm_sep12_n128`, `_n192` | Fig. 6a (ladder), Fig. 9 (constraints), Sec. V C |
 | `convA_pm_n256` | Fig. 4b/c, Fig. 5, Fig. 7a/b, Table I, Table II, Table III |
-| `convA_pm_n128` | Fig. 8 (the L = 64 box-independence check), Fig. 6b |
+| `convA_pm_n128` | Fig. 8 (the L = 64 box-independence check), Fig. 6b, Sec. VII (box comparison against `boxC_pm_L128_n256`) |
 | `convA_pm_n192` | Fig. 6b (refinement sequence) |
 | `convA_pm_eqm_n256` | Fig. 7a, Table I, Table II |
 | `convA_pm_eqm_n128`, `_n192` | Sec. V C (ladder spread 0.3 %) |
 | `convA_pm_sep16_n*` | Fig. 6b, Table I, Table III — always as a bound |
 | `convA_pp_n*` | Fig. 4b, Fig. 5, Fig. 6a/b, Fig. 7a, Fig. 9, Table I |
 | `convA_mm_n*` | Fig. 4b, Fig. 5, Fig. 6b, Fig. 7a, Fig. 9, Table I |
-| `boxC_pm_L128_n256` | Fig. 8, Sec. VI B |
+| `boxC_pm_L128_n256` | Fig. 8, Sec. VI B, Sec. VII (box comparison and the peak-tracker cross-check) |
 | `boxC_pp_L128_n256` | `analysis/wave_check.md` only |
 | `pair_pm` | Fig. 5, Fig. 7a (same-numerics mirror reference) |
 | `pair_mp_mirror` | Fig. 5, Fig. 7a, Table I |
 | `single_p`, `single_m` | Table I and Sec. V F (single-star stability records) |
-| `pair_pm_v2`, `pair_pm_eqm_v2` | Sec. VI C and Discussion item (4) — the signed-momentum balance |
+| `pair_pm_v2`, `pair_pm_eqm_v2` | Sec. VI C and Discussion item (3) — the signed-momentum balance; `pair_pm_v2` also carries the peak tracker (`core_x_*`) that bounds the halo bias in Sec. VII |
 
 Table IV (computational cost) is aggregate: it comes from the run logs, not
 from any one cell's streams.
@@ -138,7 +138,7 @@ actually reads are:
 | `psi4_mode_l2_all.dat` | Fig. 7, the ℓ = 2 Weyl amplitudes at R = 8 and 16 |
 | `psi4_mode_l2m0.dat` | Fig. 8, the wave-zone shells (`boxC` header names r = 16/24/32/40) |
 | `confinement.dat` | extremal χ and rms radii (last column is `min_chi`) |
-| `sector_dynamics.dat` | the `*_v2` cells only — signed sector momenta |
+| `sector_dynamics.dat` | the `*_v2` and `boxC_*` cells — signed sector momenta, and the `core_x_*` peak tracker Sec. VII compares against the barycentre |
 | `metadata.json`, `evolution_params.txt`, `grtresna_params.txt` | provenance: what was solved, how well, what was evolved |
 
 `convA_*`/`boxC_*` cells additionally carry `frames/` — matter
