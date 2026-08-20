@@ -34,7 +34,7 @@ M_CANON, M_PHANT = 0.06395, -0.07696
 # Finest grid of the convergence campaign (dx = 0.25), which is where the
 # article's separation numbers come from.
 CELLS = {8: "convA_pm_n256", 12: "convA_pm_sep12_n256", 16: "convA_pm_sep16_n256"}
-SAMPLE_TIMES = (20, 30, 40, 50)
+SAMPLE_TIMES = (20, 30, 40, 50, 60)
 DT = 0.01
 
 

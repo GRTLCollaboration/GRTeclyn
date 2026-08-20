@@ -20,8 +20,9 @@ described by its grid spacing.
 > They were merged here on 2026-08-20 and `data/` was deleted, along with five
 > cells the `convA_*` ladder had superseded (`pair_pp`, `pair_mm`,
 > `pair_pm_eqm`, `pair_pm_sep12`, `pair_pm_sep16`).  The merge was verified by
-> regenerating every figure: all eleven PDFs and every printed number came out
-> unchanged.
+> regenerating every figure and every printed number, unchanged.  (The paper's
+> 2026-08-20 shortening pass later dropped two figures and merged two tables;
+> the mapping below reflects the current nine-figure, three-table layout.)
 
 ---
 
@@ -36,7 +37,7 @@ it is the cleanest.  The dressed stars have rms radius ≈ 5 and R₉₀ ≈ 7.6
 at d₀ = 8 the two envelopes overlap from t = 0 and the pair reaches near
 contact (gap 1.86) by t = 60; that is a merger, not a two-body force law.  At
 d₀ = 12 the gap only closes from 12.00 to 10.14 over the whole run, and the
-drift still sits far above every control.  See Sec. IV B of the article.
+drift still sits far above every control.  See Sec. IV of the article.
 
 ---
 
@@ -60,7 +61,7 @@ Six configurations × three resolutions.  Name pattern
 | `convA_pp_*` | canonical × 2 | 8 | null control: same-sign pair must not drift |
 | `convA_mm_*` | phantom × 2 | 8 | null control: same-sign pair must not drift |
 
-The point of running all three grids is Sec. V D: a physical drift should be
+The point of running all three grids is Sec. V C: a physical drift should be
 insensitive to the grid, and a numerical one should converge away.  Both
 happen — the mixed-pair drifts sit on plateaus (spread 6.3 % at d₀ = 12,
 0.5 % at d₀ = 8) while the `pp`/`mm` residuals fall by factors of 3–4.  The
@@ -102,21 +103,21 @@ Figure and table numbers refer to the compiled `research/bondi_dipole/bondi_dipo
 
 | cell | used in |
 |---|---|
-| `convA_pm_sep12_n256` | Fig. 3 (frames), Fig. 4a/b/c, Fig. 5 (velocities), Fig. 9b, Table I, Table III, Table IV |
-| `convA_pm_sep12_n128`, `_n192` | Fig. 8a (ladder), Fig. 11 (constraints), Sec. V D |
-| `convA_pm_n256` | Fig. 4b/c, Fig. 6a, Fig. 9a/b/c, Table I, Table II, Table IV |
-| `convA_pm_n128` | Fig. 10 (the L = 64 box-independence check), Fig. 8b |
-| `convA_pm_n192` | Fig. 8b (refinement sequence) |
-| `convA_pm_eqm_n256` | Fig. 9b, Table I, Table II |
-| `convA_pm_eqm_n128`, `_n192` | Sec. V D (ladder spread 0.3 %) |
-| `convA_pm_sep16_n*` | Fig. 8b, Table I, Table IV — always as a bound |
-| `convA_pp_n*` | Fig. 4b, Fig. 6a/b, Fig. 8a/b, Fig. 9a/b, Fig. 11, Table I |
-| `convA_mm_n*` | Fig. 4b, Fig. 6a/b, Fig. 8b, Fig. 9a/b, Fig. 11, Table I |
-| `boxC_pm_L128_n256` | Fig. 10, Sec. VI B |
+| `convA_pm_sep12_n256` | Fig. 3 (frames), Fig. 4a/b/c, Fig. 7a, Table I, Table III |
+| `convA_pm_sep12_n128`, `_n192` | Fig. 6a (ladder), Fig. 9 (constraints), Sec. V C |
+| `convA_pm_n256` | Fig. 4b/c, Fig. 5, Fig. 7a/b, Table I, Table II, Table III |
+| `convA_pm_n128` | Fig. 8 (the L = 64 box-independence check), Fig. 6b |
+| `convA_pm_n192` | Fig. 6b (refinement sequence) |
+| `convA_pm_eqm_n256` | Fig. 7a, Table I, Table II |
+| `convA_pm_eqm_n128`, `_n192` | Sec. V C (ladder spread 0.3 %) |
+| `convA_pm_sep16_n*` | Fig. 6b, Table I, Table III — always as a bound |
+| `convA_pp_n*` | Fig. 4b, Fig. 5, Fig. 6a/b, Fig. 7a, Fig. 9, Table I |
+| `convA_mm_n*` | Fig. 4b, Fig. 5, Fig. 6b, Fig. 7a, Fig. 9, Table I |
+| `boxC_pm_L128_n256` | Fig. 8, Sec. VI B |
 | `boxC_pp_L128_n256` | `analysis/wave_check.md` only |
-| `pair_pm` | Fig. 6a, Fig. 7, Fig. 9b (same-numerics mirror reference) |
-| `pair_mp_mirror` | Fig. 6a, Fig. 7, Fig. 9b, Table I |
-| `single_p`, `single_m` | Table I, Table V |
+| `pair_pm` | Fig. 5, Fig. 7a (same-numerics mirror reference) |
+| `pair_mp_mirror` | Fig. 5, Fig. 7a, Table I |
+| `single_p`, `single_m` | Table I and Sec. V F (single-star stability records) |
 | `pair_pm_v2`, `pair_pm_eqm_v2` | Sec. VI C and Discussion item (4) — the signed-momentum balance |
 
 ---
@@ -130,9 +131,9 @@ actually reads are:
 | file | read by |
 |---|---|
 | `sector_barycenters.dat` | every drift, gap and velocity number in the paper |
-| `constraint_norms.dat` | Fig. 11 and Appendix A (**cols 11/12/15** are the composite norms — cols 1/2 are a different, level-0-only diagnostic) |
-| `psi4_mode_l2_all.dat` | Fig. 9, the ℓ = 2 Weyl amplitudes at R = 8 and 16 |
-| `psi4_mode_l2m0.dat` | Fig. 10, the wave-zone shells (`boxC` header names r = 16/24/32/40) |
+| `constraint_norms.dat` | Fig. 9 and Appendix A (the composite norms are the `L2_Ham_amr`/`L2_Mom_amr`/`Linf_Ham_amr` columns named in the `#` header — cols 1/2 after `time` are a different, level-0-only diagnostic) |
+| `psi4_mode_l2_all.dat` | Fig. 7, the ℓ = 2 Weyl amplitudes at R = 8 and 16 |
+| `psi4_mode_l2m0.dat` | Fig. 8, the wave-zone shells (`boxC` header names r = 16/24/32/40) |
 | `confinement.dat` | extremal χ and rms radii (last column is `min_chi`) |
 | `sector_dynamics.dat` | the `*_v2` cells only — signed sector momenta |
 | `metadata.json`, `evolution_params.txt`, `grtresna_params.txt` | provenance: what was solved, how well, what was evolved |

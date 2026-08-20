@@ -381,14 +381,12 @@ def fig_trajectories():
 def fig_controls():
     """The four sign assignments side by side.
 
-    (a) only the mixed pair moves: PM runs towards $+x$, its mirror image MP
+    Only the mixed pair moves: PM runs towards $+x$, its mirror image MP
     runs the same distance towards $-x$, and the same-sign pairs PP and MM sit
-    still.  (b) the same-sign residuals magnified: every control stays below
-    one cell width of the finest grid and shrinks under refinement, so what is
-    left is discretisation error, not motion."""
-    fig, (ax, bx) = plt.subplots(1, 2, figsize=(DOUBLE, 2.7))
+    still.  (The magnified residual ladder lives in fig_convergence(b).)"""
+    fig, ax = plt.subplots(figsize=(SINGLE, 2.55))
 
-    # (a) pair barycentre of each configuration, all at d0 = 8
+    # pair barycentre of each configuration, all at d0 = 8
     t, xc, xp = read_campaign_barycenters("convA_pm_n256")
     ax.plot(t, 0.5 * (xc + xp) - 32.0, color="k", ls="-", lw=1.1,
             label=r"\texttt{PM} $(+,-)$")
@@ -414,39 +412,7 @@ def fig_controls():
     ax.set_ylim(-8.5, 8.5)
     ax.set_xlabel("$t$")
     ax.set_ylabel(r"$\Delta \bar{x}$")
-    ax.set_title("(a)", loc="left")
-
-    # (b) the same-sign residuals, magnified 40x
-    styles = {256: "-", 192: (0, (4, 1.6)), 128: (0, (1, 1.5))}
-    for n in (128, 192, 256):
-        t, xc, _ = read_campaign_barycenters(f"convA_pp_n{n}")
-        bx.plot(t, xc - xc[0], color="k", ls=styles[n],
-                lw=1.0 if n == 256 else 0.8)
-        t, _, xp = read_campaign_barycenters(f"convA_mm_n{n}")
-        bx.plot(t, xp - xp[0], color="0.55", ls=styles[n],
-                lw=1.0 if n == 256 else 0.8)
-    bx.axhline(0.0, color="0.8", lw=0.5, zorder=0)
-    bx.axhline(0.25, color="0.3", lw=0.6, ls=(0, (6, 2, 1, 2)))
-    bx.text(1.5, 0.262, r"one cell of the finest grid, $\Delta x = 0.25$",
-            fontsize=6.6, color="0.3", va="bottom")
-    bx.text(55.5, 0.163, r"\texttt{PP}", fontsize=7.3, color="k",
-            ha="right", va="bottom")
-    bx.text(59.0, -0.020, r"\texttt{MM}", fontsize=7.3, color="0.45",
-            ha="right", va="top")
-    handles = [Line2D([], [], color="0.3", ls=styles[n],
-                      lw=1.0 if n == 256 else 0.8,
-                      label=rf"$\Delta x={0.5 if n == 128 else (0.33 if n == 192 else 0.25):.2f}$")
-               for n in (128, 192, 256)]
-    bx.legend(handles=handles, loc="lower right", borderaxespad=0.4,
-              fontsize=6.6, handlelength=1.9, labelspacing=0.3,
-              borderpad=0.2)
-    bx.set_xlim(0, 62)
-    bx.set_ylim(-0.235, 0.33)
-    bx.set_xlabel("$t$")
-    bx.set_ylabel(r"$\Delta \bar{x}$")
-    bx.set_title("(b)", loc="left")
-
-    fig.subplots_adjust(wspace=0.26)
+    fig.tight_layout()
     fig.savefig(os.path.join(OUT, "fig_controls.pdf"))
     plt.close(fig)
 
@@ -908,23 +874,10 @@ def fig_weyl():
     """The l=2 Weyl signal, anchored on the campaign's finest d0 = 8 cells
     (the strongest signal); the mirror overlay comes from the only mirrored
     run, which exists at the production resolution dx = 0.5."""
-    fig, (wx, ax, bx) = plt.subplots(3, 1, figsize=(SINGLE, 5.5), sharex=True)
-
-    # (a) the raw waveform at the outer shell: a monotone, chirpless ramp in
-    # the mixed run against the non-secular wander of the same-sign controls
+    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.8), sharex=True)
     t_pm, modes_pm = read_l2_modes("convA_pm_n256")
-    wx.plot(t_pm, 1e3 * np.real(modes_pm[(16, 0)]), color="k", ls="-", lw=1.1,
-            zorder=5, label=r"\texttt{PM}")
-    for cell, tag, ls in (("convA_pp_n256", "PP", (0, (1, 1.5))),
-                          ("convA_mm_n256", "MM", (0, (3, 1.2)))):
-        tc, mc = read_l2_modes(cell)
-        wx.plot(tc, 1e3 * np.real(mc[(16, 0)]), color="0.45", ls=ls, lw=0.7,
-                label=rf"\texttt{{{tag}}}")
-    wx.set_ylim(-16, 10.5)
-    wx.set_ylabel(r"$10^3\,r\,\mathrm{Re}\,\psi_4^{2,0}$")
-    wx.text(0.025, 0.94, "(a)", transform=wx.transAxes, ha="left", va="top")
 
-    # (b) total l=2 amplitude at R=16: mixed cells vs the same-sign controls.
+    # (a) total l=2 amplitude at R=16: mixed cells vs the same-sign controls.
     # Style, not shade, separates the runs (as everywhere in the article).
     A_pm = l2_amplitude(modes_pm, 16)
     ax.plot(t_pm, A_pm, color="k", ls="-", lw=1.1, zorder=5)
@@ -955,16 +908,16 @@ def fig_weyl():
     ]
     # one legend for the whole stack, above the frame: inside either panel it
     # would land on the wandering control curves
-    wx.legend(handles=handles, loc="lower left",
+    ax.legend(handles=handles, loc="lower left",
               bbox_to_anchor=(0.0, 1.01, 1.0, 0.10), mode="expand", ncol=3,
               borderaxespad=0.0, fontsize=6.8, handlelength=1.6,
               columnspacing=1.0, handletextpad=0.5)
     ax.set_yscale("log")
     ax.set_ylim(3e-6, 3e-2)
     ax.set_ylabel(r"$A_{\ell=2}$")
-    ax.text(0.025, 0.94, "(b)", transform=ax.transAxes, ha="left", va="top")
+    ax.text(0.025, 0.94, "(a)", transform=ax.transAxes, ha="left", va="top")
 
-    # (c) the d0=8 amplitude against the rescaled pair speed: the near-zone
+    # (b) the d0=8 amplitude against the rescaled pair speed: the near-zone
     # quadrupole curvature rises in lockstep with the runaway.
     tb, bxc, bxp = read_campaign_barycenters("convA_pm_n256")
     v = central_diff(tb, 0.5 * (bxc + bxp))
@@ -984,7 +937,7 @@ def fig_weyl():
     bx.set_ylim(-0.0002, 0.0068)
     bx.set_xlabel("$t$")
     bx.set_ylabel(r"$A_{\ell=2}$")
-    bx.text(0.025, 0.94, "(c)", transform=bx.transAxes, ha="left", va="top")
+    bx.text(0.025, 0.94, "(b)", transform=bx.transAxes, ha="left", va="top")
 
     fig.subplots_adjust(hspace=0.14)
     fig.savefig(os.path.join(OUT, "fig_weyl.pdf"))
