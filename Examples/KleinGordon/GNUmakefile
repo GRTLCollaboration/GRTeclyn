@@ -9,7 +9,7 @@ AMREX_HOME ?= $(realpath ../../../amrex)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
 
-include ./Make.package
+# include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
@@ -24,11 +24,25 @@ src_dirs := $(GRTECLYN_SOURCE)/ParticleInterpolator \
             $(GRTECLYN_SOURCE)/Maths \
             $(GRTECLYN_SOURCE)/Tagging
 
+# Find all source and header files in the src_dirs
+CEXE_sources += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.cpp)))
+CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.hpp)))
+CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.impl.hpp)))
 
-src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
-include $(src_pack)
-CEXE_sources += $(GRTECLYN_CEXE_sources)
-CEXE_headers += $(GRTECLYN_CEXE_headers)
+# Local source files
+CEXE_sources += KleinGordonLevel.cpp \
+                Main_KleinGordon.cpp
+
+# Local header files
+CEXE_headers += DerivedVariables.hpp \
+                DerivedVariables.impl.hpp \
+                KleinGordonLevel.hpp \
+                KleinGordonRHS.hpp \
+                SimulationParameters.hpp \
+                SineGordon.hpp \
+                StateVariables.hpp \
+                Wave.hpp
+
 VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
 
