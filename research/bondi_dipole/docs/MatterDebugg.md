@@ -96,12 +96,34 @@
 >   centroid and the whole-sector barycentre) agree on it, so it is in the
 >   matter, not the diagnostic.  It cancels in the midpoint, which is why the
 >   null channel above is clean.
-> - *The coordinate gap between the lumps closes* by `~0.17` over `t = 57` in
->   the matched pair, which ideal Bondi forbids.  A separation scan at
->   `d = 8 / 10 / 12 / 16` is running to identify it.  Finite-size overlap is
->   already disfavoured: at `d = 12` the closing is 95% of the `d = 10` rate,
->   where the field's `~1.5` falloff length would demand roughly a factor of
->   four drop.
+> - *The coordinate gap between the lumps closes*, which ideal Bondi forbids —
+>   **and the separation scan has now identified it as non-gravitational.**  Run
+>   to completion at `d = 8 / 10 / 12`, the matched pairs close at
+>   `3.62 / 3.72 / 3.74 e-03` per unit `t`: the same approach *speed* to within
+>   3%, while the separation changes by half.  A gravitational cause must fall
+>   as `1/d^2`; multiplying by `d^2` gives `0.231 / 0.372 / 0.538`, a factor of
+>   2.3 spread, so it is not one.  The lumps drift together at a fixed speed
+>   fixed at birth, regardless of how far apart they are — the same initial-data
+>   family as the diagonal drift above.  The physical separation is constant,
+>   which is what Bondi needs.
+>
+>   This also accounts for the residual in the runaway ratio.  As the gap
+>   narrows the true pull exceeds the fixed-`d` prediction, so the pair slightly
+>   outruns it — and the excess shrinks with separation in the same order as the
+>   fraction of the gap that closes:
+>
+>   | cell | `d` | runaway ratio | null | gap closed | closing rate | `rate * d^2` |
+>   |---|---|---|---|---|---|---|
+>   | `pm_eqm_sep8`  |  8 | 1.084 | -1.9% | 0.709 | 3.62e-03 | 0.231 |
+>   | `pm_eqm`       | 10 | 1.042 | -1.4% | 0.725 | 3.72e-03 | 0.372 |
+>   | `pm_eqm_sep12` | 12 | 1.012 | -0.8% | 0.699 | 3.74e-03 | 0.538 |
+>   | `pm_sep8`      |  8 | 1.074 | -1.8% | 0.465 | 1.64e-03 | 0.105 |
+>   | `pm`           | 10 | 1.039 | -1.2% | 0.564 | 2.46e-03 | 0.246 |
+>
+>   The mismatched cells close *more slowly*, and more slowly at the smaller
+>   `d`, because the heavier phantom contributes a genuine outward push that
+>   partly cancels the birth drift — and that push *does* scale as `1/d^2`.
+>   The mass mismatch shows up exactly where it should.
 > - *The same-sign controls grow a large halo at late times.*  In `pp` and `mm`
 >   the total tracked activity rises 6-7x and the rms radius reaches `~30` — the
 >   whole domain — while the confined fraction falls to `~0.08`.  The cores
@@ -112,6 +134,28 @@
 >   attraction on top of gravity — their size changes are not purely
 >   gravitational.  The mixed pair has no such term: the two sectors share no
 >   potential coupling and meet only through gravity.
+>
+> **Does this prove the runaway?**  For the effect itself, yes, by several
+> independent routes: the pair moves the predicted distance at three
+> separations; the motion is quadratic in `t` while both controls are linear;
+> the transverse null channel is under 2%; the displacement scales with the
+> stars' masses, which no numerical artefact can know; the same-sign controls
+> built by the same code on the same grid do not accelerate; and the stars
+> survive the full `t = 200` without collapsing or dispersing.
+>
+> Two things it does *not* establish.  The strict form of Bondi — a rigid pair
+> holding its spacing indefinitely — is not demonstrated, because the gap
+> shrinks 6-9% over the run from the birth defect above.  And **every cell here
+> is a single resolution** (`N = 128`, `L = 64`, `dx = 0.5`).  This campaign has
+> twice been fooled by numerical bugs that produced convincing physics — the
+> double-counted potential in `trS`, and the slicing asymmetry — neither of
+> which announced itself.  Until the same measurement is repeated on a finer
+> grid and the number does not move, `proved` is stronger than this data
+> supports.  That convergence test is the single highest-value next run, and it
+> needs designing rather than merely launching: the initial data's own error
+> grows as `1/dx^2`, so refining the evolution grid starts the finer cell from a
+> *worse* slice.  See
+> [The initial data is the error floor](#the-initial-data-is-the-error-floor--2026-08-21).
 >
 > **What this does not yet do** is re-derive the conclusions listed below as
 > suspect.  The `ω = 0.55` rejection, the turning-point argument and the
