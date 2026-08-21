@@ -43,7 +43,19 @@
 #   pp -- two canonical stars.  Must attract; centre of mass must stay put.
 #   mm -- two phantom stars.  Must repel; centre of mass must stay put.
 # Any centre-of-mass motion in pp or mm is numerical, and its size is the error
-# bar on the pm result.  This is the check the phantom-vs-canonical comparison
+# bar on the pm result.
+#
+# pp NEEDS FORCED MAXIMAL SLICING, and the first attempt at this campaign is why.
+# GRTresna switches the K=0 York solve on automatically ONLY when an exotic lump
+# is present, because the CTTK ansatz K = sign*sqrt(24 pi G rho) is imaginary for
+# rho<0.  So pm / pm_eqm / mm are all born at K=0 while pp -- the only cell with
+# no phantom in it -- silently gets K = 1e-01, i.e. a slice that is already
+# collapsing before a single step is taken.  Measured on the first attempt: pp
+# ran max|K| = 3.1e-02 with the lapse swinging 0.99 -> 0.73 -> 0.88 inside t=6,
+# against max|K| = 1.2e-04 and a flat lapse in pm.  Its centre of mass had
+# wandered -0.025 by t=8, eight times the real runaway signal at that time.  The
+# control was noisier than the measurement, for a reason that has nothing to do
+# with the physics under test.  BONDI_GRTRESNA_MAXIMAL_SLICING=1 removes it.  This is the check the phantom-vs-canonical comparison
 # could never provide -- a lone negative mass has no state to fall into, so it
 # looks stable no matter what is broken.
 #
@@ -127,6 +139,9 @@ cell_s0() { case "$1" in pm_eqm|pm|pp) echo 0 ;; mm) echo 1 ;; esac; }
 cell_s1() { case "$1" in pm_eqm|pm|mm) echo 1 ;; pp) echo 0 ;; esac; }
 # Only the equal-mass cell retunes lump1; everywhere else both lumps share omega.
 cell_s1_omega() { case "$1" in pm_eqm) echo "${OMEGA_PHANTOM_EQM}" ;; *) echo "" ;; esac; }
+# pp is the one cell with no exotic lump, so it is the one cell that does not get
+# maximal slicing for free -- see THE CONTROLS above.
+cell_extra() { case "$1" in pp) echo "BONDI_GRTRESNA_MAXIMAL_SLICING=1" ;; *) echo "" ;; esac; }
 
 for cell in ${CELLS}; do
   case " ${ALL_CELLS} " in
@@ -147,6 +162,7 @@ for cell in ${CELLS}; do
   s0="$(cell_s0 "${cell}")"
   s1="$(cell_s1 "${cell}")"
   s1_omega="$(cell_s1_omega "${cell}")"
+  extra="$(cell_extra "${cell}")"
 
   if [[ -d "${runs_dir}" ]]; then
     echo "[runaway] ${cell}: run dir already exists -- not enqueued"
@@ -161,7 +177,7 @@ for cell in ${CELLS}; do
 
   {
     printf 'cd "%s"\n' "${REPO_ROOT}"
-    printf 'BONDI_GPU="${QUEUE_GPU}" %s \\\n' "${COMMON}"
+    printf 'BONDI_GPU="${QUEUE_GPU}" %s %s\\\n' "${COMMON}" "${extra:+${extra} }"
     printf '  BONDI_S0=%s BONDI_S1=%s BONDI_S0_OMEGA=%s \\\n' "${s0}" "${s1}" "${OMEGA}"
     if [[ -n "${s1_omega}" ]]; then
       printf '  BONDI_S1_OMEGA=%s \\\n' "${s1_omega}"
@@ -169,7 +185,7 @@ for cell in ${CELLS}; do
     printf '  BONDI_RUNS_DIR="%s" \\\n' "${runs_dir}"
     printf '  bash "%s"\n' "${LAUNCHER}"
   } > "${job}"
-  echo "[runaway] enqueued ${tag}  s0=${s0} s1=${s1} omega=${OMEGA}${s1_omega:+ / ${s1_omega}} sep=${SEP} -> ${runs_dir}"
+  echo "[runaway] enqueued ${tag}  s0=${s0} s1=${s1} omega=${OMEGA}${s1_omega:+ / ${s1_omega}} sep=${SEP}${extra:+ ${extra}} -> ${runs_dir}"
 done
 
 if [[ "${DRYRUN}" != "0" ]]; then

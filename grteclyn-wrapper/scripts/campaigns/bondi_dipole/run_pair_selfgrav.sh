@@ -204,6 +204,22 @@ bondi_frame_contrast_env
 # so the queue's total core draw is 4 x this number.
 GRTRESNA_RANKS="${BONDI_GRTRESNA_RANKS:-8}"
 
+# BONDI_GRTRESNA_MAXIMAL_SLICING -- 1 => build the slice with K=0 even when no
+# exotic lump is present.  GRTresna turns maximal slicing on automatically for
+# exotic matter only, because the CTTK ansatz K = sign*sqrt(24 pi G rho) is
+# imaginary for rho<0.  A PURELY CANONICAL cell therefore silently gets
+# K = 1e-01 while every phantom-bearing cell starts at K = 0 -- the canonical
+# control is born on an already-collapsing slice and the two are not comparable.
+# Measured on the pp cell of the first runaway attempt: max|K| 3.1e-02 and the
+# lapse swinging 0.99 -> 0.73 -> 0.88 inside t=6, against max|K| 1.2e-04 and a
+# flat lapse in pm.  Set this to 1 for any same-sign-canonical cell that has to
+# be read against a phantom-bearing one.
+GRTRESNA_MAXIMAL_SLICING="${BONDI_GRTRESNA_MAXIMAL_SLICING:-0}"
+MAXIMAL_SLICING_FLAG=()
+if [[ "${GRTRESNA_MAXIMAL_SLICING}" != "0" ]]; then
+  MAXIMAL_SLICING_FLAG=(--grtresna-maximal-slicing)
+fi
+
 if [[ -d "${RUNS_DIR}/${out_name}" ]]; then
   echo "[bondi] ${out_name} already exists -- delete it or set BONDI_RUNS_DIR"
   exit 1
@@ -227,6 +243,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --grtresna-max-level 3 \
   --grtresna-domain-l 128 \
   --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
+  "${MAXIMAL_SLICING_FLAG[@]}" \
   --consumer-radii ${RADII} \
   --consumer-keep-last 2 \
   --objective-mode weighted \
