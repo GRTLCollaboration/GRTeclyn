@@ -98,11 +98,11 @@
 >   null channel above is clean.
 > - *The coordinate gap between the lumps closes*, which ideal Bondi forbids —
 >   **and the separation scan has now identified it as non-gravitational.**  Run
->   to completion at `d = 8 / 10 / 12`, the matched pairs close at
->   `3.62 / 3.72 / 3.74 e-03` per unit `t`: the same approach *speed* to within
->   3%, while the separation changes by half.  A gravitational cause must fall
->   as `1/d^2`; multiplying by `d^2` gives `0.231 / 0.372 / 0.538`, a factor of
->   2.3 spread, so it is not one.  The lumps drift together at a fixed speed
+>   to completion at `d = 8 / 10 / 12 / 16`, the matched pairs close at
+>   `3.61 / 3.62 / 3.49 / 3.50 e-03` per unit `t`: the same approach *speed* to
+>   within 4%, while the separation doubles.  A gravitational cause must fall
+>   as `1/d^2`; multiplying by `d^2` gives `0.231 / 0.362 / 0.502 / 0.897`, a
+>   factor of 3.9 spread, so it is not one.  The lumps drift together at a fixed speed
 >   fixed at birth, regardless of how far apart they are — the same initial-data
 >   family as the diagonal drift above.  The physical separation is constant,
 >   which is what Bondi needs.
@@ -112,18 +112,39 @@
 >   outruns it — and the excess shrinks with separation in the same order as the
 >   fraction of the gap that closes:
 >
+>   Every cell below ran the full `t = 200`.  `runaway ratio` is the midpoint
+>   displacement over `0.5 * a * t^2`; `closing rate` is the total gap closed
+>   divided by the run length, so the whole table uses one estimator.
+>
 >   | cell | `d` | runaway ratio | null | gap closed | closing rate | `rate * d^2` |
 >   |---|---|---|---|---|---|---|
->   | `pm_eqm_sep8`  |  8 | 1.084 | -1.9% | 0.709 | 3.62e-03 | 0.231 |
->   | `pm_eqm`       | 10 | 1.042 | -1.4% | 0.725 | 3.72e-03 | 0.372 |
->   | `pm_eqm_sep12` | 12 | 1.012 | -0.8% | 0.699 | 3.74e-03 | 0.538 |
->   | `pm_sep8`      |  8 | 1.074 | -1.8% | 0.465 | 1.64e-03 | 0.105 |
->   | `pm`           | 10 | 1.039 | -1.2% | 0.564 | 2.46e-03 | 0.246 |
+>   | `pm_eqm_sep8`  |  8 | 1.089 | -2.0% | 0.722 | 3.61e-03 | 0.231 |
+>   | `pm_eqm`       | 10 | 1.042 | -1.4% | 0.724 | 3.62e-03 | 0.362 |
+>   | `pm_eqm_sep12` | 12 | 1.012 | -0.8% | 0.698 | 3.49e-03 | 0.502 |
+>   | `pm_eqm_sep16` | 16 | 0.990 | +0.2% | 0.701 | 3.50e-03 | 0.897 |
+>   | `pm_sep8`      |  8 | 1.078 | -1.9% | 0.455 | 2.27e-03 | 0.146 |
+>   | `pm`           | 10 | 1.039 | -1.2% | 0.563 | 2.81e-03 | 0.281 |
+>   | `pm_sep12`     | 12 | 1.012 | -0.5% | 0.590 | 2.95e-03 | 0.425 |
 >
->   The mismatched cells close *more slowly*, and more slowly at the smaller
->   `d`, because the heavier phantom contributes a genuine outward push that
->   partly cancels the birth drift — and that push *does* scale as `1/d^2`.
->   The mass mismatch shows up exactly where it should.
+>   The mismatched cells close *more slowly* at every separation, because the
+>   heavier phantom contributes a genuine outward push that partly cancels the
+>   birth drift — **and subtracting the two series turns that into the
+>   campaign's cleanest single measurement.**  The matched and mismatched cells
+>   at the same `d` share the same birth drift, so the difference between them
+>   is pure gravity: the relative acceleration of the pair from the mass
+>   mismatch alone, `G * dM / d^2` with `dM = 0.015131 - 0.014350 = 7.81e-04`.
+>
+>   | `d` | gap difference | implied `dM/d^2` | predicted | ratio |
+>   |---|---|---|---|---|
+>   |  8 | 0.267 | 1.333e-05 | 1.220e-05 | 1.09 |
+>   | 10 | 0.161 | 8.07e-06  | 7.81e-06  | 1.03 |
+>   | 12 | 0.108 | 5.39e-06  | 5.42e-06  | 0.99 |
+>
+>   That is a *differential* result: every additive artefact common to the two
+>   cells — the birth drift, the diagonal drift, any fixed tracker bias — cancels
+>   identically, and what is left agrees with Newton to 1-9%, improving with
+>   separation exactly as the direct measurement does.  It also runs off a mass
+>   difference of 5%, which no numerical artefact has any way of knowing.
 > - *The same-sign controls grow a large halo at late times.*  In `pp` and `mm`
 >   the total tracked activity rises 6-7x and the rms radius reaches `~30` — the
 >   whole domain — while the confined fraction falls to `~0.08`.  The cores
@@ -136,8 +157,9 @@
 >   potential coupling and meet only through gravity.
 >
 > **Does this prove the runaway?**  For the effect itself, yes, by several
-> independent routes: the pair moves the predicted distance at three
-> separations; the motion is quadratic in `t` while both controls are linear;
+> independent routes: the pair moves the predicted distance at four separations
+> spanning a factor of four in the predicted force, agreeing to 1% at the widest
+> one where a point-mass formula is most defensible; the motion is quadratic in `t` while both controls are linear;
 > the transverse null channel is under 2%; the displacement scales with the
 > stars' masses, which no numerical artefact can know; the same-sign controls
 > built by the same code on the same grid do not accelerate; and the stars
@@ -161,6 +183,38 @@
 > suspect.  The `ω = 0.55` rejection, the turning-point argument and the
 > unstable-branch reading were all produced on the broken binary and are still
 > unreplaced.
+
+> **Where the results live — 2026-08-21.**  Every number quoted above is
+> reproducible from a git-tracked extract at
+> [`results/bondi-dipole-runaway/campaign/`](../../../results/bondi-dipole-runaway/campaign/),
+> one folder per cell: `pm_eqm`, `pm_eqm_sep8/12/16`, `pm`, `pm_sep8/12`, the
+> `pp` and `mm` controls, and the long-baseline `pm_eqm_t400`.  Each folder
+> holds the full set of time series (`sector_dynamics.dat`,
+> `sector_barycenters.dat`, `confinement.dat`, the Psi4 streams, the shell and
+> boundary-flux profiles), the four evolution diagnostic streams downsampled to
+> `dt = 0.5`, the elliptic residual history, both parameter files, and
+> `launch_config.sh` — the exact environment that produced the cell.  The
+> dressed-star profile tables for this rung are in
+> [`results/bondi-dipole-runaway/stars/`](../../../results/bondi-dipole-runaway/stars/).
+>
+> Frames, movies, plotfiles and the gridinit are deliberately **not** extracted:
+> they are large, they carry no number an analysis needs, and they stay in the
+> gitignored `runs/bondi/runaway/` tree alongside the live cells.  Refresh the
+> extract at any time, including mid-run, with
+> `bash research/bondi_dipole/pack_runaway.sh` — each cell folder is rebuilt
+> from scratch, so a partial cell is replaced cleanly.
+>
+> **The previous extracts have moved.**  Everything that used to sit directly
+> under `campaign/` is now under
+> [`campaign/_corrupted_runs/`](../../../results/bondi-dipole-runaway/campaign/_corrupted_runs/),
+> because it was all produced by the binary that double-counted the potential in
+> `trS`.  It is kept, not deleted: it is the evidence for the bug and for the
+> two rejections above that must now be re-derived.  Two consequences worth
+> knowing before reaching for the old tooling — `pack_results.sh` and
+> `pack_campaign.sh` read a `runs/bondi/rerun` tree that no longer exists and
+> now serve only as the provenance record for those extracts, and the scripts in
+> `results/bondi-dipole-runaway/analysis/` address cells by name, so they
+> resolve into `_corrupted_runs/` rather than into the current campaign.
 
 > This is the single working document for that loop: **what the campaign found**
 > → **why the matter is wrong** → **what a stable replacement looks like** →
