@@ -49,6 +49,75 @@
 > turning-point argument, the unstable-branch reading, and the
 > stable-replacement recommendation.  The matter model was never the problem.
 >
+> **Status — 2026-08-21 (current): the star no longer disperses, and the
+> runaway is measured.**  With the `trS` fix and the maximal-slicing fix both
+> in, the mixed pair is a stable, confined configuration that self-accelerates
+> at the predicted rate.  Cells are in `runs/bondi/runaway/`.
+>
+> *The matter holds.*  In the mass-matched pair the peak amplitude is flat over
+> the whole run — `0.024553` at birth against `0.024632` at `t = 113` — the
+> total tracked activity rises only 11%, the rms radius peaks at `8.26` and
+> then *contracts* to `7.60`, and the confined fraction climbs `0.2756` to
+> `0.2949`.  Nothing is leaking away.  The geometry agrees: lapse `0.99144` at
+> `t = 174` against `0.99209` at birth, `max abs K` at `9.3e-05`, Hamiltonian
+> violation 27x below its birth value.  This is the case that used to collapse
+> to a horizon on the old binary and to dissolve in the first trS A/B.
+>
+> *The runaway is there and it is the right size.*  Both mixed cells track the
+> Newtonian prediction `a = G M / d^2` on the midpoint of the pair:
+> measured-over-predicted is `0.993`–`0.995` for the mass-matched cell and
+> `0.996`–`1.000` for the mismatched one, holding flat across a fourfold range
+> in `t`.  Three independent checks back it:
+>
+> 1. **It scales with mass.**  The pair carrying the heavier phantom runs 3.2%
+>    faster than the matched pair; the two stars' masses alone predict 2.7%.
+>    A fixed numerical artefact would not know the mass.
+> 2. **It passes its own null test.**  The pair lies on the x-axis, so any
+>    transverse motion of the midpoint is forbidden by symmetry and measures
+>    the diagnostic's systematic error directly.  That channel reads 0.5% of
+>    the forward signal.
+> 3. **The same-sign controls do not accelerate.**  `pp` and `mm` drift less
+>    than their own transverse error, and *linearly* in `t` rather than
+>    quadratically — a different functional form from the runaway, cleanly
+>    separable from it.
+>
+> **Three things are open and none of them touch the result above.**
+>
+> - *Each lump moves on an arc.*  Every row has the transverse displacement
+>   equal in `y` and `z` to five digits, so each core drifts along a grid
+>   diagonal — canonical one way, phantom the other, at a steady `~1.4e-03`.
+>   Combined with the accelerating forward motion this traces a curve, which is
+>   visible in the movies.  It is *not* an interaction: the same per-sector
+>   drift appears in `pp` and `mm`, where only one of the two sectors exists.
+>   The seed is in the initial data — at `t = 0` the matter momentum of both
+>   sectors is exactly zero, yet the cores already sit at `y = 31.99953`
+>   (canonical) and `32.00046` (phantom), equal and opposite, sign following
+>   the sign of the energy density.  Two independent trackers (the core-weighted
+>   centroid and the whole-sector barycentre) agree on it, so it is in the
+>   matter, not the diagnostic.  It cancels in the midpoint, which is why the
+>   null channel above is clean.
+> - *The coordinate gap between the lumps closes* by `~0.17` over `t = 57` in
+>   the matched pair, which ideal Bondi forbids.  A separation scan at
+>   `d = 8 / 10 / 12 / 16` is running to identify it.  Finite-size overlap is
+>   already disfavoured: at `d = 12` the closing is 95% of the `d = 10` rate,
+>   where the field's `~1.5` falloff length would demand roughly a factor of
+>   four drop.
+> - *The same-sign controls grow a large halo at late times.*  In `pp` and `mm`
+>   the total tracked activity rises 6-7x and the rms radius reaches `~30` — the
+>   whole domain — while the confined fraction falls to `~0.08`.  The cores
+>   survive (peak amplitude holds to within 5%), but these cells are only clean
+>   in the early and middle window; do not quote them past `t ~ 60`.  The mixed
+>   pairs show none of this.  Note also that in a same-sign cell both lumps live
+>   in *one* field, so the potential's cross terms give them a direct scalar
+>   attraction on top of gravity — their size changes are not purely
+>   gravitational.  The mixed pair has no such term: the two sectors share no
+>   potential coupling and meet only through gravity.
+>
+> **What this does not yet do** is re-derive the conclusions listed below as
+> suspect.  The `ω = 0.55` rejection, the turning-point argument and the
+> unstable-branch reading were all produced on the broken binary and are still
+> unreplaced.
+
 > This is the single working document for that loop: **what the campaign found**
 > → **why the matter is wrong** → **what a stable replacement looks like** →
 > **how to run and check it**.  The original GPU queue is kept at the end,
