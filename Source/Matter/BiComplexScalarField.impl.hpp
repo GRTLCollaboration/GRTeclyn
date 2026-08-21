@@ -9,9 +9,8 @@ namespace
 {
 //! Accumulate one complex field's (signed) stress-energy into out.  Mirrors
 //! the single-field ComplexScalarField math; ``fs`` is the field's
-//! gravitational sign (+1 canonical, -1 phantom).  Returns fs * V (the signed
-//! potential, needed for the trace correction).
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real accumulate_complex_field(
+//! gravitational sign (+1 canonical, -1 phantom).
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void accumulate_complex_field(
     emtensor_t &out, amrex::Real fs, amrex::Real Pi1, amrex::Real Pi2,
     const Tensor<1, amrex::Real> &d1phi1, const Tensor<1, amrex::Real> &d1phi2,
     amrex::Real V_of_phi, amrex::Real chi, const BiComplexScalarFieldVars &vars,
@@ -49,7 +48,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real accumulate_complex_field(
     {
         out.S[i][j] -= fs * vars.h(i, j) * V_of_phi / chi;
     }
-    return fs * V_of_phi;
 }
 } // namespace
 
@@ -68,19 +66,20 @@ BiComplexScalarField::compute_emtensor(
     // Canonical (Phi+) field, gravitational sign +1.
     amrex::Real Vp = 0.0, dVp1 = 0.0, dVp2 = 0.0;
     m_potential.compute_potential(Vp, dVp1, dVp2, vars.phi1p(), vars.phi2p());
-    amrex::Real sumV = accumulate_complex_field(
+    accumulate_complex_field(
         out, +1.0, vars.Pi1p(), vars.Pi2p(), d1.m_phi1p_d1, d1.m_phi2p_d1, Vp,
         vars.chi(), vars, h_UU);
 
     // Phantom (Phi-) field, gravitational sign -1.
     amrex::Real Vm = 0.0, dVm1 = 0.0, dVm2 = 0.0;
     m_potential.compute_potential(Vm, dVm1, dVm2, vars.phi1m(), vars.phi2m());
-    sumV += accumulate_complex_field(out, -1.0, vars.Pi1m(), vars.Pi2m(),
+    accumulate_complex_field(out, -1.0, vars.Pi1m(), vars.Pi2m(),
                                      d1.m_phi1m_d1, d1.m_phi2m_d1, Vm,
                                      vars.chi(), vars, h_UU);
 
-    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) -
-              3.0 * sumV;
+    // out.S already carries the -gamma_ij V term for both fields, so its trace
+    // supplies the -3V; adding that again double-counts the potential.
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU);
     return out;
 }
 

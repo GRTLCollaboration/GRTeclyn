@@ -51,9 +51,9 @@ ComplexExoticScalarField<potential_t>::compute_emtensor(
                                    vars.Pi2() * vars.Pi2() + 0.5 * Vt +
                                    V_of_phi);
 
-    // trS: out.S is already scaled by support_strength; restore the +3V piece.
-    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) +
-              support_strength * 3.0 * V_of_phi;
+    // trS: out.S already carries the potential term (scaled by
+    // support_strength), so its trace supplies it; adding it again double-counts.
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU);
 
     // j_i (lower index) = - n^a T_ai
     FOR (i)

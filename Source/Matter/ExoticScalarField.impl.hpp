@@ -45,11 +45,9 @@ AMREX_GPU_DEVICE emtensor_t ExoticScalarField<potential_t>::compute_emtensor(
     // rho = n^a n^b T_ab
     out.rho = -support_strength * (vars.Pi() * vars.Pi() + 0.5 * Vt + V_of_phi);
 
-    // trS = Tr_S_ij
-    // note: out.S is already scaled by support_strength, so compute_trace(out.S)
-    // is scaled. normal trS has -3.0 * V, so phantom trS has +3.0 * V.
-    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) +
-              support_strength * 3.0 * V_of_phi;
+    // trS = Tr_S_ij.  out.S already carries the potential term (scaled by
+    // support_strength), so its trace supplies it; adding it again double-counts.
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU);
 
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)
@@ -95,12 +93,9 @@ AMREX_GPU_DEVICE emtensor_t ExoticScalarField<potential_t>::compute_emtensor(
     // rho = n^a n^b T_ab
     out.rho = -support_strength * (vars.Pi() * vars.Pi() + 0.5 * Vt + V_of_phi);
 
-    // trS = Tr_S_ij
-    // note: out.S is already scaled by support_strength, so compute_trace(out.S)
-    // is scaled.
-    // normal trS has -3.0 * V, so phantom trS has +3.0 * V.
-    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) +
-              support_strength * 3.0 * V_of_phi;
+    // trS = Tr_S_ij.  out.S already carries the potential term (scaled by
+    // support_strength), so its trace supplies it; adding it again double-counts.
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU);
 
     //    j_i (note lower index) = - n^a T_ai
     FOR (i)

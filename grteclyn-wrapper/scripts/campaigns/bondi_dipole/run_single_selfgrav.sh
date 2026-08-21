@@ -139,6 +139,23 @@ if [[ "${GRTRESNA_MAXIMAL_SLICING}" != "0" ]]; then
   MAXIMAL_SLICING_FLAG=(--grtresna-maximal-slicing)
 fi
 
+# BONDI_GRIDINIT -- reuse an already-solved initial_data.gridinit and skip the
+# elliptic solve entirely.  The point is an evolution-only A/B: two cells that
+# start from the SAME BYTES differ only in the evolution binary, so nothing in
+# the comparison can be blamed on solver noise or a re-solve landing on a
+# slightly different root.  Every BONDI_GRTRESNA_* knob is ignored when this is
+# set -- the slice is whatever was solved before, not what those knobs describe.
+GRIDINIT_FLAG=()
+if [[ -n "${BONDI_GRIDINIT:-}" ]]; then
+  if [[ ! -f "${BONDI_GRIDINIT}" ]]; then
+    echo "[bondi] BONDI_GRIDINIT set but not a file: ${BONDI_GRIDINIT}" >&2
+    exit 1
+  fi
+  GRIDINIT_FLAG=(--gridinit "${BONDI_GRIDINIT}")
+  echo "[bondi] reusing solved initial data, skipping the GRTresna solve:"
+  echo "[bondi]   ${BONDI_GRIDINIT}"
+fi
+
 mkdir -p "${RUNS_DIR}"
 
 # Stop handle for scripts/campaigns/stop_campaign.sh.
@@ -224,6 +241,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \
   --grtresna-n "${GRTRESNA_N}" \
   "${MAXIMAL_SLICING_FLAG[@]}" \
+  "${GRIDINIT_FLAG[@]}" \
   --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --consumer-radii ${RADII} \
   --consumer-keep-last 2 \

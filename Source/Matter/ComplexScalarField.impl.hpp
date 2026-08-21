@@ -79,11 +79,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE emtensor_t ComplexScalarField::compute_emten
     {
         out.S[i][j] *= sign;
     }
-    // S is already sign-flipped, so trace(S) carries the sign; only the
-    // explicit -3V term needs the extra factor.
-    out.trS =
-        vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) -
-        sign * 3.0 * V_of_phi;
+    // out.S already carries the sign-flipped -gamma_ij V term, so its trace
+    // supplies the -3V; adding that again double-counts the potential.
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU);
 
     return out;
 }

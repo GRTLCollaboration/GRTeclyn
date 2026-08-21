@@ -51,8 +51,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE emtensor_t GRTresnaIndependentScalars::compu
     {
         out.S[i][j] -= vars.h(i, j) * V_of_phi / vars.chi();
     }
-    out.trS =
-        vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU) - 3.0 * V_of_phi;
+    out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU);
 
     return out;
 }

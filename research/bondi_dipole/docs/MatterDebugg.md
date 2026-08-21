@@ -25,6 +25,19 @@
 > **Both rejections above are now suspect**, because every canonical cell ever
 > run — `ω = 0.55`, `0.75`, `0.80`, at every resolution — was built this way.
 >
+> **Status — 2026-08-21 (later still): the birth kick was real but it was not
+> the sink.  A second bug underneath it was, and it is fixed.**  The trace of
+> the matter stress tensor had the potential subtracted twice in every matter
+> class in the tree, which drove the slicing and nothing else — invisible to the
+> constraint monitor, and multiplied by nought in every test in the suite
+> because they all use a zero potential.  A star made of potential is exactly
+> the case that was never tested.  With it fixed, the same four cells re-evolved
+> from the same initial-data bytes stop sinking: `max abs K` decays instead of
+> climbing, and the Hamiltonian violation falls instead of growing.  See
+> [Critical bug: the potential is counted twice in the trace of T_ij](#critical-bug-the-potential-is-counted-twice-in-the-trace-of-t_ij--2026-08-21).
+> **Every canonical-sector conclusion in this document predates the fix and
+> needs re-deriving.**
+>
 > This is the single working document for that loop: **what the campaign found**
 > → **why the matter is wrong** → **what a stable replacement looks like** →
 > **how to run and check it**.  The original GPU queue is kept at the end,
@@ -238,9 +251,145 @@ interpretable.
 - **still sinks** → the birth kick is not the cause, the rung is genuinely
   unstable to compression, and the mass dial or a new rung is the next move
 
-**Until this returns, treat every canonical-sector conclusion in this document
-as provisional** — including the `ω = 0.55` rejection, the turning-point
-argument, and the stable-replacement recommendation.
+**It returned a split verdict.**  The matter side passed outright: the envelope
+blowout is gone, and at `t = 40` the `ω = 0.80` star holds 71% of its field in
+the core against the old run's 32%, at an rms radius of 7.0 against 19.9.  The
+birth flinch is gone too — `min lapse` at `t = 5` is 0.995 where the old run
+was already at 0.933.  But from `t = 20` onward the lapse curves lie on top of
+each other (`t = 80`: 0.827 new against 0.837 old), and `ω = 0.75` still
+reached a horizon near `t = 100`.
+
+So the birth kick was real and it was doing real damage, but it was not what
+killed the runs.  A **second, independent** bug was underneath it — in the
+stress-energy trace, see the next section — and that one *is* the sink.
+
+---
+
+## Critical bug: the potential is counted twice in the trace of T_ij — 2026-08-21
+
+**Every matter class in `Source/Matter/` computed `trS` with the potential
+subtracted twice.**  This is the bug that was actually collapsing the canonical
+star, and it had been in the tree since the classes were written.
+
+### The mechanism
+
+Each class builds `S_ij` with the potential already folded in,
+
+```
+S_ij = d_i phi d_j phi - gamma_ij (Vt/2 + V)
+```
+
+and then took the trace as
+
+```
+trS = chi * compute_trace(S_ij, h_UU) - 3 V        <-- wrong
+```
+
+The trace of *that* `S_ij` already contains the `-3V`, because
+`gamma^ij gamma_ij = 3`.  Subtracting it again leaves `trS` short by exactly
+`-3V`.  The correct line is the bare trace, which is what `DustMatter` and
+`EffectiveTeoMatter` had always done:
+
+```
+trS = chi * compute_trace(S_ij, h_UU)              <-- right
+```
+
+Checked against the covariant definition
+`T_ab = d_a phi d_b phi - g_ab (dphi^2 / 2 + V)` decomposed on `n^a`, with a
+random unit-determinant `h_ij`: `rho`, `j_i` and `S_ij` all come out exact to
+machine precision and `trS` comes out short by `-3V` to twelve digits.  In the
+pure vacuum-energy limit — `phi` constant, `Pi = 0`, so `T_ab = -V g_ab` and
+the answer is `rho = V`, `S = -3V` — the code returned `-6V`.  A clean factor
+of two.
+
+### Why nothing caught it
+
+Two reasons, and they compound.
+
+`trS` is consumed in exactly one place: `CCZ4RHSWithMatter::add_emtensor_rhs`,
+where it enters `rhs[c_K]`.  The `A_ij` equation re-derives its own trace from
+`S_ij` via `make_trace_free`, and the Hamiltonian and momentum constraints read
+only `rho` and `j_i`.  So a wrong `trS` is **invisible in the constraint
+monitor at `t = 0`** and corrupts nothing but the evolution of `K`.  Initial
+data that is clean to `1e-6` stays clean-looking while the slicing is driven
+off.
+
+And every test in `Tests/` instantiates `ScalarField<DefaultPotential>`, whose
+`compute_potential` sets `V_of_phi = 0.0`.  `EMTensorTest`, `BSSNMatterTest`
+and `Weyl4WithMatterTest` all multiply the broken term by nought and compare
+clean against their stored GRChombo references.  **A star held together by its
+potential is precisely the case the suite never exercises**, and this campaign's
+star is nothing but potential: `m^2`, an attractive quartic and a sextic
+stabiliser.
+
+### The evidence
+
+Same four cells, same solved `initial_data.gridinit` **bytes**, only the
+evolution binary changed:
+
+| `t` | min lapse | | min chi | | max abs K | |
+|---|---|---|---|---|---|---|
+| | **fixed** | broken | **fixed** | broken | **fixed** | broken |
+| 5 | 0.99346 | 0.99405 | 0.99002 | 0.98720 | 1.38e-03 | 1.43e-03 |
+| 10 | 0.99701 | 0.98744 | 0.99331 | 0.98102 | 2.58e-04 | 3.06e-03 |
+| 15 | 0.99798 | 0.98029 | 0.99498 | 0.97311 | 2.19e-04 | 4.62e-03 |
+
+`max abs K` is the tell.  In the broken runs it climbs monotonically from birth
+and never stops, reaching 0.34 by `t = 110`.  In the fixed runs it peaks around
+`t = 5` and then **decays by a factor of six**, settling near `2e-04` — which
+is what a static star on a maximal slice is supposed to do.  The lapse and the
+conformal factor follow it back up toward 1 instead of down.
+
+The Hamiltonian constraint says the same thing in the cleanest form:
+
+| `t` | L2 Ham fixed | L2 Ham broken |
+|---|---|---|
+| 2 | 4.63e-05 | 4.47e-05 |
+| 4 | 3.19e-05 | 8.58e-05 |
+| 6 | 2.61e-05 | 1.45e-04 |
+| 8 | 2.22e-05 | 2.08e-04 |
+| 10 | 1.96e-05 | 2.72e-04 |
+
+Identical at `t = 2`, then they part: the broken run's violation grows 6× over
+the next eight time units, the fixed run's **decays** 2.4×.  One spacetime is
+being driven away from Einstein's equations; the other is relaxing onto them.
+
+### Why the phantom sector never showed it, and why that was misleading
+
+The spurious term carries the sign of the energy, so the two sectors are pushed
+opposite ways.  But that is *not* why only the canonical star died, and the
+phantom's stability was never evidence that the coupling was right.
+
+At `ω = 0.80` the canonical star has `M/R = 2.3e-03` — about 1/200 of the
+compactness anything needs to form a horizon — and the phantom twin is the same
+size with `M = -0.0117`.  Negative mass gravitates repulsively: **there is no
+collapsed end state for it to fall into.**  Whatever spurious source you feed
+it, the answer disperses and the error saturates, which is exactly what the
+phantom control did (`Linf Ham` plateaued at 0.037 and sat there to `t = 102`
+while the canonical's ran past 0.24).
+
+The phantom is the direction with no attractor.  Reading its stability as a
+clean control is what kept the search pointed at the matter model for weeks.
+The right question was never "why is the phantom so stable" — it could not have
+been anything else — but "how is a star at 1/200 of horizon compactness
+collapsing at all, while its own field never moves?"  It was not.  The geometry
+was manufacturing several hundred times the star's mass out of a
+double-counted potential.
+
+### The fix
+
+One line per class, in `ScalarField`, `ComplexScalarField`,
+`BiComplexScalarField`, `ExoticScalarField` (two overloads),
+`ComplexExoticScalarField` and `GRTresnaIndependentScalars`.  The A/B campaign
+is `grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_trsfix_ab.sh`, which
+re-evolves the four `K = 0` cells from the already-solved slices via the new
+`BONDI_GRIDINIT` knob — the elliptic solve is skipped, so nothing in the
+comparison can be blamed on the solver.
+
+**This supersedes the caveat that stood here.**  The `ω = 0.55` rejection, the
+turning-point argument and the stable-replacement recommendation were all
+reached on runs whose slicing was being driven by this bug, and none of them
+survive as evidence.  They need re-deriving on the fixed binary.
 
 ---
 
