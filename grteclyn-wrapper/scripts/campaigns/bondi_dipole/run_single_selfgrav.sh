@@ -111,6 +111,13 @@ export GRTECLYN_SECTOR_DYNAMICS_LEVEL="${BONDI_SCRUTINY_LEVEL:-0}"
 export GRTECLYN_PSI4_HIGHER_L="${BONDI_PSI4_HIGHER_L:-0}"
 export GRTECLYN_PSI4_ELLS="${BONDI_PSI4_ELLS:-3 4}"
 
+# Frame colour scales.  The renderer's built-in limits are calibrated for the
+# search campaign's brighter matter rung and render this campaign's stars as a
+# near-black smudge; frame_contrast.sh maps them onto the star this launcher is
+# actually evolving.  Disable with BONDI_FRAME_CONTRAST=0.
+source "${SCRIPT_DIR}/frame_contrast.sh"
+bondi_frame_contrast_env
+
 # The elliptic solve parallelises and this node's MPI is healthy (verified
 # 2026-08-20; the old "mpirun segfaults" note came from the previous node).
 # The EVOLUTION is single-GPU regardless -- a RadialRecipe-specific AMR crash
