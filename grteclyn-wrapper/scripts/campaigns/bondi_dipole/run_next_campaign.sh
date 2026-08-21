@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bondi dipole -- launcher for the follow-up campaign in
-# research/bondi_dipole/docs/GPU.md.  Six cells that answer the open items the
+# research/bondi_dipole/docs/MatterDebugg.md.  Six cells that answer the open items the
 # published pack cannot, enqueued onto the shared work-queue runner
 # (../lib/gpu_queue.sh) so whichever card frees first takes the next cell.
 #

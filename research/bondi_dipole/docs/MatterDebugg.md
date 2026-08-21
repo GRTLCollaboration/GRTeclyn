@@ -1,10 +1,15 @@
-# What still has to be run on a GPU, and why
+# Matter debugging — getting to a star that does not collapse
 
-> **Status — 2026-08-20: the queue below has been run, and the matter model it
-> was run on is rejected.**  All six cells completed; the campaign's own data
-> shows the positive-mass star sits on the unstable branch of its family and
-> collapses on the timescale the measurement needs.  The next step is a stable
-> star, not another cell on this one — see *Verdict* below.  Results are in
+> **Status — 2026-08-20: the `ω = 0.55` matter model is rejected.**  The
+> follow-up campaign completed all six cells, and its own data shows the
+> positive-mass star sits on the unstable branch of its family and collapses on
+> the timescale the measurement needs.  The next step is a stable star, not
+> another cell on this one.
+>
+> This is the single working document for that loop: **what the campaign found**
+> → **why the matter is wrong** → **what a stable replacement looks like** →
+> **how to run and check it**.  The original GPU queue is kept at the end,
+> flagged as historical.  Results are in
 > [What the campaign returned](#what-the-campaign-returned--2026-08-20) directly
 > beneath this section, together with the one finding that changes the article's
 > interpretation.  Everything from *Before launching anything* onward is kept
@@ -283,35 +288,99 @@ Below `ω ≈ 0.67` the central density turns back while the mass keeps climbing
 That sign change is the turning-point criterion, and it is the whole story.
 **The stable branch, `ω ≳ 0.67`, has never been run.**
 
-### What a stable replacement looks like
+### What a stable replacement looks like — sizes, separation, run length
 
-The natural targets are `ω = 0.775–0.80` — far enough above the turning point to
-be unambiguous, without making the stars so dilute that nothing happens.  Two
-things change, and one of them is very much for the better:
+The natural target is **`ω = 0.80`**, and it lands on three good things at once:
+it is comfortably above the turning point, it is where the star's *bulk* is at
+its smallest anywhere in the family, and it is where the two sectors happen to
+come out nearly equal in mass.
 
-| | `ω = 0.55` (now) | `ω = 0.775` | `ω = 0.80` |
-|---|---|---|---|
-| `M₊` | `0.06395` | `0.01261` | `0.01121` |
-| `\|M₋\|` | `0.07696` | `0.01323` | `0.01169` |
-| **mass ratio `\|M₋\|/M₊`** | `1.203` | **`1.049`** | **`1.043`** |
-| `r₉₉`, canonical / phantom | `8.72 / 9.16` | `9.34 / 9.39` | `9.81 / 9.84` |
-| `d₀` for the same clearance | `12` | `12.6` | `13.2` |
-| acceleration, relative | `1.00` | `0.18` | `0.145` |
-| `t` to reach the drift now seen at `t = 45` | `45` | `106` | `118` |
+Read the sizes carefully, because the two radii move in *opposite* directions.
+`r₉₀` is the bulk — where the star's mass actually is, and what the core tracker
+cares about.  `r₉₉` is the bulk plus the diffuse tail.
 
-**The mass ratio is the prize.**  Bondi's constant-gap runaway is strictly an
-*equal-mass* result; at `1.203` the present pair is 20 % away from it, and the
-gap closes for that reason alone.  On the stable branch the two families come
-out naturally within `4–5 %` of equal mass — the configuration the theorem is
-actually about, for free, with no tuning.
+| `ω` | `M₊` | `\|M₋\|` | ratio | `r₉₀` c/p | `Σr₉₀` | `d₀/Σr₉₀` | `r₉₉` c/p | span | rel. accel | `t` for the same drift |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **`0.55`** | `0.06395` | `0.07696` | `1.203` | `7.57 / 8.20` | `15.77` | **`0.76`** | `8.72 / 9.16` | `±15.2` | `1.000` | `45` ← now |
+| `0.75` | `0.01435` | `0.01513` | `1.054` | `5.24 / 5.34` | `10.58` | `1.13` | `8.99 / 9.04` | `±15.0` | `0.224` | `95` |
+| `0.775` | `0.01261` | `0.01323` | `1.049` | `5.14 / 5.24` | `10.38` | `1.16` | `9.34 / 9.39` | `±15.4` | `0.197` | `101` |
+| **`0.80`** | `0.01121` | `0.01169` | **`1.043`** | **`5.11 / 5.18`** | `10.29` | **`1.17`** | `9.81 / 9.84` | `±15.8` | `0.175` | `107` ← pick |
+| `0.85` | `0.00916` | `0.00946` | `1.033` | `5.71 / 5.70` | `11.41` | `1.05` | `11.07 / 11.10` | `±17.1` | `0.143` | `119` |
 
-**The cost is patience, not hardware.**  Stars `5–6×` lighter accelerate
-`5.5–7×` more weakly, so the same drift needs `t ≈ 110–120` instead of `45`.
-But `d₀` barely moves (`12 → 13.2`), the stars still fit `L = 64` with room to
-spare (they span `±16.4` against a `±32` boundary), and `Δx = 0.25` still
-resolves them.  **Same box, same resolution, roughly `2.5×` the run length** —
-and `spongeB_sep16_long` has already shown a `t = 120` cell is affordable.  The
-star is stable, so running long is finally allowed.
+*(all rows computed at `d₀ = 12`, `L = 64`, `N = 256`, `Δx = 0.25`)*
+
+**Size.**  The bulk gets *smaller*, not bigger — `r₉₀` falls from `7.57 / 8.20`
+to `5.11 / 5.18`, a third off.  `ω = 0.80` is the exact minimum of `r₉₀` for
+**both** sectors across the whole scan; this family's radius is famously
+non-monotonic in `ω` (it inflates in both the thin-wall and thick-wall limits),
+and `0.80` is the bottom of that curve.  Only the diffuse tail grows,
+`8.72 → 9.81`.
+
+**Separation: keep `d₀ = 12`.**  Measured against the bulk, `d₀ = 12` at
+`ω = 0.55` gives a clearance of `0.76` — the two stars are *inside* each other,
+which is the whole reason the published `d₀ = 8` cell is a single blob.  At
+`ω = 0.80` the same `d₀ = 12` gives `1.17`, so the bulk is genuinely clear.
+**`d₀ = 12` on the stable branch is better separated than `d₀ = 16` is today**
+(`16 / 15.77 = 1.01`, only just touching), while keeping the much stronger
+signal of the shorter separation.  There is no reason to widen it.
+
+**The tails will always overlap, and that is not fixable here.**  `Σr₉₉ = 19.65`
+against `d₀ = 12`.  Clearing the `99 %` envelopes needs `d₀ ≳ 20`, which needs
+`L = 128`, which at `Δx = 0.25` is `N = 512` and roughly `370` GB — four times
+an `80` GB card.  Accept the tail overlap and measure with the core tracker,
+which is halo-free by construction; the barycentre is exactly the diagnostic
+that cannot survive this and it is the one being retired.
+
+**Box and resolution are unchanged.**  The pair spans `±15.8` against a `±32`
+boundary — comfortable, with room for the sponge band.  `L = 64`, `N = 256`,
+`Δx = 0.25`, `max_level = 0`, `Δt = 0.02 Δx`, exactly as now.
+
+**Run length is the only real cost.**  Stars `5.7×` lighter accelerate `5.7×`
+more weakly at the same separation, so the same drift needs `t ≈ 107` instead of
+`45`.  `spongeB_sep16_long` already ran `t = 120` at this grid size, so the
+budget is known.  And this time running long is *allowed*, because the star does
+not collapse at `t ≈ 57`.
+
+**If `t ≈ 107` is too long, `ω = 0.75` is the trade:** `t ≈ 95`, bulk clearance
+`1.13`, mass ratio `1.054`, all still on the stable side — just with less margin
+above the turning point.  Do not go below `ω = 0.70`.
+
+**The mass ratio is the quiet prize.**  Bondi's constant-gap runaway is strictly
+an *equal-mass* result.  At `1.203` the present pair is `20 %` away from it and
+the gap closes for that reason alone, with no numerical excuse needed.  On the
+stable branch the two sectors come out within `4–5 %` of equal mass with no
+detuning at all — the configuration the theorem is actually about, for free.
+
+### Is the phantom stable too?
+
+**Yes, and it is the best-established fact in the whole dataset.**  Over the
+longest run in the campaign — `t = 0 … 120`, sitting next to a star that turned
+into a black hole — the phantom's core peak never moves:
+
+| `t` | 0 | 20 | 40 | 60 | 80 | 100 | 120 |
+|---|---|---|---|---|---|---|---|
+| phantom peak | `0.0223` | `0.0222` | `0.0221` | `0.0221` | `0.0221` | `0.0222` | `0.0223` |
+| deviation | `0.00 %` | `−0.40 %` | `−0.86 %` | `−0.86 %` | `−0.56 %` | `−0.43 %` | `+0.32 %` |
+
+Alone in an empty box its lapse never leaves `0.998 – 1.001`.  It has no
+collapse channel: its energy is negative, so its own gravity pushes outward and
+there is nothing for field pressure to lose to.
+
+Note that at `ω = 0.55` the phantom is *formally* past its own turning point
+(which sits at `ω ≈ 0.67`, essentially the same place as the canonical one) and
+is nonetheless perfectly stable.  That is the criterion failing to apply, not
+the star getting lucky — the turning-point argument is derived for
+positive-energy configurations.  Moving to `ω = 0.80` puts the phantom on the
+formally stable side as well, so there is no trade-off in the choice.
+
+**Two caveats, both about the halo rather than the star.**  The phantom sector's
+rms radius does grow — `5.43 → 17.6` by `t = 100` — while its core sits
+motionless.  That is halo and debris being counted by a domain-integrated
+quantity, and it is one more reason every measurement on a long run has to come
+from the core tracker.  And the lone-phantom control has only ever been run to
+`t = 40`; **nobody has evolved a phantom on its own past that**.  If the plan is
+`t ≈ 110`, run the single-star control for *both* sectors, not just the
+canonical one.
 
 ### Do this first, before booking any GPU time
 

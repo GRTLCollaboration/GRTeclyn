@@ -14,7 +14,7 @@ families live here side by side, told apart by their names:
 * **`next_*`** — the **follow-up campaign** (2026-08-20), six cells that answer
   questions the published campaign could not.  **Nothing in the current article
   depends on these**; they exist to close the open items in
-  `research/bondi_dipole/docs/GPU.md`, and their results are summarised below.
+  `research/bondi_dipole/docs/MatterDebugg.md`, and their results are summarised below.
 
 Every cell is **strictly uniform-grid** (`max_level = 0`): there is no mesh
 refinement anywhere in this campaign, so a cell's resolution is fully
@@ -290,7 +290,7 @@ there the drift at t = 60 is 0.44 against 7.11 at d₀ = 8 — a factor 16 small
 where an inverse-square force between separated masses predicts a factor 4.
 
 Full write-up, including what it costs the article and the three ways forward:
-`../../../research/bondi_dipole/docs/GPU.md`.
+`../../../research/bondi_dipole/docs/MatterDebugg.md`.
 
 ---
 
