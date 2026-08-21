@@ -28,10 +28,29 @@
 # Overrides: BONDI_GPU (default 1), BONDI_STOP_TIME (default 40),
 #            BONDI_RUNS_DIR, BONDI_SEP (default 8), BONDI_EXOTIC=1 (lone
 #            phantom star single_m -- reads the PHANTOM columns downstream).
+#   BONDI_OMEGA: star frequency (default 0.55 -- the UNSTABLE branch; the
+#     stable branch starts at ~0.67, design point 0.80).  A non-default value
+#     appends _wNNN to the run name so the published cells are never clobbered.
+#   BONDI_SCALAR_LAMBDA / BONDI_SCALAR_MU: potential rung (published defaults).
+#   BONDI_NL_TOL / BONDI_NL_STALL_TOL / BONDI_GRTRESNA_TIMEOUT: elliptic-solve
+#     stopping rule, same semantics as the pair launcher.
+#   BONDI_SPONGE=1 (+ BONDI_SPONGE_INNER/_OUTER/_STRENGTH/_RAMP): boundary
+#     sponge -- required for any single pushed past t~60, or the trapped
+#     massive-scalar bath poisons the tail of the run.
+#   BONDI_GRTRESNA_RANKS: MPI ranks for the elliptic solve (default 8).
+#   BONDI_DRYRUN=1: resolve and print the parameters, then exit.
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd -- "${WRAPPER_DIR}/.." && pwd)"
+
+# Site paths (GRTRESNA_ENV -> mpirun on PATH) -- required for a multi-rank
+# solve; see the identical block in run_pair_selfgrav.sh.
+# shellcheck source=../../lib/env.sh
+source "${WRAPPER_DIR}/scripts/lib/env.sh"
+# env.sh exports a SCRIPT_DIR of its own and cds to the repo root -- put ours
+# back, or every sibling path below resolves against scripts/lib/ instead.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 SOURCE_EVAL="${REPO_ROOT}/results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
 RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_selfgrav_v1}"
@@ -39,6 +58,18 @@ GPU="${BONDI_GPU:-1}"
 STOP_TIME="${BONDI_STOP_TIME:-40}"
 SEP="${BONDI_SEP:-8}"
 EXOTIC="${BONDI_EXOTIC:-0}"
+
+# Matter configuration -- nothing hard-coded below: frequency and potential
+# rung come through the environment, defaulting to the published values so an
+# un-set environment reproduces the original cell bit-for-bit.
+OMEGA="${BONDI_OMEGA:-0.55}"
+SCALAR_LAMBDA="${BONDI_SCALAR_LAMBDA:-10240}"
+SCALAR_MU="${BONDI_SCALAR_MU:-21845333}"
+
+# Elliptic-solve stopping rule (same semantics as the pair launcher).
+NL_TOL="${BONDI_NL_TOL:-0.1}"
+NL_STALL_TOL="${BONDI_NL_STALL_TOL:-0.002}"
+GRTRESNA_TIMEOUT="${BONDI_GRTRESNA_TIMEOUT:-7200}"
 R0="$(python3 -c "print(${SEP}/2)")"
 
 # Rerun knobs (Debug.md §3).  All default to the published campaign values, so
@@ -80,12 +111,41 @@ export GRTECLYN_SECTOR_DYNAMICS_LEVEL="${BONDI_SCRUTINY_LEVEL:-0}"
 export GRTECLYN_PSI4_HIGHER_L="${BONDI_PSI4_HIGHER_L:-0}"
 export GRTECLYN_PSI4_ELLS="${BONDI_PSI4_ELLS:-3 4}"
 
-# This node: mpirun segfaults cluster-wide -- GRTresna and the evolution both
-# run single-rank.  Do not raise.
-GRTRESNA_RANKS=1
+# The elliptic solve parallelises and this node's MPI is healthy (verified
+# 2026-08-20; the old "mpirun segfaults" note came from the previous node).
+# The EVOLUTION is single-GPU regardless -- a RadialRecipe-specific AMR crash
+# still blocks multi-GPU there.
+GRTRESNA_RANKS="${BONDI_GRTRESNA_RANKS:-8}"
+
+# Numerical sponge zone -- same knob set and same caveats as the pair
+# launcher (band default 24/32 is sized for L=64).
+SPONGE="${BONDI_SPONGE:-0}"
+SPONGE_INNER="${BONDI_SPONGE_INNER:-24}"
+SPONGE_OUTER="${BONDI_SPONGE_OUTER:-32}"
+SPONGE_STRENGTH="${BONDI_SPONGE_STRENGTH:-4.0}"
+SPONGE_RAMP="${BONDI_SPONGE_RAMP:-4}"
+sponge_args=()
+if [[ "${SPONGE}" != "0" ]]; then
+  sponge_args=(
+    --extra-override sponge_enabled=1
+    --extra-override sponge_inner_radius="${SPONGE_INNER}"
+    --extra-override sponge_outer_radius="${SPONGE_OUTER}"
+    --extra-override sponge_strength="${SPONGE_STRENGTH}"
+    --extra-override sponge_ramp_power="${SPONGE_RAMP}"
+  )
+fi
+
+# Print the resolved parameter set and exit without solving or touching a GPU.
+dryrun_args=()
+if [[ "${BONDI_DRYRUN:-0}" != "0" ]]; then
+  dryrun_args=(--dry-run)
+fi
 
 out_name="bondi_sg_single_p"
 if [[ "${EXOTIC}" == "1" ]]; then out_name="bondi_sg_single_m"; fi
+if [[ "${OMEGA}" != "0.55" ]]; then
+  out_name="${out_name}_w$(printf '%s' "${OMEGA}" | tr -d '.')"
+fi
 if [[ -d "${RUNS_DIR}/${out_name}" ]]; then
   echo "[bondi] ${out_name} already exists -- delete it or set BONDI_RUNS_DIR"
   exit 1
@@ -104,18 +164,18 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --ftl-L 8.0 \
   --grtresna-ranks "${GRTRESNA_RANKS}" \
   --grtresna-iterations 50 \
-  --grtresna-nl-exit-tolerance 0.1 \
-  --grtresna-nl-stall-tolerance 0.002 \
+  --grtresna-nl-exit-tolerance "${NL_TOL}" \
+  --grtresna-nl-stall-tolerance "${NL_STALL_TOL}" \
   --grtresna-max-level 3 \
   --grtresna-domain-l 128 \
-  --grtresna-timeout 7200 \
+  --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --consumer-radii ${RADII} \
   --consumer-keep-last 2 \
   --objective-mode weighted \
   --extra-override dt_multiplier="${DT_MULT}" \
-  --extra-override grtresna_scalar_lambda=10240 \
-  --extra-override grtresna_scalar_mu=21845333 \
-  --extra-override grtresna_bs_omega=0.55 \
+  --extra-override grtresna_scalar_lambda="${SCALAR_LAMBDA}" \
+  --extra-override grtresna_scalar_mu="${SCALAR_MU}" \
+  --extra-override grtresna_bs_omega="${OMEGA}" \
   --extra-override grtresna_bs_selfgrav=1 \
   --extra-override trajectory_well_width=1.2 \
   --extra-override rl_pump_stop_time=0 \
@@ -131,6 +191,8 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --extra-override trajectory_lump0_v_rad=0 \
   --extra-override trajectory_lump0_omega_rot=0 \
   --extra-override trajectory_lump0_well_depth=0.15 \
-  --extra-override trajectory_lump0_exotic="${EXOTIC}"
+  --extra-override trajectory_lump0_exotic="${EXOTIC}" \
+  ${sponge_args[@]+"${sponge_args[@]}"} \
+  ${dryrun_args[@]+"${dryrun_args[@]}"}
 
 echo "[bondi] dressed-star calibration complete: ${RUNS_DIR}/${out_name}"

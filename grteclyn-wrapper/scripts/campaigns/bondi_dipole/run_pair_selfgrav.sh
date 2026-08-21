@@ -34,6 +34,12 @@
 #   BONDI_DRYRUN=1: resolve and print the parameters, then exit -- no solve, no GPU.
 #   BONDI_GRTRESNA_RANKS: MPI ranks for the elliptic solve (default 8).  The
 #     evolution is single-GPU regardless.
+#   BONDI_S0_OMEGA: base star frequency for BOTH lumps (default 0.55).  0.55
+#     is on the UNSTABLE branch -- the canonical star collapses on its own by
+#     t~60 (docs/MatterDebugg.md).  The stable branch starts at ~0.67; the
+#     design point is 0.80.  A non-default value appends _wNNN to the run name.
+#   BONDI_SCALAR_LAMBDA / BONDI_SCALAR_MU: potential rung (defaults are the
+#     published 10240 / 21845333).
 #   BONDI_S1_OMEGA: per-lump star frequency for lump1 (equal-|ADM| cells --
 #     the phantom star at omega=0.56598 weighs the canonical star's 0.0640;
 #     its t=0 fingerprint becomes total ~= 17.05 / rms ~= 5.16).  Appends
@@ -133,10 +139,20 @@ fi
 
 S1_OMEGA="${BONDI_S1_OMEGA:-}"
 
+# Matter configuration -- nothing hard-coded below: frequency and potential
+# rung come through the environment, defaulting to the published values so an
+# un-set environment reproduces every packed cell bit-for-bit.
+S0_OMEGA="${BONDI_S0_OMEGA:-0.55}"
+SCALAR_LAMBDA="${BONDI_SCALAR_LAMBDA:-10240}"
+SCALAR_MU="${BONDI_SCALAR_MU:-21845333}"
+
 sector_tag() { if [[ "$1" == "1" ]]; then echo m; else echo p; fi; }
 suffix="$(sector_tag "${S0}")$(sector_tag "${S1}")"
 if [[ -n "${S1_OMEGA}" ]]; then
   suffix="${suffix}_eqm"
+fi
+if [[ "${S0_OMEGA}" != "0.55" ]]; then
+  suffix="${suffix}_w$(printf '%s' "${S0_OMEGA}" | tr -d '.')"
 fi
 out_name="bondi_sg_pair_${suffix}"
 RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_selfgrav_${suffix}}"
@@ -203,9 +219,9 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --consumer-keep-last 2 \
   --objective-mode weighted \
   --extra-override dt_multiplier="${DT_MULT}" \
-  --extra-override grtresna_scalar_lambda=10240 \
-  --extra-override grtresna_scalar_mu=21845333 \
-  --extra-override grtresna_bs_omega=0.55 \
+  --extra-override grtresna_scalar_lambda="${SCALAR_LAMBDA}" \
+  --extra-override grtresna_scalar_mu="${SCALAR_MU}" \
+  --extra-override grtresna_bs_omega="${S0_OMEGA}" \
   --extra-override grtresna_bs_selfgrav=1 \
   --extra-override trajectory_well_width=1.2 \
   --extra-override rl_pump_stop_time=0 \

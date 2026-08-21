@@ -399,6 +399,20 @@ Everything downstream — the tolerance ladder, the force-scaling lever, the
 energy budget — should wait for that one cell.  Re-running any of them on
 `ω = 0.55` matter would only measure the collapse again.
 
+> **2026-08-21 — this campaign now exists.**  `run_stable_campaign.sh` (same
+> folder as the other launchers) writes four cells into the new tree
+> `runs/bondi_correct` — lone canonical and lone phantom at `ω = 0.80` (the
+> design point) and at `ω = 0.75` (the higher-signal backup) — each `N = 256`
+> unigrid at `L = 64`, `t = 120`, sponge on at 24/32, core tracker on, solve
+> tolerance at the tightened `N = 256` value.  Launch with
+> `bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_stable_campaign.sh`
+> (four cards, one cell each; subset/dry-run knobs in the header).  Pass gate
+> per cell, over the full run: core peak amplitude flat to ±2%, lapse steady
+> near 1, core parked at `x = +4` to within one grid cell.  A canonical fail
+> at **both** frequencies condemns the rung, not the frequency — move rung
+> before spending more GPU time.  `runs/bondi_rerun` is closed as the
+> `ω = 0.55` archive; nothing new goes there.
+
 
 ---
 ## How to run a campaign
@@ -503,6 +517,16 @@ hand, `touch` the queue's `STOP` file first, then kill the runner from
 
 ### Traps that have actually bitten
 
+- **The wrapper's Python venv can silently lose its interpreter.**  The venv
+  is built by `uv` and its `python` is a symlink into a `uv`-managed
+  interpreter under the user's home; a cleanup or node change can delete that
+  interpreter while the venv's `lib/` survives.  Symptom:
+  `.venv/bin/python: No such file or directory` from every launcher, on a tree
+  that ran fine the day before (bit on 2026-08-21 — the campaign of 2026-08-20
+  had used the same path successfully).  Fix from the wrapper directory:
+  `uv venv --python <a surviving interpreter> && uv sync --frozen`, which
+  rebuilds from the lockfile in under a minute.
+
 * **`env` is shadowed on this node.**  Other users' `bin` directories precede
   `/usr/bin` on `PATH` and hold an `env` that is a `PATH`-setup snippet meant to
   be sourced.  Run as `env VAR=x cmd` it prepends its own directory and exits `0`
@@ -566,19 +590,27 @@ right-hand blob) and lump 1 is the phantom at `−x` (the left-hand blob).**
 
 ### The one change the stable branch needs
 
-`grtresna_bs_omega=0.55` is written literally into the launcher.  There is a
-per-lump override for lump 1 (`BONDI_S1_OMEGA`) but **none for lump 0 or for the
-base frequency**.  Moving to the stable branch therefore needs a one-line
-launcher change — the same shape as the existing knobs:
+**Done, 2026-08-21 — nothing about the matter is hard-coded any more.**  Both
+launchers take the full matter configuration from the environment, with the
+published values as defaults so an un-set environment reproduces every old
+cell bit-for-bit:
 
-```bash
-S0_OMEGA="${BONDI_S0_OMEGA:-0.55}"
-#   ...
-  --extra-override grtresna_bs_omega="${S0_OMEGA}" \
-```
+| knob | launcher | default | meaning |
+|---|---|---|---|
+| `BONDI_S0_OMEGA` | pair | 0.55 | base star frequency, both lumps |
+| `BONDI_OMEGA` | single | 0.55 | the lone star's frequency |
+| `BONDI_SCALAR_LAMBDA` | both | 10240 | potential rung |
+| `BONDI_SCALAR_MU` | both | 21845333 | potential rung |
 
-Commit and push it before launching anything, so `metadata.json`'s `git_commit`
-still identifies the tree that produced the cell.
+A non-default frequency appends `_wNNN` to the run name (`bondi_sg_single_m_w080`),
+so stable-branch cells can never clobber the published ones.  The single-star
+launcher was also brought up to the pair launcher's level while it was open:
+multi-rank elliptic solve (default 8, it was still hard-wired to 1 with the old
+node's "mpirun segfaults" note), sponge knobs, solve-tolerance knobs, and
+`BONDI_DRYRUN=1`.
+
+Commit before launching anything, so `metadata.json`'s `git_commit` still
+identifies the tree that produced the cell.
 
 ### The family, and which half of it is safe
 
