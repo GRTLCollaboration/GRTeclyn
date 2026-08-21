@@ -29,7 +29,7 @@ from grteclyn_wrapper.grtresna.matter.wiring import (
 from grteclyn_wrapper.grtresna.matter.models import GRTRESNA_BICOMPLEX_SCALAR_MODEL
 from grteclyn_wrapper.grtresna.profiles.qball_couplings import QBallCouplings
 from grteclyn_wrapper.grtresna.io import read_gridinit
-from grteclyn_wrapper.grtresna.solver import GRTresnaConfig
+from grteclyn_wrapper.grtresna.solver import GRTresnaConfig, apply_exotic_safe_solver
 from grteclyn_wrapper.objective_modes import OBJECTIVE_MODES
 from grteclyn_wrapper.search.grtresna_convergence_gate import GRTresnaConvergenceConfig
 
@@ -276,6 +276,20 @@ def main() -> int:
     parser.add_argument("--grtresna-regrid-radius", type=float, default=0.0)
     parser.add_argument("--grtresna-jacobian-cap", type=float, default=25.0)
     parser.add_argument(
+        "--grtresna-maximal-slicing",
+        action="store_true",
+        help=(
+            "Force the K=0 York/Lichnerowicz solve for NON-exotic matter too. "
+            "By default maximal slicing is switched on only when exotic "
+            "(negative-energy) lumps are present, because the CTTK ansatz "
+            "K=sign*sqrt(24 pi G rho) is imaginary for rho<0.  Canonical "
+            "matter therefore silently gets K != 0 -- a slice that is already "
+            "collapsing at birth -- while its phantom counterpart starts at "
+            "rest.  This flag removes that asymmetry so the two sectors differ "
+            "only in the sign of the energy."
+        ),
+    )
+    parser.add_argument(
         "--grtresna-domain-l",
         type=float,
         default=None,
@@ -488,6 +502,11 @@ def main() -> int:
             cleanup=True,
         )
         grtresna_config = domain.apply_to_solver(grtresna_config)
+        if args.grtresna_maximal_slicing:
+            # fit_matter only ever turns maximal_slicing ON, so forcing it here
+            # survives the matter fit that runs later.
+            grtresna_config.maximal_slicing = True
+            apply_exotic_safe_solver(grtresna_config)
     else:
         gridinit = args.gridinit.expanduser().resolve()
         if not gridinit.is_file():

@@ -100,6 +100,19 @@ MAXLEVEL="${BONDI_MAXLEVEL:-1}"
 #     the star.
 #   BONDI_GRTRESNA_N        -- solve cells per axis.
 #   BONDI_GRTRESNA_MAXLEVEL -- refinement depth inside the solve.
+#   BONDI_GRTRESNA_MAXIMAL_SLICING -- 1 => build the slice with K=0.
+#
+# WHY MAXIMAL SLICING IS A KNOB (measured 2026-08-21).  GRTresna picks the
+# initial expansion rate with K = sign*sqrt(24 pi G rho), which is imaginary
+# wherever rho < 0.  The wrapper therefore switches to the K=0
+# York/Lichnerowicz path if and only if EXOTIC matter is present
+# (grtresna/fit/motif.py: maximal_slicing = has_exotic or exotic_needed).  The
+# consequence is an uncontrolled asymmetry between the two sectors: the phantom
+# star is born on a slice at rest (max|K| ~ 3e-05) while the canonical star is
+# born on one already contracting at max|K| ~ 1e-01 -- four orders of magnitude
+# apart, for a plumbing reason rather than a physical one.  Only the canonical
+# star then collapses.  Set this to 1 to build canonical matter the same way,
+# so the two sectors differ only in the sign of the energy.
 #
 # WHY THIS IS A KNOB AND NOT A CONSTANT (measured 2026-08-21, omega=0.80
 # canonical).  The solve cell count used to be hardwired to NFULL while the box
@@ -120,6 +133,11 @@ MAXLEVEL="${BONDI_MAXLEVEL:-1}"
 GRTRESNA_DOMAIN_L="${BONDI_GRTRESNA_DOMAIN_L:-128}"
 GRTRESNA_MAXLEVEL="${BONDI_GRTRESNA_MAXLEVEL:-3}"
 GRTRESNA_N="${BONDI_GRTRESNA_N:-${NFULL}}"
+GRTRESNA_MAXIMAL_SLICING="${BONDI_GRTRESNA_MAXIMAL_SLICING:-0}"
+MAXIMAL_SLICING_FLAG=()
+if [[ "${GRTRESNA_MAXIMAL_SLICING}" != "0" ]]; then
+  MAXIMAL_SLICING_FLAG=(--grtresna-maximal-slicing)
+fi
 
 mkdir -p "${RUNS_DIR}"
 
@@ -205,6 +223,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --grtresna-max-level "${GRTRESNA_MAXLEVEL}" \
   --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \
   --grtresna-n "${GRTRESNA_N}" \
+  "${MAXIMAL_SLICING_FLAG[@]}" \
   --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --consumer-radii ${RADII} \
   --consumer-keep-last 2 \

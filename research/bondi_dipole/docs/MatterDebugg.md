@@ -15,6 +15,16 @@
 > — read it before trusting any resolution result in this document, including
 > queue item 1.
 >
+> **Status — 2026-08-21 (later the same day): the cause is found, and it is a
+> bug in how the initial data is built, not the matter model.**  The canonical
+> star was being handed a slice that is *already collapsing* at birth, while
+> its phantom counterpart was handed one at rest — an asymmetry with no
+> physical content, arising from a single line that decides which
+> constraint-solving method to use.  See
+> [Critical bug: the canonical star is born mid-collapse](#critical-bug--the-canonical-star-is-born-mid-collapse--2026-08-21).
+> **Both rejections above are now suspect**, because every canonical cell ever
+> run — `ω = 0.55`, `0.75`, `0.80`, at every resolution — was built this way.
+>
 > This is the single working document for that loop: **what the campaign found**
 > → **why the matter is wrong** → **what a stable replacement looks like** →
 > **how to run and check it**.  The original GPU queue is kept at the end,
@@ -39,6 +49,198 @@ Read [`../../../results/bondi-dipole-runaway/LAUNCH.md`](../../../results/bondi-
 first for the launch mechanics: the `/usr/bin/env` shadowing trap, how to
 verify a detached launch actually started, and `stop_campaign.sh`.  Costs quoted
 here are the measured ones from Appendix B of the article.
+
+---
+
+## Critical bug: the canonical star is born mid-collapse — 2026-08-21
+
+**Every canonical star this project has ever evolved was given a large inward
+velocity of the geometry at `t = 0` that nobody asked for.  Every phantom star
+was not.  The canonical stars are the only ones that collapse.**
+
+### The mechanism
+
+Constructing initial data means choosing, at the first instant, not only where
+the matter is but also whether space is expanding, contracting or static.
+GRTresna's default CTTK ansatz ties that choice to the local energy density
+(`Source/Methods/CTTKHybrid.impl.hpp`):
+
+```cpp
+Real K_0_squared = 24.0 * M_PI * G_Newton * emtensor.rho;
+multigrid_vars_box(iv, c_K_0) = m_method_params.sign_of_K * sqrt(K_0_squared);
+```
+
+`K` is the trace of the extrinsic curvature — the rate at which volume
+elements shrink.  The ansatz is a legitimate solvability trick: it dumps the
+matter energy into `K` so the Hamiltonian constraint becomes algebraic instead
+of elliptic.  But it takes **the square root of the energy density**, so for
+exotic matter (`ρ < 0`) it is imaginary and cannot be used at all.  A second
+path exists for that case — `maximal_slicing`, which fixes `K = 0` and pushes
+the whole matter energy into the elliptic `ψ`-solve (the standard
+York/Lichnerowicz CMC construction, valid for either sign of `ρ`).
+
+**The bug is the rule that chooses between them**
+(`grteclyn-wrapper/src/grteclyn_wrapper/grtresna/fit/motif.py`):
+
+```python
+maximal_slicing=has_exotic or motif.exotic_needed,
+```
+
+The careful `K = 0` path is switched on **if and only if exotic matter is
+present**.  It is a solvability guard, written to stop `sqrt()` seeing a
+negative number — but its side effect is that the two sectors of a Bondi pair
+are built by *different methods*.  Nothing in the code, the launchers or the
+parameter files ever says so.
+
+### The evidence
+
+Measured `max|K|` at `t = 0.01`, same rung, same box, same matched solve grid,
+`data/collapse_diagnostics.dat` column 4:
+
+| cell | slicing path | `max\|K\|` at birth |
+|---|---|---|
+| canonical `ω = 0.80` | CTTK ansatz | `1.005e-01` |
+| canonical `ω = 0.75` | CTTK ansatz | `9.918e-02` |
+| phantom `ω = 0.80` | maximal, `K = 0` | `1.034e-05` |
+| phantom `ω = 0.75` | maximal, `K = 0` | `3.867e-05` |
+
+**Four orders of magnitude, and it is exactly the ansatz formula.**  Evaluating
+`K = sqrt(24 π G ρ_core)` from the catalogue's own central amplitude, with
+`ρ = ½ω²A² + V(A)` on this rung (`m = 1`, `λ = 10240`, `μ = 21845333`):
+
+| `ω` | `φ_c` | `ρ_core` | predicted `K` | measured `max\|K\|` | agreement |
+|---|---|---|---|---|---|
+| 0.80 | `0.019126` | `1.356e-04` | `0.1011` | `0.10055` | 0.5 % |
+| 0.75 | `0.019720` | `1.308e-04` | `0.0993` | `0.09918` | 0.1 % |
+
+The number in the data is the formula, not physics.  `K ≈ 0.10` against a field
+frequency of `ω = 0.80` is a coherent contraction at ~12 % of the star's own
+internal rate, applied uniformly across the core at the instant of creation.
+
+### Why the star cannot survive it
+
+The star has no way to push back.  Its central amplitude is pinned to the
+potential's preferred value `A_* = sqrt(3λ/4μ) = 0.01875` at *every* frequency
+in the family, so it cannot stiffen in response to being squeezed.  What is
+measured instead, in every canonical cell:
+
+1. lapse crashes to ~0.93 within `t ≈ 5` — the initial squeeze, about two field
+   periods long
+2. rebound and ring-down to `t ≈ 20`, shedding the outer envelope
+3. the shed field is sub-luminal against the scalar mass and cannot escape, so
+   it fills the box: `total_activity` **doubles** (`3.43 → 7.34` by `t ≈ 42`)
+   while the confined fraction falls `0.714 → 0.316`
+4. the core does the reverse — thins by 37 % while the central height climbs
+   15 % — narrower, taller, denser, compounding with a ~20–25 `t` doubling time
+5. horizon.  `min_lapse → 0.21` by `t = 115` at `ω = 0.80`; `→ 0.12` by
+   `t = 110` at `ω = 0.75`
+
+Heavier stars die sooner (`ω = 0.55` at `t ≈ 60`, `0.75` at `t ≈ 103`, `0.80`
+at `t ≈ 108`).  **That ordering is why this looked like physics** — it is the
+signature of a genuine instability.  It is equally the signature of this bug:
+heavier means larger `ρ`, which means a larger `K` kick.  The two hypotheses
+predict the same ordering, which is precisely why three campaigns failed to
+separate them.
+
+### What this rules out — everything else was eliminated first
+
+| suspect | verdict | evidence |
+|---|---|---|
+| under-resolved / interpolated initial data | **ruled out** | rebuilt on the matched solve grid, 100–195× cleaner interior Hamiltonian error at birth; the decline changed by < 0.5 % |
+| evolution resolution | **ruled out** | `N = 192` tracks `N = 128` to ~0.1 % |
+| outer boundary, reflections | **ruled out** | net boundary flux ≤ `1.1e-06` all run; the phantom shares the box and is flat |
+| the matter pump / trajectory well | **ruled out** | `rl_pump_stop_time = 0` gates the pump off for all `t ≥ 0` (`num_sites = 0`, gains zeroed, `RadialRecipeMatterDispatch.hpp`); the evolution is unforced Einstein–Klein–Gordon |
+| measurement artefact | **ruled out** | `chi` falls with the lapse — space is really compressing — and horizons actually form |
+| past the family's turning point | **not applicable** | the family's mass never turns; it falls monotonically `0.0794 → 0.0080` across `ω = 0.53 → 0.90` |
+
+The A/B that settled the initial-data question, `min_lapse`, clean-born vs
+original, same grid and star:
+
+| `t` | canon 0.80 clean / dirty | canon 0.75 clean / dirty | phantom clean / dirty |
+|---|---|---|---|
+| 10 | 0.9686 / 0.9682 | 0.9647 / 0.9643 | 0.9998 / 0.9997 |
+| 20 | 0.9764 / 0.9783 | 0.9730 / 0.9755 | 0.9998 / 0.9997 |
+| 30 | 0.9623 / 0.9653 | 0.9563 / 0.9600 | 0.9998 / 0.9997 |
+| 40 | 0.9467 / 0.9505 | 0.9366 / 0.9415 | 0.9998 / 0.9998 |
+| 50 | 0.9276 / 0.9321 | 0.9119 / 0.9180 | 0.9998 / 0.9998 |
+
+A hundredfold cleaner birth changed nothing — because the birth `K` was never
+an accuracy problem.  It is the *intended* output of the method that was
+selected.
+
+### The fix — slicing is now a choice, not a side effect of being exotic
+
+`maximal_slicing` is exposed as a knob so canonical matter can be built the
+phantom's way.  Nothing about the star changes — same profile, mass and
+frequency — only the state of the slice at `t = 0`.
+
+```bash
+BONDI_GRTRESNA_MAXIMAL_SLICING=1   # -> replay_eval.py --grtresna-maximal-slicing
+```
+
+The flag forces `maximal_slicing = True` and runs `apply_exotic_safe_solver`
+on the base config before the matter fit, which only ever turns the flag *on*,
+so the choice survives.  It also carries the same under-relaxation the phantom
+uses (`psi_relaxation = 0.6`, `psi_floor = 0.1`) so the two constructions match
+in every respect except the sign of `ρ`.
+
+**The `K = 0` path converges better for canonical matter than the ansatz does**
+— there was never a technical reason to avoid it, only the `sqrt()` guard that
+made it mandatory for exotic matter.  Measured on the `ω = 0.80` star at the
+matched grid:
+
+| NL iteration | 0 | 1 | 3 | 6 | 9 | 12 | 13 |
+|---|---|---|---|---|---|---|---|
+| Ham error [%] | `100` | `24.7` | `3.25` | `0.200` | `0.0127` | `1.03e-3` | `7.21e-4` |
+
+Monotonic, no stall, exits under the `0.001 %` gate.
+
+**Confirmed at birth.**  The same `ω = 0.80` canonical star, matched grid, with
+and without the flag — and the phantom it is meant to match:
+
+| quantity at `t = 0.01` | canonical, CTTK | canonical, `K = 0` | phantom, `K = 0` |
+|---|---|---|---|
+| `max\|K\|` | `1.005e-01` | **`1.023e-05`** | `1.034e-05` |
+| `L2_Ham_amr` | `2.622e-06` | `1.538e-06` | `1.558e-06` |
+| `Linf_Ham_amr` | `1.992e-04` | `1.095e-04` | `1.058e-04` |
+| `min_lapse` | `0.99009` | `0.99209` | `0.99981` |
+
+The birth kick is gone — down by a factor of 9800, landing on the phantom's
+value — and the constraint violation improves at the same time, so nothing was
+traded away to get it.  The canonical and phantom sectors are now built
+identically in every respect except the sign of `ρ`.
+
+**And the initial squeeze — step 1 of the death sequence above — does not
+happen.**  `min_lapse` over the first two time units, same star, same grid:
+
+| `t` | canonical, CTTK | canonical, `K = 0` |
+|---|---|---|
+| 0.5 | `0.89889` | `0.99225` |
+| 1.0 | `0.81946` | `0.99282` |
+| 1.5 | `0.77172` | `0.99408` |
+| 2.0 | `0.77992` | `0.99551` |
+
+The CTTK star loses 22 % of its lapse in a violent squeeze inside `t < 2`,
+before its field has completed two periods; the `K = 0` star stays flat and is
+drifting gently *upward*.  Whether that holds to `t = 120` is what the campaign
+below measures.
+
+### The test
+
+`grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_slicing_test.sh` — four
+canonical cells, all built with `K = 0`, `t = 120` on the published grid.
+`ω = 0.80` and `0.75` are one-flag A/B partners of the completed CTTK cells;
+`0.85` and `0.90` walk up the frequency ladder so a partial cure is still
+interpretable.
+
+- **flat** → the collapse was an artefact of the initial-data method, and this
+  rung is usable for the pair campaign after all
+- **still sinks** → the birth kick is not the cause, the rung is genuinely
+  unstable to compression, and the mass dial or a new rung is the next move
+
+**Until this returns, treat every canonical-sector conclusion in this document
+as provisional** — including the `ω = 0.55` rejection, the turning-point
+argument, and the stable-replacement recommendation.
 
 ---
 
