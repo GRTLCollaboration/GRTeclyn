@@ -402,9 +402,10 @@ energy budget — should wait for that one cell.  Re-running any of them on
 > **2026-08-21 — this campaign now exists.**  `run_stable_campaign.sh` (same
 > folder as the other launchers) writes four cells into the new tree
 > `runs/bondi_correct` — lone canonical and lone phantom at `ω = 0.80` (the
-> design point) and at `ω = 0.75` (the higher-signal backup) — each `N = 256`
-> unigrid at `L = 64`, `t = 120`, sponge on at 24/32, core tracker on, solve
-> tolerance at the tightened `N = 256` value.  Launch with
+> design point) and at `ω = 0.75` (the higher-signal backup) — each `N = 128`
+> unigrid at `L = 64` (`Δx = 0.5`, the published rung: a yes/no screen at the
+> grid every published cell used, ~8× cheaper than the design grid), `t = 120`,
+> sponge on at 24/32, core tracker on, published solve tolerance.  Launch with
 > `bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_stable_campaign.sh`
 > (four cards, one cell each; subset/dry-run knobs in the header).  Pass gate
 > per cell, over the full run: core peak amplitude flat to ±2%, lapse steady
