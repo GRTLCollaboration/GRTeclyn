@@ -11,8 +11,10 @@
 #   - each campaign cell's output folder is rebuilt from scratch on every run,
 #     so partial extracts from a still-running cell are replaced cleanly;
 #   - cells are discovered dynamically (every top-level dir in
-#     runs/bondi_rerun except published/, experiments/, logs/, next/), so the queued
+#     runs/bondi_rerun except published/, experiments/, logs/), so the queued
 #     equal-mass series is picked up automatically when it appears;
+#   - the follow-up campaign in runs/bondi_rerun/next/ is packed too, under a
+#     "next_" prefix, so it stays visibly separate from the published series;
 #   - cells with no data yet are skipped with a note, never an error.
 #
 # Machine identity is scrubbed at runtime by the shared scrubber in the
@@ -33,9 +35,27 @@ scrub() { python3 "${ROOT}/grteclyn-wrapper/src/grteclyn_wrapper/packaging/scrub
 
 mkdir -p "${DEST}/campaign"
 
+# Cell list: the convergence/big-box cells at the top level, plus the follow-up
+# campaign one level down in next/.  The follow-up cells are packed under a
+# "next_" prefix so a reader never mistakes them for the published convergence
+# series -- they answer different questions and were run with different knobs
+# (scaled solve tolerance, boundary sponge, a second phantom frequency).
+cells=()
 for celldir in "${RUNS}"/*/; do
   cell="$(basename "${celldir}")"
   case "${cell}" in published|experiments|logs|next) continue ;; esac
+  cells+=("${cell}|${celldir}")
+done
+for celldir in "${RUNS}"/next/*/; do
+  [[ -d "${celldir}" ]] || continue
+  cell="$(basename "${celldir}")"
+  [[ "${cell}" == _queue ]] && continue
+  cells+=("next_${cell}|${celldir}")
+done
+
+for entry in "${cells[@]}"; do
+  cell="${entry%%|*}"
+  celldir="${entry#*|}"
   run="$(find "${celldir}" -maxdepth 1 -type d -name 'bondi_sg_*' | head -n 1)"
   if [[ -z "${run}" ]] || ! compgen -G "${run}/small_data/*.dat" > /dev/null; then
     echo "[pack-campaign] ${cell}: no time series yet -- skipping"

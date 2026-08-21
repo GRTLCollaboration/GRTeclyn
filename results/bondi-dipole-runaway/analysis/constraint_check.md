@@ -31,6 +31,12 @@ Percent error per solver iteration; the solve stops below 0.1 %.
 | convA_pp_n128 | 4 | 0.00 → 0.0037 | 100.00 → 0.0472 | yes |
 | convA_pp_n192 | 4 | 0.00 → 0.0019 | 100.00 → 0.0481 | yes |
 | convA_pp_n256 | 4 | 0.00 → 0.0011 | 100.00 → 0.0451 | yes |
+| next_lever_omega0615 | 7 | 100.00 → 0.0803 | 100.00 → 0.0869 | yes |
+| next_spongeA_boxC | 7 | 100.00 → 0.0832 | 100.00 → 0.0750 | yes |
+| next_spongeB_sep16_long | 7 | 100.00 → 0.0832 | 100.00 → 0.0760 | yes |
+| next_tolB_n128 | 7 | 100.00 → 0.0832 | 100.00 → 0.0742 | yes |
+| next_tolB_n192 | 9 | 100.00 → 0.0134 | 100.00 → 0.0120 | yes |
+| next_tolB_n256 | 10 | 100.00 → 0.0054 | 100.00 → 0.0048 | yes |
 | pair_mp_mirror | 7 | 100.00 → 0.0832 | 100.00 → 0.0742 | yes |
 | pair_pm | 7 | 100.00 → 0.0832 | 100.00 → 0.0742 | yes |
 | single_m | 7 | 100.00 → 0.0890 | 100.00 → 0.0520 | yes |
@@ -143,6 +149,36 @@ single point.  Read down a column to see growth in time.
 | convA_pp_n256 | 30 | 2.241e-03 | 3.429e-04 | 3.306e-02 |
 | convA_pp_n256 | 45 | 3.343e-03 | 4.179e-04 | 9.454e-02 |
 | convA_pp_n256 | 60 | 6.145e-03 | 8.474e-04 | 3.715e-01 |
+| next_lever_omega0615 | 0 | 4.376e-03 | 5.705e-06 | 4.075e-02 |
+| next_lever_omega0615 | 15 | 9.770e-04 | 1.059e-04 | 1.873e-02 |
+| next_lever_omega0615 | 30 | 2.278e-03 | 1.421e-04 | 5.442e-02 |
+| next_lever_omega0615 | 45 | 3.979e-03 | 2.589e-04 | 1.956e-01 |
+| next_lever_omega0615 | 60 | 7.096e-03 | 8.780e-04 | 1.080e+00 |
+| next_spongeA_boxC | 0 | 1.159e-04 | 1.395e-06 | 2.187e-02 |
+| next_spongeA_boxC | 15 | 3.750e-04 | 4.227e-05 | 1.880e-02 |
+| next_spongeA_boxC | 30 | 8.729e-04 | 5.319e-05 | 5.494e-02 |
+| next_spongeA_boxC | 45 | 1.430e-03 | 8.521e-05 | 1.707e-01 |
+| next_spongeA_boxC | 60 | 2.466e-03 | 2.714e-04 | 8.321e-01 |
+| next_spongeB_sep16_long | 0 | 1.728e-04 | 2.010e-06 | 2.182e-02 |
+| next_spongeB_sep16_long | 15 | 3.751e-04 | 4.749e-05 | 1.555e-02 |
+| next_spongeB_sep16_long | 30 | 9.076e-04 | 6.563e-05 | 4.891e-02 |
+| next_spongeB_sep16_long | 45 | 1.586e-03 | 1.109e-04 | 1.892e-01 |
+| next_spongeB_sep16_long | 60 | 2.596e-03 | 4.368e-04 | 1.199e+00 |
+| next_tolB_n128 | 0 | 1.264e-03 | 4.246e-06 | 1.126e-02 |
+| next_tolB_n128 | 15 | 1.110e-03 | 1.353e-04 | 1.850e-02 |
+| next_tolB_n128 | 30 | 2.675e-03 | 1.827e-04 | 5.510e-02 |
+| next_tolB_n128 | 45 | 4.669e-03 | 3.234e-04 | 2.134e-01 |
+| next_tolB_n128 | 60 | 7.339e-03 | 1.356e-03 | 1.364e+00 |
+| next_tolB_n192 | 0 | 2.803e-03 | 8.175e-06 | 4.238e-02 |
+| next_tolB_n192 | 15 | 1.114e-03 | 1.352e-04 | 1.849e-02 |
+| next_tolB_n192 | 30 | 2.679e-03 | 1.825e-04 | 5.529e-02 |
+| next_tolB_n192 | 45 | 4.675e-03 | 3.238e-04 | 2.155e-01 |
+| next_tolB_n192 | 60 | 7.385e-03 | 1.301e-03 | 1.428e+00 |
+| next_tolB_n256 | 0 | 3.868e-03 | 9.273e-06 | 5.246e-02 |
+| next_tolB_n256 | 15 | 1.115e-03 | 1.351e-04 | 1.848e-02 |
+| next_tolB_n256 | 30 | 2.679e-03 | 1.823e-04 | 5.534e-02 |
+| next_tolB_n256 | 45 | 4.673e-03 | 3.234e-04 | 2.165e-01 |
+| next_tolB_n256 | 60 | 7.379e-03 | 1.302e-03 | 1.484e+00 |
 | pair_mp_mirror | 0 | 1.402e-03 | 3.429e-06 | 1.612e-02 |
 | pair_mp_mirror | 15 | 1.062e-03 | 1.195e-04 | 1.842e-02 |
 | pair_mp_mirror | 30 | 2.474e-03 | 1.514e-04 | 5.491e-02 |
@@ -199,3 +235,8 @@ here the elliptic solve, which every cell of a ladder shares unchanged.
 | convA_pp | 128, 192, 256 | 30 | 0.93× | 1.04× |
 | convA_pp | 128, 192, 256 | 45 | 1.05× | 1.16× |
 | convA_pp | 128, 192, 256 | 60 | 1.07× | 1.26× |
+| next_tolB | 128, 192, 256 | 0 | 0.33× | 0.21× |
+| next_tolB | 128, 192, 256 | 15 | 1.00× | 1.00× |
+| next_tolB | 128, 192, 256 | 30 | 1.00× | 1.00× |
+| next_tolB | 128, 192, 256 | 45 | 1.00× | 0.99× |
+| next_tolB | 128, 192, 256 | 60 | 0.99× | 0.92× |

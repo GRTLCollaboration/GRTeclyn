@@ -19,6 +19,12 @@ convA_pm_sep16_n256,initial_data,,8.319523e-02,7.601438e-02,,percent; 7 iteratio
 convA_pp_n128,initial_data,,3.697248e-03,4.717358e-02,,percent; 4 iterations
 convA_pp_n192,initial_data,,1.883608e-03,4.805272e-02,,percent; 4 iterations
 convA_pp_n256,initial_data,,1.095332e-03,4.505702e-02,,percent; 4 iterations
+next_lever_omega0615,initial_data,,8.025654e-02,8.688657e-02,,percent; 7 iterations
+next_spongeA_boxC,initial_data,,8.318538e-02,7.499017e-02,,percent; 7 iterations
+next_spongeB_sep16_long,initial_data,,8.319523e-02,7.601438e-02,,percent; 7 iterations
+next_tolB_n128,initial_data,,8.319968e-02,7.420220e-02,,percent; 7 iterations
+next_tolB_n192,initial_data,,1.336698e-02,1.201046e-02,,percent; 9 iterations
+next_tolB_n256,initial_data,,5.372809e-03,4.786161e-03,,percent; 10 iterations
 pair_mp_mirror,initial_data,,8.322661e-02,7.420144e-02,,percent; 7 iterations
 pair_pm,initial_data,,8.322664e-02,7.420134e-02,,percent; 7 iterations
 single_m,initial_data,,8.904960e-02,5.204582e-02,,percent; 7 iterations
@@ -123,6 +129,36 @@ convA_pp_n256,evolution,15,6.222170e-04,1.054541e-04,1.072586e-02,
 convA_pp_n256,evolution,30,2.241295e-03,3.429406e-04,3.305978e-02,
 convA_pp_n256,evolution,45,3.343048e-03,4.178518e-04,9.454019e-02,
 convA_pp_n256,evolution,60,6.145330e-03,8.474357e-04,3.714996e-01,
+next_lever_omega0615,evolution,0,4.376043e-03,5.704502e-06,4.074788e-02,
+next_lever_omega0615,evolution,15,9.769868e-04,1.059268e-04,1.872878e-02,
+next_lever_omega0615,evolution,30,2.277920e-03,1.421288e-04,5.442149e-02,
+next_lever_omega0615,evolution,45,3.979392e-03,2.589289e-04,1.956395e-01,
+next_lever_omega0615,evolution,60,7.096052e-03,8.779738e-04,1.080479e+00,
+next_spongeA_boxC,evolution,0,1.158539e-04,1.395295e-06,2.186882e-02,
+next_spongeA_boxC,evolution,15,3.749886e-04,4.227197e-05,1.880070e-02,
+next_spongeA_boxC,evolution,30,8.729486e-04,5.319411e-05,5.493913e-02,
+next_spongeA_boxC,evolution,45,1.429859e-03,8.521124e-05,1.706570e-01,
+next_spongeA_boxC,evolution,60,2.465696e-03,2.713623e-04,8.321077e-01,
+next_spongeB_sep16_long,evolution,0,1.728378e-04,2.009665e-06,2.182474e-02,
+next_spongeB_sep16_long,evolution,15,3.750500e-04,4.749122e-05,1.555475e-02,
+next_spongeB_sep16_long,evolution,30,9.075932e-04,6.562934e-05,4.891013e-02,
+next_spongeB_sep16_long,evolution,45,1.585529e-03,1.108740e-04,1.892047e-01,
+next_spongeB_sep16_long,evolution,60,2.595785e-03,4.367530e-04,1.199436e+00,
+next_tolB_n128,evolution,0,1.264345e-03,4.246214e-06,1.125901e-02,
+next_tolB_n128,evolution,15,1.110138e-03,1.352811e-04,1.850427e-02,
+next_tolB_n128,evolution,30,2.675078e-03,1.826853e-04,5.509578e-02,
+next_tolB_n128,evolution,45,4.669287e-03,3.233852e-04,2.134257e-01,
+next_tolB_n128,evolution,60,7.339126e-03,1.355796e-03,1.364064e+00,
+next_tolB_n192,evolution,0,2.803377e-03,8.175179e-06,4.238231e-02,
+next_tolB_n192,evolution,15,1.114270e-03,1.352285e-04,1.849345e-02,
+next_tolB_n192,evolution,30,2.678789e-03,1.825033e-04,5.528521e-02,
+next_tolB_n192,evolution,45,4.675050e-03,3.238078e-04,2.154971e-01,
+next_tolB_n192,evolution,60,7.385425e-03,1.301210e-03,1.427765e+00,
+next_tolB_n256,evolution,0,3.868236e-03,9.273146e-06,5.245523e-02,
+next_tolB_n256,evolution,15,1.114845e-03,1.351461e-04,1.848112e-02,
+next_tolB_n256,evolution,30,2.678705e-03,1.822566e-04,5.534131e-02,
+next_tolB_n256,evolution,45,4.673480e-03,3.233959e-04,2.165126e-01,
+next_tolB_n256,evolution,60,7.378611e-03,1.302345e-03,1.483594e+00,
 pair_mp_mirror,evolution,0,1.402010e-03,3.428921e-06,1.612200e-02,
 pair_mp_mirror,evolution,15,1.062222e-03,1.195030e-04,1.842483e-02,
 pair_mp_mirror,evolution,30,2.474481e-03,1.513818e-04,5.490796e-02,
@@ -169,3 +205,8 @@ convA_pp,ladder_ratio,15,1.0999,,1.4760,coarse n128 / fine n256
 convA_pp,ladder_ratio,30,0.9297,,1.0430,coarse n128 / fine n256
 convA_pp,ladder_ratio,45,1.0525,,1.1621,coarse n128 / fine n256
 convA_pp,ladder_ratio,60,1.0688,,1.2625,coarse n128 / fine n256
+next_tolB,ladder_ratio,0,0.3269,,0.2146,coarse n128 / fine n256
+next_tolB,ladder_ratio,15,0.9958,,1.0013,coarse n128 / fine n256
+next_tolB,ladder_ratio,30,0.9986,,0.9956,coarse n128 / fine n256
+next_tolB,ladder_ratio,45,0.9991,,0.9857,coarse n128 / fine n256
+next_tolB,ladder_ratio,60,0.9946,,0.9194,coarse n128 / fine n256
