@@ -6,6 +6,15 @@
 > the timescale the measurement needs.  The next step is a stable star, not
 > another cell on this one.
 >
+> **Status — 2026-08-21: that rejection is now in doubt, and the reason is
+> numerical.**  The replacement stars at `ω = 0.80` and `0.75` failed the same
+> way, and the failure has an under-resolution signature rather than a
+> stability one: the cores never moved, while the initial data's own constraint
+> violation got *worse* when the grid was refined.  See
+> [The initial data is the error floor](#the-initial-data-is-the-error-floor--2026-08-21)
+> — read it before trusting any resolution result in this document, including
+> queue item 1.
+>
 > This is the single working document for that loop: **what the campaign found**
 > → **why the matter is wrong** → **what a stable replacement looks like** →
 > **how to run and check it**.  The original GPU queue is kept at the end,
@@ -33,6 +42,105 @@ here are the measured ones from Appendix B of the article.
 
 ---
 
+## The initial data is the error floor — 2026-08-21
+
+**Refining the evolution grid makes the starting constraint violation worse,
+not better.**  Measured on the canonical `ω = 0.80` star, same box, same
+physics, at matched time `t = 0.02`, in `L2_Ham` — a *volume-weighted RMS*
+(`RadialRecipeLevel.cpp`: `sqrt(sum_ham2 / sum_vol)`), so it is
+resolution-independent by construction and the two numbers are directly
+comparable:
+
+| quantity | `N = 128` | `N = 192` | ratio |
+|---|---|---|---|
+| `L2_Ham` (level 0, whole domain) | `5.628e-4` | `1.020e-3` | `1.81` |
+| `L2_Ham_amr` (AMR composite) | `2.515e-4` | `4.710e-4` | `1.87` |
+| `Linf_Ham_amr` (worst single point) | `2.367e-3` | `5.180e-3` | `2.19` |
+
+Fourth-order convergence predicts `1/1.5⁴ = 0.20`.  Grid-scale noise
+differentiated twice predicts `1.5² = 2.25`.  The data lands on `1.8–2.2`.
+**The starting data carries noise at the cell scale, and the Hamiltonian
+constraint — which takes second derivatives — amplifies it as `1/Δx²`.**
+
+### Where the noise comes from
+
+The elliptic solve ran on a box of `L = 128` while the evolution box is
+`L = 64`, and the solve's cell count was hardwired to the evolution's `N`:
+
+```
+run_single_selfgrav.sh   --grtresna-domain-l 128      (hard-coded)
+replay_eval.py           grtresna_nx = grtresna_ny = grtresna_nz = n_full
+```
+
+So the solve cell was **always exactly twice the evolution cell, at every
+resolution**, and refining both together never closed the gap.  The evolution
+then resolved the coarse solve's interpolation seams more sharply and
+amplified them harder.  This is a fixed structural handicap, not a tuning
+mistake — no choice of `N` escaped it.
+
+### Why this matters more than any single run
+
+**A resolution ladder on the old wiring is uninterpretable.**  Each finer rung
+starts with a *larger* constraint violation than the coarser one it is being
+compared against, so "the finer grid failed too" does **not** acquit
+resolution, and a convergence order fitted through those rungs measures the
+initial-data pipeline rather than the evolution.  Always read the `t = 0` row
+of `constraint_norms.dat` before reading anything else in a convergence study.
+
+### The fix — the solve grid is now configuration, not a constant
+
+Three environment knobs on `run_single_selfgrav.sh`, backed by a new
+`--grtresna-n` in `replay_eval.py`.  All default to the previously hard-coded
+values, so an un-set environment reproduces every earlier cell bit-for-bit:
+
+| knob | default | what it is |
+|---|---|---|
+| `BONDI_GRTRESNA_DOMAIN_L` | `128` | solve box width — wider than the evolution box on purpose, so the outer boundary condition sits far from the star |
+| `BONDI_GRTRESNA_N` | `BONDI_NFULL` | solve cells per axis |
+| `BONDI_GRTRESNA_MAXLEVEL` | `3` | refinement depth inside the solve |
+
+Set `BONDI_GRTRESNA_N = BONDI_NFULL × (DOMAIN_L / LFULL)` to make the solve
+cell equal the evolution cell.  The cell centres then coincide and the handoff
+becomes a **straight copy instead of an interpolation**, which removes the
+noise source rather than shrinking it.  `BONDI_GRTRESNA_MAXLEVEL=0`
+additionally removes the solve's own refinement seams, the other candidate
+source.  The verdict cell now running:
+
+```bash
+# solve dx = 128/384 = 0.333 == evolution dx = 64/192.  Uniform, seam-free.
+BONDI_NFULL=192 BONDI_LFULL=64 BONDI_MAXLEVEL=0 \
+  BONDI_GRTRESNA_DOMAIN_L=128 BONDI_GRTRESNA_N=384 BONDI_GRTRESNA_MAXLEVEL=0 \
+  BONDI_GRTRESNA_RANKS=32 BONDI_NL_TOL=0.001 BONDI_GRTRESNA_TIMEOUT=21600 \
+  BONDI_EXOTIC=0 BONDI_OMEGA=0.80 BONDI_STOP_TIME=120 \
+  BONDI_SCRUTINY=1 BONDI_SPONGE=1 \
+  bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_single_selfgrav.sh
+```
+
+The number that decides it is the `t = 0` violation: the old cells started at
+`5.6e-4` (`N = 128`) and `1.0e-3` (`N = 192`).  Well below `5.6e-4` confirms
+the diagnosis; unchanged means the noise is coming from somewhere else.
+
+### Correction: the solve tolerance is not the floor it was thought to be
+
+Queue item 1 below states that every rung "exits at the same `0.0832%`
+Hamiltonian violation" and concludes the tolerance is the floor.  That is true
+of the **phantom** sector only.  The two sectors converge by different paths
+and their percentages are normalised differently, so they are **not comparable
+to each other**:
+
+| sector | how it converges | exits at | gate `0.1%` binding? |
+|---|---|---|---|
+| canonical | alternating Ham/Mom, ping-pongs (`4.6e-15 → 12.5 → 1.4e-3 → 0.108 → 1.4e-3 %`) | `≈0.0014%` | **no** — beats it `70×` |
+| phantom | geometric, `≈0.4` per iteration | `≈0.0844%` | **yes** — just barely |
+
+Despite the `60×` gap in reported percent, the **absolute** violation entering
+the evolution is nearly identical for both (`L2_Ham` `5.7e-4` … `8.2e-4`) —
+which is the clue that pointed at the initial-data pipeline rather than the
+stopping rule.  Tightening `BONDI_NL_TOL` is still worth doing for phantom
+cells (it costs `≈5` CPU iterations of a permitted `50`, and phantom cores were
+the ones that drifted off station), but it will not move the canonical star.
+
+---
 ## What the campaign returned — 2026-08-20
 
 All six cells ran, on four cards, `10:06` to `18:51`: `8.7` hours of wall clock,
@@ -713,6 +821,15 @@ outright (rms `5.05 → 19.2` by `t = 40`).
 ## The queue, in priority order
 
 ### 1. A resolution ladder with the solve tolerance scaled as `Δx⁴`
+
+> **Superseded in part — 2026-08-21.**  The premise below (that the shared
+> tolerance is the error floor) holds for the phantom sector but not the
+> canonical one, and a more basic problem sits underneath it: on the old
+> wiring the solve cell was always twice the evolution cell, so each rung of
+> this ladder starts *dirtier* than the one below it.  Fix the solve grid
+> first — see
+> [The initial data is the error floor](#the-initial-data-is-the-error-floor--2026-08-21)
+> — or the ladder measures the initial-data pipeline instead of the evolution.
 
 **Why.**  This is the weakest technical link in the paper and the one a referee
 goes for first.  The campaign quotes no convergence *order*, and the reason is

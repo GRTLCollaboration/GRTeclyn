@@ -281,6 +281,21 @@ def main() -> int:
         default=None,
         help="GRTresna solve box width (default: same as --l-full)",
     )
+    parser.add_argument(
+        "--grtresna-n",
+        type=int,
+        default=None,
+        help="GRTresna solve cells per axis (default: same as --n-full). The "
+        "solve box is normally WIDER than the evolution box so the outer "
+        "boundary condition sits far from the matter; leaving this at the "
+        "default therefore makes the solve cell coarser than the evolution "
+        "cell by exactly that width ratio. The Hamiltonian constraint takes "
+        "second derivatives, so the interpolation noise that leaves is "
+        "amplified as 1/dx^2 and REFINING the evolution grid makes the t=0 "
+        "violation worse, not better. Set this to "
+        "n_full * (grtresna_domain_l / l_full) to match cell sizes -- on "
+        "aligned centres that makes the transfer a straight copy.",
+    )
     parser.add_argument("--grtresna-timeout", type=int, default=3600)
     parser.add_argument("--grtresna-max-ham-pct", type=float, default=5.0)
     parser.add_argument("--grtresna-max-mom-pct", type=float, default=5.0)
@@ -380,6 +395,7 @@ def main() -> int:
     grtresna_domain_l = (
         float(args.grtresna_domain_l) if args.grtresna_domain_l is not None else l_full
     )
+    grtresna_n = int(args.grtresna_n) if args.grtresna_n is not None else n
     overrides = _promotion_overrides(
         base_overrides,
         n_full=n,
@@ -432,9 +448,9 @@ def main() -> int:
         l_full=l_full,
         n_full=n,
         grtresna_l=grtresna_domain_l,
-        grtresna_nx=n,
-        grtresna_ny=n,
-        grtresna_nz=n,
+        grtresna_nx=grtresna_n,
+        grtresna_ny=grtresna_n,
+        grtresna_nz=grtresna_n,
         gridinit_nx=n,
         gridinit_ny=n,
         gridinit_nz=n,

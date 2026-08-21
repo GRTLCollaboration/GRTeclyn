@@ -92,6 +92,35 @@ DT_MULT="${BONDI_DT_MULT:-0.02}"
 #     reproduces it over the window that matters.
 MAXLEVEL="${BONDI_MAXLEVEL:-1}"
 
+# Elliptic-solve GRID -- the "solve end point".  Every value below is an
+# environment knob defaulting to the published campaign value, so an un-set
+# environment reproduces the original cell bit-for-bit.
+#   BONDI_GRTRESNA_DOMAIN_L -- solve box width.  Deliberately WIDER than the
+#     evolution box (128 vs 64) so the outer boundary condition sits far from
+#     the star.
+#   BONDI_GRTRESNA_N        -- solve cells per axis.
+#   BONDI_GRTRESNA_MAXLEVEL -- refinement depth inside the solve.
+#
+# WHY THIS IS A KNOB AND NOT A CONSTANT (measured 2026-08-21, omega=0.80
+# canonical).  The solve cell count used to be hardwired to NFULL while the box
+# was hardwired to 128, so the solve cell was ALWAYS exactly 2x the evolution
+# cell -- at every resolution, with no way to close the gap.  The Hamiltonian
+# constraint takes second derivatives, so the interpolation noise that leaves
+# is amplified as 1/dx^2: refining the evolution grid 128 -> 192 made the t=0
+# violation 1.85x WORSE (L2 5.63e-4 -> 1.02e-3, Linf 2.37e-3 -> 5.18e-3),
+# matching 1.5^2 = 2.25 rather than the 0.20 that 4th-order convergence would
+# give.  A resolution study on the old wiring is therefore uninterpretable:
+# the finer run starts handicapped, so "the finer grid failed too" does NOT
+# acquit resolution.
+#
+# To match cell sizes exactly set N = NFULL * (DOMAIN_L / LFULL); the centres
+# then align and the transfer becomes a straight copy rather than an
+# interpolation.  MAXLEVEL=0 additionally removes the solve's own refinement
+# seams, which are the other candidate noise source.
+GRTRESNA_DOMAIN_L="${BONDI_GRTRESNA_DOMAIN_L:-128}"
+GRTRESNA_MAXLEVEL="${BONDI_GRTRESNA_MAXLEVEL:-3}"
+GRTRESNA_N="${BONDI_GRTRESNA_N:-${NFULL}}"
+
 mkdir -p "${RUNS_DIR}"
 
 # Stop handle for scripts/campaigns/stop_campaign.sh.
@@ -173,8 +202,9 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --grtresna-iterations 50 \
   --grtresna-nl-exit-tolerance "${NL_TOL}" \
   --grtresna-nl-stall-tolerance "${NL_STALL_TOL}" \
-  --grtresna-max-level 3 \
-  --grtresna-domain-l 128 \
+  --grtresna-max-level "${GRTRESNA_MAXLEVEL}" \
+  --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \
+  --grtresna-n "${GRTRESNA_N}" \
   --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   --consumer-radii ${RADII} \
   --consumer-keep-last 2 \
