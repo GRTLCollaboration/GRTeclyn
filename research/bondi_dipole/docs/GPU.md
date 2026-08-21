@@ -1,7 +1,10 @@
 # What still has to be run on a GPU, and why
 
-> **Status — 2026-08-20: the queue below has been run.**  All six cells
-> completed; results are in
+> **Status — 2026-08-20: the queue below has been run, and the matter model it
+> was run on is rejected.**  All six cells completed; the campaign's own data
+> shows the positive-mass star sits on the unstable branch of its family and
+> collapses on the timescale the measurement needs.  The next step is a stable
+> star, not another cell on this one — see *Verdict* below.  Results are in
 > [What the campaign returned](#what-the-campaign-returned--2026-08-20) directly
 > beneath this section, together with the one finding that changes the article's
 > interpretation.  Everything from *Before launching anything* onward is kept
@@ -146,6 +149,50 @@ times too small to explain it.  But a genuine runaway at fixed separation
 requires *steady* acceleration, i.e. speed rising linearly.  Compounding growth
 is not that.
 
+### d₀ = 12 does show the Bondi signature — with the right diagnostic
+
+The subsection above is about `d₀ = 16`, where the effect is genuinely tiny.  At
+`d₀ = 12` it is not, and the campaign's own peak tracker sees it.  Same run, two
+ways of locating each star:
+
+| `d₀ = 12`, `N = 256` | canonical moves | phantom moves | ratio | Bondi predicts |
+|---|---|---|---|---|
+| core tracker, `t = 40` | `+0.404` | `+0.457` | **`1.13`** | `1.205` |
+| core tracker, `t = 45` | `+0.637` | `+0.740` | **`1.16`** | `1.205` |
+| core tracker, `t = 50` | `+0.912` | `+1.142` | **`1.25`** | `1.205` |
+| barycentre, `t = 40` | `+0.094` | `+0.667` | `7.11` | `1.205` |
+| barycentre, `t = 45` | `+0.218` | `+0.974` | `4.46` | `1.205` |
+
+Bondi's kinematic prediction for an unequal pair is that both masses accelerate
+the *same* way, with their accelerations in the ratio `M₊/|M₋| = 1/0.83 = 1.205`
+— the lighter phantom moving more.  **The core tracker reproduces that to within
+6 %**, while the separation holds to `1 %` (`12.00 → 11.90` at `t = 45`), the
+canonical star is still within `3.7 %` of its initial peak at `t = 40` and
+`5.5 %` at `t = 45`, and the displacements are `1.6–1.8` grid cells at
+`Δx = 0.25` — comfortably resolved.
+
+**The barycentre does not reproduce it at all** — ratios of `14`, `−5`, `18`,
+`7`, `4.5`, converging on nothing.  It integrates the whole domain and drags in
+the radiation halo.  Every Bondi signature in this campaign lives in the core
+tracker and is invisible to the diagnostic the article currently quotes.  That
+is a diagnostic change, not a physics problem, and it makes the case stronger.
+
+**What still does not match is the time dependence.**
+
+| `t` | 20 | 30 | 40 | 45 | 50 |
+|---|---|---|---|---|---|
+| drift | `0.031` | `0.133` | `0.432` | `0.690` | `1.029` |
+| implied acceleration | `1.6e-4` | `3.0e-4` | `5.4e-4` | `6.8e-4` | `8.2e-4` |
+
+The drift grows as `t^3.9`, not `t^2`.  A Bondi runaway is *constant*
+acceleration at constant separation, which is `t^2`.  Direction right, mass
+ratio right, growth rate wrong — and the separation closing cannot explain it
+(`1 %` over the window is worth `2 %` on a `1/d²` force).  The most economical
+reading is that the acceleration is still turning on while the star is already
+destabilising, so the two effects overlap and the run ends before they separate.
+**A stable star would settle this in one cell**, because the window would no
+longer be capped at `t ≈ 45`.
+
 ### Item by item
 
 **Items 1 + 2 — the `Δx⁴` tolerance ladder, and the peak tracker.  Answered:
@@ -204,34 +251,343 @@ branch instability, not the timestep.  The Courant choice is still defensible �
 lapse holds at `0.867` instead of crashing to `0.191` — but it should not be
 quoted as the reason the star stays together, because it does not.
 
-### What this means for the article
+### Verdict — this matter model is a no-go
 
-The trustworthy window is roughly **`t ≲ 20–30`**, while both stars are still
-intact.  Inside that window, at a separation where they are actually separate
-objects, the drift is `≈ 0.01` — consistent with nothing measurable.  Everything
-past `t ≈ 45` is a collapsing star.
+The setup is sound.  The solver converges, the sponge is clean, the tracker
+works, and at `d₀ = 12` the pair reproduces Bondi's kinematic prediction to 6 %.
+What fails is the star itself: it is drawn from the unstable half of its own
+family and collapses on the same timescale the measurement needs.  Every
+question the campaign could not close — no convergence order, no constant
+acceleration, no clean force scaling, no run past `t ≈ 45` — traces back to that
+single choice.
 
-Three options, in order of cost:
+**Every frequency this project has ever used is on the unstable branch.**
+Walking the canonical family from dilute to dense, the central field value rises
+with mass until it turns over, and that turn is the stability boundary:
 
-1. **Re-scope the claim.**  Present the result as what it is — an unstable
-   positive-mass soliton paired with a stable negative-mass one, where the
-   asymmetry in stability is itself the finding, and the one-sidedness of
-   gravitational collapse for negative energy is a clean physical statement
-   worth making.  No new GPU time.
-2. **Re-run on the stable branch.**  `ω ≈ 0.80–0.85` puts the canonical star
-   where `dM/dφ_c > 0`.  The stars are `3–5×` lighter and `~15%` larger, so the
-   separations all have to grow with them — `d₀ ≈ 25–30` to get the same
-   clearance — which means a larger box at the same resolution.  Budget the full
-   campaign again, not a cell or two.
-3. **Both.**  Keep the present runs as the unstable-branch case and add a
-   stable-branch pair as the control the article currently lacks.
+| `ω` | `φ_c` | `M_ADM` | `r₉₉` | branch |
+|---|---|---|---|---|
+| `0.900` | `0.0159491` | `0.007963` | `13.40` | stable |
+| `0.800` | `0.0191264` | `0.011209` | `9.81` | stable |
+| `0.775` | `0.0194775` | `0.012612` | `9.34` | stable |
+| `0.750` | `0.0197205` | `0.014350` | `8.99` | stable |
+| `0.690` | `0.0199808` | `0.020421` | `8.44` | stable |
+| **`0.670`** | **`0.0199941`** | `0.023321` | `8.37` | **turning point — `φ_c` peaks here** |
+| `0.650` | `0.0199812` | `0.026859` | `8.33` | unstable |
+| `0.615` | `0.0199119` | `0.035175` | `8.30` | unstable ← the lever cell |
+| `0.566` | `0.0197539` | `0.054459` | `8.53` | unstable ← `stars/phantom_omega0.566.dat` |
+| **`0.550`** | `0.0196947` | `0.063951` | `8.72` | **unstable ← every run, published and follow-up** |
+| `0.530` | `0.0196187` | `0.079391` | `8.96` | unstable |
 
-Whichever is chosen, the pre-campaign framing of these cells — "the published
-campaign is complete and nothing below is needed to reproduce a number in it" —
-no longer holds.  The numbers reproduce; their interpretation does not survive.
+Below `ω ≈ 0.67` the central density turns back while the mass keeps climbing.
+That sign change is the turning-point criterion, and it is the whole story.
+**The stable branch, `ω ≳ 0.67`, has never been run.**
+
+### What a stable replacement looks like
+
+The natural targets are `ω = 0.775–0.80` — far enough above the turning point to
+be unambiguous, without making the stars so dilute that nothing happens.  Two
+things change, and one of them is very much for the better:
+
+| | `ω = 0.55` (now) | `ω = 0.775` | `ω = 0.80` |
+|---|---|---|---|
+| `M₊` | `0.06395` | `0.01261` | `0.01121` |
+| `\|M₋\|` | `0.07696` | `0.01323` | `0.01169` |
+| **mass ratio `\|M₋\|/M₊`** | `1.203` | **`1.049`** | **`1.043`** |
+| `r₉₉`, canonical / phantom | `8.72 / 9.16` | `9.34 / 9.39` | `9.81 / 9.84` |
+| `d₀` for the same clearance | `12` | `12.6` | `13.2` |
+| acceleration, relative | `1.00` | `0.18` | `0.145` |
+| `t` to reach the drift now seen at `t = 45` | `45` | `106` | `118` |
+
+**The mass ratio is the prize.**  Bondi's constant-gap runaway is strictly an
+*equal-mass* result; at `1.203` the present pair is 20 % away from it, and the
+gap closes for that reason alone.  On the stable branch the two families come
+out naturally within `4–5 %` of equal mass — the configuration the theorem is
+actually about, for free, with no tuning.
+
+**The cost is patience, not hardware.**  Stars `5–6×` lighter accelerate
+`5.5–7×` more weakly, so the same drift needs `t ≈ 110–120` instead of `45`.
+But `d₀` barely moves (`12 → 13.2`), the stars still fit `L = 64` with room to
+spare (they span `±16.4` against a `±32` boundary), and `Δx = 0.25` still
+resolves them.  **Same box, same resolution, roughly `2.5×` the run length** —
+and `spongeB_sep16_long` has already shown a `t = 120` cell is affordable.  The
+star is stable, so running long is finally allowed.
+
+### Do this first, before booking any GPU time
+
+**One lone stable-branch star, evolved on its own.**  This is the control the
+project has never had, it is a single cheap cell, and it is decisive: solve at
+`ω = 0.80`, evolve to `t = 120`, and require the lapse to stay flat and the rms
+radius to stay put — the way `single_m` behaves (`0.998`, `5.43 → 6.32`) and the
+way `single_p` does not (`0.867`, `5.05 → 13.40` by `t = 40`, with no partner
+anywhere in the box).
+
+If it holds, the pair campaign is worth running and the whole question reopens
+on a sound footing.  If it does not, the potential itself is the problem rather
+than the branch, and no separation, box or resolution will rescue it.
+
+Everything downstream — the tolerance ladder, the force-scaling lever, the
+energy budget — should wait for that one cell.  Re-running any of them on
+`ω = 0.55` matter would only measure the collapse again.
+
+
+---
+## How to run a campaign
+
+Everything below is the operating manual for the loop *find a stable star →
+evolve it → check it stayed put*.  Three scripts do all of it.
+
+| script | what it is |
+|---|---|
+| `grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh` | one cell: CPU solve, then GPU evolve |
+| `grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_next_campaign.sh` | many cells: writes job files, starts the queue detached |
+| `grteclyn-wrapper/scripts/campaigns/stop_campaign.sh` | stops a detached campaign properly |
+
+### One cell, in the foreground
+
+This is the right shape for a debugging cell — you watch it, it dies with your
+shell, nothing detaches:
+
+```bash
+BONDI_S0=0 BONDI_S1=1 BONDI_GPU=0 \
+  BONDI_SEP=12 BONDI_NFULL=256 BONDI_LFULL=64 BONDI_MAXLEVEL=0 \
+  BONDI_STOP_TIME=120 BONDI_SCRUTINY=1 \
+  BONDI_RUNS_DIR="$PWD/runs/bondi_rerun/next/mycell" \
+  bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_pair_selfgrav.sh
+```
+
+Add `BONDI_DRYRUN=1` to print the assembled command and run nothing.  A cell
+does its own CPU solve first (`8` MPI ranks, `2–20` min depending on `N`) and
+only then takes the card.
+
+### The knobs
+
+| variable | default | what it does |
+|---|---|---|
+| `BONDI_S0` / `BONDI_S1` | `0` / `1` | sector per lump: `0` canonical, `1` phantom.  `0 1` is the mixed pair, `0 0` two canonical, `1 1` two phantom |
+| `BONDI_SEP` | `8` | initial centre-to-centre separation `d₀` |
+| `BONDI_NFULL` | `128` | cells per side |
+| `BONDI_LFULL` | `64` | box side; `Δx = L/N` |
+| `BONDI_MAXLEVEL` | `1` | **set to `0`** — refinement blows the memory budget, see below |
+| `BONDI_STOP_TIME` | `60` | final time |
+| `BONDI_DT_MULT` | `0.02` | Courant factor |
+| `BONDI_SCRUTINY` | `0` | **set to `1`** — switches on the halo-free core tracker (`sector_dynamics.dat`).  Costs `~1.6 s` per plotfile and it is the only diagnostic that shows the Bondi signature |
+| `BONDI_S1_OMEGA` | *(unset)* | per-lump frequency for lump1 only, used for equal-mass cells |
+| `BONDI_RADII` | `8 16` | radiation extraction shells |
+| `BONDI_PSI4_HIGHER_L` | `0` | also record `ℓ = 3, 4` |
+| `BONDI_SPONGE` | `0` | boundary damping; band via `BONDI_SPONGE_INNER` / `_OUTER` (`24`/`32` default, use `40`/`60` at `L = 128`) |
+| `BONDI_NL_TOL` | `0.1` | elliptic solve exit tolerance, in percent |
+| `BONDI_NL_STALL_TOL` | `0.002` | give-up threshold; keep it at `1/50` of the exit tolerance |
+| `BONDI_GRTRESNA_RANKS` | `8` | MPI ranks for the solve.  `8` is `7×` faster than `1` and gives the same answer to `4` digits |
+| `BONDI_GRTRESNA_TIMEOUT` | `7200` | seconds; raise to `21600` when tightening the tolerance |
+| `BONDI_GPU` | `3` | CUDA device |
+| `BONDI_RUNS_DIR` | derived | where the cell lands |
+| `BONDI_DRYRUN` | `0` | print, do not run |
+
+### Several cells, queued across the cards
+
+`run_next_campaign.sh` writes one job file per cell into
+`runs/bondi_rerun/next/_queue/pending/` and starts the queue runner detached.
+Each job runs in the foreground *inside* its slot; the runner is the only thing
+detached, once.  To add a cell, add a `case` arm to its `cell_env()` and a name
+to `ALL_CELLS`.
+
+```bash
+# see what it would enqueue, start nothing
+BONDI_NEXT_DRYRUN=1 bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_next_campaign.sh
+
+# a subset, on chosen cards
+BONDI_NEXT_CELLS="mycell" BONDI_NEXT_GPUS="0 1" \
+  bash grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_next_campaign.sh
+```
+
+A cell whose run directory already exists is skipped, so re-running the launcher
+is safe and resumes rather than duplicates.  Jobs dispatch in filename order —
+the launcher prefixes `010_`, `020_`, … and lists cells longest-first so the
+short ones backfill.
+
+### Watching it
+
+```bash
+pgrep -af gpu_queue.sh                              # the runner must exist
+tail -f runs/bondi_rerun/next/_queue/queue.log      # dispatch events
+tail -f runs/bondi_rerun/next/_queue/logs/*.log     # per-cell output
+nvidia-smi                                          # one cell per card
+ls runs/bondi_rerun/next/_queue/{pending,running,done,failed}
+```
+
+**A silent launch looks exactly like success.**  Always confirm with `pgrep`.
+
+### Stopping it
+
+```bash
+bash grteclyn-wrapper/scripts/campaigns/stop_campaign.sh --dry-run runs/bondi_rerun/next
+bash grteclyn-wrapper/scripts/campaigns/stop_campaign.sh runs/bondi_rerun/next
+pgrep -af 'gpu_queue|main3d|GRTresna'               # verify, then escalate
+```
+
+Order matters and the script enforces it: freeze the queue first, then sweep the
+workers.  **Killing a running cell on its own does not stop the campaign** — it
+looks like a finished step and the runner immediately starts the next one.  By
+hand, `touch` the queue's `STOP` file first, then kill the runner from
+`runner.pid`, then the workers.
+
+### Traps that have actually bitten
+
+* **`env` is shadowed on this node.**  Other users' `bin` directories precede
+  `/usr/bin` on `PATH` and hold an `env` that is a `PATH`-setup snippet meant to
+  be sourced.  Run as `env VAR=x cmd` it prepends its own directory and exits `0`
+  **without executing `cmd`** — a launch that silently does nothing and reports
+  success.  Spell out `/usr/bin/env`, or drop it.
+* **`scripts/lib/env.sh` exports its own `SCRIPT_DIR` and `cd`s to the repo
+  root.**  Any script that sources it must re-derive `SCRIPT_DIR` from
+  `BASH_SOURCE[0]` straight afterwards, or every sibling path resolves against
+  `scripts/lib/`.  It has to be sourced, though — it is the only thing that puts
+  `mpirun` on `PATH`, so a multi-rank solve fails without it.
+* **One cell per card.**  Two `192³` cells sharing an H100 each ran `2.2×`
+  slower, so the pair finished later than running them back to back.  Never
+  co-schedule anything with an `N = 256` cell.
+* **Memory tracks cell count, not box size.**  `5.8` / `19.5` / `46.2` GB of FAB
+  at `N = 128` / `192` / `256`, peaking near `57` GB — identical whether
+  `L = 64` or `L = 128`.  A refined `N = 128` cell costs `41` GB against `5.8`
+  uniform, which is why `BONDI_MAXLEVEL=0`.
+* **Prune the initial data.**  `initial_data.gridinit` is `4.1` GB per `N = 256`
+  cell and is regenerable from the cell's own `params.txt`.  Nothing downstream
+  reads it.  The campaign launcher deletes it on success; do the same by hand.
+
+---
+## The matter configuration
+
+This is the thing being debugged, so all of it is here.
+
+### What the star is
+
+A self-gravitating **sextic (solitonic) Q-ball** — a complex scalar field with a
+sixth-order potential, solved at fixed frequency `ω` by amplitude shooting, then
+dressed with its own gravity.  The same solver produces both sectors: the sign
+of the kinetic term flips, giving the **canonical** star (positive energy,
+attractive self-gravity, `lapse < 1` in the core) or the **phantom** star
+(negative energy, repulsive self-gravity, `lapse > 1` in the core, negative ADM
+mass).
+
+### The exact parameters every run has used
+
+Set inside `run_pair_selfgrav.sh` as `--extra-override` flags:
+
+| parameter | value | meaning |
+|---|---|---|
+| `grtresna_scalar_lambda` | `10240` | sextic potential coupling |
+| `grtresna_scalar_mu` | `21845333` | scalar mass parameter |
+| `grtresna_bs_omega` | **`0.55`** | star frequency — **hard-coded, see below** |
+| `grtresna_bs_selfgrav` | `1` | dress the star with its own gravity |
+| `trajectory_num_lumps` | `2` | two stars |
+| `trajectory_lump0_R0` | `d₀/2` | lump 0 at `+x` |
+| `trajectory_lump0_phase0` | `0` | …on the `+x` axis |
+| `trajectory_lump0_exotic` | `BONDI_S0` | `0` canonical, `1` phantom |
+| `trajectory_lump1_R0` | `d₀/2` | lump 1 at `−x` |
+| `trajectory_lump1_phase0` | `π` | …on the `−x` axis |
+| `trajectory_lump1_exotic` | `BONDI_S1` | `0` canonical, `1` phantom |
+| `trajectory_lump1_bs_omega` | `BONDI_S1_OMEGA` | per-lump frequency override, lump 1 only |
+| `trajectory_lump{0,1}_well_depth` | `0.15` | confinement well |
+| `trajectory_well_width` | `1.2` | confinement well |
+| every velocity / rotation / breathing knob | `0` | the pair starts **at rest** |
+
+So in the default mixed pair, **lump 0 is the canonical star at `+x` (the
+right-hand blob) and lump 1 is the phantom at `−x` (the left-hand blob).**
+
+### The one change the stable branch needs
+
+`grtresna_bs_omega=0.55` is written literally into the launcher.  There is a
+per-lump override for lump 1 (`BONDI_S1_OMEGA`) but **none for lump 0 or for the
+base frequency**.  Moving to the stable branch therefore needs a one-line
+launcher change — the same shape as the existing knobs:
+
+```bash
+S0_OMEGA="${BONDI_S0_OMEGA:-0.55}"
+#   ...
+  --extra-override grtresna_bs_omega="${S0_OMEGA}" \
+```
+
+Commit and push it before launching anything, so `metadata.json`'s `git_commit`
+still identifies the tree that produced the cell.
+
+### The family, and which half of it is safe
+
+`results/bondi-dipole-runaway/stars/star_radius.csv` holds the whole scan and is
+the reference for every number in the *Verdict* section above.  Regenerate or
+extend it on the CPU — no GPU time:
+
+```bash
+PYTHONPATH=grteclyn-wrapper/src grteclyn-wrapper/.venv/bin/python \
+  results/bondi-dipole-runaway/analysis/star_radius_scan.py   # radii + compactness
+PYTHONPATH=grteclyn-wrapper/src grteclyn-wrapper/.venv/bin/python \
+  results/bondi-dipole-runaway/analysis/star_family_scan.py   # M(omega), both sectors
+```
+
+The stability rule, applied to that file: walk the family from dilute to dense
+and watch the central field value `φ_c`.  While it **rises** with mass the
+branch is stable; once it **turns back** while mass keeps climbing, everything
+beyond is unstable.  The turn is at **`ω ≈ 0.67`**.  Use `ω ≳ 0.70`, prefer
+`0.775–0.80`.  Never go below `0.67` again.
+
+Note the radius is *not* monotonic in `ω` — sextic Q-balls inflate in both the
+thin-wall and thick-wall limits, so "higher `ω` means more compact" is only true
+on one side of the minimum.  `star_radius_scan.py` exists precisely to check
+that before anyone relies on it.
+
+### How to tell a star is stable, in one cell
+
+Solve one star, evolve it **alone**, and compare against the two references
+already on disk:
+
+| | lapse `t = 0 → 40` | rms radius `t = 0 → 40` |
+|---|---|---|
+| `published/single_m` — phantom, stable | `1.001 → 0.998` | `5.43 → 6.32` |
+| `published/single_p` — canonical, unstable | `0.976 → 0.867` | `5.05 → 13.40` |
+
+A stable canonical star must look like the first row, and must still look like
+it at `t = 120`.  Watch:
+
+| file | column | what a stable star does |
+|---|---|---|
+| `data/collapse_diagnostics.dat` | `min_lapse` | stays within a few `%` of `1` |
+| `data/collapse_diagnostics.dat` | `min_chi` | stays near `1`; heading for `0` is a horizon |
+| `small_data/sector_barycenters.dat` | `rms_radius_*` | flat.  A `2×` growth by `t = 40` is the instability |
+| `small_data/sector_dynamics.dat` | `peak_canon` / `peak_phantom` | flat.  A **rise** means the core is squeezing down — collapse begins there, before the lapse shows it |
+| `data/constraint_norms.dat` | `L2_Ham` | does not run away |
+
+**The peak amplitude is the earliest warning.**  In the `d₀ = 16` cell it was
+already `+28 %` at `t = 60`, while the lapse still read `0.40` and the run still
+looked alive.
+
+### Pairing two stars of equal mass
+
+Bondi's constant-gap runaway is strictly an equal-mass result, and the two
+sectors do not weigh the same at the same frequency.  Two ways to match them:
+
+* **Detune one lump** — `BONDI_S1_OMEGA`.  At `ω = 0.55` the phantom must run at
+  `ω = 0.56598` to weigh the canonical star's `0.0640`.  This is what the
+  `*_eqm` cells do.
+* **Move up the family** — on the stable branch the sectors come out naturally
+  within `4–5 %` of equal mass (`|M₋|/M₊ = 1.049` at `ω = 0.775`, `1.043` at
+  `0.80`), against `1.203` at `ω = 0.55`.  No detuning needed.
+
+### Sizing a pair so the stars are actually separate
+
+Each star's `99 %` radius is `≈ 8.7–9.9` across the useful range, so `d₀` has to
+be read against `r₉₉(canonical) + r₉₉(phantom)`, not chosen for roundness.  At
+`ω = 0.55` that sum is `17.9`, which is why `d₀ = 8` is a single blob and
+`d₀ = 12` is the smallest separation with a defensible core-to-core measurement.
+Keep `d₀ / Σr₉₉ ≳ 0.67`, and keep the pair clear of the boundary: stars span
+`±(d₀/2 + r₉₉)`, which must stay well inside `±L/2`.
 
 ---
 ## Before launching anything
+
+> *Everything from here to the end of the document is the pre-campaign queue,
+> kept verbatim.  It was written against `ω = 0.55` matter, so treat the cell
+> definitions as historical: the reasoning is still worth reading, the
+> frequencies are not.*
 
 **Code reaches the node by `git push` then `git pull` — never `scp`.**  Every
 item below that needs a code or launcher change must be committed on

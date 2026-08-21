@@ -197,8 +197,14 @@ Three separate problems, in order of severity:
   coordinate speed reaching 0.12 — but a genuine runaway at fixed separation
   needs speed rising *linearly*, not compounding.
 
-**Defensible window: t ≲ 20–30**, while both stars are still intact.  Inside it
-the drift is ≈ 0.01, i.e. nothing measurable.
+**Defensible window at this separation: t ≲ 45** — but d₀ = 16 is the worst case
+for signal.  At d₀ = 12 the same tracker *does* see the Bondi signature: both
+stars move +x with displacements in the ratio 1.13 / 1.16 / 1.25 at t = 40 / 45
+/ 50, against the 1.205 the mass ratio predicts, while the gap holds to 1 %.
+The barycentre the article quotes gives 7.11 / 4.46 for the same two stars and
+converges on nothing — the signature is real, and invisible to the published
+diagnostic.  What still does not match is the time dependence: the drift grows
+as t³·⁹, not the t² of a constant-acceleration runaway.
 
 `movies/` in that cell shows all of it: matter (`scalar_activity_*`, `phi_z`),
 geometry (`chi_z` — the collapse), negative energy (`rho_req_z`) and
