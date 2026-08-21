@@ -1,3 +1,0 @@
-GRTECLYN_CEXE_headers += Weyl4WithMatterTest.hpp
-
-GRTECLYN_CEXE_sources += Weyl4WithMatterTest.cpp

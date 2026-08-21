@@ -12,7 +12,6 @@ AMREX_HOME ?= $(realpath ../../amrex)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
 
-include ./Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
@@ -43,16 +42,19 @@ test_dirs := $(patsubst %/, %, $(test_dirs_match))
 # Finally add in the Common directory
 test_dirs += $(GRTECLYN_TESTS_HOME)/Common
 
-src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
-test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)
-include $(src_pack)
-include $(test_pack)
+search_dirs := . $(src_dirs) $(test_dirs)
 
 doctest_dir := $(GRTECLYN_HOME)/external/doctest
 doctest_headers := doctest.h
 
-CEXE_sources += $(GRTECLYN_CEXE_sources)
-CEXE_headers += $(GRTECLYN_CEXE_headers) $(doctest_headers)
+# Find all source and header files
+CEXE_sources += $(notdir $(foreach dir, $(search_dirs), $(wildcard $(dir)/*.cpp)))
+CEXE_headers += $(notdir $(foreach dir, $(search_dirs), $(wildcard $(dir)/*.hpp)))
+CEXE_headers += $(notdir $(foreach dir, $(search_dirs), $(wildcard $(dir)/*.impl.hpp)))
+
+# Add doctest header
+CEXE_headers += $(doctest_headers)
+
 VPATH_LOCATIONS += $(src_dirs) $(test_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
 SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)

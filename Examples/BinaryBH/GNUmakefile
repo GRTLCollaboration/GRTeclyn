@@ -11,7 +11,6 @@ AMREX_HOME ?= $(realpath ../../../amrex)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
 
-# include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
@@ -30,21 +29,15 @@ src_dirs := $(GRTECLYN_SOURCE)/BlackHoles \
             $(GRTECLYN_SOURCE)/Maths \
             $(GRTECLYN_SOURCE)/Tagging
 
-# src_pack := $(foreach dir, $(src_dirs), $(dir)/Make.package)
-# include $(src_pack)
-
-# CEXE_sources += $(GRTECLYN_CEXE_sources)
-# CEXE_headers += $(GRTECLYN_CEXE_headers)
-
 # Find all source and header files in the src_dirs
 CEXE_sources += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.cpp)))
 CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.hpp)))
 CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.impl.hpp)))
 
-# Local source files
+# Example specific source files
 CEXE_sources += Main_BinaryBH.cpp BinaryBHLevel.cpp
 
-# Local header files
+# Example specific header files
 CEXE_headers += BinaryBHLevel.hpp \
                 SimulationParameters.hpp \
                 StateVariables.hpp \

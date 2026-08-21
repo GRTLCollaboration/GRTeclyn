@@ -9,7 +9,6 @@ AMREX_HOME ?= $(realpath ../../../amrex)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
 
-# include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
@@ -29,11 +28,11 @@ CEXE_sources += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.cpp)))
 CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.hpp)))
 CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.impl.hpp)))
 
-# Local source files
+# Example specific source files
 CEXE_sources += KleinGordonLevel.cpp \
                 Main_KleinGordon.cpp
 
-# Local header files
+# Example specific header files
 CEXE_headers += DerivedVariables.hpp \
                 DerivedVariables.impl.hpp \
                 KleinGordonLevel.hpp \
