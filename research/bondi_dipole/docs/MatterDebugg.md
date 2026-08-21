@@ -25,18 +25,29 @@
 > **Both rejections above are now suspect**, because every canonical cell ever
 > run — `ω = 0.55`, `0.75`, `0.80`, at every resolution — was built this way.
 >
-> **Status — 2026-08-21 (later still): the birth kick was real but it was not
-> the sink.  A second bug underneath it was, and it is fixed.**  The trace of
-> the matter stress tensor had the potential subtracted twice in every matter
-> class in the tree, which drove the slicing and nothing else — invisible to the
-> constraint monitor, and multiplied by nought in every test in the suite
-> because they all use a zero potential.  A star made of potential is exactly
-> the case that was never tested.  With it fixed, the same four cells re-evolved
-> from the same initial-data bytes stop sinking: `max abs K` decays instead of
-> climbing, and the Hamiltonian violation falls instead of growing.  See
-> [Critical bug: the potential is counted twice in the trace of T_ij](#critical-bug-the-potential-is-counted-twice-in-the-trace-of-t_ij--2026-08-21).
+> **Status — 2026-08-21 (later still): the birth kick was real but it was NOT
+> the sink.  A second bug has been found and fixed; whether it is the sink is
+> not yet known.**  The trace of the matter stress tensor had the potential
+> subtracted twice in every matter class in the tree.  That is proven exactly,
+> against the covariant `T_ab`, without running anything: `rho`, `j_i` and
+> `S_ij` are all correct and `trS` is short by `-3V`.  It went unseen because
+> `trS` feeds only `rhs[c_K]` — invisible to the constraint monitor — and
+> because every test in `Tests/` uses a zero potential, so the whole suite
+> multiplies the broken term by nought.  A star made of potential is exactly the
+> case that was never tested.
+>
+> **The verification A/B is still owed.**  The first attempt looked like a total
+> cure and was an artefact: the `--gridinit` reuse path silently swapped the
+> matter model for the source eval's, the star dissolved, and an empty box
+> satisfies the constraints beautifully.  Read
+> [Critical bug: the potential is counted twice in the trace of T_ij](#critical-bug-the-potential-is-counted-twice-in-the-trace-of-t_ij--2026-08-21)
+> for the proof, the current stage, and the trap — **nothing in
+> `runs/bondi_trsfix/` is a result.**
+>
 > **Every canonical-sector conclusion in this document predates the fix and
-> needs re-deriving.**
+> needs re-deriving**, and one thing is settled either way: at `M/R = 2.3e-03`
+> these stars are 1/200 of horizon compactness and cannot collapse at all.  The
+> broken runs were manufacturing several hundred times the star's own mass.
 >
 > This is the single working document for that loop: **what the campaign found**
 > → **why the matter is wrong** → **what a stable replacement looks like** →
@@ -322,37 +333,83 @@ potential is precisely the case the suite never exercises**, and this campaign's
 star is nothing but potential: `m^2`, an attractive quartic and a sextic
 stabiliser.
 
-### The evidence
+### How solid is this
 
-Same four cells, same solved `initial_data.gridinit` **bytes**, only the
-evolution binary changed:
+The bug itself is **certain**, and it is certain without running anything.
+`Source/Matter/` is checked against the covariant definition
+`T_ab = d_a phi d_b phi - g_ab (dphi^2 / 2 + V)`, decomposed on `n^a`, at a
+random unit-determinant `h_ij`:
 
-| `t` | min lapse | | min chi | | max abs K | |
-|---|---|---|---|---|---|---|
-| | **fixed** | broken | **fixed** | broken | **fixed** | broken |
-| 5 | 0.99346 | 0.99405 | 0.99002 | 0.98720 | 1.38e-03 | 1.43e-03 |
-| 10 | 0.99701 | 0.98744 | 0.99331 | 0.98102 | 2.58e-04 | 3.06e-03 |
-| 15 | 0.99798 | 0.98029 | 0.99498 | 0.97311 | 2.19e-04 | 4.62e-03 |
+| component | code vs truth |
+|---|---|
+| `rho` | exact to 1e-12 |
+| `j_i` | exact to 1e-12 |
+| `S_ij` | exact to 4e-17 |
+| `trS` | **short by exactly `-3V`, to twelve digits** |
 
-`max abs K` is the tell.  In the broken runs it climbs monotonically from birth
-and never stops, reaching 0.34 by `t = 110`.  In the fixed runs it peaks around
-`t = 5` and then **decays by a factor of six**, settling near `2e-04` — which
-is what a static star on a maximal slice is supposed to do.  The lapse and the
-conformal factor follow it back up toward 1 instead of down.
+The check is
+`/tmp/.../scratchpad/emt_check.py` (regenerate it from this section — it is 40
+lines of numpy and needs nothing from the repo).  In the pure vacuum-energy
+limit the code returns `trS = -6V` where the answer is `-3V`, a clean factor of
+two, and `DustMatter` / `EffectiveTeoMatter` in the same directory have always
+used the correct bare-trace form.
 
-The Hamiltonian constraint says the same thing in the cleanest form:
+**What is NOT yet established is that this bug is the sink.**  See the next
+subsection.
 
-| `t` | L2 Ham fixed | L2 Ham broken |
+### Current stage — the fix is in, the A/B is still owed
+
+Done:
+
+1. `trS` corrected in all six sites: `ScalarField`, `ComplexScalarField`,
+   `BiComplexScalarField`, `ExoticScalarField` (two overloads),
+   `ComplexExoticScalarField`, `GRTresnaIndependentScalars`.
+2. `main3d.gnu.MPI.CUDA.ex` rebuilt against it.  The previous binary is kept as
+   `main3d.gnu.MPI.CUDA.ex.pre_trsfix` for A/B.
+3. A `BONDI_GRIDINIT` knob added to `run_single_selfgrav.sh` so a cell can be
+   re-evolved from an already-solved slice, and
+   `run_trsfix_ab.sh` written to drive the four `K = 0` cells through it.
+
+**The first A/B attempt is VOID.**  It ran, it looked like a spectacular cure —
+`max abs K` decaying instead of climbing, `L2 Ham` 210× smaller at `t = 50` and
+still falling, lapse and chi returning to 1 — and all of it was an artefact.
+The matter told the real story: core peak amplitude fell `0.0242 -> 0.0007`,
+rms radius went `4.6 -> 27` against a box half-width of 32, confined fraction
+`0.71 -> 0.004`.  **The star had dissolved, and a nearly empty box satisfies the
+constraints trivially.**
+
+The cause was not the `trS` fix.  Diffing the two `params.txt`:
+
+| key | correct (solve path) | what the reuse path used |
 |---|---|---|
-| 2 | 4.63e-05 | 4.47e-05 |
-| 4 | 3.19e-05 | 8.58e-05 |
-| 6 | 2.61e-05 | 1.45e-04 |
-| 8 | 2.22e-05 | 2.08e-04 |
-| 10 | 1.96e-05 | 2.72e-04 |
+| `recipe_num_scalar_fields` | 1 | 5 |
+| `recipe_scalar_field_signs` | `1` | `-1 -1 -1 -1 -1` |
+| `recipe_scalar_lambda` | 10240.0 | 640.0 |
+| `recipe_scalar_mu` | 21845333.0 | 85333.0 |
 
-Identical at `t = 2`, then they part: the broken run's violation grows 6× over
-the next eight time units, the fixed run's **decays** 2.4×.  One spacetime is
-being driven away from Einstein's equations; the other is relaxing onto them.
+`replay_eval.py --gridinit` takes the gridinit-only replay branch, whose
+`_load_matter_replay_overrides()` reads `initial_data.matter.json` **from the
+source eval** — `eval_000322`, a search-campaign point with five phantom lumps
+on the `lambda = 640, mu = 85333` rung.  The bondi `BONDI_*` knobs only set
+`grtresna_scalar_*`; the `recipe_scalar_*` keys the evolution actually reads are
+normally copied over *from the solve*, and skipping the solve skips that copy.
+So the star was dropped into a potential it is not a solution of and blew apart
+in under ten time units.
+
+The gridinit's own cell carries the right metadata right next to it
+(`runs/bondi_correct/p_w080_k0/bondi_sg_single_p_w080/initial_data.matter.json`
+has `lump_count 1`, `scalar_field_signs [1]`, `lambda 10240`, `mu 21845333`).
+**Fix the reuse path to read the matter metadata from the gridinit's own
+directory, falling back to the source eval only if it is absent** — then re-run
+the A/B.  Until that is done, nothing in `runs/bondi_trsfix/` means anything and
+the `trS` fix is unverified against the actual symptom.
+
+The trap generalises: **any `--gridinit` replay silently inherits the source
+eval's matter model.**  Check `recipe_scalar_lambda` / `recipe_scalar_mu` /
+`recipe_num_scalar_fields` in the produced `params.txt` before believing any
+reused-slice run, and check `peak` in `small_data/confinement.dat` at `t = 10`
+before believing any improvement in the geometry.  A dissolving star makes every
+geometry diagnostic look wonderful.
 
 ### Why the phantom sector never showed it, and why that was misleading
 
@@ -376,20 +433,45 @@ collapsing at all, while its own field never moves?"  It was not.  The geometry
 was manufacturing several hundred times the star's mass out of a
 double-counted potential.
 
-### The fix
+### What this does to everything above
 
-One line per class, in `ScalarField`, `ComplexScalarField`,
-`BiComplexScalarField`, `ExoticScalarField` (two overloads),
-`ComplexExoticScalarField` and `GRTresnaIndependentScalars`.  The A/B campaign
-is `grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_trsfix_ab.sh`, which
-re-evolves the four `K = 0` cells from the already-solved slices via the new
-`BONDI_GRIDINIT` knob — the elliptic solve is skipped, so nothing in the
-comparison can be blamed on the solver.
+The `ω = 0.55` rejection, the turning-point argument and the
+stable-replacement recommendation were all reached on runs whose slicing was
+being driven by a double-counted potential.  **None of them survive as
+evidence** and all need re-deriving on the fixed binary — but note that the
+direction of the correction is not obviously helpful.  Working through the CCZ4
+`K` equation with `formulation = 0`, `rhs[c_K] += 4 pi alpha (trS - 3 rho)`, the
+true source at the core is `-2 |grad phi|^2 - 6V` and the broken one was
+`-2 |grad phi|^2 - 9V`.  Removing the spurious `-3V` makes `rhs[c_K]` *less*
+negative, which by itself pushes the lapse down slightly faster, not slower.
 
-**This supersedes the caveat that stood here.**  The `ω = 0.55` rejection, the
-turning-point argument and the stable-replacement recommendation were all
-reached on runs whose slicing was being driven by this bug, and none of them
-survive as evidence.  They need re-deriving on the fixed binary.
+So the honest expectation is not "this obviously cures it".  The argument for
+the fix mattering is structural rather than term-by-term: with a wrong `trS` the
+evolved stress tensor does not satisfy `div T = 0`, so the constraints are no
+longer preserved by the evolution and the CCZ4 damping is fighting a source it
+cannot see.  The observed violation grows exponentially (e-folding ~10 time
+units), which is a seeded instability rather than a constant drive.  Whether
+removing the seed is enough is exactly what the owed A/B decides.
+
+### The one thing that is settled regardless
+
+A star at `M/R = 2.3e-03` **cannot** collapse.  That is 1/200 of horizon
+compactness, and across the campaign window the whole family sits there:
+
+| `ω` | `M` | `r90` | `M/R` |
+|---|---|---|---|
+| 0.75 | 0.014350 | 5.237 | 3.19e-03 |
+| 0.80 | 0.011209 | 5.108 | 2.28e-03 |
+| 0.85 | 0.009156 | 5.713 | 1.65e-03 |
+| 0.90 | 0.007963 | 6.848 | 1.19e-03 |
+
+The broken runs drove `min chi` to 0.088, i.e. `psi = 1.84`, which at the star's
+own radius needs a mass of order 6 — several hundred times the 0.0112 the star
+actually has — while the field's core amplitude never moved more than 2.4% and
+the core never left `x = +4`.  **Mass was being manufactured.**  Whatever the
+remaining cause turns out to be, "the rung is unstable" is not it, and no amount
+of frequency-laddering or mass-dialling will fix a geometry sector that invents
+two orders of magnitude of energy out of a static field.
 
 ---
 

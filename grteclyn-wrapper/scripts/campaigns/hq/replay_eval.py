@@ -103,13 +103,13 @@ def _parse_params_value(raw: str) -> int | float | str:
         return value
 
 
-def _load_matter_replay_overrides(source_eval: Path) -> dict[str, int | float | str]:
-    """Restore evolution matter params for gridinit-only replay.
+def _matter_overrides_from_dir(run_dir: Path) -> dict[str, int | float | str]:
+    """Evolution matter params recorded alongside one solved slice.
 
     Prefer ``initial_data.matter.json`` (full metadata including scalar_mu);
     fall back to scanning ``params.txt`` for ``EVOLUTION_MATTER_KEYS``.
     """
-    matter_json = source_eval / "initial_data.matter.json"
+    matter_json = run_dir / "initial_data.matter.json"
     if matter_json.is_file():
         meta = read_matter_metadata(matter_json)
         overrides = evolution_overrides_from_metadata(meta)
@@ -119,7 +119,7 @@ def _load_matter_replay_overrides(source_eval: Path) -> dict[str, int | float | 
             if key in EVOLUTION_MATTER_KEYS
         }
 
-    params_path = source_eval / "params.txt"
+    params_path = run_dir / "params.txt"
     if not params_path.is_file():
         return {}
 
@@ -133,6 +133,33 @@ def _load_matter_replay_overrides(source_eval: Path) -> dict[str, int | float | 
         if key in replay_keys:
             overrides[key] = _parse_params_value(raw_value)
     return overrides
+
+
+def _load_matter_replay_overrides(
+    source_eval: Path, gridinit: Path | None = None
+) -> dict[str, int | float | str]:
+    """Restore evolution matter params for gridinit-only replay.
+
+    THE SLICE'S OWN DIRECTORY WINS.  ``recipe_scalar_*`` are what the evolution
+    actually reads, and on the normal path they are copied over from the
+    GRTresna solve; skipping the solve skips that copy, so they have to come
+    from somewhere.  Taking them from ``source_eval`` is wrong whenever the
+    slice was solved for a different matter model than the eval it descends
+    from -- which is the usual case for a campaign that overrides the rung.  It
+    fails silently and catastrophically: the star is dropped into a potential it
+    is not a solution of, blows apart within ~10 time units, and every geometry
+    diagnostic then looks superb because a near-empty box satisfies the
+    constraints.  Measured 2026-08-21: a bondi cell (1 canonical lump,
+    lambda 10240, mu 21845333) replayed from eval_000322 came back as 5 phantom
+    lumps on lambda 640, mu 85333.
+    """
+    candidates = [] if gridinit is None else [gridinit.parent]
+    candidates.append(source_eval)
+    for run_dir in candidates:
+        overrides = _matter_overrides_from_dir(run_dir)
+        if overrides:
+            return overrides
+    return {}
 
 
 def _promotion_overrides(
@@ -516,7 +543,7 @@ def main() -> int:
             gridinit,
             evolution_center=evolution_center,
         )
-        overrides.update(_load_matter_replay_overrides(source_eval))
+        overrides.update(_load_matter_replay_overrides(source_eval, gridinit))
         matter_model = overrides.get("recipe_matter_model")
         if matter_model == GRTRESNA_BICOMPLEX_SCALAR_MODEL:
             # Force the full canonical+phantom channel set so HQ frames can show
