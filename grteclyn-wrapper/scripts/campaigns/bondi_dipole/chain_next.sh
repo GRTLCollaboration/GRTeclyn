@@ -17,7 +17,7 @@ TAG="$1"; shift
 LAUNCHER="$1"; shift
 
 CAMP="grteclyn-wrapper/scripts/campaigns/bondi_dipole"
-OUT="${REPO_ROOT}/runs/bondi_rerun"
+OUT="${REPO_ROOT}/runs/bondi/rerun"
 
 # Wait for the predecessor to exit.
 #
@@ -29,7 +29,7 @@ OUT="${REPO_ROOT}/runs/bondi_rerun"
 # not enough: any bystander whose command line happens to mention the run
 # directory -- a `tail -F` over the launch logs, a du, an editor -- would pin the
 # chain open forever.  That actually happened: a log monitor tailing
-# runs/bondi_rerun/*.launch.log held every chain shut and left a GPU idle.
+# runs/bondi/rerun/*.launch.log held every chain shut and left a GPU idle.
 # So require the process to be the launcher script or its replay_eval child.
 predecessor_alive() {
   local pid cmd

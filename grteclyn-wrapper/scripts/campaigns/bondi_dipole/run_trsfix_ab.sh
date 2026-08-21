@@ -75,9 +75,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)"
 cd "${REPO_ROOT}"
 
-ROOT="${BONDI_TRSFIX_ROOT:-${REPO_ROOT}/runs/bondi_trsfix}"
+ROOT="${BONDI_TRSFIX_ROOT:-${REPO_ROOT}/runs/bondi/trsfix}"
 # Where the already-solved slices live: the cells this campaign is the A/B of.
-SRC_ROOT="${BONDI_TRSFIX_SRC:-${REPO_ROOT}/runs/bondi_correct}"
+SRC_ROOT="${BONDI_TRSFIX_SRC:-${REPO_ROOT}/runs/bondi/correct}"
 QDIR="${ROOT}/_queue"
 GPUS="${BONDI_TRSFIX_GPUS:-0 1 2 3}"
 DRYRUN="${BONDI_TRSFIX_DRYRUN:-0}"

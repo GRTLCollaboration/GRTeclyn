@@ -53,7 +53,7 @@ source "${WRAPPER_DIR}/scripts/lib/env.sh"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 SOURCE_EVAL="${REPO_ROOT}/results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
-RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_selfgrav_v1}"
+RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi/dipole_selfgrav_v1}"
 GPU="${BONDI_GPU:-1}"
 STOP_TIME="${BONDI_STOP_TIME:-40}"
 SEP="${BONDI_SEP:-8}"

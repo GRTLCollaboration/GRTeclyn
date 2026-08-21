@@ -30,7 +30,7 @@ TAG="$1"; shift
 LAUNCHER="$1"; shift
 
 CAMP="grteclyn-wrapper/scripts/campaigns/bondi_dipole"
-OUT="${REPO_ROOT}/runs/bondi_rerun"
+OUT="${REPO_ROOT}/runs/bondi/rerun"
 
 # Is the predecessor's evolution binary still holding the GPU?
 #

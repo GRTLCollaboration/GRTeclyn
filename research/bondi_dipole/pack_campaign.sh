@@ -11,9 +11,9 @@
 #   - each campaign cell's output folder is rebuilt from scratch on every run,
 #     so partial extracts from a still-running cell are replaced cleanly;
 #   - cells are discovered dynamically (every top-level dir in
-#     runs/bondi_rerun except published/, experiments/, logs/), so the queued
+#     runs/bondi/rerun except published/, experiments/, logs/), so the queued
 #     equal-mass series is picked up automatically when it appears;
-#   - the follow-up campaign in runs/bondi_rerun/next/ is packed too, under a
+#   - the follow-up campaign in runs/bondi/rerun/next/ is packed too, under a
 #     "next_" prefix, so it stays visibly separate from the published series;
 #   - cells with no data yet are skipped with a note, never an error.
 #
@@ -27,7 +27,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 SIM_ROOT="$(cd -- "${ROOT}/.." && pwd)"
-RUNS="${ROOT}/runs/bondi_rerun"
+RUNS="${ROOT}/runs/bondi/rerun"
 DEST="${ROOT}/results/bondi-dipole-runaway"
 
 export ROOT SIM_ROOT

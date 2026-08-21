@@ -60,9 +60,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)"
 cd "${REPO_ROOT}"
 
-# New top-level tree, deliberately NOT under runs/bondi_rerun: that tree is
+# New top-level tree, deliberately NOT under runs/bondi/rerun: that tree is
 # the closed omega=0.55 archive.  Everything stable-branch lives here.
-ROOT="${BONDI_STABLE_ROOT:-${REPO_ROOT}/runs/bondi_correct}"
+ROOT="${BONDI_STABLE_ROOT:-${REPO_ROOT}/runs/bondi/correct}"
 QDIR="${ROOT}/_queue"
 GPUS="${BONDI_STABLE_GPUS:-0 1 2 3}"
 DRYRUN="${BONDI_STABLE_DRYRUN:-0}"

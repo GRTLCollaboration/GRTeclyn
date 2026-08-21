@@ -72,7 +72,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)"
 cd "${REPO_ROOT}"
 
-ROOT="${BONDI_SLICING_ROOT:-${REPO_ROOT}/runs/bondi_correct}"
+ROOT="${BONDI_SLICING_ROOT:-${REPO_ROOT}/runs/bondi/correct}"
 # Own queue dir: the sibling _queue holds the completed K!=0 screen's
 # done/failed records and a STOP sentinel.
 QDIR="${ROOT}/_queue_k0"

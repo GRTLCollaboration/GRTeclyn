@@ -14,21 +14,21 @@
 #   GPU 2  item B     pair_pm     + scrutiny stream (momentum balance)
 #   GPU 3  item B     pair_pm_eqm + scrutiny stream (momentum balance)
 #
-# Every cell writes under runs/bondi_rerun/<cell>/ so the published July tree
+# Every cell writes under runs/bondi/rerun/<cell>/ so the published July tree
 # in runs/bondi/ is never touched.
 #
 # Memory: N=128 measured at ~7 GB arena + 0.5 GB managed (July pair_pm run.log),
 # one cell per 80 GB H100 -- no OOM risk at this wave's resolution.
 #
 # Stop everything with:
-#   for d in runs/bondi_rerun/*/; do bash grteclyn-wrapper/scripts/campaigns/stop_campaign.sh "$d"; done
+#   for d in runs/bondi/rerun/*/; do bash grteclyn-wrapper/scripts/campaigns/stop_campaign.sh "$d"; done
 set -euo pipefail
 
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 cd "${REPO_ROOT}"
 
 CAMP="grteclyn-wrapper/scripts/campaigns/bondi_dipole"
-OUT="${REPO_ROOT}/runs/bondi_rerun"
+OUT="${REPO_ROOT}/runs/bondi/rerun"
 mkdir -p "${OUT}"
 
 # NOTE: /usr/bin/env, spelled out, is NOT optional on this machine.

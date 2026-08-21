@@ -48,7 +48,7 @@ WRAPPER_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd -- "${WRAPPER_DIR}/.." && pwd)"
 
 SOURCE_EVAL="${REPO_ROOT}/results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
-RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_weakfield_v1}"
+RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi/dipole_weakfield_v1}"
 GPU="${BONDI_GPU:-0}"
 STOP_TIME="${BONDI_STOP_TIME:-100}"
 SEP="${BONDI_SEP:-8}"

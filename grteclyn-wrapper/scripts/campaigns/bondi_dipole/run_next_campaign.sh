@@ -58,7 +58,7 @@ cd "${REPO_ROOT}"
 # Lives under the existing bondi_rerun tree rather than a new top-level dir.
 # pack_campaign.sh skips "next" by name -- these are follow-up cells, not part
 # of the published pack, and must not be swept into it.
-ROOT="${BONDI_NEXT_ROOT:-${REPO_ROOT}/runs/bondi_rerun/next}"
+ROOT="${BONDI_NEXT_ROOT:-${REPO_ROOT}/runs/bondi/rerun/next}"
 QDIR="${ROOT}/_queue"
 GPUS="${BONDI_NEXT_GPUS:-0 1 2 3}"
 DRYRUN="${BONDI_NEXT_DRYRUN:-0}"

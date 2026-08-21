@@ -78,6 +78,11 @@ NFULL="${BONDI_NFULL:-128}"
 LFULL="${BONDI_LFULL:-64}"
 RADII="${BONDI_RADII:-8 16}"
 DT_MULT="${BONDI_DT_MULT:-0.02}"
+#   BONDI_PLOT_INTERVAL -- steps between plotfiles.  Default 40 keeps every
+#     packed pair cell reproducible bit-for-bit; the singles use 80.  A long
+#     run wants the coarser cadence or the consumer falls behind the GPU and
+#     the scratch dir grows without bound.
+PLOT_INTERVAL="${BONDI_PLOT_INTERVAL:-40}"
 #   BONDI_MAXLEVEL -- item A: set 0 for the convergence series.  Two reasons.
 #     (1) Richardson extrapolation needs a uniform grid; an AMR level that
 #         switches on partway through makes the convergence order meaningless.
@@ -155,7 +160,7 @@ if [[ "${S0_OMEGA}" != "0.55" ]]; then
   suffix="${suffix}_w$(printf '%s' "${S0_OMEGA}" | tr -d '.')"
 fi
 out_name="bondi_sg_pair_${suffix}"
-RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi_dipole_selfgrav_${suffix}}"
+RUNS_DIR="${BONDI_RUNS_DIR:-${REPO_ROOT}/runs/bondi/dipole_selfgrav_${suffix}}"
 
 mkdir -p "${RUNS_DIR}"
 
@@ -213,7 +218,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --gpu "${GPU}" \
   --n-full "${NFULL}" --l-full "${LFULL}" \
   --max-level "${MAXLEVEL}" --regrid-threshold 0.02 \
-  --stop-time "${STOP_TIME}" --plot-interval 40 \
+  --stop-time "${STOP_TIME}" --plot-interval "${PLOT_INTERVAL}" \
   --ftl-L 8.0 \
   --grtresna-ranks "${GRTRESNA_RANKS}" \
   --grtresna-iterations 50 \
