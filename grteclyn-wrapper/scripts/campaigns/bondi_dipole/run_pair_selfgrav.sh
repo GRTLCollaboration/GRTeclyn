@@ -214,6 +214,38 @@ GRTRESNA_RANKS="${BONDI_GRTRESNA_RANKS:-8}"
 # lapse swinging 0.99 -> 0.73 -> 0.88 inside t=6, against max|K| 1.2e-04 and a
 # flat lapse in pm.  Set this to 1 for any same-sign-canonical cell that has to
 # be read against a phantom-bearing one.
+# Elliptic-solve GRID -- the "solve end point", and the cause of the diagonal
+# lump drift measured on 2026-08-21.  The solve runs on its OWN grid (box
+# GRTRESNA_DOMAIN_L, GRTRESNA_N cells, refined GRTRESNA_MAXLEVEL times) and the
+# result is copied cell-by-cell onto the evolution grid by
+# grtresna/io/chombo.py::_target_span_slice.  That copy is piecewise-constant
+# and, where the solve cell is FINER than the evolution cell, the last source
+# cell touching a target cell wins -- always the one above it.  The metric
+# therefore lands displaced DOWNWARD by a fraction of a cell, by the same
+# amount on all three axes because the arithmetic is identical per axis.
+#
+# The matter does not move with it: conversion.py repaints the lumps
+# analytically on the target grid (exact to machine precision, verified: the
+# antisymmetric part of phi_lump1 about y=32 is 0.0).  So every star is born
+# sitting slightly ABOVE the centre of its own gravitational well.  A canonical
+# star falls back down that well, a phantom star is pushed further up it, and
+# the pair walks together for no physical reason -- 90% of the observed gap
+# closing.  Measured metric-minus-matter offset per axis: -0.10 at N=128,
+# -0.055 at N=192.  It does NOT converge away; it is an aliasing bias set by
+# the arithmetic between the solve levels and the target grid.
+#
+# THE FIX, and why these are knobs.  Make the solve cell EQUAL the evolution
+# cell and the transfer becomes a straight copy with zero bias:
+#     GRTRESNA_N = NFULL * (GRTRESNA_DOMAIN_L / LFULL),  GRTRESNA_MAXLEVEL = 0
+# For the campaign grid (NFULL=128, LFULL=64, DOMAIN_L=128) that is N=256,
+# MAXLEVEL=0.  MAXLEVEL=0 additionally removes the solve's own refinement
+# seams.  Resolving the initial data finer than the grid it will be evolved on
+# buys nothing and costs exactly this.
+#
+# The defaults below reproduce the published cells bit-for-bit.
+GRTRESNA_DOMAIN_L="${BONDI_GRTRESNA_DOMAIN_L:-128}"
+GRTRESNA_N="${BONDI_GRTRESNA_N:-${NFULL}}"
+GRTRESNA_MAXLEVEL="${BONDI_GRTRESNA_MAXLEVEL:-3}"
 GRTRESNA_MAXIMAL_SLICING="${BONDI_GRTRESNA_MAXIMAL_SLICING:-0}"
 MAXIMAL_SLICING_FLAG=()
 if [[ "${GRTRESNA_MAXIMAL_SLICING}" != "0" ]]; then
@@ -240,8 +272,9 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --grtresna-iterations 50 \
   --grtresna-nl-exit-tolerance "${NL_TOL}" \
   --grtresna-nl-stall-tolerance "${NL_STALL_TOL}" \
-  --grtresna-max-level 3 \
-  --grtresna-domain-l 128 \
+  --grtresna-max-level "${GRTRESNA_MAXLEVEL}" \
+  --grtresna-domain-l "${GRTRESNA_DOMAIN_L}" \
+  --grtresna-n "${GRTRESNA_N}" \
   --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   "${MAXIMAL_SLICING_FLAG[@]}" \
   --consumer-radii ${RADII} \

@@ -102,10 +102,23 @@
 >   `3.61 / 3.62 / 3.49 / 3.50 e-03` per unit `t`: the same approach *speed* to
 >   within 4%, while the separation doubles.  A gravitational cause must fall
 >   as `1/d^2`; multiplying by `d^2` gives `0.231 / 0.362 / 0.502 / 0.897`, a
->   factor of 3.9 spread, so it is not one.  The lumps drift together at a fixed speed
->   fixed at birth, regardless of how far apart they are — the same initial-data
->   family as the diagonal drift above.  The physical separation is constant,
->   which is what Bondi needs.
+>   factor of 3.9 spread, so it is not one.  **The cause is now identified, and
+>   it is the same one as the diagonal drift above: the solved metric is copied
+>   onto the evolution grid displaced by a fraction of a cell, so every star is
+>   born sitting off the centre of its own gravitational well.**  See *the
+>   metric arrives on the evolution grid displaced* below for the mechanism,
+>   the measurement and the fix.
+>
+>   **Two claims that stood in this paragraph are withdrawn.**  That the drift
+>   is a fixed speed set at birth: the `gap/t` estimator smeared a curve into
+>   one number, and windowed rates show it starting near zero, peaking around
+>   `t = 50-150` and then turning over, earliest at the smallest separation.
+>   And that the physical separation is constant: that rested entirely on
+>   `proper_sep`, which is computed from *integer* grid indices
+>   (`sector_dynamics.py::_proper_separation`) and so is quantised to `Δx = 0.5`
+>   — a resolution worse than the `0.72` signal it was being asked to measure.
+>   It dithers between two values and measures nothing.  Still unfixed; do not
+>   read that column.
 >
 >   This also accounts for the residual in the runaway ratio.  As the gap
 >   narrows the true pull exceeds the fixed-`d` prediction, so the pair slightly
@@ -741,9 +754,12 @@ of `constraint_norms.dat` before reading anything else in a convergence study.
 
 ### The fix — the solve grid is now configuration, not a constant
 
-Three environment knobs on `run_single_selfgrav.sh`, backed by a new
-`--grtresna-n` in `replay_eval.py`.  All default to the previously hard-coded
-values, so an un-set environment reproduces every earlier cell bit-for-bit:
+Three environment knobs on `run_single_selfgrav.sh` **and, since
+2026-08-21, on `run_pair_selfgrav.sh` as well** (which had `--grtresna-max-level 3`
+and `--grtresna-domain-l 128` hard-coded in the command line and passed no
+`--grtresna-n` at all), backed by a new `--grtresna-n` in `replay_eval.py`.  All
+default to the previously hard-coded values, so an un-set environment reproduces
+every earlier cell bit-for-bit:
 
 | knob | default | what it is |
 |---|---|---|
@@ -791,6 +807,196 @@ which is the clue that pointed at the initial-data pipeline rather than the
 stopping rule.  Tightening `BONDI_NL_TOL` is still worth doing for phantom
 cells (it costs `≈5` CPU iterations of a permitted `50`, and phantom cores were
 the ones that drifted off station), but it will not move the canonical star.
+
+---
+## Critical bug: the metric arrives on the evolution grid displaced — 2026-08-21
+
+**Every star in every cell of this campaign was born sitting off the centre of
+its own gravitational well, and spent the run falling toward it or away from
+it.**  This is the cause of the diagonal per-sector drift, and of roughly `90%`
+of the coordinate gap closing that ideal Bondi forbids.  It has the same root
+as the error floor above — the solve grid and the evolution grid do not share
+cell centres — but it is a *directional* error, not noise, so refining does not
+average it away.
+
+### What a star alone in an empty box does
+
+Three lone-star controls, one lump each, nothing else in the domain.  All three
+drift, and the displacement is equal on all three axes to three digits:
+
+| control | to `t` | `Δx` | `Δy` | `Δz` |
+|---|---|---|---|---|
+| canonical at `x = 37` | `21.6` | `-0.0174` | `-0.0173` | `-0.0173` |
+| canonical at `x = 32` (box centre) | `27.2` | `-0.0251` | `-0.0251` | `-0.0251` |
+| phantom at `x = 37` | `16.0` | **`+0.0110`** | `+0.0109` | `+0.0109` |
+
+Three facts fall out of that table and each one eliminates a family of
+explanations:
+
+- **The star at the exact box centre drifts as much as the one offset by five.**
+  So it is not being pulled *toward* anything — not the box centre, not the
+  boundary, not the sponge.
+- **The sign follows the sector**, same magnitude, opposite direction.
+- **It is real motion of the matter, not the coordinates sliding underneath.**
+  The shift vector at the core is `~3e-05` against a drift of `~1e-03` per unit
+  `t` — twenty times too small.  All three grow as `t^1.5` with the same
+  coefficient to within 10%.
+
+### Why it cannot be gravity, in one line
+
+An external gravitational field accelerates positive and negative mass
+**identically** — that is the equivalence principle, and it holds for a
+negative-mass test body just as it does for a positive one.  Nothing outside
+the star can produce a drift whose sign flips with the sign of the star's own
+energy density.  It has to be the star interacting with its own field.
+
+### The mechanism
+
+The elliptic solve runs on its own grid — box `L = 128` with `N = 128` cells,
+so spacing `1.0`, refined three times to `0.125` — and the evolution grid has
+spacing `0.5`.  The two never share cell centres.  The handoff then treats the
+two halves of the state differently:
+
+- **The matter is repainted analytically** on the target grid
+  (`grtresna/io/conversion.py`: *"Repaint the matter block analytically from the
+  lumps grouped by sign; the metric (incl. the solved lapse) comes from GRTresna
+  unchanged"*).  It is exact — the antisymmetric part of `phi_lump1` about
+  `y = 32` measures `0.000e+00`, machine zero.
+- **The metric is copied cell by cell** by
+  `grtresna/io/chombo.py::_target_span_slice` and `_axis_source_map`.  The copy
+  is piecewise constant, and where a source cell is finer than a target cell the
+  loop lets **the last source cell to touch a target cell win** — always the one
+  above it.  Where no source cell contains the target's centre, the fallback
+  picks a nearest cell with `int(...)`, which truncates instead of rounding, and
+  biases the same way.
+
+So the metric lands shifted **downward**, and by the same amount on all three
+axes, because the arithmetic is identical per axis.  Running the actual
+functions over the actual grids:
+
+| solve spacing | onto the `Δx = 0.5` grid | onto the `Δx = 1/3` grid |
+|---|---|---|
+| `1.0` (unrefined) | `0` | `0` |
+| `0.5` | `0` — exact copy | `-0.083` |
+| `0.25` | `-0.125` | `-0.042` |
+| `0.125` (finest) | `-0.313` | `-0.188` |
+
+Measured in the delivered initial data, as the centroid of `chi` minus the
+centroid of the matter along `y` — a quantity that must be **exactly zero** by
+symmetry, since the configuration is invariant under `y → 64 - y`:
+
+| cell | offset per axis |
+|---|---|
+| `pm_eqm`, `N = 128` | `-0.096` |
+| `pm_eqm_n192`, `N = 192` | `-0.058` |
+
+**It does not converge away.**  It is an aliasing bias set by the arithmetic
+between the solve levels and the target grid, and the table above shows it
+moving non-monotonically — the `Δx = 0.5` column is worst at the finest solve
+level and exactly zero at two others.
+
+### Why that makes the two sectors move opposite ways
+
+Each star ends up sitting slightly **above** the centre of its own well.  A
+canonical star sits in a well and is pulled back down it.  A phantom star has
+negative energy density, so its feature is a *hill* rather than a well, and the
+same geometric displacement pushes it further up.  Same offset, opposite force.
+Read directly off the initial data as the mean lapse gradient over each star's
+own matter — a quantity that must also be zero by symmetry on the transverse
+axes:
+
+| star | free-fall acceleration `(x, y, z)` | drift actually observed |
+|---|---|---|
+| canonical | `(-5.7e-05, -1.9e-04, -1.9e-04)` | `-(1,1,1)` |
+| phantom | `(+3.4e-04, +1.8e-04, +1.8e-04)` | `+(1,1,1)` |
+
+### What it did to the results
+
+In a pair the canonical star sits at the larger `x` and is pushed toward smaller
+`x`; the phantom sits at smaller `x` and is pushed toward larger `x`.  They walk
+into each other for no physical reason.  The lone-star controls reproduce `90%`
+of the observed closing over the window where they can be compared directly.
+
+The clean in-place measurement is the **transverse** drift.  The pair is
+symmetric about the line joining the stars, so sideways motion is physically
+impossible — whatever appears there is the artefact, measured inside the very
+run it contaminates, and it is the same size along the pair axis:
+
+| cell | `d` | raw gap closed | transverse artefact | corrected | `× d²` |
+|---|---|---|---|---|---|
+| `pm_eqm_sep8`  |  8 | `0.7215` | `0.5592` | `0.1623` | `10.4` |
+| `pm_eqm`       | 10 | `0.7242` | `0.6120` | `0.1122` | `11.2` |
+| `pm_eqm_sep12` | 12 | `0.6978` | `0.6390` | `0.0588` | `8.5` |
+| `pm_eqm_sep16` | 16 | `0.7009` | `0.6652` | `0.0357` | `9.1` |
+
+The raw closing being flat across a factor of two in separation — `0.72`,
+`0.72`, `0.70`, `0.70` — is itself the tell: gravity cannot do that.  After
+subtraction the residual follows `d^-2.27`, an inverse-square law where there
+had been no separation dependence at all.
+
+The runaway measurement survives but is not clean, because the artefact is
+antisymmetric and largely cancels in the midpoint: contamination runs `5.7%` at
+`d = 8` to `30.0%` at `d = 16` — worst exactly where the real signal is
+weakest.  **The `d = 16` point cannot stand as published.**
+
+### The fix
+
+Make the solve cell equal the evolution cell, and the transfer becomes a
+straight copy with zero bias — the recipe already written down in *the solve
+grid is now configuration* above, for the other reason:
+
+```
+BONDI_GRTRESNA_N = BONDI_NFULL * (DOMAIN_L / LFULL)     BONDI_GRTRESNA_MAXLEVEL = 0
+```
+
+For the campaign grid (`NFULL = 128`, `LFULL = 64`, `DOMAIN_L = 128`) that is
+`N = 256` with no solve refinement.  Resolving the initial data *finer* than the
+grid it will be evolved on buys nothing and costs exactly this.  The knobs now
+exist on `run_pair_selfgrav.sh` as well, defaulting to the published values.
+
+A proper code fix would average every source cell overlapping a target cell
+instead of letting the last one win, and round rather than truncate in the
+fallback.  That would remove the bias for any grid pair rather than for the
+aligned one only.  Not done.
+
+### Checking it, before spending GPU time
+
+`research/bondi_dipole/check_gridinit_alignment.py` reads an
+`initial_data.gridinit` and reports the metric-minus-matter offset per sector
+per transverse axis, with a pass/fail verdict.  It runs in seconds on the file
+the solve drops, so a bad cell is caught before the GPU starts:
+
+```bash
+grteclyn-wrapper/.venv/bin/python research/bondi_dipole/check_gridinit_alignment.py \
+    runs/bondi/runaway/<cell>/<eval>/initial_data.gridinit
+```
+
+Validated against the known-bad data: `-0.0969` for `pm_eqm`, `-0.0576` for
+`pm_eqm_n192`, both flagged `BIASED`.  **Snap the window to an exactly
+symmetric set of cell centres** — getting that wrong by half a cell makes the
+estimator invent an offset of its own, which is how this was first
+mis-measured.  The script asserts it.
+
+### What is running
+
+Three corrected cells, each byte-identical to the cell it is paired against
+except for the solve grid, so the comparison isolates the initial data:
+
+| cell | paired against | what it settles |
+|---|---|---|
+| `fix_single_p` | `single_p_x32` | does a lone canonical star sit still |
+| `fix_single_m` | `single_m_x37` | does the sign flip go away |
+| `fix_pm_eqm` | `pm_eqm` | is the gap constant with nothing subtracted |
+
+### What still has to be re-derived
+
+Every number in this document measured on a pair or on a lone star was taken on
+initial data carrying this defect.  That includes the inverse-square result in
+the table above, which appeared only *after* subtracting the artefact and now
+has to be reproduced without the subtraction.  The **differential** mass-mismatch
+measurement is the exception and stands as it is: matched and mismatched cells
+at the same `d` carry the same artefact, so it cancels in the difference — which
+is why that channel agreed with Newton to `1-9%` while the direct one did not.
 
 ---
 ## What the campaign returned — 2026-08-20
