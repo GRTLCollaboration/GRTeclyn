@@ -19,6 +19,43 @@ constitution of this campaign; this plan just applies them cell by cell.
 
 ---
 
+## The scoreboard — every run the paper needs
+
+Tick a box only when the cell has passed its gate and been moved into
+`runs/bondi/runaway_paper/`. Details for each are in the phase it belongs to.
+
+**Already in the archive (corrected path, gates passed):**
+
+- [x] `runaway_pair_d08_L64_N128_lev0` — separation scan point, strong-signal pictures
+- [x] `runaway_pair_d10_L64_N128_lev0` — the headline cell; base rung of the ladder
+- [x] `runaway_pair_d12_L64_N128_lev0` — separation scan point
+- [x] `runaway_pair_d16_L64_N128_lev0` — separation scan point
+- [x] `control_lone_canonical_L64_N128_lev0` — single-star null (box centre)
+- [x] `control_lone_phantom_L64_N128_lev0` — single-star null (off-centre, the sharper test)
+- [x] `stability/canonical_w{075,080,085,090}_L64_N128_lev0` — stability survey, t=120
+
+**Required — the paper is not submittable without these:**
+
+- [ ] `smoke_mpi_evo` — phase 0, minutes; answers whether 2-GPU evolution works (deleted after)
+- [ ] `control_pair_pp_d10_L64_N128_lev0` — phase 1, ~1.1 h; two canonical stars: gap shrinks, barycentre still
+- [ ] `control_pair_mm_d10_L64_N128_lev0` — phase 1, ~1.1 h; two phantom stars: gap grows, barycentre still
+- [ ] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, ~1.1 h; sectors swapped: runaway reverses
+- [ ] `runaway_pair_d10_L64_N192_lev0` — phase 2, ~5.5 h; middle rung of the ladder
+- [ ] `runaway_pair_d10_L64_N256_lev0` — phase 2, ~17 h; finest rung of the ladder
+- [ ] `control_pair_pp_d10_L64_N192_lev0` — phase 2, ~5.5 h; null residual must shrink with the grid
+- [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung
+- [ ] `massscale_pair_d10_w<omega>_L64_N128_lev0` — phase 3, ~1.5 h; lighter phantom: pull scales with the source
+- [ ] `wavezone_pair_d10_L128_N256_lev0` — phase 4, ~9 h; doubled box, four extraction shells
+
+**Optional — only if the paper wants the figure:**
+
+- [ ] `longrun_pair_d10_t400_L64_N128_lev0` — ~2.2 h; sustained-acceleration money plot
+- [ ] `control_pair_mm_d10_L64_N192_lev0` — ~5.5 h; MM alongside PP in the null ladder
+- [ ] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung
+- [ ] `amrcheck_pair_d10_L64_N128_lev1` — ~1.5 h; referee-proofing only (predicted identical to lev0)
+
+---
+
 ## 0. Decisions taken up front (so they are not re-litigated per cell)
 
 ### Mesh refinement: `max_level = 0` everywhere. Not negotiable, and here is why
