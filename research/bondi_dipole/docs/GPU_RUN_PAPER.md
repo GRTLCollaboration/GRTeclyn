@@ -139,6 +139,14 @@ fixed colour scale afterwards.
 | `control_pair_pp/mm_d10_L64_N128_lev0`, `massscale_…` | numbers only |
 | both N=192 rungs, `wavezone_…` | ladder and extraction cells; nothing is read off a picture |
 
+**Frames are ON unless a cell switches them off.** `consumer_frames_enabled()`
+returns true for anything that is not literally `GRTECLYN_FRAMES=0/off/no/false`
+— an unset variable draws frames. So a frameless cell needs the flag written out
+explicitly, while a frames cell works either way. Every frames cell in this
+campaign nevertheless states `GRTECLYN_FRAMES=1` beside its slice cache, because
+"frames on" should be visible in the launcher rather than inferred from a
+default: verified across all ten launchers on 2026-08-22 before wave B started.
+
 **This cannot be revisited after the fact** (README rule 6): the plotfiles a
 frame is drawn from are deleted as they are consumed, so a frameless cell can
 never be re-rendered — it can only be re-run. A movie of the mirror cell would
