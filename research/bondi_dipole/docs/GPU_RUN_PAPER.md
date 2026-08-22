@@ -96,6 +96,16 @@ fires. Keep it in the back pocket; do not spend it now.
   (`BONDI_EVO_RANKS=2 BONDI_GPU="0,1"`) to halve the longest runs; if it fails,
   nothing in the plan changes.
 
+All four cards (0–3) stay busy throughout; the gates order the *families*,
+not the queue:
+
+| wave | GPU 0 | GPU 1 | GPU 2 | GPU 3 |
+|---|---|---|---|---|
+| smoke | 2-rank smoke test (cards 0,1) | ← | — | — |
+| A | PP d10 N128 | MM d10 N128 | MP mirror N128 | mass-scale (after the CPU family scan) |
+| B — phase-1 gate green | PM N192 | PP N192 | wave-zone L128 | long-run t400 (optional) |
+| C — N=192 gate green | PM N256 | (+0 if 2-rank passed) | PP N256 | (+2 if 2-rank passed) |
+
 ### Time window
 
 Every quantitative claim is fitted on **t ≤ 200**, the window all archived
@@ -103,10 +113,16 @@ cells share (fit from t ≥ 5; before that the gauge is settling). The stability
 survey stays at its archived t = 120. Anything running longer is illustration,
 never a fit window.
 
-### Movies
+### Frames and movies — only where a figure needs them
 
-Every new cell launches with `GRTECLYN_FRAMES_CACHE_SLICES=1`, so after the
-campaign every series can be re-rendered on one fixed colour scale:
+Drawing frames is the dominant per-plotfile CPU cost, and most cells' product
+is numbers, not pictures. The matrix default is therefore `GRTECLYN_FRAMES=0`
+(metrics-only consumer; plotfiles are still deleted on the fly — that gate
+does not depend on frames). Frames are switched on only for the cells a
+figure or movie actually comes from: the P/M singles (archived, already have
+frames) and the finest-grid PM and PP cells. Those launch with
+`GRTECLYN_FRAMES_CACHE_SLICES=1`, so afterwards every kept series can be
+re-rendered on one fixed colour scale:
 
 ```bash
 grteclyn-wrapper/scripts/plot/rerender_frames.py <episode>/frames --movies
@@ -115,6 +131,25 @@ grteclyn-wrapper/scripts/plot/rerender_frames.py <episode>/frames --movies
 Plotfiles are still consumed and deleted on the fly — the cache keeps only the
 2-D slice behind each frame (~1.4 GB per pair cell; delete
 `frames/_slice_cache/` once the movies are final).
+
+### Where the GW shells may sit — outside the stars, inside the sponge
+
+Measured at t=0 on the archived d=10 cell: star cores at ±5 from the box
+centre with rms radius 4.34, so ~90% of the matter lives inside r ≈ 11.5 and
+the tails reach further. The template's inner extraction shell at r = 8 passes
+straight through both stars — it is a near-zone monitor, never a GW
+measurement. And the in-code Weyl extraction has been OFF in every cell so
+far: all psi4 to date is the consumer's coarse per-plotfile shell sampling.
+
+| box | matter ends | sponge (inner→outer) | shells that mean radiation |
+|---|---|---|---|
+| L=64 | ~11.5 + tails | 24→32 | r = 16 only — quote nothing else |
+| L=128 wave zone | ~11.5 + tails | **48→60, must be moved out** | 16, 24, 32, 40 |
+
+The sponge radii are absolute numbers, not box-scaled: left at their 24→32
+defaults, the doubled box would run its dissipation band straight through
+three of the four planned shells. Phase 4 sets them explicitly, and switches
+the dense in-code extraction on with the new `BONDI_EXTRACTION_RADII` knob.
 
 ### Naming and staging
 
@@ -158,7 +193,7 @@ Baseline launch environment (identical to the archived d=10 cell; every phase
 edits only the lines it names). One block = one cell = one command:
 
 ```bash
-GRTECLYN_FRAMES_CACHE_SLICES=1 \
+GRTECLYN_FRAMES=0 \
 BONDI_GPU=<card> BONDI_STOP_TIME=200 \
 BONDI_NFULL=128 BONDI_LFULL=64 BONDI_MAXLEVEL=0 \
 BONDI_PLOT_INTERVAL=80 BONDI_SCRUTINY=1 BONDI_SPONGE=1 BONDI_SEP=10 \
@@ -241,7 +276,10 @@ resolution doubling, and the evolution's own convergence becomes visible.
 | N=256 | `BONDI_NFULL=256 BONDI_PLOT_INTERVAL=160` | `BONDI_GRTRESNA_N=512 BONDI_NL_TOL=0.000125 BONDI_NL_STALL_TOL=0.0000025 BONDI_GRTRESNA_TIMEOUT=43200` | ~17 h (or 2 cards if Phase 0 passed) |
 
 Cells: `runaway_pair_d10_L64_N{192,256}_lev0` (baseline env otherwise) and
-`control_pair_pp_d10_L64_N{192,256}_lev0` (Phase 1 PP env otherwise).
+`control_pair_pp_d10_L64_N{192,256}_lev0` (Phase 1 PP env otherwise). The two
+N=256 cells are the figure cells: they replace `GRTECLYN_FRAMES=0` with
+`GRTECLYN_FRAMES_CACHE_SLICES=1`; every other new cell in the matrix stays
+frameless.
 
 Order: run the two N=192 cells first (~5.5 h, overnight is generous), check,
 then commit to the two N=256 cells. At N=256 watch the consumer lag — if the
@@ -283,7 +321,8 @@ Cell `wavezone_pair_d10_L128_N256_lev0`:
 
 ```
 BONDI_NFULL=256 BONDI_LFULL=128 BONDI_RADII="16 24 32 40" \
-BONDI_PSI4_HIGHER_L=1 \
+BONDI_EXTRACTION_RADII="16 24 32 40" BONDI_PSI4_HIGHER_L=1 \
+BONDI_SPONGE_INNER=48 BONDI_SPONGE_OUTER=60 \
 BONDI_GRTRESNA_DOMAIN_L=256 BONDI_GRTRESNA_N=512 BONDI_GRTRESNA_TIMEOUT=43200
 ```
 
@@ -299,7 +338,8 @@ growth; whatever is measured is reported.
 
 - `longrun_pair_d10_t400_L64_N128_lev0` — baseline with `BONDI_STOP_TIME=400`,
   ~2.2 h: the sustained-acceleration money plot (velocity still growing
-  linearly at t=400). Illustration only; fits stay on t ≤ 200.
+  linearly at t=400). It exists for the picture, so it launches with frames
+  and the slice cache on. Illustration only; fits stay on t ≤ 200.
 - `control_pair_mm_d10_L64_N{192,256}_lev0` — completes the null-ladder figure
   with MM alongside PP. Same cost as the PP rungs; skip unless the convergence
   figure looks thin without it.
@@ -336,3 +376,54 @@ Solves add ~20 min (256³) to ~4 h (512³) of CPU time per cell, overlapping GPU
 work on other cells. The entire required matrix is under three days — the cost
 of *not* checking between phases was three weeks of artefact archaeology, which
 is the ratio to remember when tempted to launch everything at once.
+
+---
+
+## 4. Outlook — how far toward the speed of light can the dipole be pushed?
+
+Not all the way: a constantly self-accelerating pair follows hyperbolic
+motion, approaching c asymptotically, never reaching it. The real question is
+what fraction of c fits in a computable box. With the measured d=8
+acceleration (2.32e-4) and the pair racing down a long thin box (transverse
+side kept at 64, cell 0.5, pair launched near the −x face):
+
+| target | run length t | distance | box length | memory | GPU-days |
+|---|---|---|---|---|---|
+| 0.10 c | 430 | 22 | 160 | 15 GB | 0.2 |
+| 0.30 c | 1,360 | 210 | 352 | 33 GB | 1.7 |
+| 0.50 c | 2,500 | 670 | 800 | 75 GB | 7 |
+| 0.70 c | 4,200 | 1,700 | 1,856 | 174 GB — 3+ cards | 28 |
+| 0.90 c | 8,900 | 5,600 | 5,728 | 537 GB — over the node | 180 |
+
+0.3c costs under two days on one card and already carries a 4.8% deviation
+from the Newtonian v = a·t — a measurable test of relativistic
+self-acceleration. 0.5c (15% deviation) is a week and just fits one card.
+Beyond that the box, not the time, is the wall: the distance needed to go
+relativistic is d²/GM ≈ 900 star radii, which is why literal c is petabytes.
+
+Ways to cut the cost, strongest first:
+
+1. **Heavier stars — cost falls as 1/M².** Time, distance, box and step count
+   all scale as 1/M, so GPU time to a fixed speed scales as 1/M². The
+   ω=0.75 star (M = 0.01435) sits far below the stable branch's mass maximum
+   (the branch runs from ω ≈ 0.67 up). Run the family scan (CPU-only) over
+   ω = 0.67–0.75 and take the heaviest stable canonical that has a
+   mass-matched phantom partner: 3× the mass makes every row above 9×
+   cheaper — 0.5c in under a day.
+2. **A recentring (comoving) box.** The box is long only because the pair
+   moves. Shifting every field back by a whole number of cells at intervals
+   is an exact copy — no interpolation, the same reasoning that fixed the
+   initial data — with the sponge eating the seam at the trailing face. That
+   caps the box at ~L=128 forever and makes cost linear in run time: 0.9c in
+   a small box becomes days, not half a year. New default-off feature; needs
+   one validation cell (recentred vs not, over a window both can reach).
+3. **Both together**: with 3× mass, 0.9c needs only t ≈ 3,000 in a small
+   static box — even paying for the finer grid the Lorentz-contracted star
+   eventually demands (γ = 2.3 at 0.9c halves the star's grid footprint;
+   plan on dx = 0.25 past ~0.6c), it stays in single-digit GPU-days.
+4. Smaller levers: separation below 8 buys ~30% but enters envelope overlap;
+   an initial boost via the solver's boost knob skips the slow early phase,
+   but that code path has never been validated — it gets a validation cell
+   before it gets believed.
+
+None of this is in the required matrix; it is the natural follow-up paper.

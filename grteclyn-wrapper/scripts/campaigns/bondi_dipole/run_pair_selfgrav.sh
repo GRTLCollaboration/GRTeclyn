@@ -253,6 +253,24 @@ GRTRESNA_DOMAIN_L="${BONDI_GRTRESNA_DOMAIN_L:-128}"
 GRTRESNA_N="${BONDI_GRTRESNA_N:-${NFULL}}"
 GRTRESNA_MAXLEVEL="${BONDI_GRTRESNA_MAXLEVEL:-3}"
 GRTRESNA_MAXIMAL_SLICING="${BONDI_GRTRESNA_MAXIMAL_SLICING:-0}"
+# BONDI_EXTRACTION_RADII -- switch ON the in-code Weyl extraction (dense in
+# time, decoupled from plotfile cadence) at these shell radii from the box
+# centre.  The params template ships with it OFF, so every cell without this
+# knob has psi4 only from the consumer's coarse per-plotfile shells.  Shells
+# must sit OUTSIDE the outermost star matter and INSIDE the sponge's inner
+# radius, or the "wave" is star interior / dissipation zone respectively.
+EXTRACTION_FLAGS=()
+if [[ -n "${BONDI_EXTRACTION_RADII:-}" ]]; then
+  read -ra _exr <<< "${BONDI_EXTRACTION_RADII}"
+  EXTRACTION_FLAGS=(
+    --extra-override activate_extraction=1
+    --extra-override write_extraction=1
+    --extra-override num_extraction_radii="${#_exr[@]}"
+    --extra-override extraction_radii="${BONDI_EXTRACTION_RADII}"
+    --extra-override extraction_levels="$(printf '0 %.0s' "${_exr[@]}" | sed 's/ $//')"
+  )
+fi
+
 MAXIMAL_SLICING_FLAG=()
 if [[ "${GRTRESNA_MAXIMAL_SLICING}" != "0" ]]; then
   MAXIMAL_SLICING_FLAG=(--grtresna-maximal-slicing)
@@ -284,6 +302,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --grtresna-n "${GRTRESNA_N}" \
   --grtresna-timeout "${GRTRESNA_TIMEOUT}" \
   "${MAXIMAL_SLICING_FLAG[@]}" \
+  "${EXTRACTION_FLAGS[@]}" \
   --consumer-radii ${RADII} \
   --consumer-keep-last 2 \
   --objective-mode weighted \
