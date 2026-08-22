@@ -239,57 +239,68 @@ disappears automatically when the condition does.** Whenever behaviour is
 switched on by a property of the physics rather than by a line someone wrote,
 changing the physics silently changes the numerics too.
 
-### 10. Preflight the machine, not just the cell — solves and evolutions compete
+### 10. Preflight the machine, not just the cell — solves starve evolutions
 
-Four GPU evolutions saturate this node's 128 cores on their own. That is not a
-guess: the ten archived cells ran four-at-a-time and each still managed **183
-units of evolution time per hour**. Solver ranks come straight out of that
-budget, and the cost is brutal — measured 2026-08-22, adding three 32-rank
-solves (96 of 128 cores) dropped the same four evolutions to **24-56 t/hour**,
-a five-fold loss, with the cards reading 41-55% instead of 82-95%.
+Elliptic solves and GPU evolutions do not share this node peacefully, and the
+cost is far larger than a core count suggests.
 
-GPU-hours are the scarce resource in a campaign like this (~59 of them against
-~14 hours of solving), so **the machine runs either four evolutions or a
-comparable amount of solving, not both.** Reserve ~32 cores per running
-evolution and give the solver what is left: four evolutions leave room for
-nothing, three leave room for one 32-rank solve, two leave room for two. Queue
-the next wave's solves against that budget rather than launching them because a
-card looks idle — the card is not the bottleneck, the cores are.
+**What was measured, 2026-08-22.** Four evolutions running alone held ~150-183
+units of evolution time per hour each — matching the archive, whose ten cells
+also ran four-at-a-time at 183. Starting three 32-rank solves alongside them
+dropped the same four to **24-56 t/hour**, a five-fold loss, cards reading
+41-55% instead of 82-95%. Killing the solves restored them within minutes.
+
+**It is not core exhaustion, so do not reason from core counts.** Measured with
+`sweep_ranks.py`, four evolutions plus their four consumers draw only ~720% —
+about seven of 128 cores — and even 133 solver ranks added just ~5000% more.
+Less than half the machine was busy on paper while the evolutions ran at a
+fifth speed. The contention is for memory bandwidth and scheduler latency, not
+for cores: multigrid sweeps over a 384³-512³ grid saturate memory traffic, and
+the evolution's host thread has to be scheduled promptly every step to keep its
+card fed. A GPU run can be starved by a machine that looks half idle.
+
+**The practical rule.** GPU-hours are the scarce resource in a campaign like
+this (~59 of them against ~14 hours of solving), so protect them: run at most
+**one 32-rank solve while four evolutions are in flight**, and let a solve
+queue wait on the number of live evolutions rather than on free cores or an
+idle-looking card. Check the *evolution rate* after starting anything new —
+`t/hour` from `sector_dynamics.dat` — because the card's utilisation percentage
+is bursty and will not tell you plainly.
 
 **Killing a solve is not the same as stopping it.** `kill -TERM` on the
-launcher's process group leaves the MPI ranks running: after stopping three
-solves this way, 133 GRTresna ranks were still in state `R` burning 4800% CPU,
-and the evolutions stayed starved for as long as it took to notice. The
-tell-tale is `.nfs*` files left under the run directory — those are handles held
-by processes that are very much alive. Sweep the workers by name and verify the
-count reaches zero.
+launcher's process group leaves the MPI ranks running: after three solves were
+"stopped" that way, 133 GRTresna ranks were still in state `R` and the
+evolutions stayed starved until someone noticed. The tell-tale is `.nfs*` files
+left under the run directory — handles held by processes that are very much
+alive. Never wave a kill at this and assume it landed; use the sweeper, which
+re-checks and exits non-zero if anything survived:
 
-**Verification needs care on this node: `/proc/stat` and `/proc/loadavg` are
-broken** (`Transport endpoint is not connected`), so `ps`, `top`, `uptime`,
-`pgrep` and `free` all fail or return nothing, and `nvidia-smi
---query-compute-apps` reports no PIDs. Counting `pout.N` files does *not* work
-either — they persist after the writer dies. The per-PID files under `/proc`
-*do* work, so enumerate those directly:
+```bash
+# what is running, with real per-process CPU (changes nothing)
+grteclyn-wrapper/scripts/ops/sweep_ranks.py
 
-```python
-import os, signal
-for p in filter(str.isdigit, os.listdir('/proc')):
-    cmd = open(f'/proc/{p}/cmdline','rb').read().replace(b'\0',b' ').decode()
-    if 'GRTresna' in cmd:            # keep 'RadialRecipe' / 'main3d' alive
-        os.kill(int(p), signal.SIGKILL)
+# stop every elliptic solve, leave the GPU evolutions untouched
+grteclyn-wrapper/scripts/ops/sweep_ranks.py --kill solves
+
+# stop everything belonging to one cell
+grteclyn-wrapper/scripts/ops/sweep_ranks.py --kill all --match <cell-name>
 ```
 
-Read `/proc/<pid>/stat` fields 14 and 15 across a short interval for real
-per-process CPU, which is the only load measurement available here.
+**Why the ordinary tools cannot help here.** `/proc/stat` and `/proc/loadavg`
+are broken on this node (`Transport endpoint is not connected`), so `ps`,
+`top`, `uptime`, `pgrep`, `pkill`, `killall` and `free` all fail or return
+nothing, and `nvidia-smi --query-compute-apps` reports no PIDs. Counting
+`pout.N` files is not a substitute either — they persist after the writer dies,
+so a finished solve looks identical to a running one. The per-PID files under
+`/proc` do work, which is what the sweeper walks.
 
 **Starvation slows a run; it never corrupts one.** The evolution is
 deterministic in its own time coordinate, so being descheduled costs wall-clock
-and nothing else. This was confirmed rather than assumed: the mirror cell ran
-through the entire starved window and reproduced the archived cell it mirrors to
-every printed digit. The one thing that *is* spoiled is
-`simulation_elapsed_seconds` — a starved cell's wall time is meaningless and
-must not go into the ledger in section 3 of the campaign plan as if it were a
-clean measurement.
+and nothing else. Confirmed rather than assumed: the mirror cell ran through the
+entire starved window and reproduced the archived cell it mirrors to every
+printed digit — same sector totals, same rms, same core positions. The one thing
+genuinely spoiled is `simulation_elapsed_seconds`: a starved cell's wall time is
+meaningless and must stay out of the campaign plan's ledger.
 
 See also [Rules (do not skip)](#rules-do-not-skip) for the campaign-mechanics
 rules (population sizing, scratch locality, pump convention).
