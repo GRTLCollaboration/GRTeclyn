@@ -81,7 +81,13 @@ Plotfiles are still consumed and deleted on the fly — the cache keeps only the
 
 ### Naming and staging
 
-Cell names carry the full grid: `<what>_<dN>_L<box>_N<cells>_lev0`. New runs
+Cell names follow the archive's pattern exactly —
+`runaway_pair_d08_L64_N128_lev0` reads as: what the run is, star separation,
+box side, cells per side, refinement depth. Every new cell keeps that shape:
+`<what>_<dN>_L<box>_N<cells>_lev0`, with extra qualifiers (a retuned omega, a
+longer stop time) slotted in before the grid part, e.g.
+`massscale_pair_d10_w0790_L64_N128_lev0`, `longrun_pair_d10_t400_L64_N128_lev0`.
+A name alone must tell you what the folder holds and on which grid. New runs
 land in `runs/bondi/staging/<cell>` and are **moved into
 `runs/bondi/runaway_paper/` only after their pass gate is green**, so the
 archive never contains an unchecked run. After a cell's alignment and t=0
