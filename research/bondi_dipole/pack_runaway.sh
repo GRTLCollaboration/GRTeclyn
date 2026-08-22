@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pack light, GitHub-friendly extracts of the omega = 0.75 runaway campaign
-# (runs/bondi/runaway) into results/bondi-dipole-runaway/campaign/.
+# (runs/bondi/runaway_paper) into results/bondi-dipole-runaway/campaign/.
 #
 # WHY A THIRD PACKER
 # pack_results.sh and pack_campaign.sh both read runs/bondi/rerun, which is the
@@ -33,7 +33,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 SIM_ROOT="$(cd -- "${ROOT}/.." && pwd)"
-RUNS="${ROOT}/runs/bondi/runaway"
+RUNS="${ROOT}/runs/bondi/runaway_paper"
 DEST="${ROOT}/results/bondi-dipole-runaway"
 
 export ROOT SIM_ROOT
@@ -52,6 +52,15 @@ cells=()
 for celldir in "${RUNS}"/*/; do
   cell="$(basename "${celldir}")"
   [[ "${cell}" == _* ]] && continue
+  # The stability survey is a group of cells, not a cell: descend one level and
+  # keep the grouping in the packed name so the extract mirrors the run tree.
+  if [[ "${cell}" == "stability" ]]; then
+    for sub in "${celldir}"*/; do
+      [[ -d "${sub}" ]] || continue
+      cells+=("stability_$(basename "${sub}")|${sub%/}")
+    done
+    continue
+  fi
   cells+=("${cell}|${celldir%/}")
 done
 
@@ -146,12 +155,14 @@ done
 # by-product.  omega = 0.7603 is the phantom frequency chosen to match the
 # canonical star's |ADM| mass; the mixed pair at 0.75/0.75 is the unmatched one.
 # ---------------------------------------------------------------------------
-canon_src="${RUNS}/pm/bondi_sg_pair_pm_w075/grtresna/qball_profile.dat"
-phant_src="${RUNS}/pm/bondi_sg_pair_pm_w075/grtresna/qball_profile_exotic.dat"
-eqm_src="${RUNS}/pm_eqm/bondi_sg_pair_pm_eqm_w075/grtresna/qball_profile_exotic.dat"
-[[ -f "${canon_src}" ]] && cp "${canon_src}" "${DEST}/stars/canonical_omega0.750.dat"
-[[ -f "${phant_src}" ]] && cp "${phant_src}" "${DEST}/stars/phantom_omega0.750.dat"
-[[ -f "${eqm_src}"   ]] && cp "${eqm_src}"   "${DEST}/stars/phantom_omega0.7603.dat"
+# Sourced from the corrected headline cell (d = 10).  The unmatched phantom at
+# omega = 0.750 has no corrected cell -- every corrected pair uses the
+# mass-matched 0.7603 partner -- so that table is left as previously packed.
+head_cell="${RUNS}/runaway_pair_d10_L64_N128_lev0"
+canon_src="$(find "${head_cell}" -name qball_profile.dat 2>/dev/null | head -n 1)"
+eqm_src="$(find "${head_cell}" -name qball_profile_exotic.dat 2>/dev/null | head -n 1)"
+[[ -n "${canon_src}" ]] && cp "${canon_src}" "${DEST}/stars/canonical_omega0.750.dat"
+[[ -n "${eqm_src}"   ]] && cp "${eqm_src}"   "${DEST}/stars/phantom_omega0.7603.dat"
 scrub "${DEST}"/stars/*.dat
 echo "[pack-runaway] stars: profile tables for the omega = 0.75 rung"
 

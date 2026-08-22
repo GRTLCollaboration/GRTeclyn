@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# CORRECTED INITIAL DATA -- aligned solve grid.  Launched 2026-08-21.
+#
+# WHAT IS BEING FIXED.  The solve ran on its own grid (box 128, 128 cells ->
+# spacing 1.0) and was refined three times to spacing 0.125, then copied onto
+# the evolution grid (spacing 0.5).  That copy is piecewise-constant and, where
+# the solve cell is finer than the evolution cell, the LAST source cell to
+# touch a target cell wins -- always the one above it.  The metric therefore
+# arrives displaced downward by a fraction of a cell, identically on all three
+# axes.  The matter does not move with it: it is repainted analytically on the
+# target grid, exact to machine precision.  Every star was born sitting above
+# the centre of its own gravitational well -- canonical falls back down it,
+# phantom is pushed further up it, which is the diagonal drift and 90% of the
+# gap closing.  Measured offset: -0.10 at N=128, -0.055 at N=192; it does not
+# converge away.
+#
+# THE FIX.  Solve cells = 128 * (128/64) = 256 with no solve refinement, so the
+# solve spacing equals the evolution spacing (0.5) and the transfer is a
+# straight copy with zero bias.  Ranks raised 8 -> 32 because the solve grid is
+# 8x larger; timeout raised to match.  EVERYTHING ELSE IS BYTE-IDENTICAL to the
+# cell it is paired against, so the comparison isolates the initial data.
+#
+# PASS CRITERION.  Read initial_data.gridinit as soon as the solve lands: the
+# centroid of chi minus the centroid of the matter, in y, must be ~0 (it was
+# -0.10).  Then the drift in sector_dynamics.dat must stay flat.
+set -euo pipefail
+REPO="$GRTECLYN_ROOT"
+cd "${REPO}"
+# PAIRED AGAINST: single_m_x37 (lone phantom at x=37, drifted +0.0110 on every
+# axis by t=16 -- OPPOSITE sign to the canonical star at the same place).  That
+# sign flip is what rules out an external pull: an external field accelerates
+# both signs of mass identically.
+BONDI_GPU=0 BONDI_STOP_TIME=200 BONDI_NFULL=128 BONDI_LFULL=64 BONDI_MAXLEVEL=0 \
+BONDI_PLOT_INTERVAL=80 BONDI_SCRUTINY=1 BONDI_SPONGE=1 BONDI_SEP=10 \
+BONDI_NL_TOL=0.002 BONDI_NL_STALL_TOL=0.00004 \
+BONDI_GRTRESNA_MAXIMAL_SLICING=1 \
+BONDI_EXOTIC=1 BONDI_OMEGA=0.7603 \
+BONDI_GRTRESNA_N=256 BONDI_GRTRESNA_MAXLEVEL=0 BONDI_GRTRESNA_RANKS=32 BONDI_GRTRESNA_TIMEOUT=21600 \
+BONDI_RUNS_DIR="${REPO}/runs/bondi/runaway/fix_single_m" \
+  bash "${REPO}/grteclyn-wrapper/scripts/campaigns/bondi_dipole/run_single_selfgrav.sh"
