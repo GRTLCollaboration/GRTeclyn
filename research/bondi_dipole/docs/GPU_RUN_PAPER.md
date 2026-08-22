@@ -236,6 +236,33 @@ A relaunch needs the cell's half-built episode directory deleted first, or the
 wrapper refuses to start with "already exists" and exits within a second. Check
 for that before assuming a launch took.
 
+Wave B went up 2026-08-22 03:2x–03:32 on all four cards. The last two wait for
+a card and are launched by hand when one frees:
+
+| when this finishes | the card it frees | launch this |
+|---|---|---|
+| `runaway_pair_d10_L64_N192_lev0` | 1 | `control_pair_pp_d10_L64_N256_lev0` |
+| `control_pair_pp_d10_L64_N192_lev0` | 3 | `longrun_pair_d10_t400_L64_N128_lev0` |
+
+```bash
+# card 1, after runaway N192 lands  (~4 h solve + ~17.6 h evolve, frames on)
+bash runs/bondi/staging/control_pair_pp_d10_L64_N256_lev0/launch.sh
+
+# card 3, after PP N192 lands       (~0.4 h solve + ~2.2 h evolve, frames on)
+bash runs/bondi/staging/longrun_pair_d10_t400_L64_N128_lev0/launch.sh
+```
+
+Run them from the repository root — the launchers take that path as given, and
+a stale working directory is the one way they fail instantly with
+"No such file or directory". Preflight both first, and check no solve is
+already running before starting a second one.
+
+**Projected finish of the whole stack: Sun 23 Aug, 08:00 at best, ~15:00 with
+contention margin.** The critical path is `control_pair_pp_d10_L64_N256_lev0`,
+which cannot start until a card frees at ~Sat 10:20 and then needs 21.6 h of
+its own; everything else is done by Sun 01:10. The only way to pull the stack
+in is to give that cell a card sooner.
+
 ---
 
 ## 1. What already exists and is reused as-is
