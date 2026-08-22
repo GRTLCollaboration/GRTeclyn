@@ -42,7 +42,9 @@ Tick a box only when the cell has passed its gate and been moved into
 - [x] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, **evolved to t=200 on 2026-08-22**; runaway reverses exactly: displacement and acceleration both −1.00002× the archived cell. Frameless by decision
 - [ ] `runaway_pair_d10_L64_N192_lev0` — phase 2, ~5.5 h; middle rung of the ladder
 - [ ] `runaway_pair_d10_L64_N256_lev0` — phase 2, ~17 h; finest rung of the ladder — **frames + slice cache** (headline movie)
-- [ ] `control_pair_pp_d10_L64_N192_lev0` — phase 2, ~5.5 h; null residual must shrink with the grid
+- [ ] `control_pair_pp_d10_L64_N192_lev0` — phase 2, ~5.5 h; **solve gate held flat at
+  0.002 (not the dx⁴ value) — the same-sign floor, see Phase 2**; the *evolution* null
+  residual must still shrink with the grid, the t=0 violation will not
 - [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung — **frames + slice cache** (the null's movie)
 - [~] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, ~1.5 h; **running 2026-08-22**, past t=160. lighter phantom (M = −0.011472, 79.95% of matched): pull scales with the source
 - [ ] `wavezone_pair_d10_L128_N256_lev0` — phase 4, ~9 h; doubled box, four extraction shells
@@ -494,6 +496,9 @@ every rung previously exited the solve at the *same* residual, so the ladder
 had no order to measure. Now the initial violation must fall ~16× per
 resolution doubling, and the evolution's own convergence becomes visible.
 
+The tolerances below are the **mixed-cell** values. The same-sign rungs cannot
+use them — see "The same-sign rungs keep the N=128 gate" below.
+
 | rung | grid changes | solve changes | GPU cost (t=200) |
 |---|---|---|---|
 | N=192 | `BONDI_NFULL=192 BONDI_PLOT_INTERVAL=120` | `BONDI_GRTRESNA_N=384 BONDI_NL_TOL=0.000395 BONDI_NL_STALL_TOL=0.0000079` | ~5.5 h |
@@ -511,14 +516,86 @@ Order: run the two N=192 cells first (~5.5 h, overnight is generous), check,
 then commit to the two N=256 cells. At N=256 watch the consumer lag — if the
 scratch dir grows without bound, stop, double `BONDI_PLOT_INTERVAL`, relaunch.
 
-Gate: (a) solve exits *at* the tighter tolerances — this is new territory for
-the solver, and if it stalls above the gate the ladder is off until that is
-understood; (b) fitted acceleration a agrees across N=128/192/256 — the spread
-is the paper's error bar and ~5% or less is the expectation; (c) the PP
-barycentre residual *shrinks* rung to rung; (d) t=0 Ham falls ~16× per rung.
+Gate: (a) the **mixed** rungs exit *at* the tighter tolerances (measured
+2026-08-22: N=192 converged at step 14, Ham 3.52e-04 %, still improving 58% a
+step — the dx⁴ ladder is sound for these cells); (b) fitted acceleration a
+agrees across N=128/192/256 — the spread is the paper's error bar and ~5% or
+less is the expectation; (c) the PP barycentre residual *shrinks* rung to rung,
+but any residual that does *not* shrink must be checked against the same-sign
+floor below before it is called physical; (d) t=0 Ham falls ~16× per rung —
+**mixed rungs only**; the PP rungs are flat across resolution by construction.
 Remember the standing trap: refining the evolution grid alone makes t=0
 *worse* — it is the tolerance scaling that pays for the ladder, which is why
 the two are locked together in the table above.
+
+#### The same-sign rungs keep the N=128 gate — measured 2026-08-22
+
+The dx⁴ ladder is right for the mixed cells and **unreachable** for the
+same-sign ones. `control_pair_pp_d10_L64_N192_lev0` was launched at
+`BONDI_NL_TOL=0.000395`, ran 16 nonlinear steps, and stopped improving:
+
+| step | 12 | 13 | 14 | 15 | 16 |
+|---|---|---|---|---|---|
+| Ham [%] | 9.55e-04 | 6.27e-04 | 5.57e-04 | 5.46e-04 | 5.44e-04 |
+| improvement on the step | 53% | 34% | 11% | 2.1% | 0.4% |
+
+It floors at 5.4e-04 %, *above* the 3.95e-04 % it was asked for. The cell was
+killed at step 16; left alone it would have ground through all 50 steps and
+exited by `max_NL_iterations` — the door that does not count — because the
+stall detector requires **both** residuals to flatten and Mom was still falling
+59% a step (7.02e-05 at step 15, 2.86e-05 at step 16). Note the trap: a stall
+tolerance tuned to the Hamiltonian will never fire while the momentum residual
+is healthy.
+
+**Cause, confirmed in the solver source.** `BoundaryConditions::fill_constraint_box`
+fills the psi correction on the outer boundary with a hard constant 0.0 (the
+comment reads "zero for psi"), and `CTTKHybrid::initialise_multigrid_vars` sets
+`c_psi_reg` to the constant `regularised_part_psi`. Together these pin the
+conformal factor at the solve boundary to exactly 1 — flat space — for the whole
+solve. That is the correct condition only for a configuration with zero net ADM
+mass. A same-sign pair carries 2M, whose true conformal factor at the boundary is
+1 + M/(2R); the solve is structurally unable to represent it. The resulting error
+is set by the box, not by the grid, so refinement cannot remove it.
+
+The floor tracks net mass, not resolution — this is the discriminating evidence:
+
+| cell | net ADM mass | lowest Ham reached | still improving? |
+|---|---|---|---|
+| `runaway_pair_*` (mixed) | 0 | 3.52e-04 % | yes, 58%/step |
+| `control_mirror_mp_*` (mixed) | 0 | 8.62e-04 % | yes, 59%/step |
+| `massscale_pair_*` (light phantom) | +0.0029 | 8.58e-04 % | yes, 59%/step |
+| `control_pair_pp_*` N=192 | +0.0287 | 5.44e-04 % | **no — floored** |
+
+Ten times less leftover mass and no floor appears at all; the same leftover mass
+at two resolutions gives the same floor. Note also that `control_pair_pp_*` and
+`control_pair_mm_*` at N=128 passed only because their 0.002 gate caught them
+(1.27e-03 and 1.33e-03) before the floor was revealed — one step earlier both
+were still above it. The N=128 pass was luck, not headroom.
+
+**Fixes considered and rejected.** Moving the boundary out shrinks the error as
+1/R while the solve cost grows as R³: merely reaching the dx⁴ gate at N=192 needs
+R×1.4 (2.6× cost, zero margin), and a factor-3 margin needs R×2.7 (~20× cost, a
+~630 GB intermediate). Replacing the hard zero with a 1/r falloff for the
+correction is the physically correct fix and costs nothing at runtime, but it is
+new code in the shared elliptic solver and would have to be revalidated before it
+could produce paper data.
+
+**Decision: accept the floor and say so.** The same-sign rungs run at a flat
+`BONDI_NL_TOL=0.002 BONDI_NL_STALL_TOL=0.00004` at *every* resolution — the same
+gate the N=128 rung already used — because their achievable accuracy is set by
+the solve boundary and does not improve with cell size. All three PP rungs
+therefore begin from initial data of the same quality (~1e-03 % Ham). That is the
+honest description of what this solver delivers for a net-mass configuration, and
+it is what the paper should state.
+
+What this costs, and what it does not:
+
+| claim | affected? |
+|---|---|
+| PP/MM as null controls (no self-acceleration) | **no** — the boundary error is spherically symmetric and cannot manufacture a dipole |
+| the headline runaway ladder at N=128/192/256 | **no** — mixed pairs have zero net mass, the flat boundary is *correct* for them, and they show no floor |
+| PP initial violation falling with resolution | **yes** — it does not fall; do not quote a convergence order for the PP rungs |
+| PP evolution convergence rung to rung | partly — the rungs differ in evolution grid only, initial data held at a common quality, which is the cleanest reading available here |
 
 ### Phase 3 — gravity scales with the source (one cell, ~1.5 h)
 
