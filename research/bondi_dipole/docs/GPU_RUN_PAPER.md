@@ -39,17 +39,17 @@ Tick a box only when the cell has passed its gate and been moved into
 - [x] `smoke_mpi_evo` — phase 0, **passed 2026-08-22**: 50/50 steps on cards 0+1, no segfault, exit 0. Two-GPU evolution is available at `max_level=0`. Cell deleted.
 - [ ] `control_pair_pp_d10_L64_N128_lev0` — phase 1, ~1.1 h; two canonical stars: gap shrinks, barycentre still
 - [ ] `control_pair_mm_d10_L64_N128_lev0` — phase 1, ~1.1 h; two phantom stars: gap grows, barycentre still
-- [ ] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, ~1.1 h; sectors swapped: runaway reverses
+- [ ] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, ~1.1 h; sectors swapped: runaway reverses — frameless by decision
 - [ ] `runaway_pair_d10_L64_N192_lev0` — phase 2, ~5.5 h; middle rung of the ladder
-- [ ] `runaway_pair_d10_L64_N256_lev0` — phase 2, ~17 h; finest rung of the ladder
+- [ ] `runaway_pair_d10_L64_N256_lev0` — phase 2, ~17 h; finest rung of the ladder — **frames + slice cache** (headline movie)
 - [ ] `control_pair_pp_d10_L64_N192_lev0` — phase 2, ~5.5 h; null residual must shrink with the grid
-- [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung
+- [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung — **frames + slice cache** (the null's movie)
 - [ ] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, ~1.5 h; lighter phantom (M = −0.011472, 79.95% of matched): pull scales with the source
 - [ ] `wavezone_pair_d10_L128_N256_lev0` — phase 4, ~9 h; doubled box, four extraction shells
 
 **Optional — only if the paper wants the figure:**
 
-- [ ] `longrun_pair_d10_t400_L64_N128_lev0` — ~2.2 h; sustained-acceleration money plot
+- [ ] `longrun_pair_d10_t400_L64_N128_lev0` — ~2.2 h; sustained-acceleration money plot — **frames + slice cache**
 - [ ] `control_pair_mm_d10_L64_N192_lev0` — ~5.5 h; MM alongside PP in the null ladder
 - [ ] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung
 - [ ] `amrcheck_pair_d10_L64_N128_lev1` — ~1.5 h; referee-proofing only (predicted identical to lev0)
@@ -119,11 +119,33 @@ never a fit window.
 Drawing frames is the dominant per-plotfile CPU cost, and most cells' product
 is numbers, not pictures. The matrix default is therefore `GRTECLYN_FRAMES=0`
 (metrics-only consumer; plotfiles are still deleted on the fly — that gate
-does not depend on frames). Frames are switched on only for the cells a
-figure or movie actually comes from: the P/M singles (archived, already have
-frames) and the finest-grid PM and PP cells. Those launch with
-`GRTECLYN_FRAMES_CACHE_SLICES=1`, so afterwards every kept series can be
-re-rendered on one fixed colour scale:
+does not depend on frames). Frames are switched on only for the cells a figure
+or movie actually comes from, and those launch with
+`GRTECLYN_FRAMES_CACHE_SLICES=1` so every kept series can be re-rendered on one
+fixed colour scale afterwards.
+
+**The cells that draw, and the cells that do not** (settled 2026-08-22):
+
+| draws frames | why |
+|---|---|
+| `runaway_pair_d10_L64_N256_lev0` | the headline movie, at the best resolution the campaign has |
+| `control_pair_pp_d10_L64_N256_lev0` | the null beside it, same grid and same colour scale |
+| `longrun_pair_d10_t400_L64_N128_lev0` | the sustained-acceleration money plot; it exists for the picture |
+| P/M singles | archived, already have frames |
+
+| frameless | why |
+|---|---|
+| `control_mirror_mp_d10_L64_N128_lev0` | **decided while it was already running.** Its product is the reversed acceleration, a number, and it is the mirror of a cell that already has a movie |
+| `control_pair_pp/mm_d10_L64_N128_lev0`, `massscale_…` | numbers only |
+| both N=192 rungs, `wavezone_…` | ladder and extraction cells; nothing is read off a picture |
+
+**This cannot be revisited after the fact** (README rule 6): the plotfiles a
+frame is drawn from are deleted as they are consumed, so a frameless cell can
+never be re-rendered — it can only be re-run. A movie of the mirror cell would
+therefore cost a fresh ~1.1 h cell, which is cheap if the paper turns out to
+want it and wasted if it does not.
+
+The re-render, once a frame-bearing cell lands:
 
 ```bash
 grteclyn-wrapper/scripts/plot/rerender_frames.py <episode>/frames --movies
@@ -271,6 +293,31 @@ BONDI_RUNS_DIR="runs/bondi/staging/smoke_mpi_evo" \
   rungs may use `BONDI_EVO_RANKS=2 BONDI_GPU="0,1"` to halve their wall time.
 
 ### Phase 1 — the sign matrix (three cells, N=128, ~1.1 h each on the GPU)
+
+**Measured 2026-08-22, and it is the documented behaviour**
+(`MatterDebugg.md`): the two same-sign cells grow a large halo at late times —
+tracked activity up ~6x, rms radius reaching the domain, confined fraction
+falling to ~0.10 — while their cores survive intact (peak amplitude steady to
+within 3%). This is not a fault. In a same-sign cell both lumps live in *one*
+field, so the potential's cross terms give them a direct scalar interaction on
+top of gravity; the mixed pair's two sectors share no potential coupling and
+meet only through gravity, which is exactly why it is the clean case. The
+sponge cannot help: it is zero inside its inner radius, where essentially all
+of the halo sits, and it is Kreiss-Oliger dissipation tuned to grid-scale
+noise rather than an absorbing layer. **Do not quote a same-sign cell past
+t ~ 60.**
+
+The barycentre null is unaffected and is the number this phase exists for: at
+t=80 both same-sign pairs sit within 3e-04 of their birth position, six times
+below the lone-star noise floor and 1500x below the mixed pair's 0.467 over
+the same window.
+
+One measurement this phase does *not* deliver: the **gap** between two
+same-sign stars. Both live in one sector, so the core tracker locks onto the
+interference peak at their midpoint and reports the separation as `nan` on
+every row. The attraction/recession half of the gate needs a two-lump-aware
+tracker, which does not exist yet — the barycentre half stands on its own.
+
 
 The falsifiable core of the paper: only the mixed pair may move.
 
