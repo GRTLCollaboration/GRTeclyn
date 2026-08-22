@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pack light, GitHub-friendly extracts of the omega = 0.75 runaway campaign
-# (runs/bondi/runaway_paper) into results/bondi-dipole-runaway/campaign/.
+# (runs/bondi/staging/archive) into results/bondi-dipole-runaway/campaign/.
 #
 # WHY A THIRD PACKER
 # pack_results.sh and pack_campaign.sh both read runs/bondi/rerun, which is the
@@ -33,7 +33,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 SIM_ROOT="$(cd -- "${ROOT}/.." && pwd)"
-RUNS="${ROOT}/runs/bondi/runaway_paper"
+RUNS="${ROOT}/runs/bondi/staging/archive"
 DEST="${ROOT}/results/bondi-dipole-runaway"
 
 export ROOT SIM_ROOT

@@ -2,7 +2,7 @@
 
 Publication-level data only. One folder per cell, text-only: PNG frames,
 movies, plotfiles and the 550 MB initial-data file stay in the gitignored run
-tree at `runs/bondi/runaway_paper/`, because they carry no number an analysis
+tree at `runs/bondi/staging/archive/`, because they carry no number an analysis
 reads.
 
 Packed by `research/bondi_dipole/pack_runaway.sh`, which is safe to re-run at

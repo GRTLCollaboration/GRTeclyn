@@ -172,7 +172,7 @@ being tight. Anything that does not override it inherits a search campaign's
 tolerance into a paper run.
 
 Unlike the rules above, this one was caught by inspection rather than by a
-ruined campaign: every cell in `runs/bondi/runaway_paper/` was audited on
+ruined campaign: every cell in `runs/bondi/staging/archive/` was audited on
 2026-08-22 and all of them genuinely converged, at iteration 12 of 50, about 2x
 inside the 0.002% they asked for. Two-fold headroom is not much, so the check is
 worth running on every new cell rather than assumed from these.
@@ -223,7 +223,7 @@ before anything is spent:
 ```bash
 grteclyn-wrapper/.venv/bin/python research/bondi_dipole/preflight_cell.py \
     runs/<campaign>/<cell>/launch.sh \
-    --reference runs/bondi/runaway_paper/runaway_pair_d10_L64_N128_lev0/launch.sh
+    --reference runs/bondi/staging/archive/runaway_pair_d10_L64_N128_lev0/launch.sh
 ```
 
 Exit status is the gate. It enforces rule 1's grid-alignment arithmetic and

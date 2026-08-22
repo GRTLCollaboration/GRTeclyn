@@ -22,7 +22,7 @@ constitution of this campaign; this plan just applies them cell by cell.
 ## The scoreboard — every run the paper needs
 
 Tick a box only when the cell has passed its gate and been moved into
-`runs/bondi/runaway_paper/`. Details for each are in the phase it belongs to.
+`runs/bondi/staging/archive/`. Details for each are in the phase it belongs to.
 
 **Already in the archive (corrected path, gates passed):**
 
@@ -46,7 +46,7 @@ Tick a box only when the cell has passed its gate and been moved into
   0.002 (not the dx⁴ value) — the same-sign floor, see Phase 2**; the *evolution* null
   residual must still shrink with the grid, the t=0 violation will not
 - [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung — **frames + slice cache** (the null's movie)
-- [~] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, ~1.5 h; **running 2026-08-22**, past t=160. lighter phantom (M = −0.011472, 79.95% of matched): pull scales with the source
+- [x] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, **evolved to t=200 on 2026-08-22**; lighter phantom (M = −0.011472, 79.95% of matched). Drift +2.6732, fitted a = 1.3365e-04 = 0.928× the matched cell's 1.4404e-04, so the pull does scale with the source. The pair no longer moves rigidly — the two stars pull each other unequally and the separation closes 10.000 → 9.408 — so the exact ratio needs the d-corrected fit, not the raw number
 - [ ] `wavezone_pair_d10_L128_N256_lev0` — phase 4, ~9 h; doubled box, four extraction shells
 
 **Optional — only if the paper wants the figure:**
@@ -194,7 +194,7 @@ longer stop time) slotted in before the grid part, e.g.
 `massscale_pair_d10_w0790_L64_N128_lev0`, `longrun_pair_d10_t400_L64_N128_lev0`.
 A name alone must tell you what the folder holds and on which grid. New runs
 land in `runs/bondi/staging/<cell>` and are **moved into
-`runs/bondi/runaway_paper/` only after their pass gate is green**, so the
+`runs/bondi/staging/archive/` only after their pass gate is green**, so the
 archive never contains an unchecked run. After a cell's alignment and t=0
 gates pass, delete its `initial_data.gridinit` (0.5–4.4 GB; regenerable from
 the cell's own `launch.sh`).
@@ -269,7 +269,7 @@ in is to give that cell a card sooner.
 
 ## 1. What already exists and is reused as-is
 
-Paper-ready, in `runs/bondi/runaway_paper/` (details in its README):
+Paper-ready, in `runs/bondi/staging/archive/` (details in its README):
 
 | cells | feeds |
 |---|---|
@@ -342,7 +342,7 @@ that is the fix that killed the drift artefact, and it is re-verified per cell.
 
 ### Phase 0 — preflight (minutes, no science GPU time)
 
-- [ ] Binary current: rebuild if any source changed since `runaway_paper` was
+- [ ] Binary current: rebuild if any source changed since the archive was
       produced; `git status` clean, note the commit.
 - [ ] `BONDI_DRYRUN=1` on the Phase 1 PP command: printed grid, omegas, solve
       N, tolerance all as intended.
@@ -656,7 +656,7 @@ growth; whatever is measured is reported.
 1. Update the hardcoded cell lists in `results/bondi-dipole-runaway/analysis/`
    (`separation_scaling.py`, `convergence_check.py`, `momentum_balance.py`,
    `newtonian_reference.py`, `make_tables.py`, …) from the old `convA_*` names
-   to the `runaway_paper` names, then regenerate every table.
+   to the archive cell names, then regenerate every table.
 2. Re-render every movie on its fixed colour scale (`rerender_frames.py
    <episode>/frames --movies`), then delete each `frames/_slice_cache/`.
 3. `research/bondi_dipole/pack_runaway.sh` to refresh the git-tracked extract

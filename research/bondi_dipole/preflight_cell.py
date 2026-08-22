@@ -27,7 +27,7 @@ anything is spent -- and answers the between-cell question directly.
 
     grteclyn-wrapper/.venv/bin/python research/bondi_dipole/preflight_cell.py \
         runs/bondi/staging/<cell>/launch.sh \
-        --reference runs/bondi/runaway_paper/runaway_pair_d10_L64_N128_lev0/launch.sh
+        --reference runs/bondi/staging/archive/runaway_pair_d10_L64_N128_lev0/launch.sh
 
 Exit status is the gate: 0 = safe to launch, 1 = do not spend time on it.
 """
