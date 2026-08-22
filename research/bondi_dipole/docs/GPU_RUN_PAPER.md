@@ -298,6 +298,16 @@ by a clean factor of ~2.5 like every other cell. The run was stopped before it
 reached the GPU and relaunched with the flag. **Every same-sign-canonical cell
 in this plan carries it — including the PP ladder rungs in phase 2.**
 
+**The archive was audited for the same fault and is clean** — nothing there
+needs re-running. The lone-canonical cell, the only other all-canonical cell
+ever produced, set the flag explicitly in its own `launch.sh`. The stability
+survey reused pre-solved `K = 0` data. And the decisive check is measured
+rather than inferred: the trace of the extrinsic curvature at the innermost
+shell reads exactly `0.00000` at birth in every one of the ten archived cells,
+which is only true of a flat start. A cell born on the CTTK slice would carry
+`K` of order `1e-01` there and show the lapse swinging within the first few
+time units.
+
 All three can run at once (three cards, three staggered 32-rank solves — start
 them ~5 min apart). Gate for the phase: the two same-sign barycentres sit at
 the lone-star noise floor while their gaps move in the *predicted opposite
