@@ -12,6 +12,18 @@
 # environment.
 #
 # Usage: bash research/bondi_dipole/pack_results.sh
+# --- SUPERSEDED 2026-08-22 -------------------------------------------------
+# This script belongs to a finished campaign and reads/writes runs/bondi/rerun/published/
+# which no longer exists.  Running it now would either fail halfway or
+# recreate a dead tree and mix superseded cells into the live campaign.
+# What replaced it: research/bondi_dipole/pack_runaway.sh, which packs the current tree.
+# Kept for the reasoning in the header above.  Remove this block only if you
+# deliberately want the old tree back.
+printf '%s: superseded campaign; %s no longer exists.\n' "$(basename "$0")" "runs/bondi/rerun/published/" >&2
+printf '  see research/bondi_dipole/docs/GPU_RUN_PAPER.md for the live campaign\n' >&2
+exit 2
+# ---------------------------------------------------------------------------
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

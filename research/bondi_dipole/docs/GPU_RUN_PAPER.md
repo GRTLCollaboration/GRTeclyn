@@ -46,7 +46,7 @@ Tick a box only when the cell has passed its gate and been moved into
   0.002 (not the dx⁴ value) — the same-sign floor, see Phase 2**; the *evolution* null
   residual must still shrink with the grid, the t=0 violation will not
 - [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung — **frames + slice cache** (the null's movie)
-- [x] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, **evolved to t=200 on 2026-08-22**; lighter phantom (M = −0.011472, 79.95% of matched). Drift +2.6732, fitted a = 1.3365e-04 = 0.928× the matched cell's 1.4404e-04, so the pull does scale with the source. The pair no longer moves rigidly — the two stars pull each other unequally and the separation closes 10.000 → 9.408 — so the exact ratio needs the d-corrected fit, not the raw number
+- [x] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, **evolved to t=200 on 2026-08-22**; lighter phantom (M = −0.011472, 79.95% of matched). Separation-corrected fit gives the canonical star's pull at 0.809 of the matched cell against 0.7995 predicted (1.2%) and the phantom's at 0.973 against 1.000 (2.7%) — the pull follows the partner's mass. The pair is no longer rigid: the gap closes 10.000 → 9.408. Ratios only, never the constants — see phase 3
 - [ ] `wavezone_pair_d10_L128_N256_lev0` — phase 4, ~9 h; doubled box, four extraction shells
 
 **Optional — only if the paper wants the figure:**
@@ -54,6 +54,9 @@ Tick a box only when the cell has passed its gate and been moved into
 - [ ] `longrun_pair_d10_t400_L64_N128_lev0` — ~2.2 h; sustained-acceleration money plot — **frames + slice cache**
 - [ ] `control_pair_mm_d10_L64_N192_lev0` — ~5.5 h; MM alongside PP in the null ladder
 - [ ] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung
+- [ ] `massratio_heavyphantom_d10_L64_N128_lev0` — phase 3b, ~1.5 h; **the one worth running** — reversed mass ordering, the gap must OPEN. Needs the branch scan first (CPU)
+- [ ] `massratio_*_r060_d10_L64_N128_lev0` — phase 3b, ~1.5 h; third point on the scaling law
+- [ ] `massratio_*_r040_d10_L64_N128_lev0` — phase 3b, ~1.5 h; far-end anchor
 - [ ] `amrcheck_pair_d10_L64_N128_lev1` — ~1.5 h; referee-proofing only (predicted identical to lev0)
 - [ ] `chase_pair_d08_v03c_Lx352_L64_N128_lev0` — ~1.7 GPU-days; ride the runaway to 0.3c in a long box (section 4). **Superseded on paper by the recentring box — ~7.5 h for the same physics; see section 5 for the build plan.** Follow-up paper material either way
 
@@ -618,6 +621,70 @@ Cell `massscale_pair_d10_w<omega>_L64_N128_lev0`: baseline with
 `BONDI_S1_OMEGA=<omega>`. Gate: canonical a ratio (this cell / archived d=10) =
 mass ratio within a few %; phantom a unchanged within a few %; total momentum
 now sums to the expected *non*-zero rate, which is itself a check.
+
+### Result — the pull does follow the partner's mass, but only ratios are quotable
+
+**Measured 2026-08-22.** With unequal masses the pair is no longer rigid: the
+gap closes 10.000 → 9.408 over the run, and acceleration goes as 1/d², so a
+plain quadratic fit to either star is biased. Fit instead
+
+    x_i(t) = x0 + v0·t + C_i · ∫∫ dt/d(t)²
+
+so that C_canon returns the *phantom's* mass and C_phantom the *canonical's*.
+Taking the ratio against the archived matched cell:
+
+| | measured | predicted | agreement |
+|---|---|---|---|
+| canonical star's pull | **0.809** | 0.7995 (the mass ratio) | 1.2% |
+| phantom star's pull | **0.973** | 1.000 (unchanged) | 2.7% |
+
+**Quote ratios, never the constants.** Run the same fit on the matched cell,
+where both answers are known to be 0.014350, and it returns 0.0161 and 0.0119 —
++12% and −17%, though their mean is right to 2%. The two stars breathe against
+each other over the first ~50 of coordinate time and that oscillation
+contaminates the per-star fits *identically in both runs*, so it cancels in the
+ratio and does not cancel in the absolute value. The uncorrected midpoint
+number, for the record, is 0.928.
+
+### Phase 3b — the mass-ratio ladder (three cells, ~1.5 h each) — PLANNED, not launched
+
+Phase 3 leaves the scaling claim resting on two points: ratio 1.000 and ratio
+0.7995. Two points fit any monotone law through them, so as it stands the
+campaign cannot separate "the pull follows the partner's mass" from "the pull
+follows some sublinear function of it". This phase closes that, cheaply — every
+cell is `L64_N128_lev0`, about 0.4 h of solve plus 1.1 h of GPU.
+
+Run them in this order; the first is worth more than the other two together.
+
+| cell | what changes | prediction | why it matters |
+|---|---|---|---|
+| `massratio_heavyphantom_d10_L64_N128_lev0` | **canonical** lightened so \|M−\| > M+ | the gap **OPENS** instead of closing | qualitative sign flip |
+| `massratio_w<omega>_r060_d10_L64_N128_lev0` | phantom ≈ 0.60 × matched | canonical pull ratio 0.60 | lever arm 2× Phase 3, clears the ~3% fit systematics |
+| `massratio_w<omega>_r040_d10_L64_N128_lev0` | phantom ≈ 0.40 × matched | canonical pull ratio 0.40 | anchors the far end; hardest test of the non-rigid regime |
+
+**Why the reversed cell lightens the canonical rather than fattening the
+phantom.** Every uneven cell so far has the gap closing, so a sceptic can argue
+the closing is the artefact and the drift is a consequence of it. Reversing the
+mass ordering predicts the opposite — the gap opens — and no artefact story
+predicts a sign flip that tracks which star is heavier. Getting there by making
+the phantom heavier would need \|M−\| ≈ 0.0187, off the end of the scanned
+branch and possibly past its maximum; making the canonical lighter reaches the
+same ordering inside frequencies already surveyed (the stability run covers
+canonical omega 0.75–0.90). Cheaper and safer.
+
+**Prerequisite, CPU only, no GPU.** Extend the omega list in
+`results/bondi-dipole-runaway/analysis/star_family_scan.py` on *both* branches:
+phantom above 0.810 to reach \|M−\| ≈ 0.0086 and ≈ 0.0057, and canonical
+0.75–0.85 to tabulate M+ so the reversed cell's ordering can be chosen
+deliberately rather than guessed. **Record whether the phantom branch has a
+maximum \|M−\|** — if it does, that bound belongs in the paper, and it is the
+reason the reversed cell is built the way it is.
+
+Gate for every cell in this phase: the per-star pull ratio from the
+separation-corrected fit above lands within a few % of the mass ratio, and the
+three ratios together are linear in the mass ratio rather than merely monotone.
+For the reversed cell the gate is the **sign** of d(separation)/dt, not its
+size.
 
 ### Phase 4 — the wave zone (one cell, ~9 h)
 
