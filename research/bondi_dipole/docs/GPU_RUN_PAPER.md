@@ -36,7 +36,7 @@ Tick a box only when the cell has passed its gate and been moved into
 
 **Required — the paper is not submittable without these:**
 
-- [ ] `smoke_mpi_evo` — phase 0, minutes; answers whether 2-GPU evolution works (deleted after)
+- [x] `smoke_mpi_evo` — phase 0, **passed 2026-08-22**: 50/50 steps on cards 0+1, no segfault, exit 0. Two-GPU evolution is available at `max_level=0`. Cell deleted.
 - [ ] `control_pair_pp_d10_L64_N128_lev0` — phase 1, ~1.1 h; two canonical stars: gap shrinks, barycentre still
 - [ ] `control_pair_mm_d10_L64_N128_lev0` — phase 1, ~1.1 h; two phantom stars: gap grows, barycentre still
 - [ ] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, ~1.1 h; sectors swapped: runaway reverses
@@ -44,7 +44,7 @@ Tick a box only when the cell has passed its gate and been moved into
 - [ ] `runaway_pair_d10_L64_N256_lev0` — phase 2, ~17 h; finest rung of the ladder
 - [ ] `control_pair_pp_d10_L64_N192_lev0` — phase 2, ~5.5 h; null residual must shrink with the grid
 - [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung
-- [ ] `massscale_pair_d10_w<omega>_L64_N128_lev0` — phase 3, ~1.5 h; lighter phantom: pull scales with the source
+- [ ] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, ~1.5 h; lighter phantom (M = −0.011472, 79.95% of matched): pull scales with the source
 - [ ] `wavezone_pair_d10_L128_N256_lev0` — phase 4, ~9 h; doubled box, four extraction shells
 
 **Optional — only if the paper wants the figure:**
@@ -245,6 +245,13 @@ BONDI_RUNS_DIR="runs/bondi/staging/smoke_mpi_evo" \
   `BONDI_EVO_RANKS=2` is available for the N=256 rungs. Either outcome is fine.
   Delete the smoke cell afterwards.
 
+  **Result (2026-08-22): passed.** The solve converged in 8 nonlinear
+  iterations (Ham 0.082%, Mom 0.086%), the evolution ran all 50 steps split
+  evenly across the two cards (identical FAB footprint per rank), and the run
+  exited 0 with nothing in the log resembling a fault. So the AMR segfault is
+  confined to the refined fill path, exactly as suspected, and the two N=256
+  rungs may use `BONDI_EVO_RANKS=2 BONDI_GPU="0,1"` to halve their wall time.
+
 ### Phase 1 — the sign matrix (three cells, N=128, ~1.1 h each on the GPU)
 
 The falsifiable core of the paper: only the mixed pair may move.
@@ -307,6 +314,10 @@ First compute the exact retuned mass (no GPU): extend the omega list in
 0.775–0.80 and pick the phantom omega nearest |M−| ≈ 0.0115 (≈ 0.8 × matched).
 The branch anchors: omega 0.750 → −0.015131, 0.775 → −0.013226, 0.7603 →
 −0.014350 (the matched point).
+
+**Done 2026-08-22 (CPU, no GPU): the frequency is omega = 0.8040**, giving
+M = −0.011472, which is 79.95% of the matched phantom mass. Neighbours for
+reference: 0.7900 → −0.012267, 0.8000 → −0.011692, 0.8100 → −0.011162.
 
 Cell `massscale_pair_d10_w<omega>_L64_N128_lev0`: baseline with
 `BONDI_S1_OMEGA=<omega>`. Gate: canonical a ratio (this cell / archived d=10) =
