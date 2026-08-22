@@ -276,9 +276,27 @@ The falsifiable core of the paper: only the mixed pair may move.
 
 | cell | change vs baseline | must show |
 |---|---|---|
-| `control_pair_pp_d10_L64_N128_lev0` | `BONDI_S0=0 BONDI_S1=0`, drop `BONDI_S1_OMEGA` | gap **shrinks** (attraction), pair barycentre still (≤ 5e-03 at t=200) |
+| `control_pair_pp_d10_L64_N128_lev0` | `BONDI_S0=0 BONDI_S1=0`, drop `BONDI_S1_OMEGA`, **`BONDI_GRTRESNA_MAXIMAL_SLICING=1`** (see below) | gap **shrinks** (attraction), pair barycentre still (≤ 5e-03 at t=200) |
 | `control_pair_mm_d10_L64_N128_lev0` | `BONDI_S0=1 BONDI_S1=1`, `BONDI_S0_OMEGA=0.7603`, drop `BONDI_S1_OMEGA` | gap **grows** (two negative masses recede), barycentre still |
 | `control_mirror_mp_d10_L64_N128_lev0` | `BONDI_S0=1 BONDI_S1=0`, `BONDI_S0_OMEGA=0.7603 BONDI_S1_OMEGA=0.75` | acceleration equal and **opposite** to the archived d=10 cell within a few % |
+
+**The all-canonical cell needs one extra knob, and it is the easiest thing in
+this campaign to get wrong.** The solver turns maximal slicing on *by itself*
+whenever any lump carries negative energy — the CTTK ansatz
+`K = sign·sqrt(24πGρ)` is imaginary for `ρ < 0`, so it has no choice. Every
+phantom-bearing cell therefore starts from `K = 0`. PP is the only cell in the
+whole matrix with no phantom star, so left alone it starts on an
+already-collapsing slice and is not comparable to the very cell it is the null
+for. Forcing the flag also picks up the rest of the matched path (psi
+relaxation 0.6, psi floor 0.1, arithmetic coefficient averaging), so the two
+cells then differ only in the sign of the mass.
+
+This was caught on 2026-08-22 by comparing the solve records of the four wave-A
+cells: PP was the only one showing `maximal_slicing=0`, and its residuals
+oscillated over four orders of magnitude between iterations instead of falling
+by a clean factor of ~2.5 like every other cell. The run was stopped before it
+reached the GPU and relaunched with the flag. **Every same-sign-canonical cell
+in this plan carries it — including the PP ladder rungs in phase 2.**
 
 All three can run at once (three cards, three staggered 32-rank solves — start
 them ~5 min apart). Gate for the phase: the two same-sign barycentres sit at
@@ -302,7 +320,9 @@ resolution doubling, and the evolution's own convergence becomes visible.
 | N=256 | `BONDI_NFULL=256 BONDI_PLOT_INTERVAL=160` | `BONDI_GRTRESNA_N=512 BONDI_NL_TOL=0.000125 BONDI_NL_STALL_TOL=0.0000025 BONDI_GRTRESNA_TIMEOUT=43200` | ~17 h (or 2 cards if Phase 0 passed) |
 
 Cells: `runaway_pair_d10_L64_N{192,256}_lev0` (baseline env otherwise) and
-`control_pair_pp_d10_L64_N{192,256}_lev0` (Phase 1 PP env otherwise). The two
+`control_pair_pp_d10_L64_N{192,256}_lev0` (Phase 1 PP env otherwise — which
+means they carry `BONDI_GRTRESNA_MAXIMAL_SLICING=1` too; a PP rung without it
+is not a null for anything). The two
 N=256 cells are the figure cells: they replace `GRTECLYN_FRAMES=0` with
 `GRTECLYN_FRAMES_CACHE_SLICES=1`; every other new cell in the matrix stays
 frameless.
