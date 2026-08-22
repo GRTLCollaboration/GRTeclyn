@@ -53,6 +53,7 @@ Tick a box only when the cell has passed its gate and been moved into
 - [ ] `control_pair_mm_d10_L64_N192_lev0` — ~5.5 h; MM alongside PP in the null ladder
 - [ ] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung
 - [ ] `amrcheck_pair_d10_L64_N128_lev1` — ~1.5 h; referee-proofing only (predicted identical to lev0)
+- [ ] `chase_pair_d08_v03c_Lx352_L64_N128_lev0` — ~2 days; ride the runaway to 0.3c in a long box (section 4; follow-up paper material)
 
 ---
 
