@@ -115,10 +115,11 @@
 >   `t = 50-150` and then turning over, earliest at the smallest separation.
 >   And that the physical separation is constant: that rested entirely on
 >   `proper_sep`, which is computed from *integer* grid indices
->   (`sector_dynamics.py::_proper_separation`) and so is quantised to `Δx = 0.5`
+>   (`sector_dynamics.py::_proper_separation`) and so was quantised to `Δx = 0.5`
 >   — a resolution worse than the `0.72` signal it was being asked to measure.
->   It dithers between two values and measures nothing.  Still unfixed; do not
->   read that column.
+>   It dithered between two values and measured nothing.  **Fixed 2026-08-21**;
+>   values written before that date are quantised and must not be compared with
+>   values written after it.  Nothing in the corrected results uses the column.
 >
 >   This also accounts for the residual in the runaway ratio.  As the gap
 >   narrows the true pull exceeds the fixed-`d` prediction, so the pair slightly
@@ -196,6 +197,24 @@
 > suspect.  The `ω = 0.55` rejection, the turning-point argument and the
 > unstable-branch reading were all produced on the broken binary and are still
 > unreplaced.
+
+> **Status — 2026-08-21 (final): the initial data is fixed and the runaway is
+> measured directly, with nothing subtracted anywhere.**  A lone star now sits
+> exactly where it is born — the largest drift on any axis over `t = 200` is
+> `1.8e-03`, against `-0.328` on all three axes for the identical old run, and
+> what remains is no longer diagonal.  Four matched pairs at `d = 8 / 10 / 12 /
+> 16` accelerate as a unit at constant rate, hold their separation, carry zero
+> total momentum, and their accelerations follow `d^-2.051` against `-2` exact,
+> returning the star's mass to better than `4%` from every point independently.
+> See
+> [What the corrected cells returned](#what-the-corrected-cells-returned--2026-08-21).
+>
+> **The common-mode motion is unchanged from the old runs to about `3%`**, so
+> the bug never touched the runaway signal — it corrupted the *relative* motion
+> and buried the result under an artefact of comparable size.  Every direct
+> pair or lone-star number above the corrected scan is superseded; the
+> differential mass-mismatch measurement stands, because the artefact cancels in
+> the difference.
 
 > **Where the results live — 2026-08-21.**  Every number quoted above is
 > reproducible from a git-tracked extract at
@@ -977,26 +996,116 @@ symmetric set of cell centres** — getting that wrong by half a cell makes the
 estimator invent an offset of its own, which is how this was first
 mis-measured.  The script asserts it.
 
-### What is running
+### What the corrected cells returned — 2026-08-21
 
-Three corrected cells, each byte-identical to the cell it is paired against
-except for the solve grid, so the comparison isolates the initial data:
+Each cell is byte-identical to the one it is paired against except for the solve
+grid, so the comparison isolates the initial data.  All ran the full `t = 200`.
 
-| cell | paired against | what it settles |
+The alignment check comes back at **exactly zero** on all three, not merely
+under tolerance — the transfer has stopped interpolating altogether, so there is
+no rounding left to bias anything:
+
+| cell | metric-minus-matter offset | was |
 |---|---|---|
-| `fix_single_p` | `single_p_x32` | does a lone canonical star sit still |
-| `fix_single_m` | `single_m_x37` | does the sign flip go away |
-| `fix_pm_eqm` | `pm_eqm` | is the gap constant with nothing subtracted |
+| `fix_single_p` | `0.0000` | `-0.096` |
+| `fix_single_m` | `0.0000` | `-0.096` |
+| `fix_pm_eqm` | `0.0000` | `-0.096` |
 
-### What still has to be re-derived
+**The lone stars sit still.**  This is the decisive control: one star, alone in
+an empty box, nothing to pull on it.
 
-Every number in this document measured on a pair or on a lone star was taken on
-initial data carrying this defect.  That includes the inverse-square result in
-the table above, which appeared only *after* subtracting the artefact and now
-has to be reproduced without the subtraction.  The **differential** mass-mismatch
-measurement is the exception and stands as it is: matched and mismatched cells
-at the same `d` carry the same artefact, so it cancels in the difference — which
-is why that channel agreed with Newton to `1-9%` while the direct one did not.
+| control | largest drift, any axis, over `t = 200` | old law would give | peak |
+|---|---|---|---|
+| `fix_single_p` canonical at the box centre | `1.8e-03` | `0.412` | `-0.48%` |
+| `fix_single_m` phantom off-centre at `x = 37` | `1.6e-03` | `0.492` | `-0.48%` |
+| `single_p_x32` *(old, same star, same spot)* | `-0.328` on all three axes | — | — |
+
+Suppressed by `269x` and `519x`.  What remains is no longer diagonal — the three
+axes now differ from each other (`1.8`, `1.5`, `0.9` in units of `1e-3` for the
+canonical), which is noise, not a drift.  The off-centre phantom is the sharper
+test, since no symmetry forces it to stay put; it moved half a thousandth of a
+cell.
+
+### The separation scan, with nothing subtracted
+
+Four matched pairs, equal and opposite ADM mass, `t = 200` each.  The pair's
+midpoint is fitted to a constant acceleration from `t >= 5` (before that the
+gauge is still settling).
+
+| `d` | midpoint travelled | separation drift | transverse | `a` measured | `GM/d²` | ratio |
+|---|---|---|---|---|---|---|
+| `8` | `4.612` | `+0.187` | `1.7e-04` | `2.3210e-04` | `2.2422e-04` | `1.035` |
+| `10` | `2.912` | `+0.107` | `1.7e-04` | `1.4541e-04` | `1.4350e-04` | `1.013` |
+| `12` | `2.012` | `+0.063` | `8.6e-05` | `1.0003e-04` | `9.9653e-05` | `1.004` |
+| `16` | `1.128` | `+0.025` | `1.0e-04` | `5.5968e-05` | `5.6055e-05` | `0.998` |
+
+A power law through the four accelerations gives **`n = -2.051`** against
+`-2.000` for an exact inverse-square law.  Equivalently, `a·d²` should return
+the star's mass at every separation, and does: `0.01485`, `0.01454`, `0.01440`,
+`0.01433` against a true `GM = 0.014350` — the four agree with each other to
+under `4%`, the three widest to under `1.5%`.
+
+The trend in that last column is physical, not numerical, and should be named
+rather than hidden: the closest pair overshoots by `3.5%` and the agreement
+tightens monotonically with separation, which is where finite-size and
+post-Newtonian corrections both push.
+
+At `d = 10` the acceleration is constant across the whole run, fitted over four
+disjoint stretches:
+
+| window | `a` | vs `GM/d²` |
+|---|---|---|
+| `t = 5-50` | `1.473e-04` | `1.03` |
+| `t = 50-100` | `1.442e-04` | `1.00` |
+| `t = 100-150` | `1.456e-04` | `1.01` |
+| `t = 150-200` | `1.469e-04` | `1.02` |
+
+and the total momentum stays at `3.7e-05` — that is the paradox in one line: no
+external force, zero total momentum, and the configuration accelerates anyway.
+
+**Two checks that this is not an illusion.**  The largest shift anywhere is
+`4.9e-04`, forty times smaller than the speed the pair reaches, so this is
+matter moving through the grid rather than the grid sliding under it.  And both
+stars end within `0.5%` of their birth peak amplitude, so nothing is dissolving
+— which matters, because a dissolved star makes every geometry diagnostic look
+clean.
+
+### What this replaces
+
+Every direct measurement in this document taken on a pair or a lone star was
+made on initial data carrying the transfer bias.  The corrected scan above
+supersedes it.  In particular the inverse-square result that previously appeared
+only *after* subtracting the artefact now falls out of the raw data.
+
+Against the old `d = 10` cell at the same `t = 200`, for scale:
+
+| | corrected | old |
+|---|---|---|
+| separation | `10.107` | `9.275` |
+| transverse drift | `7e-05` | `-0.348` |
+| midpoint travelled | `2.912` | `2.990` |
+
+The last row is the important one: the **common-mode motion is the same in
+both**, to about `3%`.  The bug never touched the runaway signal — it corrupted
+only the *relative* motion, and buried the result under an artefact of
+comparable size.  That is also why the **differential** mass-mismatch
+measurement stands unchanged: matched and mismatched cells at the same `d` carry
+the same artefact, so it cancels in the difference.
+
+### The proper-separation column was quantised — fixed 2026-08-21
+
+`proper_sep` (column 10) integrated `sqrt(gamma_xx)` between the two cores'
+integer **peak cell** indices and sampled the row at integer transverse indices,
+so every value was a multiple of `dx = 0.5` — coarser than the `~0.1` signal it
+was meant to resolve.  A pair holding its separation to a tenth of a cell read
+as perfectly constant, then jumped a whole cell.  Both endpoints are sub-cell
+now (the continuous centroids were already being computed for `coord_sep`), and
+the transverse row is interpolated rather than snapped.  In flat space it
+returns the coordinate separation exactly, at any sub-cell offset.
+
+**Values written before this date are quantised and must not be compared with
+values written after it.**  Nothing in the results above uses the column —
+`coord_sep`, built from the continuous centroids, was used throughout.
 
 ---
 ## What the campaign returned — 2026-08-20

@@ -150,25 +150,82 @@ def _momentum_x(
     return float(np.sum(s_x * sqrt_gamma) * dx**3)
 
 
+def _row_through(
+    volume: np.ndarray, axis_y: np.ndarray, axis_z: np.ndarray,
+    y_t: float, z_t: float,
+) -> np.ndarray:
+    """The x-row of ``volume`` through transverse position ``(y_t, z_t)``.
+
+    Bilinear in the two transverse axes.  Snapping to the nearest cell instead
+    would quantise the row to the grid, which is exactly the error this module
+    used to make.
+    """
+    ny, nz = axis_y.size, axis_z.size
+    if ny < 2 or nz < 2:
+        return volume[:, min(ny - 1, 0), min(nz - 1, 0)]
+    dy = float(axis_y[1] - axis_y[0])
+    dz = float(axis_z[1] - axis_z[0])
+    fy = (float(y_t) - float(axis_y[0])) / dy
+    fz = (float(z_t) - float(axis_z[0])) / dz
+    j = int(np.clip(np.floor(fy), 0, ny - 2))
+    k = int(np.clip(np.floor(fz), 0, nz - 2))
+    wy = float(np.clip(fy - j, 0.0, 1.0))
+    wz = float(np.clip(fz - k, 0.0, 1.0))
+    return (
+        (1.0 - wy) * (1.0 - wz) * volume[:, j, k]
+        + wy * (1.0 - wz) * volume[:, j + 1, k]
+        + (1.0 - wy) * wz * volume[:, j, k + 1]
+        + wy * wz * volume[:, j + 1, k + 1]
+    )
+
+
 def _proper_separation(
-    h11: np.ndarray, chi: np.ndarray, core_a: dict, core_b: dict, dx: float,
+    h11: np.ndarray, chi: np.ndarray, core_a: dict, core_b: dict,
+    axes: list[np.ndarray],
 ) -> float:
     """integral sqrt(gamma_xx) dx along the pair axis between the two cores.
 
     ``gamma_ij = h_ij / chi`` in the GRTeclyn variables, so the proper length
-    element along x is ``sqrt(h11 / chi) dx``.  Sampled on the grid row through
-    the canonical core's transverse position; the cores sit on the same axis by
-    construction, so this is the physical distance between them.
+    element along x is ``sqrt(h11 / chi) dx``.
+
+    BOTH ENDPOINTS ARE SUB-CELL.  Until 2026-08-21 this integrated between the
+    two cores' integer PEAK CELL indices and sampled the row at the canonical
+    core's integer transverse indices, which quantised the answer to whole
+    cells -- dx = 0.5 in the campaign, coarser than the 0.1-ish signal it was
+    supposed to resolve, so the column was useless for measuring whether a pair
+    holds its separation.  The cores' continuous centroids are already computed
+    (``core["x"]`` and friends); this uses them.
+
+    Values written before that date are quantised and must not be compared with
+    values written after it.
     """
     for core in (core_a, core_b):
-        if core["ix"] is None:
+        if not math.isfinite(core["x"]):
             return math.nan
-    lo, hi = sorted((core_a["ix"], core_b["ix"]))
+    axis_x, axis_y, axis_z = axes
+    if axis_x.size < 2:
+        return math.nan
+
+    lo, hi = sorted((float(core_a["x"]), float(core_b["x"])))
     if hi <= lo:
         return 0.0
-    iy, iz = core_a["iy"], core_a["iz"]
-    row = np.sqrt(np.maximum(h11[lo:hi, iy, iz] / np.maximum(chi[lo:hi, iy, iz], 1e-12), 0.0))
-    return float(np.sum(row) * dx)
+    if lo < float(axis_x[0]) or hi > float(axis_x[-1]):
+        return math.nan
+
+    # The two cores sit on a common axis by construction; averaging their
+    # transverse positions is the honest row to walk when they disagree
+    # slightly, and is exact when they do not.
+    y_t = 0.5 * (float(core_a["y"]) + float(core_b["y"]))
+    z_t = 0.5 * (float(core_a["z"]) + float(core_b["z"]))
+
+    ratio = h11 / np.maximum(chi, 1e-12)
+    row = np.sqrt(np.maximum(_row_through(ratio, axis_y, axis_z, y_t, z_t), 0.0))
+
+    # Cumulative trapezoid, then read off at the two sub-cell endpoints: exact
+    # for the piecewise-linear interpolant the trapezoid rule already assumes.
+    seg = 0.5 * (row[1:] + row[:-1]) * np.diff(axis_x)
+    cum = np.concatenate(([0.0], np.cumsum(seg)))
+    return float(np.interp(hi, axis_x, cum) - np.interp(lo, axis_x, cum))
 
 
 def _extract_sector_dynamics_line(
@@ -235,7 +292,7 @@ def _extract_sector_dynamics_line(
 
         canon, phantom = cores["canon"], cores["phantom"]
         values["coord_sep"] = canon["x"] - phantom["x"]
-        values["proper_sep"] = _proper_separation(h11, chi, canon, phantom, dx)
+        values["proper_sep"] = _proper_separation(h11, chi, canon, phantom, axes)
         # The phantom's stress-energy enters Einstein with a flipped sign, so
         # the GRAVITATING total subtracts its matter momentum.
         values["px_total"] = values["px_canon"] - values["px_phantom"]

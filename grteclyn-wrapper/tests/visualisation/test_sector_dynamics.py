@@ -13,6 +13,7 @@ import pytest
 
 from grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.extraction.sector_dynamics import (
     SECTOR_DYNAMICS_COLUMNS,
+    _NAN_CORE,
     _core_moments,
     _momentum_x,
     _proper_separation,
@@ -20,11 +21,11 @@ from grteclyn_wrapper.visualisation.process_wave.consume_plotfiles.extraction.se
 
 N = 48
 DX = 0.5
+AXES = [(np.arange(N) + 0.5) * DX for _ in range(3)]
 
 
 def _grid():
-    axis = (np.arange(N) + 0.5) * DX
-    return np.meshgrid(axis, axis, axis, indexing="ij")
+    return np.meshgrid(*AXES, indexing="ij")
 
 
 def _blob(x, y, z, *, center, width=1.0, amp=1.0):
@@ -114,19 +115,63 @@ def test_proper_separation_reads_the_metric() -> None:
     """gamma_xx = h11/chi: proper length must scale as sqrt(gamma_xx)."""
     shape = (N, N, N)
     chi = np.ones(shape)
-    core_a = {"ix": 30, "iy": 12, "iz": 12}
-    core_b = {"ix": 10, "iy": 12, "iz": 12}
+    core_a = {"x": 15.0, "y": 6.25, "z": 6.25}
+    core_b = {"x": 5.0, "y": 6.25, "z": 6.25}
 
-    flat = _proper_separation(np.ones(shape), chi, core_a, core_b, DX)
-    assert flat == pytest.approx((30 - 10) * DX, rel=1e-12)
+    flat = _proper_separation(np.ones(shape), chi, core_a, core_b, AXES)
+    assert flat == pytest.approx(10.0, rel=1e-12)
 
     # gamma_xx = 4 everywhere -> proper distance doubles.
-    stretched = _proper_separation(4.0 * np.ones(shape), chi, core_a, core_b, DX)
+    stretched = _proper_separation(4.0 * np.ones(shape), chi, core_a, core_b, AXES)
     assert stretched == pytest.approx(2.0 * flat, rel=1e-12)
+
+    # chi scales the other way: gamma_xx = h11/chi.
+    squashed = _proper_separation(np.ones(shape), 4.0 * chi, core_a, core_b, AXES)
+    assert squashed == pytest.approx(0.5 * flat, rel=1e-12)
 
     # A missing core cannot produce a separation.
     assert math.isnan(
-        _proper_separation(np.ones(shape), chi, core_a, {"ix": None}, DX)
+        _proper_separation(np.ones(shape), chi, core_a, dict(_NAN_CORE), AXES)
+    )
+
+
+def test_proper_separation_resolves_below_one_cell() -> None:
+    """The whole point of the 2026-08-21 repair.
+
+    The old integrator ran between the two cores' integer PEAK CELL indices, so
+    every answer was a multiple of dx and a pair holding its separation to a
+    tenth of a cell read as perfectly constant -- or jumped a whole cell.  Both
+    endpoints are sub-cell now, and flat space must return the coordinate
+    separation exactly, whatever fraction of a cell it lands on.
+    """
+    shape = (N, N, N)
+    chi = np.ones(shape)
+    h11 = np.ones(shape)
+    for xa, xb in ((15.0043, 5.0044), (12.26, 11.74), (15.0, 5.0)):
+        core_a = {"x": xa, "y": 6.25, "z": 6.25}
+        core_b = {"x": xb, "y": 6.25, "z": 6.25}
+        got = _proper_separation(h11, chi, core_a, core_b, AXES)
+        assert got == pytest.approx(abs(xa - xb), abs=1e-12), f"{xa} - {xb}"
+
+
+def test_proper_separation_interpolates_across_the_row() -> None:
+    """Transverse position is sub-cell too, so the row must be interpolated."""
+    shape = (N, N, N)
+    _, y, _ = _grid()
+    h11 = 1.0 + 0.01 * (y - 6.0)          # varies only with y
+    core_a = {"x": 15.0, "y": 6.25, "z": 6.25}   # 6.25 is a cell EDGE: worst case
+    core_b = {"x": 5.0, "y": 6.25, "z": 6.25}
+    got = _proper_separation(h11, np.ones(shape), core_a, core_b, AXES)
+    assert got == pytest.approx(10.0 * math.sqrt(1.0 + 0.01 * 0.25), rel=1e-12)
+
+
+def test_proper_separation_refuses_to_run_off_the_grid() -> None:
+    """Clamping at the boundary would silently return a truncated length."""
+    shape = (N, N, N)
+    core_a = {"x": 1.0e3, "y": 6.25, "z": 6.25}
+    core_b = {"x": 5.0, "y": 6.25, "z": 6.25}
+    assert math.isnan(
+        _proper_separation(np.ones(shape), np.ones(shape), core_a, core_b, AXES)
     )
 
 
