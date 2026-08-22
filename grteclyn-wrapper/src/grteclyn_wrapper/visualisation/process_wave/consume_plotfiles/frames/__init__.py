@@ -11,6 +11,7 @@ from .embedding import _render_embedding_frame
 from .projection import _render_projection_frame
 from .slice import _render_slice_frame
 from .zlim import _lock_frame_zlims_from_plotfile
+from .zlim_scan import scan_series_zlims
 
 __all__ = [
     "_cleanup_embedding_frames",
@@ -20,4 +21,5 @@ __all__ = [
     "_render_embedding_frame",
     "_render_projection_frame",
     "_render_slice_frame",
+    "scan_series_zlims",
 ]

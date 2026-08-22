@@ -9,6 +9,10 @@ from ..config import _field_frame_config, _frames_auto_zlim_enabled
 from ..fields import _canonical_field_name, _field_key, _register_derived_fields
 from .center import _resolve_frame_physics_center
 
+#: Marks a ``frame_zlims`` dict as measured over the whole series rather than
+#: locked from one plotfile.  Not a field name, so it can never collide.
+_SCANNED_KEY = "__scanned_series__"
+
 
 def _auto_zlim_from_array(values: np.ndarray, field_name: str) -> tuple[float, float] | None:
     finite = np.asarray(values, dtype=float)
@@ -80,6 +84,16 @@ def _resolve_plot_zlim(
         if auto is not None:
             return auto
 
+    # A scanned series range was measured over every frame of THIS run, so it
+    # beats both the per-frame rescale (which makes the colourbar move) and the
+    # hand-set presets (which are a guess made before the run).  The sentinel is
+    # carried in the dict itself so the scan needs no new plumbing through the
+    # worker.  See zlim_scan.scan_series_zlims.
+    if frame_zlims and frame_zlims.get(_SCANNED_KEY):
+        stored = frame_zlims.get(field)
+        if stored is not None:
+            return (float(stored[0]), float(stored[1]))
+
     if cfg.get("per_frame_zlim"):
         auto = _auto_zlim_from_array(win, field)
         if auto is not None:
@@ -147,7 +161,17 @@ def _extract_native_slice_window(
     return arr
 
 
-def _lock_frame_zlims_from_plotfile(plot_path: str, args_dict: dict) -> dict[str, list[float]]:
+def _lock_frame_zlims_from_plotfile(
+    plot_path: str, args_dict: dict, *, include_per_frame_fields: bool = False
+) -> dict[str, list[float]]:
+    """Colour limits this one plotfile would choose, per field.
+
+    ``include_per_frame_fields`` keeps the fields flagged ``per_frame_zlim``.
+    Locking those from a single plotfile is wrong -- that is why they are
+    skipped by default -- but the series scanner needs exactly this per-plotfile
+    answer so it can take the envelope over the whole run.  See
+    ``zlim_scan.scan_series_zlims``.
+    """
     ds = yt.load(plot_path)
     frame_fields = [_canonical_field_name(f) for f in args_dict.get("frames_fields", [])]
     axis = args_dict.get("frames_axis", "z")
@@ -171,7 +195,7 @@ def _lock_frame_zlims_from_plotfile(plot_path: str, args_dict: dict) -> dict[str
 
     for fld in frame_fields:
         try:
-            if _field_frame_config(fld).get("per_frame_zlim"):
+            if not include_per_frame_fields and _field_frame_config(fld).get("per_frame_zlim"):
                 continue
             if use_frb:
                 _register_derived_fields(ds, fld)

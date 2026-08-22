@@ -26,6 +26,7 @@ from .frames.cleanup import (
     _cleanup_projection_frames,
 )
 from .frames.zlim import _lock_frame_zlims_from_plotfile
+from .frames.zlim_scan import scan_series_zlims
 from .plotfiles import (
     _is_plotfile_ready,
     _iter_plotfile_dirs,
@@ -126,6 +127,19 @@ def main() -> None:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Lock per-field colorbar limits from the first plotfile (stable movies, visible faint fields).",
+    )
+    parser.add_argument(
+        "--frames-zlim-scan",
+        action="store_true",
+        help="Measure one fixed colorbar per field over ALL plotfiles before rendering "
+             "(paper-quality movies: the bar never moves). Needs the plotfiles kept.",
+    )
+    parser.add_argument(
+        "--frames-zlim-scan-stride",
+        type=int,
+        default=1,
+        help="Scan every Nth plotfile instead of all of them (default 1). The last "
+             "plotfile is always scanned.",
     )
     parser.add_argument("--frames-out", default=_default_frames_out_dir(), help="Frames output base dir (default: grteclyn_wrapper/visualisation/visualize).")
     parser.add_argument(
@@ -543,14 +557,26 @@ def main() -> None:
         use_global_zlim = bool(
             args.frames_global_zlim and not _frames_auto_zlim_enabled(args.frames_auto_zlim)
         )
-        if frame_fields_startup and use_global_zlim and not frame_zlims and to_process:
-            first = min(
-                to_process,
-                key=lambda p: _parse_plot_index(os.path.basename(p)) if _parse_plot_index(os.path.basename(p)) is not None else 10**12,
-            )
-            frame_zlims = _lock_frame_zlims_from_plotfile(first, args_dict)
-            state["frame_zlims"] = frame_zlims
-            _save_state(state_path, state)
+        if frame_fields_startup and not frame_zlims and to_process:
+            if args.frames_zlim_scan:
+                # One scale for the whole run, measured from the whole run: the
+                # only way the colourbar can be guaranteed not to move.
+                frame_zlims = scan_series_zlims(
+                    to_process,
+                    args_dict,
+                    stride=max(1, int(args.frames_zlim_scan_stride)),
+                    record_dir=args_dict["frames_out"],
+                    verbose=bool(args.verbose),
+                )
+            if not frame_zlims and use_global_zlim:
+                first = min(
+                    to_process,
+                    key=lambda p: _parse_plot_index(os.path.basename(p)) if _parse_plot_index(os.path.basename(p)) is not None else 10**12,
+                )
+                frame_zlims = _lock_frame_zlims_from_plotfile(first, args_dict)
+            if frame_zlims:
+                state["frame_zlims"] = frame_zlims
+                _save_state(state_path, state)
         args_dict["frame_zlims"] = frame_zlims
         args_dict["frames_global_zlim"] = use_global_zlim
 
