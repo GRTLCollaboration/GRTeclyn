@@ -23,7 +23,7 @@ env) is configured with a gitignored [`.env`](#site-paths-env) — see below.
 
 ## Running a campaign without numerical artifacts
 
-Read this before launching anything whose numbers will be believed. Rule 9 is the preflight — run it first; it mechanises parts of 1 and 8. Every rule
+Read this before launching anything whose numbers will be believed. Rules 9 and 10 are the preflight — run them first; 9 checks the cell, 10 checks the machine. Every rule
 below is here because breaking it silently produced a result that looked clean
 and was wrong. The full diagnosis of each is in
 [`research/bondi_dipole/docs/MatterDebugg.md`](../research/bondi_dipole/docs/MatterDebugg.md).
@@ -238,6 +238,58 @@ flag: **a setting applied automatically on a condition is a setting that
 disappears automatically when the condition does.** Whenever behaviour is
 switched on by a property of the physics rather than by a line someone wrote,
 changing the physics silently changes the numerics too.
+
+### 10. Preflight the machine, not just the cell — solves and evolutions compete
+
+Four GPU evolutions saturate this node's 128 cores on their own. That is not a
+guess: the ten archived cells ran four-at-a-time and each still managed **183
+units of evolution time per hour**. Solver ranks come straight out of that
+budget, and the cost is brutal — measured 2026-08-22, adding three 32-rank
+solves (96 of 128 cores) dropped the same four evolutions to **24-56 t/hour**,
+a five-fold loss, with the cards reading 41-55% instead of 82-95%.
+
+GPU-hours are the scarce resource in a campaign like this (~59 of them against
+~14 hours of solving), so **the machine runs either four evolutions or a
+comparable amount of solving, not both.** Reserve ~32 cores per running
+evolution and give the solver what is left: four evolutions leave room for
+nothing, three leave room for one 32-rank solve, two leave room for two. Queue
+the next wave's solves against that budget rather than launching them because a
+card looks idle — the card is not the bottleneck, the cores are.
+
+**Killing a solve is not the same as stopping it.** `kill -TERM` on the
+launcher's process group leaves the MPI ranks running: after stopping three
+solves this way, 133 GRTresna ranks were still in state `R` burning 4800% CPU,
+and the evolutions stayed starved for as long as it took to notice. The
+tell-tale is `.nfs*` files left under the run directory — those are handles held
+by processes that are very much alive. Sweep the workers by name and verify the
+count reaches zero.
+
+**Verification needs care on this node: `/proc/stat` and `/proc/loadavg` are
+broken** (`Transport endpoint is not connected`), so `ps`, `top`, `uptime`,
+`pgrep` and `free` all fail or return nothing, and `nvidia-smi
+--query-compute-apps` reports no PIDs. Counting `pout.N` files does *not* work
+either — they persist after the writer dies. The per-PID files under `/proc`
+*do* work, so enumerate those directly:
+
+```python
+import os, signal
+for p in filter(str.isdigit, os.listdir('/proc')):
+    cmd = open(f'/proc/{p}/cmdline','rb').read().replace(b'\0',b' ').decode()
+    if 'GRTresna' in cmd:            # keep 'RadialRecipe' / 'main3d' alive
+        os.kill(int(p), signal.SIGKILL)
+```
+
+Read `/proc/<pid>/stat` fields 14 and 15 across a short interval for real
+per-process CPU, which is the only load measurement available here.
+
+**Starvation slows a run; it never corrupts one.** The evolution is
+deterministic in its own time coordinate, so being descheduled costs wall-clock
+and nothing else. This was confirmed rather than assumed: the mirror cell ran
+through the entire starved window and reproduced the archived cell it mirrors to
+every printed digit. The one thing that *is* spoiled is
+`simulation_elapsed_seconds` — a starved cell's wall time is meaningless and
+must not go into the ledger in section 3 of the campaign plan as if it were a
+clean measurement.
 
 See also [Rules (do not skip)](#rules-do-not-skip) for the campaign-mechanics
 rules (population sizing, scratch locality, pump convention).
