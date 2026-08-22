@@ -53,7 +53,7 @@ Tick a box only when the cell has passed its gate and been moved into
 - [ ] `control_pair_mm_d10_L64_N192_lev0` — ~5.5 h; MM alongside PP in the null ladder
 - [ ] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung
 - [ ] `amrcheck_pair_d10_L64_N128_lev1` — ~1.5 h; referee-proofing only (predicted identical to lev0)
-- [ ] `chase_pair_d08_v03c_Lx352_L64_N128_lev0` — ~2 days; ride the runaway to 0.3c in a long box (section 4; follow-up paper material)
+- [ ] `chase_pair_d08_v03c_Lx352_L64_N128_lev0` — ~1.7 GPU-days; ride the runaway to 0.3c in a long box (section 4). **Superseded on paper by the recentring box — ~7.5 h for the same physics; see section 5 for the build plan.** Follow-up paper material either way
 
 ---
 
@@ -687,3 +687,179 @@ Ways to cut the cost, strongest first:
    before it gets believed.
 
 None of this is in the required matrix; it is the natural follow-up paper.
+
+---
+
+## 5. The recentring box ("running road") — realisation plan
+
+This is outlook item 2 above, worked out far enough to build. The chase cell is
+long only because the pair travels; if the pair is periodically carried back to
+the middle of a small box, the box never has to grow. Cost stops scaling with
+the target speed and becomes linear in run time.
+
+### What moves is the data, not the box
+
+The domain stays exactly what every mixed cell already uses: 64 on a side, 128
+cells, centre at 32. Nothing about the grid, the extraction radii or the sponge
+changes. When the pair's centroid has drifted 8 units toward the front wall,
+every field is copied back by **exactly 16 cells**, which puts the pair back at
+the centre, and 8 is added to a running odometer:
+
+```
+true displacement = position on the grid + odometer
+```
+
+16 cells is a whole number of cells, so the copy is a pure relabelling of which
+cell holds which value — **no interpolation, exact to the last bit**. This is
+the same reasoning that fixed the initial-data alignment: shifts that land on
+the mesh are free, shifts that land between cells are not, so only the former
+are ever taken.
+
+Reaching 0.3c means travelling 210 units, so about **26 shifts over the whole
+run**. Each one moves roughly 600 MB inside the card and takes milliseconds.
+Early on the pair barely moves and shifts are rare; near 0.3c one falls every
+27 units of time.
+
+### Why not move the coordinates instead
+
+The obvious alternative is to leave the data alone and let the coordinates chase
+the pair — a comoving gauge. It is rejected on presentation grounds, not
+technical ones. The entire claim of the paper is *the pair accelerates*.
+Measuring that acceleration in a gauge purpose-built to follow the pair is a
+much harder result to defend, and invites exactly the objection the whole
+control matrix exists to kill. Translating the data leaves the evolution
+equations, the gauge and the boundary untouched; only the labels change.
+
+### The two seams, and why neither one reaches the stars
+
+| face | what happens | distance from the pair | sits in |
+|---|---|---|---|
+| front (leading) | 16 cell-layers have no source and must be invented | 32 | sponge band |
+| back (trailing) | 16 cell-layers of already-departed wake are discarded | 32 | sponge band |
+
+The front sliver is filled from the outermost surviving layer using the same
+1/r falloff the outer boundary condition already assumes, so the fabricated
+values are continuous with what the boundary would have produced anyway. The
+back sliver is thrown away; it holds radiation that has already left and cannot
+travel back inward to reach the pair before the next shift.
+
+**Nothing inside radius 24 is ever fabricated or discarded.** Both seams live
+entirely in the outer shell.
+
+### The sponge is what makes this legal
+
+The sponge already exists (`Source/Grids/SpongeZone.hpp`), is already switched
+on in every mixed cell, and already covers the band from radius 24 to 32 — it
+is the thing that bought evolution past t = 60 in the first place. It is
+anchored at fixed radius about the box centre, and after every shift the pair is
+back at that centre, so **the sponge's geometric relationship to the pair is
+restored exactly, every time**. Without it the fresh seam would ring and the
+ringing would eventually turn around; with it the seam is absorbed before it
+can.
+
+The important point for a referee: relative to the fixed 64-box already used for
+every mixed cell, the recentring box adds **no new approximation**. That box
+already truncates the domain at radius 32 and already sponges everything outside
+24. The recentring box keeps that same truncation centred on the pair instead of
+letting the pair drift into one wall — which is strictly the safer of the two,
+because the pair never approaches the boundary at all.
+
+### What this cell cannot answer
+
+The wake is discarded, so this run yields **no radiated momentum and no wave
+zone**. It answers how fast the pair goes and nothing else. The wave-zone cell
+in phase 4 remains the only source for the radiation field, and stays in the
+matrix.
+
+### Deciding when to shift
+
+After each step, one reduction over the grid gives the mass-weighted centroid of
+the pair. The same reduction pattern is already in the binary and already proven
+on the cards — it is what steers the pump's spotlight
+(`Examples/RadialRecipe/RLLumpTracker.hpp`) — but the recentring module gets its
+own copy rather than reaching into the reinforcement-learning path, so the two
+stay uncoupled.
+
+Threshold: shift when the centroid is more than 8 units from the box centre.
+Large enough that shifts are rare, small enough that the pair stays deep inside
+the sponge's inner radius at all times.
+
+### Checkpoints
+
+Every cell in this campaign currently runs with checkpointing switched off,
+which is right for a 1.1-hour cell and wrong for this one — it is between 8 and
+50 hours. Switch it on. A checkpoint is about 1.2 GB at 128 cells; keeping a
+rolling pair is nothing against the 3.5 TB free.
+
+One piece of genuinely new state has to go into the checkpoint: **the odometer**.
+Without it a restart resumes with the trajectory silently reset to zero, and the
+resulting plot looks plausible while being wrong — the worst possible failure
+mode. It is written and read back explicitly, and the restart is verified by
+checking that the first line after a restart continues the last line before it.
+
+### Code shape
+
+Obeys the module rule: new behaviour lives in its own file, behind its own
+switch, writing its own output.
+
+| piece | where | note |
+|---|---|---|
+| the shift and the odometer | new `Source/Grids/GridTreadmill.hpp` | self-contained |
+| the switch | one parameter, **off by default** | every archived cell is unaffected |
+| the log | new `small_data/treadmill.dat` — step, time, cells shifted, cumulative offset | no existing column contract widened |
+| the call | the post-timestep hook already present in the evolution level, coarsest level only | |
+
+The shift itself is about fifteen lines: copy the state into a scratch buffer,
+relabel the scratch buffer's boxes 16 cells back in x, copy it back by box
+intersection, then fill the front sliver. The framework provides both halves of
+that directly.
+
+**Restriction:** single-level only. Every cell in this campaign is single-level
+by decision, so this is not a limitation in practice, but the module refuses to
+start with a hard error if refinement is on rather than silently doing something
+wrong on a refined grid.
+
+### Validation — three cells, and no result is believed before them
+
+1. **Forced-shift null (~1.1 h).** The headline cell, shifting on a fixed
+   schedule with zero net displacement: 16 cells forward, then 16 cells back.
+   The trajectory must come out unchanged to round-off. This isolates seam
+   damage from physics — if anything is wrong with the copy or the fill, it
+   shows here with nothing else to hide behind.
+2. **Recentred against the archive (~1.1 h).** The headline cell with
+   recentring armed and the threshold dropped to 2 units, so several shifts
+   land inside t ≤ 200. The trajectory must reproduce the archived cell.
+   *Pass gate:* displacement and acceleration agree with the archive to the
+   same tolerance the mirror control met — 1.4e-04 relative.
+3. **Box-size check, once the pair is past 0.3c (~15 h).** Recentring at 96 on
+   a side and 192 cells (same cell size) against 64/128 over the same window.
+   This is the one that actually matters at speed: the outer boundary assumes a
+   static centre, and a pair moving at a third of light speed is not static
+   relative to the grid. Cells 1 and 2 cannot detect this, because the pair is
+   barely moving by t = 200.
+
+### What it buys
+
+| target | run length t | long box, as planned | recentring box, 64 / 128 |
+|---|---|---|---|
+| 0.10 c | 430 | 0.2 GPU-days | **2.4 h** |
+| 0.30 c | 1,360 | 1.7 GPU-days | **7.5 h** |
+| 0.50 c | 2,500 | 7 GPU-days | **14 h** |
+| 0.70 c | 4,200 | 28 GPU-days | **23 h** † |
+| 0.90 c | 8,900 | 180 GPU-days | **49 h** † |
+
+† past roughly 0.6c the Lorentz-contracted star needs half the cell size, which
+multiplies these by about 16 — still days rather than months.
+
+Memory at the 0.3c target falls from 33 GB to 6 GB, so the run fits on one card
+with room to spare instead of filling it.
+
+The headline: **the chase cell drops from 1.7 GPU-days to about 7.5 GPU-hours**,
+and — unlike the long box — its cost no longer grows with the target speed.
+
+### The cell
+
+`chase_pair_d08_v03c_recentred_L64_N128_lev0` replaces
+`chase_pair_d08_v03c_Lx352_L64_N128_lev0` in the scoreboard once validation
+cells 1 and 2 pass. The long box stays on the books as the fallback if they do
+not, and as the cross-check if the follow-up paper wants one.
