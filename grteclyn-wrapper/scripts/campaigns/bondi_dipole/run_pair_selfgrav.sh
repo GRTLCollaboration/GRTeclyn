@@ -61,6 +61,12 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 SOURCE_EVAL="${REPO_ROOT}/results/matter-first-automated-discovery-of-transient-spacetime-shortcuts/search/qball-trajectory-evolving-geodesic-shortcut-search/run/eval_000322"
 GPU="${BONDI_GPU:-3}"
+#   BONDI_EVO_RANKS -- MPI ranks for the GPU EVOLUTION (default 1).  When >1,
+#     BONDI_GPU must be a comma list of the same length ("0,1").  The
+#     RadialRecipe MPI+CUDA path is only known-good at max_level=0; under AMR
+#     it segfaults at the first RK4 advance (FillPatchIterator) -- smoke-test
+#     on a short stop_time before trusting it for a long run.
+EVO_RANKS="${BONDI_EVO_RANKS:-1}"
 STOP_TIME="${BONDI_STOP_TIME:-60}"
 SEP="${BONDI_SEP:-8}"
 S0="${BONDI_S0:-0}"
@@ -264,6 +270,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --name "${out_name}" \
   --runs-dir "${RUNS_DIR}" \
   --gpu "${GPU}" \
+  --evolution-mpi-ranks "${EVO_RANKS}" \
   --n-full "${NFULL}" --l-full "${LFULL}" \
   --max-level "${MAXLEVEL}" --regrid-threshold 0.02 \
   --stop-time "${STOP_TIME}" --plot-interval "${PLOT_INTERVAL}" \

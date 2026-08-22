@@ -332,6 +332,12 @@ def build_consume_command(
     # Higher-multipole Psi4 (l>=3) into its own stream.  Off by default: it adds
     # one sphere sampling per plotfile and is only meaningful on wave-zone
     # extraction shells (Debug.md item C).
+    # Slice cache (paper movies): keep the 2-D array behind every native frame
+    # so the whole series can be re-rendered on one fixed colour scale after
+    # the run (scripts/plot/rerender_frames.py).  Off by default; paper
+    # campaigns opt in with GRTECLYN_FRAMES_CACHE_SLICES=1.
+    if _env_flag("GRTECLYN_FRAMES_CACHE_SLICES"):
+        command.append("--frames-cache-slices")
     if _env_flag("GRTECLYN_PSI4_HIGHER_L"):
         command.append("--psi4-higher-l")
         ells = os.environ.get("GRTECLYN_PSI4_ELLS", "").strip()

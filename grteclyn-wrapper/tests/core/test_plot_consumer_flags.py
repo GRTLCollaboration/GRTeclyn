@@ -129,3 +129,12 @@ def test_consumer_delete_plotfiles_enabled_matrix(monkeypatch) -> None:
     assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=False) is False
     monkeypatch.setenv("GRTECLYN_KEEP_PLOTFILES", "1")
     assert consumer_delete_plotfiles_enabled(frames=False, delete_requested=True) is False
+
+
+def test_frames_cache_slices_env_hook(episode, monkeypatch) -> None:
+    monkeypatch.delenv("GRTECLYN_FRAMES_CACHE_SLICES", raising=False)
+    command = build_consume_command(episode, ftl_timeseries=False)
+    assert "--frames-cache-slices" not in command
+    monkeypatch.setenv("GRTECLYN_FRAMES_CACHE_SLICES", "1")
+    command = build_consume_command(episode, ftl_timeseries=False)
+    assert "--frames-cache-slices" in command
