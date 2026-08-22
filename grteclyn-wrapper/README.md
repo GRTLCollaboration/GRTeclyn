@@ -23,7 +23,7 @@ env) is configured with a gitignored [`.env`](#site-paths-env) — see below.
 
 ## Running a campaign without numerical artifacts
 
-Read this before launching anything whose numbers will be believed. Every rule
+Read this before launching anything whose numbers will be believed. Rule 9 is the preflight — run it first; it mechanises parts of 1 and 8. Every rule
 below is here because breaking it silently produced a result that looked clean
 and was wrong. The full diagnosis of each is in
 [`research/bondi_dipole/docs/MatterDebugg.md`](../research/bondi_dipole/docs/MatterDebugg.md).
@@ -192,6 +192,52 @@ ladder will not be so lucky.
 Remember which side binds: the phantom sector's residual is the one that
 approaches the gate, the canonical sector's sits far inside it. Reading only
 the canonical number will tell you everything is fine when it is not.
+
+### 9. Preflight every cell against the cell it will be compared with
+
+Rules 1-8 each judge a cell on its own. A cell can pass all of them — aligned
+grid, converged solve, intact matter — and still be worthless, because what
+makes it worthless is a difference from the run it is *read against*. Nothing
+above looks at two cells at once, and on 2026-08-22 that gap cost a relaunch.
+
+**What happened.** GRTresna switches to the maximal-slicing `K = 0` path *by
+itself* whenever any lump carries negative energy: the CTTK ansatz
+`K = sign·sqrt(24πGρ)` is imaginary for `ρ < 0`, so it has no choice. Switching
+it also relaxes psi to 0.6, sets a psi floor of 0.1, and moves coefficient
+averaging from harmonic to arithmetic. A command copied from any
+phantom-bearing cell inherits all four **invisibly** — they appear nowhere in
+the launch script, because nobody asked for them. Delete the phantom star and
+all four vanish just as silently. The all-canonical null control was built by
+copying the mixed pair's command and changing the sector flags, so it was born
+on an already-collapsing slice while the cell it was the null *for* started
+flat. Every per-cell gate passed.
+
+**Why the dry run does not save you.** `BONDI_DRYRUN=1` cannot show this: the
+solve's parameter file does not exist until the solve runs, and the dry run's
+own metadata does not record the choice. The first moment the truth is written
+down is *after* the CPU time is spent.
+
+So the check has to read the launch script — the only artefact that exists
+before anything is spent:
+
+```bash
+grteclyn-wrapper/.venv/bin/python research/bondi_dipole/preflight_cell.py \
+    runs/<campaign>/<cell>/launch.sh \
+    --reference runs/bondi/runaway_paper/runaway_pair_d10_L64_N128_lev0/launch.sh
+```
+
+Exit status is the gate. It enforces rule 1's grid-alignment arithmetic and
+rule 8's tolerance, refuses an all-canonical cell that has not asked for
+`BONDI_GRTRESNA_MAXIMAL_SLICING=1`, and — given a reference — reports **every**
+knob that differs and was not meant to. That last part is the general lesson:
+the knobs a cell is supposed to vary are a short list, and anything else that
+differs is a surprise, and a surprise is the bug.
+
+The general shape of this failure is worth keeping in mind beyond this one
+flag: **a setting applied automatically on a condition is a setting that
+disappears automatically when the condition does.** Whenever behaviour is
+switched on by a property of the physics rather than by a line someone wrote,
+changing the physics silently changes the numerics too.
 
 See also [Rules (do not skip)](#rules-do-not-skip) for the campaign-mechanics
 rules (population sizing, scratch locality, pump convention).
