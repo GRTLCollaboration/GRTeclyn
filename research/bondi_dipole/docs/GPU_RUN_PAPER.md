@@ -37,14 +37,14 @@ Tick a box only when the cell has passed its gate and been moved into
 **Required — the paper is not submittable without these:**
 
 - [x] `smoke_mpi_evo` — phase 0, **passed 2026-08-22**: 50/50 steps on cards 0+1, no segfault, exit 0. Two-GPU evolution is available at `max_level=0`. Cell deleted.
-- [ ] `control_pair_pp_d10_L64_N128_lev0` — phase 1, ~1.1 h; two canonical stars: gap shrinks, barycentre still
-- [ ] `control_pair_mm_d10_L64_N128_lev0` — phase 1, ~1.1 h; two phantom stars: gap grows, barycentre still
-- [ ] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, ~1.1 h; sectors swapped: runaway reverses — frameless by decision
+- [~] `control_pair_pp_d10_L64_N128_lev0` — phase 1, ~1.1 h; **running 2026-08-22**, past t=160; barycentre pinned at 32.000, drift +0.002. Gap unmeasurable (see phase 1)
+- [x] `control_pair_mm_d10_L64_N128_lev0` — phase 1, **evolved to t=200 on 2026-08-22**; barycentre pinned at 32.000, drift −0.001, min χ = 1.0000 (exactly flat). Gap unmeasurable (see phase 1)
+- [x] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, **evolved to t=200 on 2026-08-22**; runaway reverses exactly: displacement and acceleration both −1.0000× the archived cell. Frameless by decision
 - [ ] `runaway_pair_d10_L64_N192_lev0` — phase 2, ~5.5 h; middle rung of the ladder
 - [ ] `runaway_pair_d10_L64_N256_lev0` — phase 2, ~17 h; finest rung of the ladder — **frames + slice cache** (headline movie)
 - [ ] `control_pair_pp_d10_L64_N192_lev0` — phase 2, ~5.5 h; null residual must shrink with the grid
 - [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung — **frames + slice cache** (the null's movie)
-- [ ] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, ~1.5 h; lighter phantom (M = −0.011472, 79.95% of matched): pull scales with the source
+- [~] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, ~1.5 h; **running 2026-08-22**, past t=160. lighter phantom (M = −0.011472, 79.95% of matched): pull scales with the source
 - [ ] `wavezone_pair_d10_L128_N256_lev0` — phase 4, ~9 h; doubled box, four extraction shells
 
 **Optional — only if the paper wants the figure:**
@@ -189,6 +189,45 @@ archive never contains an unchecked run. After a cell's alignment and t=0
 gates pass, delete its `initial_data.gridinit` (0.5–4.4 GB; regenerable from
 the cell's own `launch.sh`).
 
+### Running order — launched by hand, one solve at a time
+
+**Cells are started manually, one command each. Do not write a queue script
+that launches them by itself.** An orchestrator outlives the session that made
+it: on 2026-08-22 a leftover queue from an earlier session was found orphaned
+to init, still launching cells on its own, two 32-rank solves at once, while a
+replacement queue was being started. Nothing in the run directories shows that
+is happening. Before any launch, look for leftovers and kill them first:
+
+```bash
+python3 grteclyn-wrapper/scripts/ops/sweep_ranks.py            # what is alive
+python3 grteclyn-wrapper/scripts/ops/sweep_ranks.py --kill solves
+```
+
+`sweep_ranks.py` walks `/proc` directly because `ps`, `top`, `pgrep` and `free`
+are all broken on this node. Kill any orchestrator **first**, then the workers,
+then re-run the bare command to verify — killing workers alone just makes an
+orchestrator advance to the next cell.
+
+Four cards, but only **one 32-rank elliptic solve may run at any moment**
+(README rule 10: a second solve starves every evolution in flight down to a
+fifth speed). So each launch waits for the previous cell's solve to hand over
+to the GPU — that wait is a decision to take, not something to automate.
+
+Wave B, in the intended order with its pinned card:
+
+| # | cell | card | ~GPU-hours |
+|---|---|---|---|
+| 1 | `runaway_pair_d10_L64_N192_lev0` | 1 | 5.5 |
+| 2 | `wavezone_pair_d10_L128_N256_lev0` | 2 | 9 |
+| 3 | `control_pair_pp_d10_L64_N192_lev0` | 3 | 5.5 |
+| 4 | `runaway_pair_d10_L64_N256_lev0` | 0 | 17, frames |
+| 5 | `control_pair_pp_d10_L64_N256_lev0` | 1 | 17, frames |
+| 6 | `longrun_pair_d10_t400_L64_N128_lev0` | 3 | 2.2, frames |
+
+A relaunch needs the cell's half-built episode directory deleted first, or the
+wrapper refuses to start with "already exists" and exits within a second. Check
+for that before assuming a launch took.
+
 ---
 
 ## 1. What already exists and is reused as-is
@@ -293,6 +332,43 @@ BONDI_RUNS_DIR="runs/bondi/staging/smoke_mpi_evo" \
   rungs may use `BONDI_EVO_RANKS=2 BONDI_GPU="0,1"` to halve their wall time.
 
 ### Phase 1 — the sign matrix (three cells, N=128, ~1.1 h each on the GPU)
+
+### Result — the mirror reverses, and the same-sign pairs do not move
+
+Measured 2026-08-22 from `sector_dynamics.dat`. "Drift" is the midpoint of the
+two cores; the acceleration is the quadratic coefficient of a fit over
+`t = 20…147`, the window the two cells share.
+
+| | archive (canonical left, phantom right) | mirror (sectors swapped) | ratio |
+|---|---|---|---|
+| drift at t=147 | **+1.577** | **−1.577** | −1.0000 |
+| acceleration | **+1.4506e−04** | **−1.4506e−04** | −1.0000 |
+| worst disagreement over the whole run | — | — | **1.4e−04** relative |
+
+Swapping which star carries positive mass and which carries negative mass
+flips the direction of travel and changes nothing else — same speed, same
+acceleration, same wobble, agreeing to one part in seven thousand. That is the
+point of the control: a drift produced by the grid, the boundary or the solver
+would have kept pointing the same way when the physics was swapped. The
+direction follows the matter, not the machine.
+
+The same-sign nulls, at the same date and the same fit window:
+
+| | MM (two phantoms) | PP (two canonicals) | mirror (mixed) |
+|---|---|---|---|
+| drift of the pair | **−0.0013** | **+0.0019** | −1.577 |
+| sector barycentre | 32.000 (pinned) | 32.000 (pinned) | moves |
+| peak field amplitude, birth → now | 0.0342 → 0.0349 | 0.0246 → 0.0232 | steady |
+| min χ (1 = flat, 0 = horizon) | **1.0000** | 0.9795 | 0.9892 |
+
+Three orders of magnitude separate the mixed pair from either same-sign pair.
+MM sits at exactly flat geometry and does not move at all: two negative masses
+cancel each other's pull to nothing and there is no dipole to drive. Nothing in
+the phase is anywhere near collapse — the lowest χ on the board is 0.98, and a
+horizon needs it near zero.
+
+The phase gate is met on the barycentre and the mirror. The gap half of it is
+not measurable with the present tracker; see below.
 
 **Measured 2026-08-22, and it is the documented behaviour**
 (`MatterDebugg.md`): the two same-sign cells grow a large halo at late times —
@@ -498,6 +574,17 @@ which is what actually transfers between cells.
 | `canonical_w080_L64_N128_lev0` | 128 | 120 | 1 | **0.65** | 5.4 |
 | `canonical_w085_L64_N128_lev0` | 128 | 120 | 1 | **0.66** | 5.5 |
 | `canonical_w090_L64_N128_lev0` | 128 | 120 | 1 | **0.66** | 5.5 |
+| `control_pair_mm_d10_L64_N128_lev0` | 128 | 200 | 4 | *1.41* | *7.0* ⚠ |
+| `control_mirror_mp_d10_L64_N128_lev0` | 128 | 200 | 4 | *1.41* | *7.0* ⚠ |
+
+⚠ **These two rows are contaminated and must not be used for costing.** They
+ran through the window in which 133 orphaned solver ranks were still on the
+machine, which cut the evolution rate from ~183 to 24–56 units of t per hour
+until the ranks were swept. Their physics is unaffected — the mirror reproduces
+the archive to one part in seven thousand, and every timestep is present at
+uniform spacing — but the clock they were measured on was wrong, and the true
+cost of these cells is the 5.5 h/1000 t measured on the clean archive. The same
+caveat applies to the PP and mass-scale cells of the same wave.
 
 At `N = 128`, `L = 64`, no refinement, the cost is **5.5 GPU-hours per 1000
 units of t** and it does not vary by more than 2% across ten cells — separation,
