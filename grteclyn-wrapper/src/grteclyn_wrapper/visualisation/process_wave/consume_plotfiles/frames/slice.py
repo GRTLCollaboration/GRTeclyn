@@ -11,7 +11,100 @@ from matplotlib.ticker import FuncFormatter
 from ..config import _FRAME_DPI, _field_frame_config
 from ..fields import _field_key, _register_derived_fields
 from .center import _frame_buff_size, _resolve_frame_physics_center
+from .slice_cache import cache_slice
 from .zlim import _resolve_plot_zlim
+
+
+def draw_slice_png(
+    plot_arr,
+    plot_extent: Sequence[float],
+    *,
+    field: str,
+    cfg: dict,
+    axis: str,
+    coord_val: float,
+    time: float,
+    zlim: Sequence[float],
+    frames_out_dir: str,
+    frame_idx: int,
+    corner: bool = False,
+    verbose: bool = False,
+    note: str = "",
+) -> str:
+    """Draw one slice PNG from an array that is already windowed.
+
+    Split out of the live render path so the same picture can be drawn later
+    from a cached slice, against a colour scale measured over the whole run.
+    That is the only way to get a colourbar that does not move when the
+    plotfiles are deleted as they are consumed.  Both callers must draw
+    identically, so there is exactly one copy of this code.
+    """
+    plot_extent = list(plot_extent)
+    plt.rcParams.update({
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Roman", "DejaVu Serif", "Times New Roman", "serif"],
+        "mathtext.fontset": "cm",
+        "axes.labelsize": 14,
+        "axes.titlesize": 16,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "axes.linewidth": 1.2,
+    })
+
+    xlabel_name, ylabel_name = {"x": ("y", "z"), "y": ("z", "x"), "z": ("x", "y")}[axis]
+    title_text = r"%s $\quad t=%.2f \quad %s=%g$" % (
+        cfg["label"],
+        float(time),
+        axis,
+        coord_val,
+    )
+
+    fig, ax = plt.subplots(figsize=(8, 7))
+    im = ax.imshow(
+        plot_arr,
+        origin="lower",
+        extent=plot_extent,
+        aspect="equal",
+        cmap=cfg["cmap"],
+        vmin=zlim[0],
+        vmax=zlim[1],
+        interpolation="nearest",
+    )
+    ax.set_xlabel(r"$%s$" % xlabel_name)
+    ax.set_ylabel(r"$%s$" % ylabel_name)
+    ax.set_title(title_text, pad=8)
+    cb = fig.colorbar(im, ax=ax)
+    cb.set_label(cfg["label"])
+
+    x_ticks = ax.get_xticks()
+    left_x_native = float(x_ticks[0]) if len(x_ticks) else None
+
+    def _fmt_x(val, _pos):
+        return f"{float(val):g}"
+
+    def _fmt_y(val, pos):
+        if corner and abs(float(val)) < 1.0e-12:
+            return ""
+        display = f"{float(val):g}"
+        if pos == 0 and left_x_native is not None and display == f"{left_x_native:g}":
+            return ""
+        return display
+
+    ax.xaxis.set_major_formatter(FuncFormatter(_fmt_x))
+    ax.yaxis.set_major_formatter(FuncFormatter(_fmt_y))
+
+    output_dir = os.path.join(frames_out_dir, f"{field}_{axis}")
+    frames_dir = os.path.join(output_dir, "frames")
+    os.makedirs(frames_dir, exist_ok=True)
+    frame_name = f"frame_{axis}_{frame_idx:04d}.png"
+    out_path = os.path.join(frames_dir, frame_name)
+    fig.savefig(out_path, dpi=_FRAME_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+    if verbose:
+        print(f"[frame-native] {field}{note} -> {out_path}")
+
+    return out_path
 
 
 def _render_native_slice_frame(
@@ -28,6 +121,7 @@ def _render_native_slice_frame(
     auto_zlim: bool | None = None,
     frame_zlims: dict[str, list[float]] | None = None,
     use_global_zlim: bool = True,
+    cache_slices: bool = False,
 ) -> str:
     """Render from a uniform covering grid (native cell resolution, no FRB blocks)."""
     def _clean_zero(value: float, tol: float = 1.0e-10) -> float:
@@ -77,25 +171,7 @@ def _render_native_slice_frame(
         use_global_zlim=use_global_zlim,
     )
 
-    plt.rcParams.update({
-        "font.family": "serif",
-        "font.serif": ["Computer Modern Roman", "DejaVu Serif", "Times New Roman", "serif"],
-        "mathtext.fontset": "cm",
-        "axes.labelsize": 14,
-        "axes.titlesize": 16,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
-        "axes.linewidth": 1.2,
-    })
-
-    xlabel_name, ylabel_name = {"x": ("y", "z"), "y": ("z", "x"), "z": ("x", "y")}[axis]
     coord_val = _clean_zero(physics_center[ai])
-    title_text = r"%s $\quad t=%.2f \quad %s=%g$" % (
-        cfg["label"],
-        float(ds.current_time),
-        axis,
-        coord_val,
-    )
 
     plot_arr = win
     plot_extent = list(extent)
@@ -113,52 +189,29 @@ def _render_native_slice_frame(
                 float(vcoords[vmask][-1]),
             ]
 
-    fig, ax = plt.subplots(figsize=(8, 7))
-    im = ax.imshow(
+    if cache_slices:
+        # Free: the slice is already in memory and is ~1e4 times smaller than
+        # the plotfile it came from, so caching it costs nothing worth saving.
+        cache_slice(
+            frames_out_dir, field, axis, frame_idx, plot_arr, plot_extent,
+            time=float(ds.current_time), coord_val=coord_val,
+        )
+
+    return draw_slice_png(
         plot_arr,
-        origin="lower",
-        extent=plot_extent,
-        aspect="equal",
-        cmap=cfg["cmap"],
-        vmin=zlim[0],
-        vmax=zlim[1],
-        interpolation="nearest",
+        plot_extent,
+        field=field,
+        cfg=cfg,
+        axis=axis,
+        coord_val=coord_val,
+        time=float(ds.current_time),
+        zlim=zlim,
+        frames_out_dir=frames_out_dir,
+        frame_idx=frame_idx,
+        corner=corner,
+        verbose=verbose,
+        note=f" {full_dims}",
     )
-    ax.set_xlabel(r"$%s$" % xlabel_name)
-    ax.set_ylabel(r"$%s$" % ylabel_name)
-    ax.set_title(title_text, pad=8)
-    cb = fig.colorbar(im, ax=ax)
-    cb.set_label(cfg["label"])
-
-    x_ticks = ax.get_xticks()
-    left_x_native = float(x_ticks[0]) if len(x_ticks) else None
-
-    def _fmt_x(val, _pos):
-        return f"{float(val):g}"
-
-    def _fmt_y(val, pos):
-        if corner and abs(float(val)) < 1.0e-12:
-            return ""
-        display = f"{float(val):g}"
-        if pos == 0 and left_x_native is not None and display == f"{left_x_native:g}":
-            return ""
-        return display
-
-    ax.xaxis.set_major_formatter(FuncFormatter(_fmt_x))
-    ax.yaxis.set_major_formatter(FuncFormatter(_fmt_y))
-
-    output_dir = os.path.join(frames_out_dir, f"{field}_{axis}")
-    frames_dir = os.path.join(output_dir, "frames")
-    os.makedirs(frames_dir, exist_ok=True)
-    frame_name = f"frame_{axis}_{frame_idx:04d}.png"
-    out_path = os.path.join(frames_dir, frame_name)
-    fig.savefig(out_path, dpi=_FRAME_DPI, bbox_inches="tight")
-    plt.close(fig)
-
-    if verbose:
-        print(f"[frame-native] {field} {full_dims} -> {out_path}")
-
-    return out_path
 
 
 def _render_slice_frame(
@@ -175,6 +228,7 @@ def _render_slice_frame(
     auto_zlim: bool | None = None,
     frame_zlims: dict[str, list[float]] | None = None,
     use_global_zlim: bool = True,
+    cache_slices: bool = False,
 ) -> str:
     """
     Render a SlicePlot frame and save it under:
@@ -204,8 +258,11 @@ def _render_slice_frame(
             auto_zlim=auto_zlim,
             frame_zlims=frame_zlims,
             use_global_zlim=use_global_zlim,
+            cache_slices=cache_slices,
         )
 
+    # AMR (level > 0) draws through yt's fixed-resolution buffer, which this
+    # cache does not cover; those movies keep the old per-frame behaviour.
     cfg = _field_frame_config(field)
     physics_center = _resolve_frame_physics_center(ds, axis, coord, zoom, center_xyz, corner)
     plot_center = ds.arr(physics_center, "code_length")

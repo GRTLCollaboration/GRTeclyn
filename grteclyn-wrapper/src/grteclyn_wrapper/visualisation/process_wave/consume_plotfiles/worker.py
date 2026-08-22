@@ -215,6 +215,7 @@ def _process_single_plotfile(p: str, args_dict: dict, protected: set, fallback_f
                         auto_zlim=args_dict.get("frames_auto_zlim"),
                         frame_zlims=args_dict.get("frame_zlims"),
                         use_global_zlim=args_dict.get("frames_global_zlim", True),
+                        cache_slices=bool(args_dict.get("frames_cache_slices", False)),
                     )
                 except Exception as exc:
                     if args_dict.get("verbose", False):

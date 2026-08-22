@@ -129,6 +129,13 @@ def main() -> None:
         help="Lock per-field colorbar limits from the first plotfile (stable movies, visible faint fields).",
     )
     parser.add_argument(
+        "--frames-cache-slices",
+        action="store_true",
+        help="Keep each rendered 2-D slice (~1e4x smaller than its plotfile) so the "
+             "frames can be redrawn afterwards against one fixed colorbar. The way "
+             "to get a still colorbar when plotfiles are deleted on the fly.",
+    )
+    parser.add_argument(
         "--frames-zlim-scan",
         action="store_true",
         help="Measure one fixed colorbar per field over ALL plotfiles before rendering "

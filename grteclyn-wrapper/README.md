@@ -21,6 +21,157 @@ env) is configured with a gitignored [`.env`](#site-paths-env) — see below.
 
 ---
 
+## Running a campaign without numerical artifacts
+
+Read this before launching anything whose numbers will be believed. Every rule
+below is here because breaking it silently produced a result that looked clean
+and was wrong. The full diagnosis of each is in
+[`research/bondi_dipole/docs/MatterDebugg.md`](../research/bondi_dipole/docs/MatterDebugg.md).
+
+### 1. The solve grid must land exactly on the evolution grid
+
+The elliptic solve runs in its own box and the answer is copied onto the
+evolution grid cell by cell. That copy is piecewise constant with last-source-
+wins, so **whenever a solve cell is smaller than an evolution cell the metric
+arrives displaced by a fraction of a cell.** The matter does not move with it —
+it is repainted analytically, exact to machine precision — so every star is born
+sitting off the centre of its own gravitational well. Canonical matter falls
+back down that well, phantom matter is pushed up it, and the resulting drift
+looks exactly like a physical interaction.
+
+Set the solve cells so the two spacings are equal, and refine the solve not at
+all:
+
+```
+BONDI_GRTRESNA_N        = NFULL * (GRTRESNA_DOMAIN_L / LFULL)
+BONDI_GRTRESNA_MAXLEVEL = 0
+```
+
+For the standard `L = 64`, `N = 128` grid solved in an `L = 128` box that is
+`N = 256`, no refinement. Resolving the initial data *finer* than the grid it
+will be evolved on buys nothing and costs exactly this.
+
+**Verify it, before spending GPU time** — the check runs in seconds on the file
+the solve drops:
+
+```bash
+grteclyn-wrapper/.venv/bin/python research/bondi_dipole/check_gridinit_alignment.py \
+    runs/<campaign>/<cell>/<eval>/initial_data.gridinit
+```
+
+The metric-minus-matter offset must be `0.0000`. Anything at the `1e-2` level
+means the transfer is interpolating and the run will drift.
+
+### 2. Refining the evolution grid alone makes the initial data worse
+
+The initial data's own constraint violation grows as `1/dx²`, so a finer
+evolution cell starts from a *worse* slice unless the solve grid is refined with
+it. A resolution study that only changes `N` is measuring the error floor, not
+convergence. Rule 1 is what keeps the pair matched.
+
+### 3. Check the matter before believing any geometry diagnostic
+
+A star that has quietly dissolved makes every geometry diagnostic look perfect —
+lapse flat, constraints small, no collapse. Confirm the peak amplitude and the
+confined fraction are steady over the run *first*; only then read the geometry.
+Beware the reverse error too: the campaign scorer flags "matter DISPERSED"
+against an absolute threshold, so a star family that sits at 27% confinement by
+construction trips it while being perfectly stable. Compare against the run's
+own `t = 0`, not against a constant.
+
+### 4. Never trust a diagnostic quantised coarser than its signal
+
+`proper_sep` integrated between integer *peak cell* indices, so it could not
+resolve anything finer than one cell — while the signal it was asked to measure
+was a fifth of that. It read as perfectly constant, then jumped a whole cell.
+Fixed 2026-08-21; **values written before that date must not be compared with
+values written after it.** When a column looks suspiciously flat or steppy,
+check what it is actually computed from.
+
+### 5. Do not edit a campaign script while a run is executing it
+
+bash reads a script lazily, by byte offset. Inserting lines near the top shifts
+every later byte, and the already-running instance resumes at a stale offset —
+it will execute a line that uses a variable whose assignment it never read, and
+die at the very end with a misleading `unbound variable`. Copy to a new name and
+edit the copy. The failure lands *after* all the real work, so check the
+evaluator's `exit_code` and the frame counts before believing the run is lost.
+
+### 6. Cache the slices if the movies are going in a paper
+
+Frames are rendered as plotfiles arrive and the plotfiles are deleted
+immediately — they are far too large to keep, and
+[rule: extract frames on the fly](#always-extract-frames-on-the-fly-required)
+is not negotiable. So the renderer can never know how large a field will grow
+later in the run, and both of its options are wrong for a paper movie:
+rescaling every frame makes the colourbar and its tick labels move in every
+frame, so a colour means a different number each time; locking the scale from
+the first plotfile is still but puts late-time features off the end of it,
+because `chi` starts nearly flat and develops its well later.
+
+What the renderer draws is a single 2-D slice, and that slice is already in
+memory. It is around ten thousand times smaller than the plotfile it came from —
+at `N = 512`, roughly 1 MB out of a ~30 GB plotfile — so it can be kept for the
+whole run at negligible cost. Add to the consumer:
+
+```
+--frames-cache-slices
+```
+
+Then, once the run has finished, redraw every frame against one scale measured
+over the whole series:
+
+```bash
+grteclyn-wrapper/scripts/plot/rerender_frames.py <episode>/frames --movies
+```
+
+The scale is the envelope of what each frame would have chosen on its own, so
+nothing is clipped, the colourbar is pixel-identical in every frame, and colours
+are comparable across time. Delete `frames/_slice_cache/` when the movies are
+final.
+
+**This has to be decided before launching.** Frames already rendered without the
+cache cannot be rescaled — the plotfiles they came from are gone. Caching covers
+the uniform-grid path (`max_level = 0`), which is what rule 1 requires anyway;
+AMR levels still draw through yt's buffer and are not cached.
+
+(`--frames-zlim-scan` does the same job by reading the plotfiles directly, for
+the rare case where they were kept.)
+
+### 7. A green test suite does not cover potential-dependent matter
+
+Every test in `Tests/` uses a zero potential, so any term multiplied by `V`
+is multiplied by nought and the suite passes regardless. A star made of
+potential is exactly the case that was never tested — which is how the trS bug
+below survived. Add a non-zero-potential case when touching matter terms.
+
+See also [Rules (do not skip)](#rules-do-not-skip) for the campaign-mechanics
+rules (population sizing, scratch locality, pump convention).
+
+## What was fixed — 2026-08-21
+
+Five defects, found while chasing a spurious drift in the Bondi dipole campaign.
+The first three each invalidated results that had already been written up.
+
+| # | Defect | Why it went unseen | Effect once fixed |
+|---|---|---|---|
+| 1 | The matter stress-energy **trace `trS` subtracted the potential twice**, in every matter class in the tree. Proven exactly against the covariant `T_ab`: `rho`, `j_i`, `S_ij` correct, `trS` short by `-3V`. | `trS` feeds only `rhs[c_K]` — invisible to the constraint monitor — and the whole test suite uses `V = 0`. | Stars that marched to a horizon by `t = 24` became static: lapse `0.99202` against a birth `0.99209`. |
+| 2 | **Canonical stars were born mid-collapse** while phantom ones were born at rest — one line choosing the constraint-solving method gave the two sectors different slices. | An asymmetry with no physical content looks like a physical asymmetry between the sectors. | Removed a birth kick present in every canonical cell ever run. |
+| 3 | **The solved metric arrived on the evolution grid displaced** by ~0.1 cell (rule 1 above), identically on all three axes. | It produces a clean, smooth, sign-flipping drift — indistinguishable from a real interaction, and it does not converge away with resolution. | A lone star's drift over `t = 200` fell from `-0.328` on all three axes to `1.8e-03`, a `269x` reduction. The measured pair acceleration then matched `GM/d²` directly, with nothing subtracted. |
+| 4 | **`proper_sep` was quantised** to whole cells (rule 4 above). | It returned plausible round numbers. | The column now resolves sub-cell separations exactly; it is unused by any published number. |
+| 5 | **Movie colourbars rescaled per frame** (rule 6 above). | Cosmetic, but a colour then means a different value in every frame, and it cannot be repaired afterwards once the plotfiles are gone. | `--frames-cache-slices` + `rerender_frames.py` give one fixed scale per run, verified pixel-identical across frames. |
+
+An important negative result, worth knowing before re-deriving anything: defect 3
+corrupted only the *relative* motion of a pair. The common-mode motion — the
+runaway itself — was unaffected, matching between old and corrected runs to
+about 3%. Differential measurements that difference two cells at the same
+separation were likewise immune, because the artefact cancels.
+
+The corrected campaign and its data are in
+[`results/bondi-dipole-runaway/campaign/`](../results/bondi-dipole-runaway/campaign/).
+
+---
+
 ## What is implemented
 
 | Capability | Where | Notes |
