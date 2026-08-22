@@ -51,6 +51,9 @@ EXPECTED_TO_DIFFER = {
     "BONDI_EXOTIC",
     "BONDI_OMEGA",
     "BONDI_SEP",
+    # Run length: fits are windowed to the shared t range, so a longer run is
+    # still comparable (the archive itself mixes t=120 and t=200).
+    "BONDI_STOP_TIME",
     "BONDI_GRTRESNA_MAXIMAL_SLICING",
     # Drawing pictures changes nothing a number depends on.
     "GRTECLYN_FRAMES",
