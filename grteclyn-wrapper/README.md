@@ -145,6 +145,54 @@ is multiplied by nought and the suite passes regardless. A star made of
 potential is exactly the case that was never tested — which is how the trS bug
 below survived. Add a non-zero-potential case when touching matter terms.
 
+### 8. The solve tolerance is a request, not a guarantee — check which door it left by
+
+`BONDI_NL_TOL` sets a target. The solver leaves its nonlinear loop by three
+different doors and **only one of them means the initial data is as good as it
+was asked to be**:
+
+| door | what happened | is the tolerance met? |
+|---|---|---|
+| `converged` | both relative errors fell below `NL_exit_tolerance` | yes |
+| `stalled` | improvement per iteration fell below `NL_stall_tolerance`, so the loop gave up | **no — it can stop anywhere above it** |
+| cap | `max_NL_iterations` ran out (default 50) | **no, and no line is printed saying so** |
+
+Nothing downstream checks which door was used. The Python layer reads the final
+residuals and logs `GRTresna converged: ...` unconditionally — that message is a
+label, not a verdict — and the evolution then runs on initial data that never
+met its target. Such a run looks completely normal: star still, lapse flat,
+constraints "small". They are simply not as small as the launch script claims,
+which silently turns a convergence ladder into a measurement of the error floor
+(and see rule 2 — the ladder depends on the tolerance falling with the grid).
+
+**The defaults make this easy to hit.** `GRTresnaConfig` ships
+`nl_exit_tolerance = 1.0` — one percent — because it was tuned for MAP-Elites
+throughput, where thousands of cheap solves matter more than any one of them
+being tight. Anything that does not override it inherits a search campaign's
+tolerance into a paper run.
+
+Unlike the rules above, this one was caught by inspection rather than by a
+ruined campaign: every cell in `runs/bondi/runaway_paper/` was audited on
+2026-08-22 and all of them genuinely converged, at iteration 12 of 50, about 2x
+inside the 0.002% they asked for. Two-fold headroom is not much, so the check is
+worth running on every new cell rather than assumed from these.
+
+Check it on the two files that survive archiving (`Ham_and_Mom_errors.txt` and
+the solve's own `params.txt`; the per-rank `pout` logs are deleted):
+
+```bash
+grteclyn-wrapper/.venv/bin/python research/bondi_dipole/check_solve_exit.py \
+    runs/<campaign>/<cell>
+```
+
+Exit status is the gate. It also fails a solve that met the tolerance only on
+the last permitted iteration — that is met-by-luck, and the next rung of a
+ladder will not be so lucky.
+
+Remember which side binds: the phantom sector's residual is the one that
+approaches the gate, the canonical sector's sits far inside it. Reading only
+the canonical number will tell you everything is fine when it is not.
+
 See also [Rules (do not skip)](#rules-do-not-skip) for the campaign-mechanics
 rules (population sizing, scratch locality, pump convention).
 

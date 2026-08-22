@@ -14,7 +14,7 @@ momentum stays zero.**
 pass gate; nothing in the next phase starts until the gate is green. No
 pipeline script — the checking between steps is the point.
 
-The seven artefact rules at the top of `grteclyn-wrapper/README.md` are the
+The eight artefact rules at the top of `grteclyn-wrapper/README.md` are the
 constitution of this campaign; this plan just applies them cell by cell.
 
 ---
@@ -214,15 +214,33 @@ that is the fix that killed the drift artefact, and it is re-verified per cell.
 
 1. **Alignment** — `research/bondi_dipole/check_gridinit_alignment.py` on the
    fresh `initial_data.gridinit`: metric-minus-matter centroid offset `0.0000`.
-2. **Solve exit** — `metadata.json → grtresna_convergence`: Ham% and Mom% at
-   or below the cell's tolerance (the d=10 archive landed at 0.00086 / 0.00080).
-   Remember the gate binds the phantom side, not the canonical — the phantom
-   number is the one to watch.
+2. **Solve exit** — the tolerance is a request, not a guarantee (rule 8): the
+   solver can also leave by stalling or by running out of its 50 iterations,
+   and it says "converged" either way. Read the verdict, not the label:
+
+   ```bash
+   grteclyn-wrapper/.venv/bin/python research/bondi_dipole/check_solve_exit.py \
+       runs/bondi/staging/<cell>
+   ```
+
+   Exit 0 or the cell does not count. The d=10 archive landed at 0.00086 /
+   0.00080 against 0.002 — only ~2x of headroom, so this is not a formality.
+   Remember the gate binds the phantom side, not the canonical.
 3. **Matter first** — t=0 row of `small_data/sector_barycenters.dat` matches
    the archived d=10 cell's t=0 row (totals and rms per sector). A dissolved or
    half-painted star makes every later geometry number meaningless.
 4. **During the run** — sector total weight flat; scratch dir not growing
    (consumer keeping up).
+5. **After the run** — write the measured wall time into the ledger in section
+   3. Every episode records it, so this is a lookup, not a stopwatch:
+
+   ```bash
+   python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['simulation_elapsed_seconds']/3600)" \
+       runs/bondi/staging/<cell>/*/metadata.json
+   ```
+
+   The estimates in this plan came from the archive; the ledger is what the
+   next campaign should cost its runs from.
 
 ### Phase 0 — preflight (minutes, no science GPU time)
 
@@ -383,6 +401,37 @@ growth; whatever is measured is reported.
 | 4 wave zone | 1 | ~9 | with phase 2 |
 | 5 optional | 0–3 | 0–25 | — |
 | **total (required)** | **9** | **~59** | **~2–3 days** |
+
+### Measured wall time — the ledger
+
+Filled in from each cell's own record after it lands (gate step 5), so the next
+campaign costs its runs from measurements rather than from the estimates above.
+The last column is the useful one: GPU-hours per 1000 units of evolution time,
+which is what actually transfers between cells.
+
+| cell | N | t | cards | GPU-hours | h / 1000 t |
+|---|---|---|---|---|---|
+| `control_lone_canonical_L64_N128_lev0` | 128 | 200 | 1 | **1.09** | 5.5 |
+| `control_lone_phantom_L64_N128_lev0` | 128 | 200 | 1 | **1.10** | 5.5 |
+| `runaway_pair_d08_L64_N128_lev0` | 128 | 200 | 1 | **1.10** | 5.5 |
+| `runaway_pair_d10_L64_N128_lev0` | 128 | 200 | 1 | **1.09** | 5.5 |
+| `runaway_pair_d12_L64_N128_lev0` | 128 | 200 | 1 | **1.09** | 5.4 |
+| `runaway_pair_d16_L64_N128_lev0` | 128 | 200 | 1 | **1.10** | 5.5 |
+| `canonical_w075_L64_N128_lev0` | 128 | 120 | 1 | **0.66** | 5.5 |
+| `canonical_w080_L64_N128_lev0` | 128 | 120 | 1 | **0.65** | 5.4 |
+| `canonical_w085_L64_N128_lev0` | 128 | 120 | 1 | **0.66** | 5.5 |
+| `canonical_w090_L64_N128_lev0` | 128 | 120 | 1 | **0.66** | 5.5 |
+
+At `N = 128`, `L = 64`, no refinement, the cost is **5.5 GPU-hours per 1000
+units of t** and it does not vary by more than 2% across ten cells — separation,
+sector signs and star frequency all cost the same. So the run length is the only
+thing that sets the bill at this grid, and the estimates for the new N=128 cells
+(~1.1 h at t=200) are measurements, not guesses.
+
+Rows for the cells this campaign adds go in as they finish; the resolution
+rungs are the interesting ones, since the expected scaling is `N⁴` (three
+dimensions plus the shorter timestep) — that is what predicts ~5.5 h at N=192
+and ~17 h at N=256, and the ledger is where that prediction gets tested.
 
 Solves add ~20 min (256³) to ~4 h (512³) of CPU time per cell, overlapping GPU
 work on other cells. The entire required matrix is under three days — the cost
