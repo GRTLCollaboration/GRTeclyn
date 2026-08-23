@@ -973,6 +973,13 @@ None of this is in the required matrix; it is the natural follow-up paper.
 
 ## 5. The recentring box ("running road") — realisation plan
 
+> **Superseded in detail by [`CHASE_TO_03C.md`](CHASE_TO_03C.md), 2026-08-23.**
+> The sketch below is still the right design; the worked version checks its
+> arithmetic against the archive, names the code file by file, revises the shift
+> threshold from 8 down to 2, gives the validation cells gates that a correct
+> implementation can actually meet, and states the acceleration-law risk that
+> dominates the whole exercise. Read that first.
+
 This is outlook item 2 above, worked out far enough to build. The chase cell is
 long only because the pair travels; if the pair is periodically carried back to
 the middle of a small box, the box never has to grow. Cost stops scaling with
