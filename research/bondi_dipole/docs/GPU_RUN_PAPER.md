@@ -50,12 +50,12 @@ Tick a box only when the cell has passed its gate and been moved into
 **Optional — only if the paper wants the figure:**
 
 - [x] `longrun_pair_d10_t400_L64_N128_lev0` — **evolved to t=400 on 2026-08-22**; drift +11.5177, a = 1.418e-04 over the last two thirds and 1.444e-04 in the final quarter — **the acceleration is steady, not growing**, which retires the late-time uptick seen at t=200. Separation opens 10.000 → 11.741. Frames + slice cache present
-- [ ] `control_pair_mm_d10_L64_N192_lev0` — ~5.5 h; MM alongside PP in the null ladder
-- [ ] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung
-- [ ] `massratio_heavyphantom_d10_L64_N128_lev0` — phase 3b, ~1.5 h; **the one worth running** — reversed mass ordering (canonical ω = 0.81, M+ = 0.010721 against the matched phantom, so |M−|/M+ = 1.333), the gap must OPEN. Branch scan done; **launched 2026-08-23**
-- [ ] `massratio_w088_r060_d10_L64_N128_lev0` — phase 3b, ~1.5 h; third point on the scaling law (phantom ω = 0.88, ratio 0.597). Staged, launches when the CPU frees
+- [x] `control_pair_mm_d10_L64_N192_lev0` — **evolved to t=200 on 2026-08-23**; completes the null ladder. Drift −0.00013 over the clean window against the PP rung's +0.00012 at the same grid — both four orders of magnitude below the runaway's +2.88, and flat rather than shrinking across resolution, which marks them as the measurement floor. min χ exactly 1.00000 (two negative masses leave the geometry flat). Boundary growth 7.0×, matching the PP rung digit for digit, confirming the effect tracks net mass and not sign. **Quotable only for t < 32**, same limit as the PP rungs
+- [~] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung. **Deliberately not run** (2026-08-23): 17 GPU-hours and 58 GB for a third point on a null ladder whose first two rungs already agree, in a configuration that goes unreadable after t ≈ 32. Launch script is staged if the decision is revisited
+- [x] `massratio_heavyphantom_d10_L64_N128_lev0` — phase 3b, **evolved to t=200 on 2026-08-23**; reversed mass ordering (canonical ω = 0.81, M+ = 0.010721, |M−|/M+ = 1.333). **Gate PASSED on the sign**: the gap OPENS, 10.000 → 10.603, against 10.000 → 10.003 matched and 10.000 → 9.408 for the lighter phantom. See phase 3b result
+- [x] `massratio_w088_r060_d10_L64_N128_lev0` — phase 3b, **evolved to t=200 on 2026-08-23**; phantom ω = 0.88, ratio 0.597. Canonical pull ratio 0.597 against 0.597 predicted (−0.1%, the tightest in the campaign); gap closes 10.000 → 8.618. See phase 3b result
 - [x] ~~`massratio_*_r040_d10_L64_N128_lev0`~~ — phase 3b; **cannot be built.** The phantom branch has a floor at |M−| ≈ 0.00791 (0.55 of matched, near ω = 0.94) and a 0.40 rung would need 0.00574. The bound is itself a result — see phase 3b
-- [ ] `amrcheck_pair_d10_L64_N128_lev1` — ~1.5 h; referee-proofing only (predicted identical to lev0)
+- [x] `amrcheck_pair_d10_L64_N128_lev1` — **evolved to t=200 on 2026-08-23**; referee-proofing. **Level 1 was never created** — the tagger never fired, exactly as predicted — and drift and acceleration match the uniform cell to **0.001% and 0.002%**. Mesh refinement changes nothing here
 - [ ] `chase_pair_d08_v03c_Lx352_L64_N128_lev0` — ~1.7 GPU-days; ride the runaway to 0.3c in a long box (section 4). **Superseded on paper by the recentring box — ~7.5 h for the same physics; see section 5 for the build plan.** Follow-up paper material either way
 
 ---
@@ -781,6 +781,56 @@ three ratios together are linear in the mass ratio rather than merely monotone.
 For the reversed cell the gate is the **sign** of d(separation)/dt, not its
 size.
 
+### Result — the gap's sign follows the mass ordering, and that closes the artefact argument
+
+Both cells reached t = 200. Placing them beside the two earlier rungs gives four
+points spanning mass ratios 0.597 to 1.333:
+
+| cell | \|M−\|/M+ | separation, 0 → 200 | change |
+|---|---|---|---|
+| `massratio_heavyphantom` | **1.333** | 10.000 → **10.603** | **+0.603 — OPENS** |
+| `runaway_pair_d10` (matched) | 1.000 | 10.000 → 10.003 | +0.003 — flat |
+| `massscale_pair_w0804` | 0.799 | 10.000 → 9.408 | −0.592 — closes |
+| `massratio_w088_r060` | 0.597 | 10.000 → 8.618 | −1.382 — closes more |
+
+**The gate for the reversed cell was the sign of d(separation)/dt, and it
+passes.** The gap opens, sits flat, or closes strictly according to which star is
+heavier, and it crosses zero at the equal-mass point. This is the answer to the
+sceptic's reading of phase 3 — that the gap closing is the artefact and the drift
+follows from it. No artefact story predicts a sign reversal that tracks the mass
+ordering, and none predicts the crossing landing exactly where the masses match.
+
+**Read the transient before reading the trend.** Every cell dips around t ≈ 50
+and the dip is not the signal: the matched cell falls to −0.255 at t = 50 and
+recovers to +0.003 by t = 200. At t = 54 the reversed cell sits at −0.207 — still
+negative — and only crosses over later. Any verdict taken before t ≈ 150 will be
+wrong, in this cell and in the others.
+
+### The quantitative scaling holds in the middle and degrades at the extremes
+
+Fitting each star separately to `x_i(t) = x0 + v0·t + C_i·∫∫dt/d(t)²` and
+quoting `C_i` as a ratio to the matched cell:
+
+| cell | canonical pull | predicted | err | phantom pull | predicted | err |
+|---|---|---|---|---|---|---|
+| `massratio_w088_r060` | 0.597 | 0.597 | **−0.1%** | 0.725 | 1.000 | **−27.5%** |
+| `massscale_pair_w0804` | 0.809 | 0.799 | +1.2% | 0.973 | 1.000 | −2.7% |
+| `massratio_heavyphantom` | 1.052 | 1.333 | **−21.1%** | 0.739 | 0.747 | **−1.0%** |
+
+Four of the six land within 3%, which is the gate. The two that miss are not
+scattered — they are both the star whose partner's mass was changed *most*, both
+miss in the same direction (under-reporting the pull), and both belong to the
+cells whose separation swings hardest (10 → 8.62 and 10 → 10.60). The fit assumes
+the pair is near-rigid; once the separation moves by more than about 10% that
+assumption is spent, and the double integral no longer absorbs the geometry.
+
+**So quote the extremes for their sign and the middle rungs for their
+magnitude.** The linear-in-mass-ratio claim is supported over
+0.8 ≲ \|M−\|/M+ ≲ 1.0 and should not be extended to the ends of this table
+without a fit that models the changing separation properly. That is a limitation
+of the analysis, not evidence against the scaling — the same fit returns 0.0161
+and 0.0119 on the matched cell for two constants both known to be 0.014350.
+
 ### Phase 4 — the wave zone (one cell, ~9 h)
 
 Doubled box, same cell size, so the light-crossing distance grows without
@@ -859,6 +909,27 @@ well beyond this box, which is a different cell and not one this paper needs.
    the fix and must not be patched around.
 
 ---
+
+### Result — mesh refinement changes nothing, measured rather than argued
+
+`amrcheck_pair_d10_L64_N128_lev1` ran the headline cell with `max_level = 1`
+against the campaign's uniform-grid rule, to answer the referee question once.
+
+**Level 1 was never created.** No step ran on it; the 213 log lines reading
+`Now regridding at level lbase = 0` are the periodic check, not a refinement. The
+tagger threshold is |χ − 1| = 0.02 and these runs peak near 0.005, so there was
+nothing to tag — exactly the prediction in section 0.
+
+The cell is therefore a bit-level re-run of the uniform cell, and reports as one:
+
+| | drift at t=200 | separation | acceleration |
+|---|---|---|---|
+| uniform (`lev0`) | +2.8815 | 10.0030 | 1.4634e-04 |
+| AMR enabled (`lev1`) | +2.8815 | 10.0030 | 1.4634e-04 |
+| difference | +0.001% | — | +0.002% |
+
+The `max_level = 0` decision costs the campaign nothing and can be defended with
+a number instead of an argument.
 
 ## 3. Budget
 

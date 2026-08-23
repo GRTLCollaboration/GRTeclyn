@@ -148,9 +148,25 @@ The cause is the outer boundary condition, which pins the conformal-factor
 correction to a value that is only right when the two masses cancel. A mixed
 pair has zero net mass, so the boundary is very nearly correct and emits
 something around `1e-06`. A same-sign pair does not, so the boundary is wrong
-and what it emits swamps the box. The growth factor is `7.1× / 7.0× / 6.9×` at
-N = 128 / 192 / 256 — **flat in resolution**, confirming it lives in the initial
-data and the boundary condition rather than in the discretisation.
+and what it emits swamps the box. The growth factor is **flat in resolution and
+identical on both signs** — `7.1× / 7.0× / 6.9×` for PP at N = 128 / 192 / 256
+and `7.1× / 7.0×` for MM at N = 128 / 192 — which confirms it tracks net mass
+rather than sign, and that it lives in the initial data and the boundary
+condition rather than in the discretisation.
+
+Inside the clean window the nulls are flat at the measurement floor:
+
+| grid | PP drift (`t < 32`) | MM drift (`t < 32`) | min χ (PP / MM) |
+|---|---|---|---|
+| 128 | `+0.00011` | `−0.00011` | `0.97947` / `1.00000` |
+| 192 | `+0.00012` | `−0.00013` | `0.97920` / `1.00000` |
+| 256 | `+0.00013` | — | `0.97914` / — |
+
+Four orders of magnitude below the runaway's `+2.88`, and *flat* across
+resolutions rather than shrinking — which marks it as the floor of the
+measurement rather than a converging signal. The MM cells sit at min χ exactly
+`1.00000`: two negative masses leave the geometry perfectly flat, as they
+should.
 
 **So: these cells are quotable up to `t ≈ 32` and no further.** The runaway
 signal needs `t ≳ 100` to measure, so null and signal cannot be compared at
@@ -180,26 +196,68 @@ that a pair with zero total momentum has a static mass dipole and therefore no
 
 ### Mass scaling — does the pull follow the partner's mass?
 
-| cell | phantom | `\|M−\|` ÷ matched | canonical pull ratio | phantom pull ratio |
-|---|---|---|---|---|
-| `runaway_pair_d10_L64_N128_lev0` | `ω = 0.7603` | `1.000` | `1.000` | `1.000` |
-| `massscale_pair_d10_w0804_L64_N128_lev0` | `ω = 0.8040` | `0.7995` | `0.809` (pred. `0.7995`) | `0.973` (pred. `1.000`) |
+Each star is accelerated by the *other* star's mass, so changing one star's mass
+must change its partner's acceleration and leave its own alone. Four cells, one
+knob, everything else held fixed:
 
-Each star is accelerated by the *other* star's mass, so lightening the phantom
-must cut the canonical's acceleration and leave the phantom's alone. It does,
-to `1.2%` and `2.7%`. The pair is no longer rigid — the gap closes
-`10.000 → 9.408` — so the fit is separation-corrected, and **only ratios are
+| cell | phantom | ratio to matched | gap at `t = 200` | drift |
+|---|---|---|---|---|
+| `massratio_heavyphantom_d10_L64_N128_lev0` | `ω = 0.7603` vs a **lightened canonical** at `ω = 0.81` | `1.333` | **`+0.6028` — opens** | `+2.4306` |
+| `runaway_pair_d10_L64_N128_lev0` | `ω = 0.7603` | `1.000` | `+0.0030` — rigid | `+2.8815` |
+| `massscale_pair_d10_w0804_L64_N128_lev0` | `ω = 0.8040` | `0.7995` | `−0.5919` — closes | `+2.6732` |
+| `massratio_w088_r060_d10_L64_N128_lev0` | `ω = 0.88` | `0.5974` | `−1.3816` — closes more | `+2.5362` |
+
+**The gap changes sign exactly where the masses cross.** Monotone across a
+factor of 2.2 in mass ratio, and a straight line through the four points puts
+the zero crossing at ratio `1.06` against `1.00` predicted. That is the test no
+artefact survives: an artefact can make a gap close, but it cannot make the
+closing reverse depending on which of two stars is heavier.
+
+Getting there required lightening the *canonical* rather than fattening the
+phantom, because the phantom branch has a floor — see below.
+
+On the quantitative side, the phase-3 cell gives the canonical star's pull at
+`0.809` of its matched value against `0.7995` predicted (`1.2%`) and the
+phantom's at `0.973` against `1.000` (`2.7%`). The fit must be
+separation-corrected because the pair is no longer rigid, and **only ratios are
 quotable, never the constants**: on the matched cell the same fit returns
 `0.0161` and `0.0119` for two numbers both known to be `0.014350`.
 
-The `massratio_*` cells extend this to a third point and to reversed mass
-ordering. See `stars/star_family_massratio.csv` for the branch scan they were
+**Read the gap late, not early.** Every cell dips around `t = 50` and then
+recovers, and the dip is larger than the signal until about `t = 100`:
+
+| `t` | 25 | 50 | 100 | 150 | 200 |
+|---|---|---|---|---|---|
+| phantom heavier | `−0.002` | `−0.212` | `−0.062` | `+0.201` | `+0.603` |
+| equal | `−0.008` | `−0.255` | `−0.173` | `−0.110` | `+0.003` |
+
+Judged at `t = 50` the reversed cell looks like every other cell. It crosses
+zero near `t = 118`. Any statement about the gap belongs to `t ≳ 150`.
+
+See `stars/star_family_massratio.csv` for the branch scan the frequencies were
 chosen from — and for the bound it turned up: **both branches have a floor on
-how light their stars get**, the canonical at `M+ ≈ 0.00776` near `ω = 0.92`
-and the phantom at `|M−| ≈ 0.00791` near `ω = 0.94`, about `0.54` and `0.55` of
-the matched mass. Past those the stars grow heavier again, and at `ω = 1.0`
-neither branch has a bound star at all. A rung at `0.40` of matched therefore
-cannot be built, on either side.
+how light their stars get**, the canonical at `M+ ≈ 0.00776` near `ω = 0.92` and
+the phantom at `|M−| ≈ 0.00791` near `ω = 0.94`, about `0.54` and `0.55` of the
+matched mass. Past those the stars grow heavier again, and at `ω = 1.0` neither
+branch has a bound star at all. A rung at `0.40` of matched cannot be built, on
+either side.
+
+### Mesh refinement — does the uniform-grid choice shape the result?
+
+The campaign runs uniform grids so the convergence ladder means exactly one
+thing, the cell size. `amrcheck_pair_d10_L64_N128_lev1` is the headline cell
+with refinement switched on, run once to answer the referee question.
+
+| | drift | gap | acceleration |
+|---|---|---|---|
+| `runaway_pair_d10_L64_N128_lev0` (uniform) | `+2.881465` | `+0.0030` | `1.463362e-04` |
+| `amrcheck_pair_d10_L64_N128_lev1` (refinement on) | `+2.881489` | `+0.0031` | `1.463392e-04` |
+
+Agreement to six digits — `0.00%` on both drift and acceleration. **Level 1 was
+never created**: the log records 213 regrid *checks* at level 0 and not one step
+on a finer level. The tagger triggers at `|χ − 1| = 0.02` and these runs peak
+near `0.005`, so there is nothing for it to refine. Mesh refinement changes
+nothing here, and the uniform-grid choice costs the result nothing.
 
 ### Stability survey — is the star family stable at all?
 

@@ -64,7 +64,16 @@ collect() {  # $1 = directory to walk, $2 = name prefix for cells found in it
     case "${name}" in
       archive)   collect "${sub%/}" "${prefix}" ;;
       stability) collect "${sub%/}" "stability_" ;;
-      *)         cells+=("${prefix}${name}|${sub%/}") ;;
+      *)
+        # CELLS_SKIP names run directories that live in the campaign tree but
+        # are NOT campaign cells and must never enter the results pack.  The
+        # treadmill directories are implementation tests for the recentring
+        # box: they reuse another cell's initial data, answer engineering
+        # questions rather than physics ones, and carry their own README.
+        case " ${CELLS_SKIP:-treadmill_pair_d10_L64_N128_lev0} " in
+          *" ${name} "*) echo "[pack-runaway] ${name}: not a campaign cell -- skipping" ;;
+          *)             cells+=("${prefix}${name}|${sub%/}") ;;
+        esac ;;
     esac
   done
 }

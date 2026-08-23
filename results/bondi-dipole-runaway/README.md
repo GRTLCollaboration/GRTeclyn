@@ -28,13 +28,28 @@ The two finest grids agree to `0.4%` on drift and `0.9%` on acceleration. That
 is the shape of a converging quantity: refining does not push the effect toward
 zero, it settles it onto a value. Quote the `256³` number.
 
-Three independent checks bracket it:
+Independent checks bracket it:
 
 | check | cell | result |
 |---|---|---|
 | does the box matter? | `L = 128`, doubled | drift within `4%` of `L = 64` |
 | does it keep accelerating? | `t = 400` | `a` flat at `1.44e-04` through the final quarter |
 | does the pull follow the source? | phantom `0.7995 ×` mass | canonical pull ratio `0.809` vs `0.7995` predicted |
+| does mesh refinement change it? | `max_level = 1` | level 1 never tagged; drift matches to `0.001%` |
+
+**And the sign flips with the mass ordering.** Four cells spanning mass ratios
+`0.597` to `1.333`:
+
+| `\|M−\|` ÷ `M+` | `1.333` | `1.000` | `0.799` | `0.597` |
+|---|---|---|---|---|
+| separation, 0 → 200 | 10.00 → **10.60** | 10.00 → 10.00 | 10.00 → 9.41 | 10.00 → 8.62 |
+| | **opens** | flat | closes | closes more |
+
+The gap opens, sits flat, or closes strictly according to which star is heavier,
+crossing zero at the equal-mass point. That is the test that separates a real
+gravitational effect from an artefact: no artefact story predicts a sign reversal
+that tracks the mass ordering, still less one that crosses exactly where the
+masses match.
 
 And the separation law across four cells at `d = 8/10/12/16` gives
 `a ∝ d^−2.051` against `−2` exact, with `a·d²` returning the star's mass to
@@ -120,9 +135,10 @@ absolute; drifts quoted anywhere in this pack are `x(t) − x(0)`.
 
 ## campaign/ — the cells behind the result (complete)
 
-Twenty cells, one folder each, all on **uniform** grids: the convergence
+Twenty-four cells, one folder each, all on **uniform** grids: the convergence
 argument needs a single cell size everywhere, so nothing here uses mesh
-refinement. Each folder carries the same streams and provenance files — the
+refinement — with one deliberate exception, `amrcheck_*`, which switches it on
+once to show the choice costs nothing. Each folder carries the same streams and provenance files — the
 per-sector time series, the four evolution diagnostics downsampled to
 `dt = 0.5`, the elliptic residual history, the solve and evolution parameter
 files, and the exact launch environment.
@@ -133,12 +149,14 @@ file is, the per-cell numbers, and the caveats. The short version:
 | group | cells | what it settles |
 |---|---|---|
 | `runaway_pair_d{08,10,12,16}_L64_N128` | 4 | the separation law, `a ∝ d^−2.051` |
-| `runaway_pair_d10_L64_N{128,192,256}` | 3 | the resolution ladder — **the headline** |
+| `runaway_pair_d10_L64_N{192,256}` | 2 | the resolution ladder's finer rungs — `d10_N128` above is its base. **The headline** |
 | `control_lone_{canonical,phantom}` | 2 | a lone star does not drift |
 | `control_pair_{pp,mm}_d10_L64_N128` | 2 | same-sign pairs do not run away (to `t ≈ 32`) |
 | `control_pair_pp_d10_L64_N{192,256}` | 2 | the null's own resolution ladder |
+| `control_pair_mm_d10_L64_N192` | 1 | the mm null's second rung |
 | `control_mirror_mp_d10_L64_N128` | 1 | flipping the pair reverses the runaway exactly |
-| `massscale_pair_d10_w0804_L64_N128` | 1 | the pull follows the partner's mass |
+| `massscale_*` + `massratio_*` (2) | 3 | the pull follows the partner's mass — and reverses with it |
+| `amrcheck_pair_d10_L64_N128_lev1` | 1 | mesh refinement changes nothing (six-digit match) |
 | `wavezone_pair_d10_L128_N256` | 1 | doubled box, four extraction shells |
 | `longrun_pair_d10_t400_L64_N128` | 1 | the acceleration is steady to `t = 400` |
 | `stability_canonical_w{075,080,085,090}` | 4 | the star family is stable at all |

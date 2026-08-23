@@ -155,6 +155,19 @@ TREADMILL_CHECK="${BONDI_TREADMILL_CHECK:-20}"
 TREADMILL_BALL="${BONDI_TREADMILL_BALL:-8.0}"
 TREADMILL_FILL="${BONDI_TREADMILL_FILL:-0}"
 
+# Reuse an existing initial_data.gridinit and skip the GRTresna solve (hours of
+# CPU).  Only sound when the file was solved for the same grid, separation and
+# matter rung this launch requests; the driver checks alignment and takes the
+# recipe_scalar_* matter params from the gridinit's own directory.
+GRIDINIT="${BONDI_GRIDINIT:-}"
+
+# Steps between checkpoints (GRTeclyn checkpoint_interval; the template ships
+# -1 = off).  A multi-hour cell wants a coarse rolling cadence -- e.g. 40000
+# steps at dt_multiplier 0.02 is one checkpoint per 400 units of t -- so a
+# crash does not restart from t=0.  Old checkpoints are not deleted
+# automatically; prune by hand when the run is done.
+CHECKPOINT_INTERVAL="${BONDI_CHECKPOINT_INTERVAL:-}"
+
 # Print the resolved parameter set and exit without solving or touching a GPU.
 # Worth spending on a new cell: the alternative is discovering a mis-set knob
 # after the solve has already burned an hour of CPU and the card is committed.
@@ -184,6 +197,16 @@ if [[ "${TREADMILL}" != "0" ]]; then
     --extra-override treadmill_ball_radius="${TREADMILL_BALL}"
     --extra-override treadmill_fill_mode="${TREADMILL_FILL}"
   )
+fi
+
+gridinit_args=()
+if [[ -n "${GRIDINIT}" ]]; then
+  gridinit_args=(--gridinit "${GRIDINIT}")
+fi
+
+checkpoint_args=()
+if [[ -n "${CHECKPOINT_INTERVAL}" ]]; then
+  checkpoint_args=(--extra-override checkpoint_interval="${CHECKPOINT_INTERVAL}")
 fi
 
 S1_OMEGA="${BONDI_S1_OMEGA:-}"
@@ -375,6 +398,8 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   ${S1_OMEGA:+--extra-override trajectory_lump1_bs_omega="${S1_OMEGA}"} \
   ${sponge_args[@]+"${sponge_args[@]}"} \
   ${treadmill_args[@]+"${treadmill_args[@]}"} \
+  ${gridinit_args[@]+"${gridinit_args[@]}"} \
+  ${checkpoint_args[@]+"${checkpoint_args[@]}"} \
   ${dryrun_args[@]+"${dryrun_args[@]}"}
 
 echo "[bondi] pair cell complete: ${RUNS_DIR}/${out_name}"
