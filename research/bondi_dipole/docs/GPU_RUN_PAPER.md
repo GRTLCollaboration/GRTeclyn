@@ -40,23 +40,21 @@ Tick a box only when the cell has passed its gate and been moved into
 - [x] `control_pair_pp_d10_L64_N128_lev0` — phase 1, **evolved to t=200 on 2026-08-22**; barycentre 32.00073, drift +0.00073, min χ = 0.97947. Gap unmeasurable (see phase 1)
 - [x] `control_pair_mm_d10_L64_N128_lev0` — phase 1, **evolved to t=200 on 2026-08-22**; barycentre 31.99972, drift −0.00028, min χ = 1.00000 (exactly flat). Gap unmeasurable (see phase 1)
 - [x] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, **evolved to t=200 on 2026-08-22**; runaway reverses exactly: displacement and acceleration both −1.00002× the archived cell. Frameless by decision
-- [ ] `runaway_pair_d10_L64_N192_lev0` — phase 2, ~5.5 h; middle rung of the ladder
-- [ ] `runaway_pair_d10_L64_N256_lev0` — phase 2, ~17 h; finest rung of the ladder — **frames + slice cache** (headline movie)
-- [ ] `control_pair_pp_d10_L64_N192_lev0` — phase 2, ~5.5 h; **solve gate held flat at
-  0.002 (not the dx⁴ value) — the same-sign floor, see Phase 2**; the *evolution* null
-  residual must still shrink with the grid, the t=0 violation will not
-- [ ] `control_pair_pp_d10_L64_N256_lev0` — phase 2, ~17 h; null residual, finest rung — **frames + slice cache** (the null's movie)
+- [x] `runaway_pair_d10_L64_N192_lev0` — phase 2, **evolved to t=200 on 2026-08-22**; drift +3.0139, separation 10.000 → 9.930, a = 1.611e-04. Middle rung of the ladder
+- [x] `runaway_pair_d10_L64_N256_lev0` — phase 2, **evolved to t=200 on 2026-08-22**; drift +3.0016, separation 10.000 → 9.915, a = 1.596e-04. **The ladder converges**: N192 and N256 agree to 0.4% on drift and 0.9% on acceleration, N128 sits 4% low. Frames + slice cache present (headline movie)
+- [x] `control_pair_pp_d10_L64_N192_lev0` — phase 2, **evolved to t=200 on 2026-08-22**; solved by the `converged` door at the flat 0.002 gate. min χ = 0.97920. **Quotable only for t < 32** — see "the same-sign null is boundary-limited" below
+- [x] `control_pair_pp_d10_L64_N256_lev0` — phase 2, **evolved to t=200 on 2026-08-23**; solved by the `converged` door in 13 of 50 NL iterations (Ham 0.00086%, Mom 0.00102% against the 0.002 gate), 28 min. min χ = 0.97914. Frames + slice cache present. **Quotable only for t < 32** — same boundary limit as the N192 rung
 - [x] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, **evolved to t=200 on 2026-08-22**; lighter phantom (M = −0.011472, 79.95% of matched). Separation-corrected fit gives the canonical star's pull at 0.809 of the matched cell against 0.7995 predicted (1.2%) and the phantom's at 0.973 against 1.000 (2.7%) — the pull follows the partner's mass. The pair is no longer rigid: the gap closes 10.000 → 9.408. Ratios only, never the constants — see phase 3
-- [ ] `wavezone_pair_d10_L128_N256_lev0` — phase 4, ~9 h; doubled box, four extraction shells
+- [x] `wavezone_pair_d10_L128_N256_lev0` — phase 4, **evolved to t=200 on 2026-08-22**; drift +2.7606 (4% from the L=64 N128 cell, so the box is not driving the result). **The r·ψ₄ gate fails, informatively**: ψ₄(l=2) falls as r^−4.0, not r^−1, across R = 16/24/32/40 — all four shells are in the near zone and no radiative tail is measurable. Reported as a null, see phase 4
 
 **Optional — only if the paper wants the figure:**
 
-- [ ] `longrun_pair_d10_t400_L64_N128_lev0` — ~2.2 h; sustained-acceleration money plot — **frames + slice cache**
+- [x] `longrun_pair_d10_t400_L64_N128_lev0` — **evolved to t=400 on 2026-08-22**; drift +11.5177, a = 1.418e-04 over the last two thirds and 1.444e-04 in the final quarter — **the acceleration is steady, not growing**, which retires the late-time uptick seen at t=200. Separation opens 10.000 → 11.741. Frames + slice cache present
 - [ ] `control_pair_mm_d10_L64_N192_lev0` — ~5.5 h; MM alongside PP in the null ladder
 - [ ] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung
-- [ ] `massratio_heavyphantom_d10_L64_N128_lev0` — phase 3b, ~1.5 h; **the one worth running** — reversed mass ordering, the gap must OPEN. Needs the branch scan first (CPU)
-- [ ] `massratio_*_r060_d10_L64_N128_lev0` — phase 3b, ~1.5 h; third point on the scaling law
-- [ ] `massratio_*_r040_d10_L64_N128_lev0` — phase 3b, ~1.5 h; far-end anchor
+- [ ] `massratio_heavyphantom_d10_L64_N128_lev0` — phase 3b, ~1.5 h; **the one worth running** — reversed mass ordering (canonical ω = 0.81, M+ = 0.010721 against the matched phantom, so |M−|/M+ = 1.333), the gap must OPEN. Branch scan done; **launched 2026-08-23**
+- [ ] `massratio_w088_r060_d10_L64_N128_lev0` — phase 3b, ~1.5 h; third point on the scaling law (phantom ω = 0.88, ratio 0.597). Staged, launches when the CPU frees
+- [x] ~~`massratio_*_r040_d10_L64_N128_lev0`~~ — phase 3b; **cannot be built.** The phantom branch has a floor at |M−| ≈ 0.00791 (0.55 of matched, near ω = 0.94) and a 0.40 rung would need 0.00574. The bound is itself a result — see phase 3b
 - [ ] `amrcheck_pair_d10_L64_N128_lev1` — ~1.5 h; referee-proofing only (predicted identical to lev0)
 - [ ] `chase_pair_d08_v03c_Lx352_L64_N128_lev0` — ~1.7 GPU-days; ride the runaway to 0.3c in a long box (section 4). **Superseded on paper by the recentring box — ~7.5 h for the same physics; see section 5 for the build plan.** Follow-up paper material either way
 
@@ -600,6 +598,72 @@ What this costs, and what it does not:
 | PP initial violation falling with resolution | **yes** — it does not fall; do not quote a convergence order for the PP rungs |
 | PP evolution convergence rung to rung | partly — the rungs differ in evolution grid only, initial data held at a common quality, which is the cleanest reading available here |
 
+### Result — the ladder converges, and the runaway survives it
+
+All three rungs reached t = 200. Fitting the pair's midpoint to a quadratic over
+the last two thirds of each run:
+
+| rung | cells | drift at t=200 | separation | acceleration |
+|---|---|---|---|---|
+| N=128 | 128³ | +2.8815 | 10.000 → 10.003 | 1.463e-04 |
+| N=192 | 192³ | +3.0139 | 10.000 → 9.930 | 1.611e-04 |
+| N=256 | 256³ | +3.0016 | 10.000 → 9.915 | 1.596e-04 |
+
+The two finest rungs land on top of each other — 0.4% apart on total drift and
+0.9% on acceleration — while N=128 sits about 4% low. That is the shape a
+converging quantity has, and it is the opposite of the shape a discretisation
+artefact has: refining the grid does not reduce the effect toward zero, it
+settles it onto a value. The headline number for the paper is the N=256 rung,
+with N=192 as its convergence partner.
+
+Two independent checks agree. Doubling the box (phase 4, L=128) moves the drift
+by 4%, so the outer boundary is not driving it. Running four times longer
+(t = 400, phase 5) leaves the acceleration flat at 1.44e-04 through the final
+quarter, so it is a steady acceleration and not a late-time blow-up.
+
+### The same-sign null is boundary-limited — quote it only for t < 32
+
+The PP and MM cells are not clean for their whole run, and the reason is
+mechanical rather than physical. Their automatic report cards flag *matter
+dispersed — only 15–17% still confined*, which reads like the stars died. They
+did not. What actually happens:
+
+| | runaway (mixed) | null (same-sign) |
+|---|---|---|
+| total scalar field in box | 7.9 → 9.2 (+16%) | 7.8 → **54.7** → 27.6 |
+| **peak** field strength | 0.0247 → 0.0246 | 0.0247 → 0.0233 |
+| spread (rms) | 6.6 → 7.2 | 6.6 → **28** |
+| constraint error | 3.7e-06 → 6.6e-06 | 2.1e-05 → 2.3e-05 |
+
+The peak barely moves, so the star cores are intact; the constraint error stays
+small and bounded, so the evolution is not diverging. What grows is *extra*
+field spread over the whole box — seven times the original — which then drains
+back out. The stars are buried, not destroyed.
+
+It starts at a specific time. The two families track each other to within 1%
+until t ≈ 28, then the null kinks and takes off: 1.15× at t=40, 1.84× at t=50,
+3.14× at t=60. The box half-width is 32 and light crosses it in a time of 32.
+Nothing else in the problem has that timescale.
+
+The mechanism is the one already recorded in `Findings.md` for the shift movies,
+scaled up. The outer boundary condition pins the conformal-factor correction to
+a value that is only right when the two masses cancel. For a mixed pair they do,
+so the boundary is very nearly correct and what it emits is ~1e-06 — invisible
+except in the shift. For a same-sign pair they do not cancel, the boundary
+condition is genuinely wrong, and what it emits is large enough to swamp the
+box. The growth factor is 7.1× / 7.0× / 6.9× at N=128 / 192 / 256 — flat in
+resolution, which confirms it lives in the initial data and the boundary
+condition, not in the discretisation.
+
+**Consequence for the paper.** The same-sign null is trustworthy up to t ≈ 32
+and no further. The runaway signal needs t ≳ 100 to measure, so the two cannot
+be compared at equal times, and the null cannot be quoted at t = 200. What it
+still supports is the phase-1 statement — no dipole appears while the cell is
+clean — and the boundary error is spherically symmetric, so it cannot
+manufacture a dipole even after it arrives. The mirror cell (phase 1), which has
+zero net mass and is therefore free of this effect, is the stronger null and
+should carry that argument in the text.
+
 ### Phase 3 — gravity scales with the source (one cell, ~1.5 h)
 
 The cleanest differential test, and one the grid bug never touched: change the
@@ -646,7 +710,7 @@ contaminates the per-star fits *identically in both runs*, so it cancels in the
 ratio and does not cancel in the absolute value. The uncorrected midpoint
 number, for the record, is 0.928.
 
-### Phase 3b — the mass-ratio ladder (three cells, ~1.5 h each) — PLANNED, not launched
+### Phase 3b — the mass-ratio ladder (two cells, ~1.5 h each) — branch scanned, cells launched 2026-08-23
 
 Phase 3 leaves the scaling claim resting on two points: ratio 1.000 and ratio
 0.7995. Two points fit any monotone law through them, so as it stands the
@@ -654,13 +718,13 @@ campaign cannot separate "the pull follows the partner's mass" from "the pull
 follows some sublinear function of it". This phase closes that, cheaply — every
 cell is `L64_N128_lev0`, about 0.4 h of solve plus 1.1 h of GPU.
 
-Run them in this order; the first is worth more than the other two together.
+Run them in this order; the first is worth more than the other one.
 
 | cell | what changes | prediction | why it matters |
 |---|---|---|---|
-| `massratio_heavyphantom_d10_L64_N128_lev0` | **canonical** lightened so \|M−\| > M+ | the gap **OPENS** instead of closing | qualitative sign flip |
-| `massratio_w<omega>_r060_d10_L64_N128_lev0` | phantom ≈ 0.60 × matched | canonical pull ratio 0.60 | lever arm 2× Phase 3, clears the ~3% fit systematics |
-| `massratio_w<omega>_r040_d10_L64_N128_lev0` | phantom ≈ 0.40 × matched | canonical pull ratio 0.40 | anchors the far end; hardest test of the non-rigid regime |
+| `massratio_heavyphantom_d10_L64_N128_lev0` | **canonical** lightened to ω = 0.81, M+ = 0.010721, so \|M−\|/M+ = 1.333 | the gap **OPENS** instead of closing | qualitative sign flip |
+| `massratio_w088_r060_d10_L64_N128_lev0` | phantom to ω = 0.88, M− = −0.008573 = 0.597 × matched | canonical pull ratio 0.597 | lever arm 2× Phase 3, clears the ~3% fit systematics |
+| ~~`massratio_*_r040_*`~~ | phantom ≈ 0.40 × matched | — | **cannot be built — see the branch bound below** |
 
 **Why the reversed cell lightens the canonical rather than fattening the
 phantom.** Every uneven cell so far has the gap closing, so a sceptic can argue
@@ -672,13 +736,44 @@ branch and possibly past its maximum; making the canonical lighter reaches the
 same ordering inside frequencies already surveyed (the stability run covers
 canonical omega 0.75–0.90). Cheaper and safer.
 
-**Prerequisite, CPU only, no GPU.** Extend the omega list in
-`results/bondi-dipole-runaway/analysis/star_family_scan.py` on *both* branches:
-phantom above 0.810 to reach \|M−\| ≈ 0.0086 and ≈ 0.0057, and canonical
-0.75–0.85 to tabulate M+ so the reversed cell's ordering can be chosen
-deliberately rather than guessed. **Record whether the phantom branch has a
-maximum \|M−\|** — if it does, that bound belongs in the paper, and it is the
-reason the reversed cell is built the way it is.
+**Prerequisite, CPU only — done 2026-08-23.** The scan lives in
+`results/bondi-dipole-runaway/analysis/star_family_massratio_scan.py` and writes
+`stars/star_family_massratio.csv`. It is a separate file from
+`star_family_scan.py` on purpose: that table is what the matched pairing was
+chosen from, and every published number traces to it, so it is not rewritten to
+answer a later question.
+
+**The phantom branch has a floor on how light its stars get, and that bound
+belongs in the paper.** Walking ω upward, |M−| falls, flattens, turns around,
+and then the branch ends:
+
+| ω | 0.81 | 0.84 | 0.88 | 0.90 | 0.92 | **0.94** | 0.96 | 0.98 | 1.00 |
+|---|---|---|---|---|---|---|---|---|---|
+| \|M−\| | 0.01116 | 0.00983 | 0.00857 | 0.00816 | 0.00791 | **0.00791** | 0.00835 | 0.01005 | none |
+| ÷ matched | 0.778 | 0.685 | 0.597 | 0.569 | 0.551 | **0.551** | 0.582 | 0.700 | — |
+
+The lightest phantom star that exists on this branch is |M−| ≈ 0.00791, about
+**0.55 of the matched mass**, near ω = 0.94; past that the star gets heavier
+again and by ω = 1.0 there is no bound star at all. A 0.40 rung would need
+|M−| ≈ 0.00574, which is below the floor and does not exist. That is why this
+phase has two cells and not three, and the bound is a result in its own right —
+it is the reason the reversed cell is built by lightening the canonical rather
+than by fattening the phantom.
+
+**Both branches have a floor**, at almost the same place. The canonical bottoms
+out at M+ ≈ 0.00776 near ω = 0.92 (0.541 of matched) and the phantom at
+|M−| ≈ 0.00791 near ω = 0.94 (0.551); both then rise, and neither has a bound
+star at ω = 1.0. For reference the canonical branch over the window used here:
+0.81 → 0.010721, 0.84 → 0.009495, 0.88 → 0.008336, 0.90 → 0.007963 — still well
+above its floor at 0.81, which is what makes ω = 0.81 a comfortable choice for
+the reversed cell.
+
+**If a third point is wanted later**, the lever must come from the canonical
+side, and it must go *down* in ω, not up: hold the phantom at its lightest
+(ω ≈ 0.94, |M−| = 0.00791) and make the canonical heavier than 0.014350 by
+dropping its ω below 0.75, away from its own floor. That reaches ratios under
+0.55, at the cost of changing both stars rather than one. Raising the canonical
+ω instead would run into its floor at 0.92 and buy nothing.
 
 Gate for every cell in this phase: the per-star pull ratio from the
 separation-corrected fit above lands within a few % of the mass ratio, and the
@@ -707,6 +802,36 @@ shells; the l=2 signal at R=16 consistent with the L=64 runs' extraction.
 The dipole-radiation subsection stands or falls here — for a pair with zero
 total momentum the mass dipole is static, so the prediction is *no* l=1-type
 growth; whatever is measured is reported.
+
+### Result — no wave zone is reached, and that is the answer
+
+The cell ran to t = 200 in the doubled box. Its drift, +2.7606, is within 4% of
+the L = 64 N = 128 cell, so doubling the light-crossing distance does not change
+the runaway — the boundary is not driving the effect.
+
+The r·ψ₄ gate fails, and the way it fails is the result. Amplitudes of the l = 2
+mode at the four shells, at t = 199:
+
+| R | 16 | 24 | 32 | 40 |
+|---|---|---|---|---|
+| ψ₄ | 3.23e-05 | 6.52e-06 | 2.17e-06 | 7.99e-07 |
+| r·ψ₄ | 5.16e-04 | 1.57e-04 | 6.93e-05 | 3.20e-05 |
+
+r·ψ₄ is meant to be flat in the wave zone. It falls by a factor of 16 across the
+four shells. Fitting a power law gives ψ₄ ∝ r^−4.0 (it steepens from r^−3.2 at
+t = 50 as the near field organises). A radiative tail would give r^−1.
+
+So every shell available in this box is in the near zone, and no gravitational
+radiation is measurable out to R = 40. This is consistent with what phase 4 was
+set up to predict: for a pair with zero total momentum the mass dipole is
+static, so there is no l = 1 growth to find, and the l = 2 content that exists
+is quasi-static near field rather than radiation.
+
+**How to report it.** As a null with a number, not as a missing measurement. The
+runaway is not powered by, and is not accompanied by, gravitational radiation
+detectable at these radii; the energy bookkeeping is between the two stars and
+the field that binds them. Reaching a true wave zone would need extraction radii
+well beyond this box, which is a different cell and not one this paper needs.
 
 ### Phase 5 — optional garnish (only if the paper wants the figures)
 

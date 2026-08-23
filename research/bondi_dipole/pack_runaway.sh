@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Pack light, GitHub-friendly extracts of the omega = 0.75 runaway campaign
-# (runs/bondi/staging/archive) into results/bondi-dipole-runaway/campaign/.
+# (runs/bondi/staging -- both the live cells and the promoted ones under
+# archive/) into results/bondi-dipole-runaway/campaign/.
 #
 # WHY A THIRD PACKER
 # pack_results.sh and pack_campaign.sh both read runs/bondi/rerun, which is the
@@ -33,7 +34,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 SIM_ROOT="$(cd -- "${ROOT}/.." && pwd)"
-RUNS="${ROOT}/runs/bondi/staging/archive"
+RUNS="${ROOT}/runs/bondi/staging"
 DEST="${ROOT}/results/bondi-dipole-runaway"
 
 export ROOT SIM_ROOT
@@ -48,21 +49,26 @@ mkdir -p "${DEST}/campaign" "${DEST}/stars"
 
 # Cells are every top-level run directory.  Names beginning with '_' are
 # bookkeeping (the job queue, the abandoned tree), never cells.
+# Two directory names are groups of cells rather than cells: 'archive' (cells
+# already promoted past their gate) and 'stability' (the frequency survey).
+# Descend into those, keeping the grouping in the packed name so the extract
+# mirrors the run tree instead of flattening it.  Every other top-level
+# directory is a cell.
 cells=()
-for celldir in "${RUNS}"/*/; do
-  cell="$(basename "${celldir}")"
-  [[ "${cell}" == _* ]] && continue
-  # The stability survey is a group of cells, not a cell: descend one level and
-  # keep the grouping in the packed name so the extract mirrors the run tree.
-  if [[ "${cell}" == "stability" ]]; then
-    for sub in "${celldir}"*/; do
-      [[ -d "${sub}" ]] || continue
-      cells+=("stability_$(basename "${sub}")|${sub%/}")
-    done
-    continue
-  fi
-  cells+=("${cell}|${celldir%/}")
-done
+collect() {  # $1 = directory to walk, $2 = name prefix for cells found in it
+  local dir="$1" prefix="$2" sub name
+  for sub in "${dir}"/*/; do
+    [[ -d "${sub}" ]] || continue
+    name="$(basename "${sub}")"
+    [[ "${name}" == _* ]] && continue
+    case "${name}" in
+      archive)   collect "${sub%/}" "${prefix}" ;;
+      stability) collect "${sub%/}" "stability_" ;;
+      *)         cells+=("${prefix}${name}|${sub%/}") ;;
+    esac
+  done
+}
+collect "${RUNS}" ""
 
 for entry in "${cells[@]}"; do
   cell="${entry%%|*}"
@@ -141,6 +147,23 @@ with open(src, encoding="utf-8") as fh, open(dst, "w", encoding="utf-8") as out:
             last = t
 PY
   done
+
+  # Figure stills: one frame every dt = FRAME_DT (default 10) per field.  The
+  # full series and the movies stay in the gitignored run tree -- see
+  # thin_frames.py for why, and for how frame index maps to time.
+  #
+  # FRAMES_SKIP names cells whose frames are deliberately NOT packed.  The
+  # t = 400 cell exists for one moving picture, not for stills: it is twice as
+  # long as every other cell, so its stills cost twice as much, and no number in
+  # the analysis is read off them.  Its movie lives in the run tree.
+  case " ${FRAMES_SKIP:-longrun_pair_d10_t400_L64_N128_lev0} " in
+    *" ${cell} "*) frames_wanted=0 ;;
+    *)             frames_wanted=1 ;;
+  esac
+  if [[ -d "${run}/frames" && "${frames_wanted}" -eq 1 ]]; then
+    python3 "${SCRIPT_DIR}/thin_frames.py" "${run}/frames" "${out}/frames" \
+      --dt "${FRAME_DT:-10}"
+  fi
 
   found_txt=$(find "${out}" -maxdepth 1 \( -name '*.txt' -o -name '*.json' -o -name '*.sh' \))
   [[ -n "${found_txt}" ]] && scrub ${found_txt}

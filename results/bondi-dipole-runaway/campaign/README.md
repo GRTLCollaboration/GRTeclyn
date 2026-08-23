@@ -1,9 +1,13 @@
 # Campaign extracts — the Bondi dipole runaway
 
-Publication-level data only. One folder per cell, text-only: PNG frames,
-movies, plotfiles and the 550 MB initial-data file stay in the gitignored run
-tree at `runs/bondi/staging/archive/`, because they carry no number an analysis
-reads.
+Publication-level data only. One folder per cell. Movies, plotfiles and the
+550 MB initial-data file stay in the gitignored run tree at
+`runs/bondi/staging/`, because they carry no number an analysis reads. Cells
+that were run with frames carry a `frames/` folder holding one still per field
+every `dt = 10` — enough to show what the movie shows, without the ~250 frames
+per field the movie is made from. The `t = 400` cell is the exception: it exists
+for one moving picture, is twice as long as every other cell, and no number in
+the analysis is read off its stills, so only its movie was kept.
 
 Packed by `research/bondi_dipole/pack_runaway.sh`, which is safe to re-run at
 any time and scrubs absolute paths.
@@ -80,6 +84,122 @@ is constant across four disjoint fits of the run
 The trend in `a·d²` is physical and should not be hidden — the closest pair
 overshoots by `3.5%` and the agreement tightens monotonically with separation,
 which is where finite-size and post-Newtonian corrections both push.
+
+### The resolution ladder — does the runaway survive refinement?
+
+Same physics, same box, three cell sizes. `a` is fitted to the pair's midpoint
+over the last two thirds of the run.
+
+| cell | cells | drift at `t = 200` | separation | `a` |
+|---|---|---|---|---|
+| `runaway_pair_d10_L64_N128_lev0` | 128³ | `+2.8815` | `10.000 → 10.003` | `1.463e-04` |
+| `runaway_pair_d10_L64_N192_lev0` | 192³ | `+3.0139` | `10.000 → 9.930` | `1.611e-04` |
+| `runaway_pair_d10_L64_N256_lev0` | 256³ | `+3.0016` | `10.000 → 9.915` | `1.596e-04` |
+
+The two finest rungs agree to `0.4%` on drift and `0.9%` on acceleration; the
+coarsest sits about `4%` low. That is a converging quantity, and it is the
+opposite of what a discretisation artefact does — refining does not drive the
+effect toward zero, it settles it onto a value. **The N=256 rung is the
+headline number**, with N=192 as its convergence partner.
+
+Two independent checks agree: doubling the box moves the drift by `4%`
+(`wavezone`, below), and running four times longer leaves the acceleration flat
+(`longrun`, below).
+
+### Sustained acceleration — is it steady or is it running away with itself?
+
+| cell | `t_end` | drift | separation | `a` (last ⅔) | `a` (final ¼) |
+|---|---|---|---|---|---|
+| `longrun_pair_d10_t400_L64_N128_lev0` | `400` | `+11.5177` | `10.000 → 11.741` | `1.418e-04` | `1.444e-04` |
+
+The acceleration is constant to `2%` between the middle of the run and its final
+quarter. A late-time uptick visible at `t = 200` does not survive to `t = 400`,
+so it was a transient.
+
+One thing does change over the longer window: the separation *opens*,
+`10.000 → 11.741`, having stayed flat all the way to `t = 200`. The acceleration
+is unaffected, but any statement that the pair moves rigidly belongs to
+`t ≤ 200` only.
+
+### The same-sign nulls — read only up to `t ≈ 32`
+
+`control_pair_pp_*` and `control_pair_mm_*` put two stars of the *same* mass
+sign side by side. Their automatic report cards say *matter dispersed, only
+15–17% still confined*, which reads like the stars died. They did not, and the
+distinction matters:
+
+| | runaway (mixed) | null (same-sign) |
+|---|---|---|
+| total scalar field in box | `7.9 → 9.2` | `7.8 → 54.7 → 27.6` |
+| **peak** field strength | `0.0247 → 0.0246` | `0.0247 → 0.0233` |
+| spread (rms) | `6.6 → 7.2` | `6.6 → 28` |
+| constraint error | `3.7e-06 → 6.6e-06` | `2.1e-05 → 2.3e-05` |
+
+The peak barely moves, so the cores survive; the constraint error stays small
+and bounded, so nothing is diverging. What grows is *extra* field spread across
+the whole box, which later drains out. The stars are buried, not destroyed.
+
+It starts at a specific time. The two families track each other to within `1%`
+until `t ≈ 28`, then the null takes off — `1.15×` at `t = 40`, `1.84×` at
+`t = 50`, `3.14×` at `t = 60`. The box half-width is `32` and light crosses it
+in a time of `32`.
+
+The cause is the outer boundary condition, which pins the conformal-factor
+correction to a value that is only right when the two masses cancel. A mixed
+pair has zero net mass, so the boundary is very nearly correct and emits
+something around `1e-06`. A same-sign pair does not, so the boundary is wrong
+and what it emits swamps the box. The growth factor is `7.1× / 7.0× / 6.9×` at
+N = 128 / 192 / 256 — **flat in resolution**, confirming it lives in the initial
+data and the boundary condition rather than in the discretisation.
+
+**So: these cells are quotable up to `t ≈ 32` and no further.** The runaway
+signal needs `t ≳ 100` to measure, so null and signal cannot be compared at
+equal times. The boundary error is spherically symmetric and cannot manufacture
+a dipole, so the phase-1 statement still stands, but the *mirror* cell
+(`control_mirror_mp_*`, zero net mass, unaffected) is the stronger null and
+should carry that argument.
+
+### The wave zone — a null with a number
+
+`wavezone_pair_d10_L128_N256_lev0` doubles the box to `L = 128` at the same cell
+size, with extraction shells at `R = 16/24/32/40`. Its drift, `+2.7606`, is
+within `4%` of the `L = 64` cell, so the boundary is not driving the runaway.
+
+`r·ψ₄` is meant to be flat in the wave zone. At `t = 199`:
+
+| `R` | 16 | 24 | 32 | 40 |
+|---|---|---|---|---|
+| `ψ₄` (l=2) | `3.23e-05` | `6.52e-06` | `2.17e-06` | `7.99e-07` |
+| `r·ψ₄` | `5.16e-04` | `1.57e-04` | `6.93e-05` | `3.20e-05` |
+
+It falls by a factor of `16`. A power-law fit gives `ψ₄ ∝ r^−4.0`; radiation
+would give `r^−1`. Every shell in this box is in the near zone, and no radiative
+tail is measurable out to `R = 40` — consistent with the setup's own prediction
+that a pair with zero total momentum has a static mass dipole and therefore no
+`l = 1` growth. Report it as a null with a number, not as a missing measurement.
+
+### Mass scaling — does the pull follow the partner's mass?
+
+| cell | phantom | `\|M−\|` ÷ matched | canonical pull ratio | phantom pull ratio |
+|---|---|---|---|---|
+| `runaway_pair_d10_L64_N128_lev0` | `ω = 0.7603` | `1.000` | `1.000` | `1.000` |
+| `massscale_pair_d10_w0804_L64_N128_lev0` | `ω = 0.8040` | `0.7995` | `0.809` (pred. `0.7995`) | `0.973` (pred. `1.000`) |
+
+Each star is accelerated by the *other* star's mass, so lightening the phantom
+must cut the canonical's acceleration and leave the phantom's alone. It does,
+to `1.2%` and `2.7%`. The pair is no longer rigid — the gap closes
+`10.000 → 9.408` — so the fit is separation-corrected, and **only ratios are
+quotable, never the constants**: on the matched cell the same fit returns
+`0.0161` and `0.0119` for two numbers both known to be `0.014350`.
+
+The `massratio_*` cells extend this to a third point and to reversed mass
+ordering. See `stars/star_family_massratio.csv` for the branch scan they were
+chosen from — and for the bound it turned up: **both branches have a floor on
+how light their stars get**, the canonical at `M+ ≈ 0.00776` near `ω = 0.92`
+and the phantom at `|M−| ≈ 0.00791` near `ω = 0.94`, about `0.54` and `0.55` of
+the matched mass. Past those the stars grow heavier again, and at `ω = 1.0`
+neither branch has a bound star at all. A rung at `0.40` of matched therefore
+cannot be built, on either side.
 
 ### Stability survey — is the star family stable at all?
 
