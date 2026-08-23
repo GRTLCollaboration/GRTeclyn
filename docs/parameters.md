@@ -37,6 +37,16 @@ This is only a guide to the organisation. The example `params_*.txt` files docum
 
 Note that for parameters that are common with AMReX, we keep the (sometimes ugly) AMReX naming, to avoid any confusion or duplication. Again the comments in the params files are there to help.
 
+### Physical boundary conditions
+
+For each non-periodic direction, `boundary.hi_condition` and `boundary.lo_condition` select one of the following options:
+
+- `FIRST_ORDER_EXTRAPOLATION_BC` uses AMReX's `foextrap` condition, which copies the current value in the nearest interior cell into the exterior ghost cells. This is constant extrapolation in space, not a boundary value held fixed in time.
+- `SOMMERFELD_BC` applies an outgoing-radiation condition to the RHS in the outer valid cells. Its asymptotic values come from the state-variable definitions and may be changed through `set_vars_asymptotic_values()`.
+- `REFLECTIVE_BC` fills ghost cells using the parity assigned to each state variable.
+
+Use `UNSET_BC` for periodic directions, where physical boundary conditions do not apply. A condition supplied for a periodic direction is ignored.
+
 ## TwoPunctures parameters
 
 When GRTeclyn is built with TwoPunctures support, its initial-data parameters use the `two_punctures` scope. They include the bare or target masses, the plus and minus puncture offsets, momenta and spins, the initial lapse, spectral resolution and nonlinear solver settings. See the BinaryBH parameter files and the [TwoPunctures guide](two_punctures.md) for some helpful tips.

@@ -115,7 +115,8 @@ amr.blocking_factor = 16
 
 # Periodic directions: 0 = false, 1 = true
 geometry.is_periodic = 0 0 0
-# Options are currently STATIC_BC, SOMMERFELD_BC, or REFLECTIVE_BC
+# Options are currently FIRST_ORDER_EXTRAPOLATION_BC, SOMMERFELD_BC,
+# or REFLECTIVE_BC
 boundary.hi_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
 boundary.lo_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "REFLECTIVE_BC"
 

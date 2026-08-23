@@ -32,7 +32,8 @@ void GRAMRLevel::stateVariableSetUp()
             {
                 bc.set(face, amrex::BCType::int_dir);
             }
-            else if (bctype == BoundaryConditions::STATIC_BC ||
+            else if (bctype ==
+                         BoundaryConditions::FIRST_ORDER_EXTRAPOLATION_BC ||
                      bctype == BoundaryConditions::SOMMERFELD_BC)
             {
                 bc.set(face, amrex::BCType::foextrap);
