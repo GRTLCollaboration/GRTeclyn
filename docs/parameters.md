@@ -56,3 +56,5 @@ mpiexec -n 4 ./BinaryBH3d.gnu.MPI.ex params_test.txt -- -check_params
 ```
 
 The `--` and `-check_params` are separate arguments. The checker loads the parameter table, applies registered defaults, reports warnings or errors, writes the resolved table to `parameters_and_version.txt`, and then exits without starting the simulation.
+
+The checker prints a short summary stating whether any warnings were found. Warnings do not prevent a simulation from running, but you should understand why they can safely be ignored before continuing. The checks catch selected parameter errors but cannot guarantee that a simulation will run successfully, so inspect `parameters_and_version.txt` to confirm that the resolved values match your intentions.

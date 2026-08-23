@@ -16,6 +16,7 @@
 namespace
 {
 const std::map<std::string, int> boundary_conditions_by_name = {
+    {"UNSET_BC",      BoundaryConditions::UNSET_BC     },
     {"STATIC_BC",     BoundaryConditions::STATIC_BC    },
     {"SOMMERFELD_BC", BoundaryConditions::SOMMERFELD_BC},
     {"REFLECTIVE_BC", BoundaryConditions::REFLECTIVE_BC}
@@ -39,7 +40,8 @@ BoundaryConditions::params_t::read_conditions(GRParmParse &a_boundary_pp,
         {
             a_boundary_pp.error(
                 a_name,
-                "entries must be STATIC_BC, SOMMERFELD_BC, or REFLECTIVE_BC");
+                "entries must be UNSET_BC, STATIC_BC, SOMMERFELD_BC, or "
+                "REFLECTIVE_BC");
         }
         else
         {
@@ -95,16 +97,15 @@ void BoundaryConditions::params_t::check_params()
 
     // set defaults
     std::array<std::string, AMREX_SPACEDIM> hi_condition_names{};
-    hi_condition_names.fill("STATIC_BC");
+    hi_condition_names.fill("UNSET_BC");
     boundary_pp.queryAdd("hi_condition", hi_condition_names);
-    read_conditions(boundary_pp, "hi_condition");
+    const auto hi_conditions = read_conditions(boundary_pp, "hi_condition");
 
     std::array<std::string, AMREX_SPACEDIM> lo_condition_names{};
-    lo_condition_names.fill("STATIC_BC");
+    lo_condition_names.fill("UNSET_BC");
     boundary_pp.queryAdd("lo_condition", lo_condition_names);
-    read_conditions(boundary_pp, "lo_condition");
+    const auto lo_conditions = read_conditions(boundary_pp, "lo_condition");
 
-    bool nonperiodic_boundaries_exist{false};
     std::array<int, AMREX_SPACEDIM> is_periodic_int{};
     geom_pp.get("is_periodic", is_periodic_int);
     FOR (idir)
@@ -113,21 +114,56 @@ void BoundaryConditions::params_t::check_params()
         {
             geom_pp.error("is_periodic", "entries must be either 0 or 1");
         }
-
-        if (is_periodic_int[idir] == 0)
-        {
-            nonperiodic_boundaries_exist = true;
-        }
     }
 
-    if (nonperiodic_boundaries_exist)
+    const auto check_boundary_conditions =
+        [&boundary_pp,
+         &is_periodic_int](const char *a_name,
+                           const std::array<int, AMREX_SPACEDIM> &a_conditions)
     {
-        // write out boundary conditions where non periodic - useful for
-        // debug
-        params_t boundary_params;
-        boundary_params.fill_params();
-        BoundaryConditions::write_boundary_conditions(boundary_params);
-    }
+        std::string ignored_directions;
+        std::string unset_directions;
+        FOR (idir)
+        {
+            if (is_periodic_int[idir] == 1 && a_conditions[idir] != UNSET_BC)
+            {
+                if (!ignored_directions.empty())
+                {
+                    ignored_directions += ", ";
+                }
+                ignored_directions += static_cast<char>('x' + idir);
+            }
+            else if (is_periodic_int[idir] == 0 &&
+                     a_conditions[idir] == UNSET_BC)
+            {
+                if (!unset_directions.empty())
+                {
+                    unset_directions += ", ";
+                }
+                unset_directions += static_cast<char>('x' + idir);
+            }
+        }
+
+        if (!unset_directions.empty())
+        {
+            boundary_pp.error(
+                a_name,
+                "entries must be specified for the following non-periodic "
+                "directions: " +
+                    unset_directions);
+        }
+
+        if (!ignored_directions.empty())
+        {
+            boundary_pp.warning(
+                a_name,
+                "entries for the following periodic directions are ignored: " +
+                    ignored_directions);
+        }
+    };
+
+    check_boundary_conditions("hi_condition", hi_conditions);
+    check_boundary_conditions("lo_condition", lo_conditions);
 }
 
 /// define function sets members and is_defined set to true
@@ -149,85 +185,6 @@ void BoundaryConditions::set_vars_asymptotic_values(
 {
     m_params.vars_asymptotic_values = vars_asymptotic_values;
     m_asymptotic_values.clear();
-}
-
-void BoundaryConditions::write_reflective_conditions(int idir)
-{
-    amrex::Print()
-        << "The variables that are parity odd in this direction are : " << '\n';
-    for (int icomp = 0; icomp < NUM_VARS; icomp++)
-    {
-        int parity = get_state_var_parity(icomp, idir);
-        if (parity == -1)
-        {
-            amrex::Print() << StateVariables::names[icomp] << "    ";
-        }
-    }
-}
-
-void BoundaryConditions::write_sommerfeld_conditions(int /*idir*/,
-                                                     const params_t &a_params)
-{
-    amrex::Print() << "The non zero asymptotic values of the variables "
-                      "in this direction are : "
-                   << '\n';
-    for (int icomp = 0; icomp < NUM_VARS; icomp++)
-    {
-        if (a_params.vars_asymptotic_values[icomp] != 0)
-        {
-            amrex::Print() << StateVariables::names[icomp] << " = "
-                           << a_params.vars_asymptotic_values[icomp] << "    ";
-        }
-    }
-    // not done for diagnostics
-}
-
-/// write out boundary params (used during setup for debugging)
-void BoundaryConditions::write_boundary_conditions(const params_t &a_params)
-{
-    amrex::Print() << "You are using non-periodic boundary conditions." << '\n';
-    amrex::Print() << "The boundary parameters chosen are:" << '\n';
-    amrex::Print() << "-----------------------------------" << '\n';
-
-    const std::map<int, std::string> boundary_condition_names = {
-        {STATIC_BC,     "Static"    },
-        {SOMMERFELD_BC, "Sommerfeld"},
-        {REFLECTIVE_BC, "Reflective"}
-    };
-    FOR (idir)
-    {
-        if (!a_params.is_periodic[idir])
-        {
-            amrex::Print() << "- "
-                           << boundary_condition_names.at(
-                                  a_params.hi_condition[idir])
-                           << " boundaries in direction high " << idir << '\n';
-            if (a_params.hi_condition[idir] == REFLECTIVE_BC)
-            {
-                write_reflective_conditions(idir);
-            }
-            else if (a_params.hi_condition[idir] == SOMMERFELD_BC)
-            {
-                write_sommerfeld_conditions(idir, a_params);
-            }
-            amrex::Print() << "\n" << '\n';
-
-            amrex::Print() << "- "
-                           << boundary_condition_names.at(
-                                  a_params.lo_condition[idir])
-                           << " boundaries in direction low " << idir << '\n';
-            if (a_params.lo_condition[idir] == REFLECTIVE_BC)
-            {
-                write_reflective_conditions(idir);
-            }
-            else if (a_params.lo_condition[idir] == SOMMERFELD_BC)
-            {
-                write_sommerfeld_conditions(idir, a_params);
-            }
-            amrex::Print() << "\n" << '\n';
-        }
-    }
-    amrex::Print() << "-----------------------------------" << '\n';
 }
 
 /// The function which returns the parity of each of the vars in
@@ -252,6 +209,11 @@ int BoundaryConditions::get_boundary_condition(amrex::Orientation face) const
 {
     return face.isLow() ? m_params.lo_condition[face.coordDir()]
                         : m_params.hi_condition[face.coordDir()];
+}
+
+bool BoundaryConditions::is_periodic(const int a_dir) const
+{
+    return m_params.is_periodic[a_dir];
 }
 
 void BoundaryConditions::apply_sommerfeld_boundaries(

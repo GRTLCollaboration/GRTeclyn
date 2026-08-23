@@ -28,7 +28,7 @@ void GRAMRLevel::stateVariableSetUp()
             amrex::Orientation face = oit();
             const int idim          = face.coordDir();
             const int bctype = boundary_conditions.get_boundary_condition(face);
-            if (amrex::DefaultGeometry().isPeriodic(idim))
+            if (boundary_conditions.is_periodic(idim))
             {
                 bc.set(face, amrex::BCType::int_dir);
             }

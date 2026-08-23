@@ -72,16 +72,16 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         bool enabled = false;
         extraction_pp.queryAdd("enabled", enabled);
 
+        if (!enabled)
+        {
+            return;
+        }
+
         GRParmParse geom_pp("geometry");
         std::array<double, AMREX_SPACEDIM> grid_center{};
         geom_pp.get("center", grid_center);
         std::array<double, AMREX_SPACEDIM> center = grid_center;
         extraction_pp.queryAdd("center", center);
-
-        if (!enabled)
-        {
-            return;
-        }
 
         int num_radii = 1;
         extraction_pp.queryAdd("num_radii", num_radii);

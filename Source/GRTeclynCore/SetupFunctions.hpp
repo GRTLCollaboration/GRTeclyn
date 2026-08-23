@@ -71,6 +71,30 @@ void mainSetup(int argc, char *argv[])
     amrex::Print() << "GRTeclyn (" << GRTECLYN_VERSION << ") initialized"
                    << '\n';
 
+    if (just_check_params())
+    {
+        if (GRParmParse::warnings_issued())
+        {
+            amrex::Print()
+                << "User-specified parameter checks were applied and some "
+                   "warnings were identified, which should be listed above. "
+                   "You can use parameters_and_version.txt to check that the "
+                   "parameters were set as you intended. Warnings won't "
+                   "prevent the code from running, but you should check that "
+                   "you understand why they can be safely ignored before "
+                   "continuing.\n";
+        }
+        else
+        {
+            amrex::Print()
+                << "User-specified parameter checks were applied and no "
+                   "warnings or errors were identified. You can use "
+                   "parameters_and_version.txt to check that the parameters "
+                   "were set as you intended. This does not guarantee that "
+                   "your simulation will work, but it is a good start.\n";
+        }
+    }
+
 #ifdef EQUATION_DEBUG_MODE
     EquationDebugging::check_no_omp();
     amrex::Warning("GRTeclyn is running in equation debug mode. This mode is "

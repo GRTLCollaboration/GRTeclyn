@@ -21,6 +21,8 @@ class GRParmParse : public amrex::ParmParse
   public:
     using amrex::ParmParse::ParmParse; // Just use ParmParse's constructor
 
+    [[nodiscard]] static bool warnings_issued() { return s_warning_issued; }
+
     // (MK): I called the functions below "load" rather than "get" to avoid
     // clashes with the many  different overloads of "get" in ParmParse. Also, I
     // think load is a more intuitive name.
@@ -141,6 +143,7 @@ class GRParmParse : public amrex::ParmParse
     void warning(const char *name,
                  const std::string_view a_warning_message) const
     {
+        s_warning_issued = true;
         const std::string warning_message =
             diagnostic_message("Warning", name, a_warning_message);
         if (amrex::ParallelDescriptor::IOProcessor())
@@ -150,6 +153,8 @@ class GRParmParse : public amrex::ParmParse
     }
 
   protected:
+    inline static bool s_warning_issued{false};
+
     [[nodiscard]] std::string
     diagnostic_message(const char *a_diagnostic_type, const char *name,
                        const std::string_view a_message) const

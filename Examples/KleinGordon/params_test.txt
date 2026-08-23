@@ -52,6 +52,9 @@ amr.n_error_buf     = 1
 
 # Periodic directions: 0 = false, 1 = true
 geometry.is_periodic = 1 1 1
+# Physical boundary conditions default to UNSET_BC in periodic directions
+# boundary.hi_condition = "UNSET_BC" "UNSET_BC" "UNSET_BC"
+# boundary.lo_condition = "UNSET_BC" "UNSET_BC" "UNSET_BC"
 
 #################################################
 # Evolution parameters

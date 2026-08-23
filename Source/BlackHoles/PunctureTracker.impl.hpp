@@ -18,7 +18,7 @@
 #include "StateVariables.hpp"
 
 // AMReX includes
-#include <AMReX_AmrLevel.H>
+#include <AMReX_AmrLevel.H> // complete type needed during GRAMRLevel includes
 #include <AMReX_AmrParGDB.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_TracerParticle_mod_K.H> // for linear_interpolation

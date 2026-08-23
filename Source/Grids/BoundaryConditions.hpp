@@ -29,6 +29,7 @@ class BoundaryConditions
     /// Boundary condition identifiers
     enum
     {
+        UNSET_BC, // sentinel used where physical boundaries do not apply
         STATIC_BC,
         SOMMERFELD_BC,
         REFLECTIVE_BC
@@ -80,9 +81,6 @@ class BoundaryConditions
     void set_vars_asymptotic_values(
         std::array<double, NUM_VARS> &vars_asymptotic_values);
 
-    /// write out boundary params (used during setup for debugging)
-    static void write_boundary_conditions(const params_t &a_params);
-
     /// The function which returns the parity of each of the vars in
     /// StateVariables.hpp (It is only required for reflective boundary
     /// conditions.)
@@ -90,6 +88,9 @@ class BoundaryConditions
 
     /// Get the boundary condition for given face
     [[nodiscard]] int get_boundary_condition(amrex::Orientation face) const;
+
+    /// Return whether the direction is periodic
+    [[nodiscard]] bool is_periodic(int a_dir) const;
 
     /// Apply Sommerfeld BC to RHS
     void apply_sommerfeld_boundaries(amrex::MultiFab &a_rhs,
@@ -151,12 +152,6 @@ class BoundaryConditions
     friend class ExpandGridsToBoundaries;
 
   private:
-    /// write out reflective conditions
-    static void write_reflective_conditions(int idir);
-
-    /// write out sommerfeld conditions
-    static void write_sommerfeld_conditions(int idir, const params_t &a_params);
-
     static void fill_sommerfeld_cell(amrex::FArrayBox &rhs_box,
                                      const amrex::FArrayBox &soln_box,
                                      const amrex::IntVect a_iv,
