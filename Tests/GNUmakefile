@@ -57,6 +57,12 @@ VPATH_LOCATIONS += $(src_dirs) $(test_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
 SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)
 
+# RLMatterPumpParams.hpp lives in GRTeclynCore/RL but is included
+# unconditionally by Source/Matter/ComplexScalarField.hpp, so the tests need
+# it on the include path even though they never build the RL bridge itself.
+# Header-only: no Make.package, hence not in src_dirs.
+INCLUDE_LOCATIONS += $(GRTECLYN_SOURCE)/GRTeclynCore/RL
+
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(USE_MPI), TRUE)

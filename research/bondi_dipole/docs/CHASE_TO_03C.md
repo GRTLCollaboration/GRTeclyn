@@ -373,16 +373,27 @@ contract is widened.
 
 ### 5.1 Files
 
+Built 2026-08-23. Four new modules rather than the two originally sketched: the
+mechanics, the measurement, the record and the decision each change for different
+reasons, so each is its own file and each can be tested without the others.
+
 | piece | file | lines | notes |
 |---|---|---|---|
-| the shift, the sliver fill, the odometer | **new** `Source/Grids/GridTreadmill.hpp` | ~200 | knows nothing about this campaign — takes a MultiFab, an axis, a cell count and a table of asymptotic values |
-| the core tracker and the trigger | **new** `Examples/RadialRecipe/RecentringBox.hpp` | ~180 | sector-aware; its own copy of the ball-restricted `|Φ|²` reduction, not a call into `RLLumpTracker.hpp` |
+| the shift, the sliver fill, the odometer | **new** `Source/Grids/GridTreadmill.hpp` | 349 | knows nothing about this campaign — takes a MultiFab, an axis, a **signed** cell count and a table of asymptotic values. `translate` and `fill_sliver` are separately callable so each can be tested alone |
+| the core tracker | **new** `Examples/RadialRecipe/SectorCoreTracker.hpp` | 206 | takes a list of component indices, not a `SimulationParameters`. Its `w⁴`-weighted, `w ≥ 0.25·peak` centroid is deliberately the same definition the consumer's `sector_dynamics.py` uses, so the two streams are comparable by construction |
+| the output column contract | **new** `Examples/RadialRecipe/TreadmillLog.hpp` | 71 | one file, one job: what gets written. Changing the record cannot change what is done |
+| the policy — when to shift, refusals, checkpointing | **new** `Examples/RadialRecipe/RecentringBox.hpp` | 417 | the only file that knows this is a two-sector boson-star campaign |
 | parameters | `Examples/RadialRecipe/SimulationParameters.hpp` | ~15 | one block, all defaults off |
-| the call site | `Examples/RadialRecipe/RadialRecipeLevel.cpp` | ~20 | end of `specificPostTimeStep()`, level 0 only |
+| the call site | `Examples/RadialRecipe/RadialRecipeLevel.cpp` | ~25 | end of `specificPostTimeStep()`, level 0 only; passes both `get_new_data` and `get_old_data` (RK4 restarts from the old state, so shifting only the new one would tear the next step) |
 | checkpoint / restart of the odometer | `Examples/RadialRecipe/RadialRecipeLevel.cpp` | ~40 | overrides `specific_pre_checkpoint` and `specific_post_restart` |
-| unit tests | **new** `Tests/GridTreadmillTest/` | ~150 | registered in `Tests/TestCases.hpp` like every other test |
+| unit tests | **new** `Tests/GridTreadmillTest/` | 388 | 8 subcases, registered in `Tests/TestCases.hpp` like every other test |
 
-Roughly 600 lines, and about 400 of them are the two new headers.
+About 1,500 lines including the tests; ~1,050 of it is the four new headers.
+
+One unrelated repair was needed to build the tests at all: `Tests/GNUmakefile` had
+no `Source/GRTeclynCore/RL` on its include path, so every test that reaches
+`ComplexScalarField.hpp` had failed to compile since the July matter refactor. Six
+lines, the same fix `Examples/RadialRecipe/GNUmakefile` already carries.
 
 ### 5.2 Parameters — every one default-off or default-inert
 
@@ -395,16 +406,32 @@ Roughly 600 lines, and about 400 of them are the two new headers.
 | `treadmill_ball_radius` | `8.0` | search-ball radius for the core tracker |
 | `treadmill_fill_mode` | `0` | `0` = asymptotic `1/r`, `1` = copy outermost layer |
 
-### 5.3 Output — `small_data/treadmill.dat`, its own file
+### 5.3 Output — `data/treadmill.dat`, its own file
 
 | column | why it is there |
 |---|---|
 | `time`, `step` | the join key for everything else |
-| `core_x_canon_grid`, `core_x_phantom_grid` | where the tracker thinks the stars are, in grid coordinates |
+| `core0_grid`, `core1_grid` | where the tracker thinks the stars are, in grid coordinates, in the order the sectors were configured |
 | `midpoint_grid` | what the trigger actually compares against the threshold |
-| `cells_shifted` | 0 on most rows; the shift size on the rows where one happened |
-| `offset_cells`, `offset_length` | the odometer, in cells and in code units |
-| `midpoint_true` | `midpoint_grid + offset_length` — the trajectory the paper plots |
+| `cells_shifted` | 0 on most rows; the signed shift size on the rows where one happened |
+| `odometer_cells`, `odometer_length` | the odometer, in cells and in code units |
+| `midpoint_true` | `midpoint_grid + odometer_length` — the trajectory the paper plots |
+
+It lands in the run's `data/` directory, beside `constraint_norms.dat` and the
+other in-code streams — *not* in `small_data/`, which is the plotfile consumer's
+output directory.
+
+> **Trap, for anyone adding another stream at this cadence.** `SmallDataIO`'s
+> `dt` argument is the spacing between rows *of that file*, not the simulation
+> timestep. It is used for exactly one thing: the test
+> `m_time < m_restart_time + m_dt`, which decides whether a write is the first
+> one after a restart and therefore whether `remove_duplicate_time_data` fires.
+> A stream writing every `N` steps must pass `N * dt`. Pass the raw timestep and
+> the test is false on every write, the de-duplication never runs, and every
+> restart leaves the rows it re-computes duplicated in the file. Caught by the
+> restart test on 2026-08-23, after the code had otherwise passed everything
+> else; both uses of `m_dt` are gated on `m_restart_time > 0`, so it only ever
+> showed up on a restart.
 
 This deliberately duplicates information that `sector_dynamics.dat` also carries.
 That is the point: `sector_dynamics.dat` is computed after the fact by the
@@ -454,33 +481,52 @@ before any GPU time is spent.
 
 ### 6.1 New launcher knobs
 
-`run_pair_selfgrav.sh` gains four passthroughs, in the same style as the sponge
-block it already has:
+`run_pair_selfgrav.sh` has six passthroughs, in the same style as the sponge
+block beside them (added 2026-08-23):
 
 ```
 BONDI_TREADMILL=1                # -> --extra-override treadmill_enabled=1
+BONDI_TREADMILL_AXIS=0           # -> treadmill_axis        (0=x, 1=y, 2=z)
 BONDI_TREADMILL_THRESHOLD=2.0    # -> treadmill_threshold
 BONDI_TREADMILL_CHECK=20         # -> treadmill_check_interval
+BONDI_TREADMILL_BALL=8.0         # -> treadmill_ball_radius
 BONDI_TREADMILL_FILL=0           # -> treadmill_fill_mode
 ```
 
 Nothing else in the launcher changes, and a cell that does not set
-`BONDI_TREADMILL` is byte-identical to what it is today.
+`BONDI_TREADMILL` is byte-identical to what it is today. A treadmill cell must
+also set `BONDI_MAXLEVEL=0` and `BONDI_SPONGE=1`: the first because the module
+refuses to start under AMR (§5.4), the second because the sponge is what keeps
+the refilled sliver from ringing back in.
 
-### 6.2 Checkpoints — two things the current setup gets wrong for a long cell
+### 6.2 Checkpoints — as few as will do the job
 
-Every cell in this campaign runs with `checkpoint_interval = -1`. That is right
-for a 1.1-hour cell and wrong for a twelve-hour one. Switch it on at about
-20,000 steps (≈ 200 units of `t`, ≈ 1.1 h of wall clock), which gives eleven
-checkpoints over the run at ~1.4 GB each.
+Every cell in this campaign runs with `checkpoint_interval = -1`, and that stays
+the default here. A checkpoint is ~1.4 GB; writing one every 200 units of `t`
+over a twelve-hour chase would leave 15 GB of them behind, and repeating that
+across the validation ladder and any reruns turns into a disk problem that
+outlives the campaign. **Do not put the chase on a periodic checkpoint schedule.**
 
-**And move them off the scratch disk.** `amr.check_file` currently points into
-`/tmp` node-local scratch, and the wrapper's end-of-episode cleanup
+Two checkpoints are worth their disk, and no more:
+
+* **One rolling checkpoint**, so a crashed twelve-hour run does not restart from
+  `t = 0`. Write it about every two hours of wall clock (≈ 40,000 steps) and keep
+  **only the newest one** — delete the previous directory as soon as its
+  successor has finished writing. Steady-state cost: 1.4 GB, not 15 GB.
+* **One checkpoint at the science point**, at whatever `t` validation cell 5
+  (§7.5) is to branch from. That one is a deliberate artefact; keep it until the
+  branch run has been analysed, then delete it.
+
+Everything else the run needs to be reproducible is already in `params.txt`, the
+`gridinit`, and the `.dat` streams, all of which are small.
+
+**Wherever they go, move them off the scratch disk.** `amr.check_file` currently
+points into `/tmp` node-local scratch, and the wrapper's end-of-episode cleanup
 (`core/scratch.py::purge_plotfile_scratch`) deletes checkpoint directories
 unconditionally — they are treated as transients, with an explicit comment saying
 the consumer never reads them. A finished chase cell would therefore lose exactly
 the artefact needed to extend it. Override `amr.check_file` to a path inside the
-cell's own run directory and prune old checkpoints by hand.
+cell's own run directory.
 
 ### 6.3 Restarting
 
@@ -618,10 +664,11 @@ Cells 1–4 all run at `t ≤ 200`, where the pair is barely moving; none of the
 detect the thing that actually worries a referee, which is that the outer boundary
 assumes a static centre and a pair at a third of light speed is not static.
 
-The cheap version of that test uses the chase cell's own checkpoints: from the
-checkpoint at `t ≈ 1,200` (`v ≈ 0.19 c`), restart a 200-unit branch with the
-sponge's inner radius moved from 24 to 20 and compare against the main run over
-the same window.
+The cheap version of that test branches from the chase's single science-point
+checkpoint (§6.2): take it at `t ≈ 1,200` (`v ≈ 0.19 c`), restart a 200-unit
+branch with the sponge's inner radius moved from 24 to 20, and compare against the
+main run over the same window. This is what that checkpoint is for — decide `t`
+before the chase starts, since only the one is being kept.
 
 *Gate.* The two branches agree on velocity to better than 1 %. If moving the outer
 treatment inward by four units changes the speed at 0.2 c, the outer region is
@@ -772,8 +819,9 @@ the contraction is 4.8 % and no refinement is needed, which is one more reason
 3. **Gate on the cheap boundary check (cell 5) or the expensive one (cell 6)?**
    The recommendation is cell 5, with cell 6 held in reserve.
 4. **Stop at 0.3 c, or keep the card and continue to 0.5 c for another nine
-   hours?** This can be decided while the run is in flight; the checkpoints make
-   it a free option rather than a commitment.
+   hours?** This can be decided while the run is in flight, as long as the rolling
+   checkpoint (§6.2) is still being written — it is what makes continuing an
+   option rather than a fresh twelve hours.
 
 Nothing in this document is on the required matrix for the current paper. It is
 the follow-up paper's headline, and the recentring box is the instrument it needs.

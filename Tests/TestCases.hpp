@@ -20,6 +20,7 @@
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
 #include "EMTensorTest.hpp"
+#include "GridTreadmillTest.hpp"
 #include "ParticleInterpolatorUnitTest.hpp"
 #include "PositiveChiAndLapseUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
@@ -68,6 +69,8 @@ TEST_CASE("EMTensor"
 {
     run_emtensor_test();
 }
+
+TEST_CASE("GridTreadmill") { run_grid_treadmill_test(); }
 
 TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
 

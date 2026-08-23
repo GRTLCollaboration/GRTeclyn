@@ -6,6 +6,7 @@ GRTECLYN_CEXE_headers += BCParity.hpp \
                          Coordinates.hpp \
                          DimensionDefinitions.hpp \
                          FourthOrderDerivatives.hpp \
+                         GridTreadmill.hpp \
                          NullBCFill.hpp \
                          SixthOrderDerivatives.hpp \
                          SpongeZone.hpp \

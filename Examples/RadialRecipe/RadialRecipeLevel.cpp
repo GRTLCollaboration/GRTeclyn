@@ -3,6 +3,7 @@
 #include "RadialRecipeLevel.hpp"
 #include "RadialRecipeMatterConstraints.hpp"
 #include "RadialRecipeMatterDispatch.hpp"
+#include "RecentringBox.hpp"
 #include "GRTresnaIndependentScalars.hpp"
 #include "ComplexScalarField.hpp"
 #include "CCZ4RHSWithMatter.hpp"
@@ -1609,5 +1610,150 @@ void RadialRecipeLevel::specificPostTimeStep()
                  static_cast<double>(max_KijKij),
                  static_cast<double>(std::sqrt(sum_R3sq_vol))});
         }
+    }
+
+    // --- recentring box ----------------------------------------------------
+    //
+    // Last in the step on purpose.  Every diagnostic above has already been
+    // computed and written from the pre-shift state, so a row of
+    // constraint_norms.dat and a row of treadmill.dat describe the same
+    // instant.  Any plotfile the driver writes after this point is post-shift,
+    // and joining it to the odometer at the same time reproduces the true
+    // trajectory exactly.
+    if (Level() == 0 && simParams().treadmill_params.enabled)
+    {
+        configure_recentring_box();
+
+        amrex::StateData &state_data = get_state_data(state_index);
+        std::vector<amrex::MultiFab *> states{&get_new_data(state_index)};
+        if (state_data.hasOldData())
+        {
+            // AmrLevel::RK starts every step from the old data, so leaving it
+            // behind would evolve two frames against each other.
+            states.push_back(&get_old_data(state_index));
+        }
+
+        const RecentringBox::Step tread = recentring_box().advance(
+            states, Geom(), parent->levelSteps(0), state_data.curTime(),
+            parent->dtLevel(0), get_gramr_ptr()->get_restart_time());
+
+        if (tread.shifted)
+        {
+            // A FillPatcher caches coarse data against the old labelling.  It
+            // is unused at max_level = 0, which this module requires anyway,
+            // but one line removes the question.
+            resetFillPatcher();
+        }
+    }
+}
+
+void RadialRecipeLevel::configure_recentring_box()
+{
+    // Idempotent: several entry points (post-timestep, checkpoint, restart)
+    // need the box configured and none of them knows which runs first.
+    static bool s_configured = false;
+    if (s_configured)
+    {
+        return;
+    }
+    s_configured = true;
+
+    const SimulationParameters &params = simParams();
+
+    // Which components define each matter sector's core.  The bicomplex model
+    // carries a canonical and a phantom field in disjoint slots; anything else
+    // is a single sector.  Supplying the indices HERE rather than hard-coding
+    // them inside the tracker is what keeps the tracker reusable and this
+    // level the only place that knows the matter layout.
+    std::vector<SectorFieldSet> sectors;
+    sectors.push_back(SectorFieldSet{{c_phi, c_Pi, c_phi2, c_Pi2}});
+    if (RadialRecipeMatter::uses_bicomplex_scalar(params))
+    {
+        sectors.push_back(SectorFieldSet{{c_phi_m, c_Pi_m, c_phi2_m, c_Pi2_m}});
+    }
+
+    const std::vector<double> asymptotic(
+        params.boundary_params.vars_asymptotic_values.begin(),
+        params.boundary_params.vars_asymptotic_values.end());
+
+    GRParmParse pp;
+    std::string output_path = "./";
+    pp.load("output_path", output_path, std::string("./"));
+    std::string data_subpath;
+    pp.load("data_subpath", data_subpath, std::string(""));
+    if (!output_path.empty() && output_path.back() != '/')
+    {
+        output_path += "/";
+    }
+    if (!data_subpath.empty() && data_subpath.back() != '/')
+    {
+        data_subpath += "/";
+    }
+    const std::string out_dir = output_path + data_subpath;
+    if (!out_dir.empty())
+    {
+        amrex::UtilCreateDirectory(out_dir, 0755, false);
+    }
+
+    // How far the source's outer envelope reaches from the pair's midpoint:
+    // half the widest lump separation plus the tracker's own search radius,
+    // which is sized to the star.  An estimate, and deliberately generous --
+    // it can only ever refuse a configuration, never wave a marginal one
+    // through.
+    double half_separation = 0.0;
+    for (int k = 0; k < params.trajectory_params.num_lumps; ++k)
+    {
+        half_separation =
+            std::max(half_separation,
+                     std::abs(params.trajectory_params.lumps[k].R0));
+    }
+    const double source_reach =
+        half_separation + params.treadmill_params.ball_radius;
+
+    std::array<int, AMREX_SPACEDIM> is_periodic{};
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        is_periodic[d] = Geom().isPeriodic(d) ? 1 : 0;
+    }
+
+    const bool ok = recentring_box().configure(
+        params.treadmill_params,
+        Geom().CellSize(std::clamp(params.treadmill_params.axis, 0,
+                                   AMREX_SPACEDIM - 1)),
+        params.recipe_params.grid_center, sectors, asymptotic,
+        out_dir + "treadmill", parent->maxLevel(), is_periodic,
+        GridTreadmill::min_box_extent(get_new_data(state_index).boxArray(),
+                                      params.treadmill_params.axis),
+        params.sponge_params.enabled ? params.sponge_params.inner_radius : -1.0,
+        source_reach);
+    RecentringBox::require_valid(ok);
+}
+
+void RadialRecipeLevel::specific_pre_checkpoint(const std::string &a_dir,
+                                                std::ostream & /*a_os*/)
+{
+    if (Level() != 0 || !simParams().treadmill_params.enabled)
+    {
+        return;
+    }
+    configure_recentring_box();
+    recentring_box().save(a_dir);
+}
+
+void RadialRecipeLevel::specific_post_restart()
+{
+    if (Level() != 0 || !simParams().treadmill_params.enabled)
+    {
+        return;
+    }
+    configure_recentring_box();
+    const std::string &restart_dir = parent->theRestartFile();
+    if (!recentring_box().load(restart_dir))
+    {
+        // Resuming with the odometer at zero would produce a trajectory that
+        // is wrong and looks entirely plausible.  Refuse instead.
+        amrex::Abort("[treadmill] no odometer found in the checkpoint at " +
+                     restart_dir +
+                     "; restarting would silently reset the trajectory");
     }
 }

@@ -31,6 +31,19 @@
 #     BONDI_NL_TOL as dx^4 across a ladder to get a convergence order out of it.
 #   BONDI_SPONGE=1: switch on the boundary sponge (inner/outer/strength/ramp
 #     via BONDI_SPONGE_INNER etc.) to run past t=60.
+#   BONDI_TREADMILL=1: recentring box.  Once the pair has drifted past
+#     BONDI_TREADMILL_THRESHOLD (default 2, in code units, must be a whole
+#     number of cells) the DATA is carried back toward the box centre by that
+#     many cells and an odometer records the total.  True displacement =
+#     grid position + odometer; both are written to data/treadmill.dat.  Lets a
+#     runaway be followed indefinitely without enlarging the box.  Requires
+#     BONDI_MAXLEVEL=0 and BONDI_SPONGE=1 (the shift empties a sliver at the
+#     trailing face; the sponge is what stops that seam from ringing back in).
+#     Design and validation ladder: research/bondi_dipole/docs/CHASE_TO_03C.md.
+#     BONDI_TREADMILL_CHECK  -- steps between position checks (default 20)
+#     BONDI_TREADMILL_AXIS   -- 0=x (default), 1=y, 2=z
+#     BONDI_TREADMILL_BALL   -- core-tracking ball radius (default 8)
+#     BONDI_TREADMILL_FILL   -- 0=asymptotic 1/r fill (default), 1=plain copy
 #   BONDI_DRYRUN=1: resolve and print the parameters, then exit -- no solve, no GPU.
 #   BONDI_GRTRESNA_RANKS: MPI ranks for the elliptic solve (default 8).  The
 #     evolution is single-GPU regardless.
@@ -129,6 +142,19 @@ SPONGE_OUTER="${BONDI_SPONGE_OUTER:-32}"
 SPONGE_STRENGTH="${BONDI_SPONGE_STRENGTH:-4.0}"
 SPONGE_RAMP="${BONDI_SPONGE_RAMP:-4}"
 
+# Recentring box ("treadmill") -- Source/Grids/GridTreadmill.hpp for the
+# mechanics, Examples/RadialRecipe/RecentringBox.hpp for the policy.  Off by
+# default so every archived cell is unaffected.  The binary refuses to start
+# rather than shift wrongly: a threshold that is not a whole number of cells,
+# max_level>0, a periodic axis, or a shift that would reach into the sponge
+# all abort at configure time with the reason printed.
+TREADMILL="${BONDI_TREADMILL:-0}"
+TREADMILL_AXIS="${BONDI_TREADMILL_AXIS:-0}"
+TREADMILL_THRESHOLD="${BONDI_TREADMILL_THRESHOLD:-2.0}"
+TREADMILL_CHECK="${BONDI_TREADMILL_CHECK:-20}"
+TREADMILL_BALL="${BONDI_TREADMILL_BALL:-8.0}"
+TREADMILL_FILL="${BONDI_TREADMILL_FILL:-0}"
+
 # Print the resolved parameter set and exit without solving or touching a GPU.
 # Worth spending on a new cell: the alternative is discovering a mis-set knob
 # after the solve has already burned an hour of CPU and the card is committed.
@@ -145,6 +171,18 @@ if [[ "${SPONGE}" != "0" ]]; then
     --extra-override sponge_outer_radius="${SPONGE_OUTER}"
     --extra-override sponge_strength="${SPONGE_STRENGTH}"
     --extra-override sponge_ramp_power="${SPONGE_RAMP}"
+  )
+fi
+
+treadmill_args=()
+if [[ "${TREADMILL}" != "0" ]]; then
+  treadmill_args=(
+    --extra-override treadmill_enabled=1
+    --extra-override treadmill_axis="${TREADMILL_AXIS}"
+    --extra-override treadmill_threshold="${TREADMILL_THRESHOLD}"
+    --extra-override treadmill_check_interval="${TREADMILL_CHECK}"
+    --extra-override treadmill_ball_radius="${TREADMILL_BALL}"
+    --extra-override treadmill_fill_mode="${TREADMILL_FILL}"
   )
 fi
 
@@ -336,6 +374,7 @@ PYTHONPATH="${WRAPPER_DIR}/src" "${WRAPPER_DIR}/.venv/bin/python" \
   --extra-override trajectory_lump1_exotic="${S1}" \
   ${S1_OMEGA:+--extra-override trajectory_lump1_bs_omega="${S1_OMEGA}"} \
   ${sponge_args[@]+"${sponge_args[@]}"} \
+  ${treadmill_args[@]+"${treadmill_args[@]}"} \
   ${dryrun_args[@]+"${dryrun_args[@]}"}
 
 echo "[bondi] pair cell complete: ${RUNS_DIR}/${out_name}"

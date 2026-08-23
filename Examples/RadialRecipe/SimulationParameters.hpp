@@ -4,6 +4,7 @@
 #include "ExternalGridInitialData.hpp"
 #include "GRParmParse.hpp"
 #include "GRTresnaScalarLayout.hpp"
+#include "GridTreadmill.hpp"
 #include "RadialRecipeInitialData.hpp"
 #include "SimulationParametersBase.hpp"
 #include "SpongeZone.hpp"
@@ -183,6 +184,20 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("sponge_strength", sponge_params.strength, 4.0);
         pp.load("sponge_ramp_power", sponge_params.ramp_power, 4);
         pp.load("sponge_center", sponge_params.center, center);
+
+        // Recentring box ("treadmill"): once the source has drifted, carry the
+        // DATA back toward the box centre by a whole number of cells and keep
+        // an odometer of how far, so a runaway can be followed for as long as
+        // wanted without enlarging the box.  Off by default, so every archived
+        // cell is bit-for-bit unaffected.  Design and validation ladder:
+        // research/bondi_dipole/docs/CHASE_TO_03C.md.
+        pp.load("treadmill_enabled", treadmill_params.enabled, false);
+        pp.load("treadmill_axis", treadmill_params.axis, 0);
+        pp.load("treadmill_threshold", treadmill_params.threshold, 2.0);
+        pp.load("treadmill_check_interval", treadmill_params.check_interval,
+                20);
+        pp.load("treadmill_ball_radius", treadmill_params.ball_radius, 8.0);
+        pp.load("treadmill_fill_mode", treadmill_params.fill_mode, 0);
     }
 
     void read_recipe_params(GRParmParse &pp)
@@ -336,6 +351,9 @@ class SimulationParameters : public SimulationParametersBase
 
     // Numerical sponge zone (radially-ramped extra KO dissipation).
     SpongeZoneParams sponge_params{};
+
+    // Recentring box (exact whole-cell translation + odometer).
+    GridTreadmillParams treadmill_params{};
 
   private:
     // NOTE on multi-value keys: `key = 1 -1 -1 1 -1` is tokenized by
