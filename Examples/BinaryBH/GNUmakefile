@@ -20,6 +20,8 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 GRTECLYN_HOME = $(realpath ../..)
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
+# Name all directories for relevant source and header files
+# Don't forget the dot! (i.e., example specific files are in current directory)
 src_dirs := $(GRTECLYN_SOURCE)/BlackHoles \
             $(GRTECLYN_SOURCE)/CCZ4 \
             $(GRTECLYN_SOURCE)/Grids \
@@ -27,21 +29,13 @@ src_dirs := $(GRTECLYN_SOURCE)/BlackHoles \
             $(GRTECLYN_SOURCE)/ParticleInterpolator \
             $(GRTECLYN_SOURCE)/IO \
             $(GRTECLYN_SOURCE)/Maths \
-            $(GRTECLYN_SOURCE)/Tagging
+            $(GRTECLYN_SOURCE)/Tagging \
+            .
 
 # Find all source and header files in the src_dirs
 CEXE_sources += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.cpp)))
 CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.hpp)))
 CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.impl.hpp)))
-
-# Example specific source files
-CEXE_sources += Main_BinaryBH.cpp BinaryBHLevel.cpp
-
-# Example specific header files
-CEXE_headers += BinaryBHLevel.hpp \
-                SimulationParameters.hpp \
-                StateVariables.hpp \
-                TPAMR.hpp
 
 VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
