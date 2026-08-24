@@ -85,6 +85,17 @@ plt.rcParams.update(
 SINGLE = 3.375  # PRD column width, inches
 DOUBLE = 7.0
 
+# One accent colour for every fitted or predicted curve, so that a fit is never
+# told from the data by dash pattern alone (Okabe--Ito vermillion: colour-blind
+# safe, and still a mid grey if the page is printed in black and white).
+FIT = "#D55E00"
+
+# The frame stills carry locked colour scales (measured off their own colour
+# bars, identical on every frame kept): activity 0 -> 4.0e-2 in viridis, and
+# chi - 1 symmetric at +-0.0094 in RdBu, blue positive.
+A_MAX = 0.040
+CHI_MAX = 0.0094
+
 # ---------------------------------------------------------------- cell names
 HEAD = {128: "runaway_pair_d10_L64_N128_lev0",
         192: "runaway_pair_d10_L64_N192_lev0",
@@ -390,8 +401,17 @@ def fig_chase_frames():
     times = [(0, "$t=0$"), (12000, "$t=60$"), (24000, "$t=120$"),
              (40000, "$t=200$")]  # step = t / dt, dt = 0.005 at N = 256
 
-    fig, axes = plt.subplots(2, 4, figsize=(DOUBLE, 3.05),
-                             sharex=True, sharey=True)
+    fig = plt.figure(figsize=(DOUBLE, 3.05))
+    gs = fig.add_gridspec(2, 5, width_ratios=[1, 1, 1, 1, 0.05],
+                          wspace=0.08, hspace=0.10,
+                          left=0.052, right=0.885, bottom=0.125, top=0.925)
+    axes = np.empty((2, 4), dtype=object)
+    for r in range(2):
+        for c in range(4):
+            first = axes[0, 0] if (r or c) else None
+            axes[r, c] = fig.add_subplot(gs[r, c], sharex=first, sharey=first)
+            axes[r, c].tick_params(labelbottom=(r == 1), labelleft=(c == 0))
+    caxes = [fig.add_subplot(gs[r, 4]) for r in range(2)]
     for col, (step, title) in enumerate(times):
         t_here = step * 0.005
         xc = float(np.interp(t_here, D["t"], D["xc"]))
@@ -447,7 +467,30 @@ def fig_chase_frames():
                     color="white")
     axes[0, 0].text(37, 37.2, r"$\Phi_+$", ha="center", fontsize=7.5,
                     color="white")
-    fig.subplots_adjust(wspace=0.08, hspace=0.10)
+    # name the two curvature signs on the panel that first shows them, so the
+    # hill and the well are read off the figure and not out of the caption
+    axes[1, 0].text(27, 43.4, "hill", ha="center", va="top", fontsize=6.4,
+                    color="0.15")
+    axes[1, 0].text(37, 43.4, "well", ha="center", va="top", fontsize=6.4,
+                    color="0.15")
+
+    # the two locked colour scales of the stills, so the sign divide of the
+    # bottom row is explicit: blue above zero is a hill, red below it a well
+    cb = fig.colorbar(matplotlib.cm.ScalarMappable(
+        norm=matplotlib.colors.Normalize(0.0, A_MAX), cmap="viridis"),
+        cax=caxes[0])
+    cb.set_ticks([0.0, 0.02, 0.04])
+    cb.set_ticklabels(["$0$", "$0.02$", "$0.04$"])
+    cb.ax.tick_params(labelsize=6.2, width=0.4, length=1.8)
+    cb.outline.set_linewidth(0.4)
+
+    cb = fig.colorbar(matplotlib.cm.ScalarMappable(
+        norm=matplotlib.colors.Normalize(-CHI_MAX, CHI_MAX), cmap="RdBu"),
+        cax=caxes[1])
+    cb.set_ticks([-CHI_MAX, 0.0, CHI_MAX])
+    cb.set_ticklabels([f"$-{CHI_MAX:.3f}$", "$0$", f"$+{CHI_MAX:.3f}$"])
+    cb.ax.tick_params(labelsize=6.2, width=0.4, length=1.8)
+    cb.outline.set_linewidth(0.4)
     fig.savefig(os.path.join(OUT, "fig_chase_frames.pdf"), dpi=300)
     plt.close(fig)
 
@@ -488,8 +531,8 @@ def fig_trajectories():
     fit = np.polyfit(tL[m], dL[m], 2)
     bx.plot(tL, dL, color="k", ls="-", lw=1.0, zorder=4,
             label=r"$N=128$, $t\le400$")
-    bx.plot(tL, np.polyval(fit, tL), color="0.45", ls=(0, (1, 1.5)), lw=1.0,
-            zorder=5,
+    bx.plot(tL, np.polyval(fit, tL), color=FIT, ls=(0, (3.4, 1.5)), lw=1.5,
+            zorder=6,
             label=rf"fit $\ddot{{X}}={aL * 1e4:.2f}\times10^{{-4}}$")
     t3, m3 = midpoint(HEAD[256])
     bx.plot(t3, m3 - m3[0], color="0.3", ls="--", lw=0.9, zorder=3,
@@ -520,8 +563,9 @@ def fig_trajectories():
             ls=(0, (5, 1.5)), lw=0.8)
     cx.text(200, 6.5, "mixed pair", fontsize=6.8, ha="right", va="center")
     # the four nulls all live in one decade; label the band, not the lines
-    cx.text(200, 1.35e-5, "lone stars, same-sign pairs", fontsize=6.4,
-            ha="right", va="bottom", color="0.3")
+    cx.text(200, 8.6e-6, "lone stars, same-sign pairs", fontsize=6.4,
+            ha="right", va="bottom", color="0.3",
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.8))
     # the separation bar: both tips land on the curves they measure --
     # the signal above, the highest of the four nulls below
     t_bar = 103.0
@@ -537,7 +581,7 @@ def fig_trajectories():
             color="0.35", ha="right", va="center")
     cx.set_yscale("log")
     cx.set_xlim(0, 205)
-    cx.set_ylim(1.1e-5, 16)
+    cx.set_ylim(6.5e-6, 16)
     cx.set_xlabel("$t$")
     cx.set_ylabel(r"$|\Delta X|$")
     cx.set_title("(c)", loc="left")
@@ -558,15 +602,15 @@ def fig_forcelaw():
         (np.log(ds) - np.mean(np.log(ds))) ** 2)
     slope_err = np.sqrt(var)
 
-    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.9))
+    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.62))
 
     ax.plot(ds, accs, ls="none", marker="o", ms=4, color="k",
             markerfacecolor="white", markeredgewidth=0.9, zorder=5)
     dd = np.linspace(7.2, 22, 100)
-    ax.plot(dd, MBAR / dd ** 2, color="0.45", ls="--", lw=0.9,
+    ax.plot(dd, MBAR / dd ** 2, color="0.5", ls="-", lw=0.8,
             label=r"$\bar M/d^2$ (point mass)")
-    ax.plot(dd, np.exp(off) * dd ** slope, color="k", ls=(0, (1, 1.5)),
-            lw=0.9, label=rf"fit $d^{{{slope:.2f}}}$")
+    ax.plot(dd, np.exp(off) * dd ** slope, color=FIT, ls=(0, (3.4, 1.5)),
+            lw=1.4, label=rf"fit $d^{{{slope:.2f}}}$")
     ax.legend(loc="upper right", borderaxespad=0.5, fontsize=6.8,
               handlelength=1.9, labelspacing=0.4, borderpad=0.2)
     ax.set_xscale("log")
@@ -702,16 +746,28 @@ def fig_convergence():
     bx.plot(dxs, hl, marker="s", ms=4, color="0.35", ls="--", lw=0.9,
             markerfacecolor="white", markeredgewidth=0.9,
             label=r"$t\ge150$ (evolution)")
-    dd = np.linspace(0.24, 0.53, 50)
-    bx.plot(dd, h0[0] * (0.5 / dd) ** 2, color="0.6", ls=(0, (1, 1.5)),
-            lw=0.7)
-    bx.text(0.52, 4.6e-4, r"$\propto\Delta x^{-2}$", fontsize=6.6,
-            color="0.4", ha="left", va="bottom")
+    dd = np.linspace(0.253, 0.53, 50)
+    bx.plot(dd, h0[0] * (0.5 / dd) ** 2, color=FIT, ls=(0, (2.6, 1.4)),
+            lw=1.2, zorder=3)
+    bx.text(0.30, 7.4e-4, r"$\propto\Delta x^{-2}$", fontsize=6.8,
+            color=FIT, ha="center", va="bottom")
+    # the point of the panel: the two error sources move opposite ways
+    bx.annotate("", xy=(0.237, 7.0e-4), xytext=(0.237, 3.1e-4),
+                arrowprops=dict(arrowstyle="-|>", mutation_scale=6, lw=0.7,
+                                color="0.35", shrinkA=0, shrinkB=0))
+    bx.text(0.237, 8.0e-4, "rises", fontsize=6.2, color="0.3", ha="center",
+            va="bottom")
+    bx.annotate("", xy=(0.237, 4.4e-6), xytext=(0.237, 8.6e-6),
+                arrowprops=dict(arrowstyle="-|>", mutation_scale=6, lw=0.7,
+                                color="0.35", shrinkA=0, shrinkB=0))
+    bx.text(0.237, 3.9e-6, "falls", fontsize=6.2, color="0.3", ha="center",
+            va="top")
     bx.legend(loc="center left", borderaxespad=0.4, fontsize=6.8,
               handlelength=1.9, labelspacing=0.4, borderpad=0.2)
     bx.set_xscale("log")
     bx.set_yscale("log")
-    bx.set_xlim(0.56, 0.22)      # finer grids to the right
+    bx.set_ylim(2.4e-6, 1.9e-3)  # room for the two trend arrows
+    bx.set_xlim(0.56, 0.213)     # finer grids to the right
     bx.set_xticks([0.5, 1 / 3, 0.25])
     bx.set_xticklabels(["$0.50$", "$0.33$", "$0.25$"])
     bx.minorticks_off()
@@ -750,7 +806,7 @@ def fig_convergence():
 
 # ------------------------------------------------------------ fig: same sign
 def fig_samesign():
-    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.9))
+    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.62))
 
     # (a) the two same-sign pairs merge on the same clock
     for cell, ls, lab, tm, mfc in (
@@ -826,7 +882,7 @@ def fig_samesign():
 
 # ------------------------------------------------------------ fig: mass scale
 def fig_massscale():
-    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.9))
+    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.62))
 
     ratios = {"heavy": M_M / M_LADDER[0.81],          # |M-|/M+' = 1.333
               "matched": M_M / M_P,                    # 0.996
@@ -933,7 +989,7 @@ def fig_wavezone():
     radii = (16, 24, 32, 40)
     t, A = l2_amplitude(WAVEZONE, radii)
 
-    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.9))
+    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.62))
 
     styles = {16: "-", 24: "--", 32: "-.", 40: (0, (1, 1.5))}
     for R in radii:
@@ -948,6 +1004,10 @@ def fig_wavezone():
     ax.set_xlabel("$t$")
     ax.set_ylabel(r"$A_{\ell=2}=|r\,\psi_4|_{\ell=2}$")
     ax.text(0.025, 0.94, "(a)", transform=ax.transAxes, ha="left", va="top")
+    # what the panel is a measurement of, stated on the panel
+    ax.text(105, 4.0e-4, "ordered by radius at all times:\n"
+            "near-zone Coulombic curvature, no front", fontsize=6.4,
+            color="0.3", ha="center", va="center", ma="center")
 
     # (b) the falloff: psi4 vs R against r^-1 (radiation) and the fit
     sel = (t >= 150) & (t <= 200)
@@ -956,8 +1016,8 @@ def fig_wavezone():
     bx.plot(radii, means, ls="none", marker="o", ms=4.5, color="k",
             markerfacecolor="white", markeredgewidth=0.9, zorder=5)
     rr = np.linspace(15, 42, 50)
-    bx.plot(rr, np.exp(p[1]) * rr ** p[0], color="k", ls=(0, (1, 1.5)),
-            lw=0.9, label=rf"fit $r^{{{p[0]:.1f}}}$ (near zone)")
+    bx.plot(rr, np.exp(p[1]) * rr ** p[0], color=FIT, ls=(0, (3.4, 1.5)),
+            lw=1.4, label=rf"fit $r^{{{p[0]:.1f}}}$ (near zone)")
     bx.plot(rr, means[0] * (radii[0] / rr), color="0.45", ls="--", lw=0.9,
             label=r"$r^{-1}$ (radiation)")
     bx.legend(loc="lower left", borderaxespad=0.5, fontsize=6.8,
@@ -994,7 +1054,7 @@ def fig_wavezone():
 
 # ------------------------------------------------------------ fig: constraints
 def fig_constraints():
-    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.6), sharex=True)
+    fig, (ax, bx) = plt.subplots(2, 1, figsize=(SINGLE, 3.4), sharex=True)
 
     styles = {128: (0, (1, 1.5)), 192: (0, (4, 1.6)), 256: "-"}
     for n in (128, 192, 256):
