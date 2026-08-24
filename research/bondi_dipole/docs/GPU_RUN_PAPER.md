@@ -42,23 +42,314 @@ Tick a box only when the cell has passed its gate and been moved into
 - [x] `control_mirror_mp_d10_L64_N128_lev0` — phase 1, **evolved to t=200 on 2026-08-22**; runaway reverses exactly: displacement and acceleration both −1.00002× the archived cell. Frameless by decision
 - [x] `runaway_pair_d10_L64_N192_lev0` — phase 2, **evolved to t=200 on 2026-08-22**; drift +3.0139, separation 10.000 → 9.930, a = 1.611e-04. Middle rung of the ladder
 - [x] `runaway_pair_d10_L64_N256_lev0` — phase 2, **evolved to t=200 on 2026-08-22**; drift +3.0016, separation 10.000 → 9.915, a = 1.596e-04. **The ladder converges**: N192 and N256 agree to 0.4% on drift and 0.9% on acceleration, N128 sits 4% low. Frames + slice cache present (headline movie)
-- [x] `control_pair_pp_d10_L64_N192_lev0` — phase 2, **evolved to t=200 on 2026-08-22**; solved by the `converged` door at the flat 0.002 gate. min χ = 0.97920. **Quotable only for t < 32** — see "the same-sign null is boundary-limited" below
-- [x] `control_pair_pp_d10_L64_N256_lev0` — phase 2, **evolved to t=200 on 2026-08-23**; solved by the `converged` door in 13 of 50 NL iterations (Ham 0.00086%, Mom 0.00102% against the 0.002 gate), 28 min. min χ = 0.97914. Frames + slice cache present. **Quotable only for t < 32** — same boundary limit as the N192 rung
+- [x] `control_pair_pp_d10_L64_N192_lev0` — phase 2, **evolved to t=200 on 2026-08-22**; solved by the `converged` door at the flat 0.002 gate. min χ = 0.97920. The two stars merge at t ≈ 35 and the box activity ×7 is merger ejecta, not an artefact — see "the same-sign pairs merge" below; centroid still pinned to ±7e-4 over the full run
+- [x] `control_pair_pp_d10_L64_N256_lev0` — phase 2, **evolved to t=200 on 2026-08-23**; solved by the `converged` door in 13 of 50 NL iterations (Ham 0.00086%, Mom 0.00102% against the 0.002 gate), 28 min. min χ = 0.97914. Frames + slice cache present — **the frames are the per-star measurement**: the two wells close 8.75 → merged at t ≈ 35, then the remnant rings down (the chi movie's collide-and-bounce). See "the same-sign pairs merge" below
 - [x] `massscale_pair_d10_w0804_L64_N128_lev0` — phase 3, **evolved to t=200 on 2026-08-22**; lighter phantom (M = −0.011472, 79.95% of matched). Separation-corrected fit gives the canonical star's pull at 0.809 of the matched cell against 0.7995 predicted (1.2%) and the phantom's at 0.973 against 1.000 (2.7%) — the pull follows the partner's mass. The pair is no longer rigid: the gap closes 10.000 → 9.408. Ratios only, never the constants — see phase 3
 - [x] `wavezone_pair_d10_L128_N256_lev0` — phase 4, **evolved to t=200 on 2026-08-22**; drift +2.7606 (4% from the L=64 N128 cell, so the box is not driving the result). **The r·ψ₄ gate fails, informatively**: ψ₄(l=2) falls as r^−4.0, not r^−1, across R = 16/24/32/40 — all four shells are in the near zone and no radiative tail is measurable. Reported as a null, see phase 4
 
 **Optional — only if the paper wants the figure:**
 
 - [x] `longrun_pair_d10_t400_L64_N128_lev0` — **evolved to t=400 on 2026-08-22**; drift +11.5177, a = 1.418e-04 over the last two thirds and 1.444e-04 in the final quarter — **the acceleration is steady, not growing**, which retires the late-time uptick seen at t=200. Separation opens 10.000 → 11.741. Frames + slice cache present
-- [x] `control_pair_mm_d10_L64_N192_lev0` — **evolved to t=200 on 2026-08-23**; completes the null ladder. Drift −0.00013 over the clean window against the PP rung's +0.00012 at the same grid — both four orders of magnitude below the runaway's +2.88, and flat rather than shrinking across resolution, which marks them as the measurement floor. min χ exactly 1.00000 (two negative masses leave the geometry flat). Boundary growth 7.0×, matching the PP rung digit for digit, confirming the effect tracks net mass and not sign. **Quotable only for t < 32**, same limit as the PP rungs
-- [~] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung. **Deliberately not run** (2026-08-23): 17 GPU-hours and 58 GB for a third point on a null ladder whose first two rungs already agree, in a configuration that goes unreadable after t ≈ 32. Launch script is staged if the decision is revisited
+- [x] `control_pair_mm_d10_L64_N192_lev0` — **evolved to t=200 on 2026-08-23**; completes the null ladder. Centroid drift −0.00035 over the full run against the PP rung's +0.00048 at the same grid — both four orders of magnitude below the runaway's +2.88, and flat rather than shrinking across resolution, which marks them as the measurement floor. min χ exactly 1.00000 — the diagnostic's blindness, not flat geometry: phantom stars make *hills* (χ up to 1.011 on the R=8 shell) and min χ only sees wells. Boundary growth 7.0×, matching the PP rung digit for digit. The `_frames` re-run answered the per-star question on 2026-08-24: **the phantom pair merges like the PP pair** (single lump by t ≈ 38, trajectory matching PP to a few %) — the field-overlap force is sign-blind and ~35× gravity; see "the two interaction channels"
+- [~] `control_pair_mm_d10_L64_N256_lev0` — ~17 h; MM null, finest rung. **Deliberately not run** (2026-08-23): 17 GPU-hours and 58 GB for a third point on a null ladder whose first two rungs already agree, when its first two rungs already agree digit for digit. Launch script is staged if the decision is revisited
 - [x] `massratio_heavyphantom_d10_L64_N128_lev0` — phase 3b, **evolved to t=200 on 2026-08-23**; reversed mass ordering (canonical ω = 0.81, M+ = 0.010721, |M−|/M+ = 1.333). **Gate PASSED on the sign**: the gap OPENS, 10.000 → 10.603, against 10.000 → 10.003 matched and 10.000 → 9.408 for the lighter phantom. See phase 3b result
 - [x] `massratio_w088_r060_d10_L64_N128_lev0` — phase 3b, **evolved to t=200 on 2026-08-23**; phantom ω = 0.88, ratio 0.597. Canonical pull ratio 0.597 against 0.597 predicted (−0.1%, the tightest in the campaign); gap closes 10.000 → 8.618. See phase 3b result
 - [x] ~~`massratio_*_r040_d10_L64_N128_lev0`~~ — phase 3b; **cannot be built.** The phantom branch has a floor at |M−| ≈ 0.00791 (0.55 of matched, near ω = 0.94) and a 0.40 rung would need 0.00574. The bound is itself a result — see phase 3b
 - [x] `amrcheck_pair_d10_L64_N128_lev1` — **evolved to t=200 on 2026-08-23**; referee-proofing. **Level 1 was never created** — the tagger never fired, exactly as predicted — and drift and acceleration match the uniform cell to **0.001% and 0.002%**. Mesh refinement changes nothing here
-- [ ] `chase_pair_d08_v03c_Lx352_L64_N128_lev0` — ~1.7 GPU-days; ride the runaway to 0.3c in a long box (section 4). **Superseded on paper by the recentring box — ~7.5 h for the same physics; see section 5 for the build plan.** Follow-up paper material either way
+- [ ] `chase_pair_d08_v03c_Lx352_L64_N128_lev0` — ~1.7 GPU-days; ride the runaway to 0.3c in a long box. **Superseded by the recentring box — implemented and implementation-tested 2026-08-23; plan and build record in `CHASE_TO_03C.md`.** Follow-up paper material either way
 
 ---
+
+## Findings for the paper — what each cell established, verified against the packed data
+
+Every number below was recomputed on 2026-08-23 from
+`results/bondi-dipole-runaway/campaign/` (the paper-facing extracts), not
+copied from earlier notes. `a` is the quadratic coefficient of the pair
+midpoint over the last two thirds unless a window is named.
+
+### The one-line verdicts
+
+| cell | for the paper |
+|---|---|
+| `runaway_pair_d10_L64_N128` | the headline at base resolution: drift +2.8815, a = 1.4634e-04, px_total 3.7e-05 |
+| `runaway_pair_d10_L64_N192` | drift +3.0139, a = 1.6106e-04 — brackets the finest rung from above |
+| `runaway_pair_d10_L64_N256` | **the quotable cell**: drift +3.0016, a = 1.5958e-04, px_total 3.8e-06 |
+| `runaway_pair_d{08,12,16}` | with d10: a ∝ d^−2.046, a·d² → GM to ~1% at d ≥ 12 |
+| `control_mirror_mp` | swap the sectors, the runaway reverses: drift ratio −1.000022, a ratio −1.000025 |
+| `control_lone_{canonical,phantom}` | a star alone moves ≤ 1.8e-03 in 200 — the single-star noise floor |
+| `control_pair_pp` ×3 rungs | two positive stars merge at t ≈ 35; their centroid moves ≤ 7.3e-04 all run |
+| `control_pair_mm` ×2 rungs | centroid ≤ 3.5e-04, min χ = 1.00000 exactly; per-star fate awaits the frames re-run |
+| `massscale_w0804` | phantom ×0.7995 → canonical pull ×0.809 (pred 0.7995) |
+| `massratio_w088_r060` | phantom ×0.5974 → canonical pull ×0.597 (pred 0.5974, the tightest point) |
+| `massratio_heavyphantom` | mass ordering reversed → the gap **opens** +0.6028; phantom pull ×0.739 (pred 0.747) |
+| `amrcheck_lev1` | refinement on: drift Δ 0.0008%, a Δ 0.0020%, level 1 never created |
+| `wavezone_L128` | box doubled: drift −4.2% vs L = 64; ψ₄(l=2) ∝ r^−4.0 — no wave zone, no radiation measured |
+| `longrun_t400` | a within 2% of 1.43e-04 in every late window; velocity still growing at t = 400 |
+| `stability_w{075..090}` | the canonical family is stable where it is used |
+
+### The two interaction channels — the paper's defence, as headlines with the runs behind them
+
+The claim under attack will be "something other than gravity moves the pair".
+The defence is that the model has exactly two interaction channels, each pair
+type isolates one of them, and the campaign measured both. Every bullet names
+the run(s) that carry it.
+
+**Channel 1 — the field's own overlap force (same-sector pairs only).**
+
+- *Two lumps of the same field, oscillating in phase, pull together through
+  direct field overlap — no gravity required.* Both same-sector pairs fall
+  toward each other and merge: the canonical pair by t ≈ 34
+  (`control_pair_pp_d10_L64_N256_lev0`, well tracking packed as
+  `well_tracking.dat`), the phantom pair by t ≈ 38
+  (`control_pair_mm_d10_L64_N128_lev0_frames`, the frames re-run).
+- *This force is ~35× gravity at d = 10.* Newtonian free-fall from 10 apart at
+  these masses takes t ≈ 200; both pairs merged in ~35. Force ratio
+  ≈ (200/35)² ≈ 35.
+- *It is blind to the sign of the gravitational coupling.* The phantom pair
+  falls on the canonical pair's trajectory to a few percent — centroid gap
+  −0.885 vs −0.863 at t = 19.2, same detector, same window
+  (`control_pair_mm_d10_L64_N128_lev0_frames` vs
+  `control_pair_pp_d10_L64_N256_lev0`). Gravity is the only force that changes
+  sign between those two cells; if it mattered at this scale the trajectories
+  would split. They do not.
+- *Consequence: the same-sector cells are not gravity tests and the paper must
+  not present them as the ++/−− entries of a Bondi sign matrix.* Their value is
+  (a) they calibrate the field channel — fast, short-range, sign-blind — and
+  (b) they are momentum nulls: the pair centroid stays pinned to ≤ 7.3e-04
+  through a violent merger and ringdown (`control_pair_pp_*`,
+  `control_pair_mm_*`, all rungs).
+
+**Channel 2 — gravity (the mixed pair's only channel).**
+
+- *By construction.* Canonical and phantom are two separate complex fields;
+  each self-interaction potential is evaluated on its own field's modulus only
+  (`Source/Matter/ComplexScalarField.impl.hpp`,
+  `Source/Matter/ComplexExoticScalarField.impl.hpp` — `compute_potential`
+  takes one field's components; no term in the Lagrangian contains both
+  fields). The metric is the only object both fields touch.
+- *By measurement, three ways, none requiring trust in the Lagrangian:*
+  1. **Same separation, opposite fate.** At the same d = 10 where same-field
+     pairs merge in ~35, the mixed pair holds its gap for the whole run,
+     10.000 → 10.003 (`runaway_pair_d10_L64_N128_lev0`). A few-percent leak of
+     the 35×-gravity overlap force across sectors would have slammed the gap
+     shut.
+  2. **Range.** A field-overlap force dies exponentially with distance; gravity
+     falls as 1/d². The measured force is a clean power law, a ∝ d^−2.05
+     across d = 8/10/12/16 (`runaway_pair_d{08,10,12,16}_L64_N128_lev0`), with
+     a·d² returning the star's mass to ~1% at d ≥ 12.
+  3. **What sets the strength.** A field force scales with field overlap and
+     knows nothing about ADM mass. The measured pull tracks the *partner's ADM
+     mass* through a factor 2.2 in mass ratio — including the sign flip of the
+     gap at the equal-mass point (`massscale_pair_d10_w0804`,
+     `massratio_w088_r060`, `massratio_heavyphantom`, all `_L64_N128_lev0`).
+- *The phantom's exotic nature enters through exactly one thing: the sign with
+  which its energy curves space.* Its field dynamics, internal glue and
+  response to curvature are standard. Visible in one pair of frames: the
+  phantom pair's merged remnant is a **hill** in χ (χ − 1 up to +0.015,
+  `control_pair_mm_..._frames`, `chi_minus_1` at t = 38.4) where the canonical
+  remnant is a **well** (χ − 1 ≈ −0.02, `control_pair_pp_..._N256`). Same
+  matter behaviour, opposite curvature — the model's one sign, photographed.
+
+**The sentence the two channels buy:**
+
+> Same-sector pairs share a field, and the field's own overlap force — ~35×
+> gravity at this separation — dominates their dynamics identically regardless
+> of the sign of their gravitational coupling. The mixed pair's two stars live
+> in different fields with no coupling term between them, so curvature is
+> their only interaction channel: the runaway is gravitational by
+> construction, and by measurement.
+
+**Honest residual, so the referee finds nothing we did not state first:** the
+canonical star's field tail does reach the phantom's position, but what it
+delivers there is energy, and energy curving space *is* the gravitational
+channel. Extended sources in each other's curvature give the small excess in
+a·d² — +4.4% at d = 8 falling to ~1% by d = 12–16 — the fingerprint of a
+finite-size gravitational correction fading with distance
+(`runaway_pair_d20_L64_N128_lev0`, in flight, tests whether it keeps fading).
+
+### Convergence, honestly: what Richardson can and cannot give here
+
+The ladder triple is **non-monotone** — N128 sits below, N192 slightly above
+N256 — so the apparent-order ratio (f₁₂₈−f₁₉₂)/(f₁₉₂−f₂₅₆) is negative (≈ −10)
+and **no formal convergence order can be quoted**. The reason is visible in the
+constraint norms and is worth a sentence in the paper: the t = 0 violation
+*rises* with resolution (L2 Ham 1.06e-04 → 1.46e-04 → 1.80e-04), because the
+initial-data interpolation noise scales as 1/dx², while the evolution's own
+violation *falls* with resolution (late-time 1.06e-05 → 6.6e-06 → 5.6e-06).
+Two error sources with opposite resolution behaviour cross somewhere near the
+base rung, and the ladder never enters a single-power asymptotic regime.
+
+What survives is still strong:
+
+- The finest two rungs agree to 0.4% (drift) and 0.9% (a), and the evolution
+  error falls grid over grid.
+- Richardson on the fine pair alone (ratio 4/3): assuming 2nd order gives
+  a∞ = 1.577e-04, assuming 4th gives a∞ = 1.589e-04 — both corrections are
+  *smaller than the N192–N256 spread itself*.
+- **Quote:** drift 3.00 ± 0.01 at t = 200, a = (1.60 ± 0.02)e-04, error bar =
+  the fine-pair spread, which dominates any extrapolation correction.
+
+One nuance the coarse grid hides: at N128 the separation returns to 10.003
+("rigid pair"), but both fine rungs agree it actually *closes* slightly, to
+9.930/9.915. Rigidity is a 1%-level statement and the fine-grid value is the
+honest one.
+
+### The drift is real — the five-way confirmation
+
+| perturbation | change in the answer |
+|---|---|
+| cell size ×(3/4)² | +4% then −0.4% (converged) |
+| mesh refinement on | 0.0008% — and the tagger never fired: **max_level changes nothing** |
+| box volume ×8 | −4.2% |
+| sector swap | ×(−1.000022) |
+| run 2× longer | a within 2% of the t ≤ 200 value; velocity still growing linearly |
+
+And the null side: lone stars ≤ 1.8e-03, same-sign centroids ≤ 7.3e-04 —
+2000–4000× below the signal. Total momentum stays consistent with zero while
+the pair displaces by 3: px_total = 3.7e-05 at N128 falling to **3.8e-06 at
+N256** — displacement without momentum is the Bondi signature, and it converges
+*toward* zero, not away from it.
+
+### The force law
+
+a·d² against GM = 0.014350: 0.01498 (d=8, +4.4%), 0.01463 (d=10, +2.0%),
+0.01448 (d=12, +0.9%), 0.01450 (d=16, +1.0%). Power-law slope −2.046. The
+excess is largest exactly where the envelopes overlap most and decays to the
+~1% floor by d = 12 — the finite-size correction behaving like one.
+
+### The mass ladder — the sign flip and its systematics
+
+Gap change at t = 200 against phantom/partner mass ratio: +0.6028 (1.333),
++0.0030 (1.000), −0.5919 (0.7995), −1.3816 (0.5974). A straight line crosses
+zero at ratio **1.06**; the gap opens, sits still, or closes strictly according
+to which star is heavier.
+
+The separation-corrected per-star fit carries a measurable systematic, and the
+paper should state it rather than hide it. The three *changed-partner* ratios —
+the scaling law itself — land at 0.809 / 0.597 / 0.739 against 0.7995 / 0.5974
+/ 0.7471 predicted (1.2%, 0.05%, 1.1%). The *unchanged*-partner ratio in each
+cell is the internal control, and it degrades as the pair deforms: 0.973
+(gap −0.59), 1.052 (gap +0.60), 0.725 (gap −1.38). The fit is trustworthy while
+the pair stays near-rigid and visibly is not once the gap moves by >1;
+ratios of the changed partner are the quotable numbers, constants never are
+(on the matched cell the same fit returns 0.0161 and 0.0119 for two constants
+both known to be 0.01435).
+
+### What t = 400 adds
+
+a stays inside 2% of 1.43e-04 in every window (133–266: 1.451e-04, 300–400:
+1.422e-04, 350–400: 1.417e-04) — no runaway-of-the-runaway, and the mild late
+decline has the right sign for its cause: the gap opens to 11.74 over the long
+run, and a weaker pull follows a wider pair. The pair is rigid on the t = 200
+window and measurably non-rigid on twice that; both facts belong in the text.
+
+### Finding: the flat pulse in the shift movies is emitted by the outer boundary at t = 0 — it is not a reflection
+
+(Absorbed from the retired `Findings.md`, 2026-08-23; originally recorded
+2026-08-22 on the runaway N=256 cell's preview movies.)
+
+A flat front is visible crossing the box early in every `shift1` movie. Tracked
+on the y-averaged planar detector (planes survive the average, spherical arcs
+wash out):
+
+| t | 1.6 | 4.8 | 8.0 | 12.8 | 16.8 |
+|---|---|---|---|---|---|
+| x of front | 63.12 | 58.12 | 53.62 | 46.88 | 41.12 |
+
+A straight-line fit gives speed **1.389** inward and back-extrapolates to
+**x = 64.45 at t = 0** — it starts *at the wall*, at the start. Three reasons it
+cannot be a reflection of anything physical: nothing has reached the wall (the
+stars sit 27 from the nearest face and the fastest signal in the run moves at
+≈ 1.41, so the earliest possible touch is t ≈ 19); it is superluminal,
+consistent with the 1+log gauge mode √(2/α) ≈ 1.41, and matter cannot source
+it; and it is flat, where anything sourced by the stars would be curved.
+
+What it is: the initial shift is exactly zero everywhere, which is
+inconsistent with the outer boundary condition, and the boundary's correction
+propagates inward at the gauge speed from t = 0. It appears in every field but
+is only *visible* in shift because shift's own dynamic range is tiny:
+
+| field | pulse amplitude | field's own scale | pulse/scale |
+|---|---|---|---|
+| shift1 | 1.9e-06 | 2.0e-05 | 10% |
+| chi | 3.1e-06 | 1.0e-02 | 0.03% |
+| local_speed | 3.2e-06 | 1.0e+00 | 0.0003% |
+
+It leaves no trace on the result: the N128 Ham norm is monotone through the
+crossing (4.03e-06 at t=9 → 4.49e-06 at t=23 → 7.01e-06 at t=69, no kink), and
+the fitted acceleration is unchanged (1.428e-04 at t=63 vs 1.440e-04 at
+t=157–199). For the movie figures: label it, don't crop it.
+
+Reproduce (against the run tree's slice cache):
+
+```python
+.venv/bin/python - <<'PY'
+import numpy as np, glob
+d = 'runs/bondi/staging/runaway_pair_d10_L64_N256_lev0/bondi_sg_pair_pm_eqm_w075'
+xs = np.arange(256) * 0.25 + 0.125
+for f in sorted(glob.glob(f'{d}/frames/_slice_cache/shift1_z/*.npz')):
+    z = np.load(f, allow_pickle=True)
+    a = z['arr'].astype(float)
+    prof = np.abs(a - a.mean()).mean(axis=0)   # y-average: planes survive, arcs wash out
+    R = xs > 40
+    j = np.argmax(prof[R])
+    print(f"{float(z['time']):6.2f}  x={xs[R][j]:6.2f}  amp={prof[R][j]:.2e}")
+PY
+```
+
+### Finding: the same-sign "flooding" was the pair merging — a misdiagnosis and its correction
+
+(Absorbed from the retired `Findings.md`, recorded 2026-08-23.)
+
+The same-sign controls grow their total box scalar activity sevenfold, onset
+t ≈ 40, peak t ≈ 95, at every resolution (7.1× / 7.0× / 6.9×). The first
+diagnosis blamed the elliptic solve's outer boundary condition emitting a wave
+at t = 0 that reaches the centre at the light-crossing time t ≈ 32 and floods
+the box; the cells were declared "quotable only for t < 32" and that
+restriction propagated into this document and both results READMEs.
+
+**The diagnosis was wrong, and one column already on disk refuted it:**
+`boundary_flux.dat`. Net inward flux in the PP N=256 cell is at round-off
+(≤ 1e-08) through the entire early run — nothing arrives from the wall, the
+sponge (r = 24 → 32, strength 4) absorbs as designed. The only significant flux
+is *outward*, ~1e-04 near t = 100: the story leaving the box.
+
+What actually happens (well tracking now packed as
+`campaign/control_pair_pp_d10_L64_N256_lev0/well_tracking.dat`): the two wells
+close 8.75 → 8.00 (t = 20) → 5.25 (t = 32) and are merged by t = 33.6. The two
+stars pull together and coalesce — predominantly via the same-field overlap
+force, ~35× gravity at this separation (free-fall alone would need t ≈ 200) —
+and the ×7 growth is merger ejecta; the ringing remnant follows. The centroid stays pinned to ≤ 7.3e-04 through all of
+it, which makes the same-sign cells a *stronger* null than the t < 32
+restriction allowed — valid over their whole run.
+
+Two mistakes worth naming so they are not repeated:
+
+1. **A timescale coincidence was taken as a mechanism.** t ≈ 32 matched the
+   light-crossing time and the search stopped there; the merger completing at
+   t ≈ 34 fits the same window.
+2. **Resolution-flatness was read backwards.** Identical growth at three grids
+   was cited as proof of an initial-data artefact; converged *physics* is flat
+   in resolution too. Flatness distinguishes "not a grid effect" from "grid
+   effect" — it does not distinguish physics from artefact.
+
+The MM pair's per-star fate, measured by
+`control_pair_mm_d10_L64_N128_lev0_frames` on 2026-08-24: it merges exactly
+like PP (single lump by t ≈ 38, matching trajectory). Bondi's gravitational
+−− repulsion is real but ~35× too weak to see against the same-field overlap
+attraction — see "the two interaction channels". What survives of the
+original concern, both t = 0 statements: the same-sign elliptic solve genuinely
+floors near 5.4e-04 % (hence the flat 0.002 gate), and the shift pulse above is
+real but ~1e-06.
+
+### The star-family floors (from the branch scan, `star_family_massratio.csv`)
+
+Both branches bottom out: the lightest canonical star is M+ = 0.00776 at
+ω ≈ 0.92, the lightest phantom |M−| = 0.00791 at ω ≈ 0.94 — about 0.54/0.55 of
+the matched mass — and neither branch has a bound star at ω = 1.0. This is why
+the mass ladder has no 0.40 rung and why the reversed cell lightens the
+canonical instead of fattening the phantom. The bound is a property of the
+model worth one paragraph on its own.
 
 ## 0. Decisions taken up front (so they are not re-litigated per cell)
 
@@ -621,48 +912,73 @@ by 4%, so the outer boundary is not driving it. Running four times longer
 (t = 400, phase 5) leaves the acceleration flat at 1.44e-04 through the final
 quarter, so it is a steady acceleration and not a late-time blow-up.
 
-### The same-sign null is boundary-limited — quote it only for t < 32
+### The same-sign pairs merge — the activity growth is the merger, not a boundary artefact
 
-The PP and MM cells are not clean for their whole run, and the reason is
-mechanical rather than physical. Their automatic report cards flag *matter
-dispersed — only 15–17% still confined*, which reads like the stars died. They
-did not. What actually happens:
+**Corrected 2026-08-23.** An earlier version of this section claimed the
+same-sign cells were flooded by a wave emitted from the outer boundary at t = 0,
+arriving at the centre at t ≈ 32, and were therefore "quotable only for t < 32".
+That was wrong, and the measurement that kills it is the boundary flux: the net
+inward flux in the PP cell is at round-off (1e-08 and below) through the entire
+early run. Nothing arrives from the wall — the sponge (r = 24 → 32, strength 4)
+absorbs exactly as designed. The t ≈ 32 ≈ light-crossing coincidence was just
+that, a coincidence, and the resolution-flatness of the growth (7.1×/7.0×/6.9×)
+was evidence of converged *physics*, not of an initial-data artefact.
+
+What actually happens, established by tracking the two wells frame-by-frame
+in the PP N=256 cell (mechanism note, added after the mm frames run: the
+attraction driving this infall is predominantly the *field-overlap* force
+between two in-phase lumps of the same field, ~35× gravity at this separation
+— Newtonian free-fall from d = 10 would take t ≈ 200, not 35 — see "the two
+interaction channels" above):
+
+| t | 0 | 13 | 20 | 26 | 32 | ~35 |
+|---|---|---|---|---|---|---|
+| gap between the two wells | 8.75 | 8.25 | 8.00 | 7.25 | 5.25 | **merged** |
+
+The two stars pull together — predominantly by same-field overlap, ~35×
+gravity here (see "the two interaction channels") — and **merge at t ≈ 35**. The
+merger ejects scalar field — total box activity rises ×7, peaking at t ≈ 97 —
+and the ejecta then drains out through the sponge, which is the *outward*
+boundary flux (~1e-04) appearing near t = 100. The well deepens from 1.5e-02 to
+2.0e-02 at coalescence and the remnant rings down around 1.8e-02 afterwards:
+the "collide and bounce" visible in the chi movie is a merger plus remnant
+oscillation, i.e. real physics end to end. The score card's *matter dispersed —
+only 15–17% confined* is the merger ejecta; the surviving peak is the remnant
+core, not two buried stars.
 
 | | runaway (mixed) | null (same-sign) |
 |---|---|---|
-| total scalar field in box | 7.9 → 9.2 (+16%) | 7.8 → **54.7** → 27.6 |
-| **peak** field strength | 0.0247 → 0.0246 | 0.0247 → 0.0233 |
-| spread (rms) | 6.6 → 7.2 | 6.6 → **28** |
-| constraint error | 3.7e-06 → 6.6e-06 | 2.1e-05 → 2.3e-05 |
+| total scalar field in box | 7.9 → 9.2 (+16%) | 7.8 → **54.7** → 27.6 (merger ejecta, then sponge drain) |
+| **peak** field strength | 0.0247 → 0.0246 | 0.0247 → 0.0233 (remnant core) |
+| net inward boundary flux | round-off | round-off — **nothing arrives** |
+| constraint error | 3.7e-06 → 6.6e-06 | 2.1e-05 → 2.3e-05, bounded |
 
-The peak barely moves, so the star cores are intact; the constraint error stays
-small and bounded, so the evolution is not diverging. What grows is *extra*
-field spread over the whole box — seven times the original — which then drains
-back out. The stars are buried, not destroyed.
+**The MM cells are now explained — by the frames re-run.**
+`control_pair_mm_d10_L64_N128_lev0_frames` (physics identical to the archived
+MM cell, frames on) shows the phantom pair falling together on the PP pair's
+trajectory to a few percent (centroid gap −0.885 vs PP's −0.863 at t = 19.2)
+and merged into a single lump by t ≈ 38. Two negative masses do NOT repel here,
+and that is the *correct* outcome: Bondi's −− repulsion is a statement about
+gravity, and the same-field overlap attraction outguns gravity ~35× at d = 10.
+The identity of the mm and pp trajectories is itself the proof — gravity is the
+only force whose sign differs between those two cells. (The tracker still
+reports separation = nan for same-sign pairs — both stars share one sector —
+which is why the frames were needed; the flux diagnostic likewise integrates
+canonical-sector energy and reads zero in a phantom-only box.)
 
-It starts at a specific time. The two families track each other to within 1%
-until t ≈ 28, then the null kinks and takes off: 1.15× at t=40, 1.84× at t=50,
-3.14× at t=60. The box half-width is 32 and light crosses it in a time of 32.
-Nothing else in the problem has that timescale.
-
-The mechanism is the one already recorded in `Findings.md` for the shift movies,
-scaled up. The outer boundary condition pins the conformal-factor correction to
-a value that is only right when the two masses cancel. For a mixed pair they do,
-so the boundary is very nearly correct and what it emits is ~1e-06 — invisible
-except in the shift. For a same-sign pair they do not cancel, the boundary
-condition is genuinely wrong, and what it emits is large enough to swamp the
-box. The growth factor is 7.1× / 7.0× / 6.9× at N=128 / 192 / 256 — flat in
-resolution, which confirms it lives in the initial data and the boundary
-condition, not in the discretisation.
-
-**Consequence for the paper.** The same-sign null is trustworthy up to t ≈ 32
-and no further. The runaway signal needs t ≳ 100 to measure, so the two cannot
-be compared at equal times, and the null cannot be quoted at t = 200. What it
-still supports is the phase-1 statement — no dipole appears while the cell is
-clean — and the boundary error is spherically symmetric, so it cannot
-manufacture a dipole even after it arrives. The mirror cell (phase 1), which has
-zero net mass and is therefore free of this effect, is the stronger null and
-should carry that argument in the text.
+**Consequence for the paper — better than before.** The same-sign nulls are
+valid over their whole run, not just to t ≈ 32: the pair centroid moves by only
++0.00073 (PP) and −0.00028 (MM) over the full t = 200 against the runaway's
++2.88 — four orders of magnitude, sustained through a violent merger and
+ringdown. A configuration that cannot manufacture net momentum even while
+merging is a stronger null than one that merely sits still. What the same-sign
+cells cannot give is a per-star trajectory (single-sector tracking), so the
+star-level statement rests on the frames cells. Two residual caveats survive
+from the old section, both about t = 0 rather than the evolution: the elliptic
+solve's outer boundary condition is genuinely wrong for a same-sign pair (net
+2M in the box), which is why the solve gate floors at ~5.4e-04 % and is held
+flat at 0.002 — and the tiny t = 0 gauge pulse in the shift documented in
+the findings section above is real but ~1e-06 and invisible outside the shift.
 
 ### Phase 3 — gravity scales with the source (one cell, ~1.5 h)
 
@@ -991,234 +1307,15 @@ is the ratio to remember when tempted to launch everything at once.
 
 ---
 
-## 4. Outlook — how far toward the speed of light can the dipole be pushed?
+## 4. Beyond t=200 — the 0.3c chase (moved out of this document)
 
-Not all the way: a constantly self-accelerating pair follows hyperbolic
-motion, approaching c asymptotically, never reaching it. The real question is
-what fraction of c fits in a computable box. With the measured d=8
-acceleration (2.32e-4) and the pair racing down a long thin box (transverse
-side kept at 64, cell 0.5, pair launched near the −x face):
-
-| target | run length t | distance | box length | memory | GPU-days |
-|---|---|---|---|---|---|
-| 0.10 c | 430 | 22 | 160 | 15 GB | 0.2 |
-| 0.30 c | 1,360 | 210 | 352 | 33 GB | 1.7 |
-| 0.50 c | 2,500 | 670 | 800 | 75 GB | 7 |
-| 0.70 c | 4,200 | 1,700 | 1,856 | 174 GB — 3+ cards | 28 |
-| 0.90 c | 8,900 | 5,600 | 5,728 | 537 GB — over the node | 180 |
-
-0.3c costs under two days on one card and already carries a 4.8% deviation
-from the Newtonian v = a·t — a measurable test of relativistic
-self-acceleration. 0.5c (15% deviation) is a week and just fits one card.
-Beyond that the box, not the time, is the wall: the distance needed to go
-relativistic is d²/GM ≈ 900 star radii, which is why literal c is petabytes.
-
-Ways to cut the cost, strongest first:
-
-1. **Heavier stars — cost falls as 1/M².** Time, distance, box and step count
-   all scale as 1/M, so GPU time to a fixed speed scales as 1/M². The
-   ω=0.75 star (M = 0.01435) sits far below the stable branch's mass maximum
-   (the branch runs from ω ≈ 0.67 up). Run the family scan (CPU-only) over
-   ω = 0.67–0.75 and take the heaviest stable canonical that has a
-   mass-matched phantom partner: 3× the mass makes every row above 9×
-   cheaper — 0.5c in under a day.
-2. **A recentring (comoving) box.** The box is long only because the pair
-   moves. Shifting every field back by a whole number of cells at intervals
-   is an exact copy — no interpolation, the same reasoning that fixed the
-   initial data — with the sponge eating the seam at the trailing face. That
-   caps the box at ~L=128 forever and makes cost linear in run time: 0.9c in
-   a small box becomes days, not half a year. New default-off feature; needs
-   one validation cell (recentred vs not, over a window both can reach).
-3. **Both together**: with 3× mass, 0.9c needs only t ≈ 3,000 in a small
-   static box — even paying for the finer grid the Lorentz-contracted star
-   eventually demands (γ = 2.3 at 0.9c halves the star's grid footprint;
-   plan on dx = 0.25 past ~0.6c), it stays in single-digit GPU-days.
-4. Smaller levers: separation below 8 buys ~30% but enters envelope overlap;
-   an initial boost via the solver's boost knob skips the slow early phase,
-   but that code path has never been validated — it gets a validation cell
-   before it gets believed.
-
-None of this is in the required matrix; it is the natural follow-up paper.
-
----
-
-## 5. The recentring box ("running road") — realisation plan
-
-> **Superseded in detail by [`CHASE_TO_03C.md`](CHASE_TO_03C.md), 2026-08-23.**
-> The sketch below is still the right design; the worked version checks its
-> arithmetic against the archive, names the code file by file, revises the shift
-> threshold from 8 down to 2, gives the validation cells gates that a correct
-> implementation can actually meet, and states the acceleration-law risk that
-> dominates the whole exercise. Read that first.
-
-This is outlook item 2 above, worked out far enough to build. The chase cell is
-long only because the pair travels; if the pair is periodically carried back to
-the middle of a small box, the box never has to grow. Cost stops scaling with
-the target speed and becomes linear in run time.
-
-### What moves is the data, not the box
-
-The domain stays exactly what every mixed cell already uses: 64 on a side, 128
-cells, centre at 32. Nothing about the grid, the extraction radii or the sponge
-changes. When the pair's centroid has drifted 8 units toward the front wall,
-every field is copied back by **exactly 16 cells**, which puts the pair back at
-the centre, and 8 is added to a running odometer:
-
-```
-true displacement = position on the grid + odometer
-```
-
-16 cells is a whole number of cells, so the copy is a pure relabelling of which
-cell holds which value — **no interpolation, exact to the last bit**. This is
-the same reasoning that fixed the initial-data alignment: shifts that land on
-the mesh are free, shifts that land between cells are not, so only the former
-are ever taken.
-
-Reaching 0.3c means travelling 210 units, so about **26 shifts over the whole
-run**. Each one moves roughly 600 MB inside the card and takes milliseconds.
-Early on the pair barely moves and shifts are rare; near 0.3c one falls every
-27 units of time.
-
-### Why not move the coordinates instead
-
-The obvious alternative is to leave the data alone and let the coordinates chase
-the pair — a comoving gauge. It is rejected on presentation grounds, not
-technical ones. The entire claim of the paper is *the pair accelerates*.
-Measuring that acceleration in a gauge purpose-built to follow the pair is a
-much harder result to defend, and invites exactly the objection the whole
-control matrix exists to kill. Translating the data leaves the evolution
-equations, the gauge and the boundary untouched; only the labels change.
-
-### The two seams, and why neither one reaches the stars
-
-| face | what happens | distance from the pair | sits in |
-|---|---|---|---|
-| front (leading) | 16 cell-layers have no source and must be invented | 32 | sponge band |
-| back (trailing) | 16 cell-layers of already-departed wake are discarded | 32 | sponge band |
-
-The front sliver is filled from the outermost surviving layer using the same
-1/r falloff the outer boundary condition already assumes, so the fabricated
-values are continuous with what the boundary would have produced anyway. The
-back sliver is thrown away; it holds radiation that has already left and cannot
-travel back inward to reach the pair before the next shift.
-
-**Nothing inside radius 24 is ever fabricated or discarded.** Both seams live
-entirely in the outer shell.
-
-### The sponge is what makes this legal
-
-The sponge already exists (`Source/Grids/SpongeZone.hpp`), is already switched
-on in every mixed cell, and already covers the band from radius 24 to 32 — it
-is the thing that bought evolution past t = 60 in the first place. It is
-anchored at fixed radius about the box centre, and after every shift the pair is
-back at that centre, so **the sponge's geometric relationship to the pair is
-restored exactly, every time**. Without it the fresh seam would ring and the
-ringing would eventually turn around; with it the seam is absorbed before it
-can.
-
-The important point for a referee: relative to the fixed 64-box already used for
-every mixed cell, the recentring box adds **no new approximation**. That box
-already truncates the domain at radius 32 and already sponges everything outside
-24. The recentring box keeps that same truncation centred on the pair instead of
-letting the pair drift into one wall — which is strictly the safer of the two,
-because the pair never approaches the boundary at all.
-
-### What this cell cannot answer
-
-The wake is discarded, so this run yields **no radiated momentum and no wave
-zone**. It answers how fast the pair goes and nothing else. The wave-zone cell
-in phase 4 remains the only source for the radiation field, and stays in the
-matrix.
-
-### Deciding when to shift
-
-After each step, one reduction over the grid gives the mass-weighted centroid of
-the pair. The same reduction pattern is already in the binary and already proven
-on the cards — it is what steers the pump's spotlight
-(`Examples/RadialRecipe/RLLumpTracker.hpp`) — but the recentring module gets its
-own copy rather than reaching into the reinforcement-learning path, so the two
-stay uncoupled.
-
-Threshold: shift when the centroid is more than 8 units from the box centre.
-Large enough that shifts are rare, small enough that the pair stays deep inside
-the sponge's inner radius at all times.
-
-### Checkpoints
-
-Every cell in this campaign currently runs with checkpointing switched off,
-which is right for a 1.1-hour cell and wrong for this one — it is between 8 and
-50 hours. Switch it on. A checkpoint is about 1.2 GB at 128 cells; keeping a
-rolling pair is nothing against the 3.5 TB free.
-
-One piece of genuinely new state has to go into the checkpoint: **the odometer**.
-Without it a restart resumes with the trajectory silently reset to zero, and the
-resulting plot looks plausible while being wrong — the worst possible failure
-mode. It is written and read back explicitly, and the restart is verified by
-checking that the first line after a restart continues the last line before it.
-
-### Code shape
-
-Obeys the module rule: new behaviour lives in its own file, behind its own
-switch, writing its own output.
-
-| piece | where | note |
-|---|---|---|
-| the shift and the odometer | new `Source/Grids/GridTreadmill.hpp` | self-contained |
-| the switch | one parameter, **off by default** | every archived cell is unaffected |
-| the log | new `small_data/treadmill.dat` — step, time, cells shifted, cumulative offset | no existing column contract widened |
-| the call | the post-timestep hook already present in the evolution level, coarsest level only | |
-
-The shift itself is about fifteen lines: copy the state into a scratch buffer,
-relabel the scratch buffer's boxes 16 cells back in x, copy it back by box
-intersection, then fill the front sliver. The framework provides both halves of
-that directly.
-
-**Restriction:** single-level only. Every cell in this campaign is single-level
-by decision, so this is not a limitation in practice, but the module refuses to
-start with a hard error if refinement is on rather than silently doing something
-wrong on a refined grid.
-
-### Validation — three cells, and no result is believed before them
-
-1. **Forced-shift null (~1.1 h).** The headline cell, shifting on a fixed
-   schedule with zero net displacement: 16 cells forward, then 16 cells back.
-   The trajectory must come out unchanged to round-off. This isolates seam
-   damage from physics — if anything is wrong with the copy or the fill, it
-   shows here with nothing else to hide behind.
-2. **Recentred against the archive (~1.1 h).** The headline cell with
-   recentring armed and the threshold dropped to 2 units, so several shifts
-   land inside t ≤ 200. The trajectory must reproduce the archived cell.
-   *Pass gate:* displacement and acceleration agree with the archive to the
-   same tolerance the mirror control met — 1.4e-04 relative.
-3. **Box-size check, once the pair is past 0.3c (~15 h).** Recentring at 96 on
-   a side and 192 cells (same cell size) against 64/128 over the same window.
-   This is the one that actually matters at speed: the outer boundary assumes a
-   static centre, and a pair moving at a third of light speed is not static
-   relative to the grid. Cells 1 and 2 cannot detect this, because the pair is
-   barely moving by t = 200.
-
-### What it buys
-
-| target | run length t | long box, as planned | recentring box, 64 / 128 |
-|---|---|---|---|
-| 0.10 c | 430 | 0.2 GPU-days | **2.4 h** |
-| 0.30 c | 1,360 | 1.7 GPU-days | **7.5 h** |
-| 0.50 c | 2,500 | 7 GPU-days | **14 h** |
-| 0.70 c | 4,200 | 28 GPU-days | **23 h** † |
-| 0.90 c | 8,900 | 180 GPU-days | **49 h** † |
-
-† past roughly 0.6c the Lorentz-contracted star needs half the cell size, which
-multiplies these by about 16 — still days rather than months.
-
-Memory at the 0.3c target falls from 33 GB to 6 GB, so the run fits on one card
-with room to spare instead of filling it.
-
-The headline: **the chase cell drops from 1.7 GPU-days to about 7.5 GPU-hours**,
-and — unlike the long box — its cost no longer grows with the target speed.
-
-### The cell
-
-`chase_pair_d08_v03c_recentred_L64_N128_lev0` replaces
-`chase_pair_d08_v03c_Lx352_L64_N128_lev0` in the scoreboard once validation
-cells 1 and 2 pass. The long box stays on the books as the fallback if they do
-not, and as the cross-check if the follow-up paper wants one.
+The outlook analysis (how far the dipole can be pushed toward the speed of
+light) and the recentring-box ("treadmill") realisation plan that used to be
+sections 4 and 5 here have moved to
+`research/bondi_dipole/docs/CHASE_TO_03C.md`, and the treadmill is no longer a
+plan: it is implemented (`Source/Grids/GridTreadmill.hpp`,
+`Examples/RadialRecipe/RecentringBox.hpp` + `SectorCoreTracker.hpp` +
+`TreadmillLog.hpp`, tests in `Tests/GridTreadmillTest/`) and its four
+implementation-test legs all passed — see
+`runs/bondi/staging/treadmill_pair_d10_L64_N128_lev0/README.md`. This document
+is the record of the t = 200 campaign; the chase is the follow-up paper's.

@@ -102,9 +102,44 @@ opposite of what a discretisation artefact does — refining does not drive the
 effect toward zero, it settles it onto a value. **The N=256 rung is the
 headline number**, with N=192 as its convergence partner.
 
+**Error bars, honestly.** The triple is non-monotone (N=192 lands slightly
+above N=256), so no formal convergence order is quotable. The cause is visible
+in `constraint_norms.dat`: the `t = 0` violation *rises* with resolution
+(`1.1e-04 → 1.5e-04 → 1.8e-04` — initial-data interpolation noise scales as
+`1/dx²`) while the evolution's own violation *falls* (`1.1e-05 → 6.6e-06 →
+5.6e-06`). Two error sources with opposite grid behaviour never leave a single
+asymptotic power. Richardson on the fine pair alone gives corrections smaller
+than the pair's own spread at any assumed order, so the quote is
+**drift `3.00 ± 0.01`, `a = (1.60 ± 0.02)e-04`**, the fine-pair spread as the
+error bar.
+
+Total momentum sharpens the claim rather than diluting it: `px_total` is
+`3.7e-05` at N=128 and `3.8e-06` at N=256 — the pair displaces by 3 while its
+momentum converges *toward* zero. Displacement without momentum is the Bondi
+signature.
+
+One nuance the coarse grid hides: N=128 says the pair is rigid (separation
+back to `10.003` at `t = 200`), but both fine rungs agree it actually closes
+slightly (`9.930` / `9.915`). Rigidity is a `1%`-level statement; the
+fine-grid value is the honest one.
+
 Two independent checks agree: doubling the box moves the drift by `4%`
 (`wavezone`, below), and running four times longer leaves the acceleration flat
 (`longrun`, below).
+
+### The mirror — swap the sectors, the runaway reverses exactly
+
+`control_mirror_mp_d10_L64_N128_lev0` is the headline cell with the two stars
+swapped in place (phantom left, canonical right). Everything must come out
+sign-flipped and nothing else may change:
+
+| | headline | mirror | ratio |
+|---|---|---|---|
+| drift | `+2.88147` | `−2.88153` | `−1.000022` |
+| `a` | `+1.46336e-04` | `−1.46340e-04` | `−1.000025` |
+
+A reversal exact to two parts in 10⁵. No grid artefact, boundary effect or
+gauge drift knows which side the phantom is on; only the physics does.
 
 ### Sustained acceleration — is it steady or is it running away with itself?
 
@@ -121,59 +156,68 @@ One thing does change over the longer window: the separation *opens*,
 is unaffected, but any statement that the pair moves rigidly belongs to
 `t ≤ 200` only.
 
-### The same-sign nulls — read only up to `t ≈ 32`
+### The same-sign nulls — the pairs merge, and the centroid still does not move
 
 `control_pair_pp_*` and `control_pair_mm_*` put two stars of the *same* mass
-sign side by side. Their automatic report cards say *matter dispersed, only
-15–17% still confined*, which reads like the stars died. They did not, and the
-distinction matters:
+sign side by side. Their report cards say *matter dispersed, only 15–17% still
+confined*, and an earlier version of this section blamed a wave from the outer
+boundary arriving at `t ≈ 32` and declared the cells unreadable after that.
+**That was wrong.** The boundary flux measurement retires it: net inward flux in
+the PP cell is at round-off for the whole run — nothing arrives from the wall,
+the sponge absorbs as designed — and the only significant flux is *outward*,
+near `t = 100`, which is the story leaving the box, not entering it.
+
+What the frames of the PP N=256 cell actually show, tracking the two
+gravitational wells image by image (the full series is packed as that cell's
+`well_tracking.dat`; first merged frame `t = 33.6`):
+
+| `t` | 0 | 13 | 20 | 26 | 32 | ~35 |
+|---|---|---|---|---|---|---|
+| gap between wells | `8.75` | `8.25` | `8.00` | `7.25` | `5.25` | **merged** |
+
+Two positive masses attract, fall together, and **merge at `t ≈ 35`**. The ×7
+activity growth (onset `t ≈ 40`, peak `t ≈ 97`) is merger ejecta, which then
+drains out through the sponge; the surviving field peak is the remnant core
+ringing down — the collide-and-bounce visible in the chi movie. Its flatness
+across resolution (`7.1× / 7.0× / 6.9×` at N = 128/192/256) is what converged
+physics looks like.
 
 | | runaway (mixed) | null (same-sign) |
 |---|---|---|
-| total scalar field in box | `7.9 → 9.2` | `7.8 → 54.7 → 27.6` |
-| **peak** field strength | `0.0247 → 0.0246` | `0.0247 → 0.0233` |
-| spread (rms) | `6.6 → 7.2` | `6.6 → 28` |
-| constraint error | `3.7e-06 → 6.6e-06` | `2.1e-05 → 2.3e-05` |
+| total scalar field in box | `7.9 → 9.2` | `7.8 → 54.7 → 27.6` (ejecta, then drain) |
+| **peak** field strength | `0.0247 → 0.0246` | `0.0247 → 0.0233` (remnant) |
+| net inward boundary flux | round-off | round-off |
+| constraint error | `3.7e-06 → 6.6e-06` | `2.1e-05 → 2.3e-05`, bounded |
 
-The peak barely moves, so the cores survive; the constraint error stays small
-and bounded, so nothing is diverging. What grows is *extra* field spread across
-the whole box, which later drains out. The stars are buried, not destroyed.
+**The null verdict is strengthened, not weakened.** Over the full `t = 200` —
+through infall, merger and ringdown — the pair's centroid moves by:
 
-It starts at a specific time. The two families track each other to within `1%`
-until `t ≈ 28`, then the null takes off — `1.15×` at `t = 40`, `1.84×` at
-`t = 50`, `3.14×` at `t = 60`. The box half-width is `32` and light crosses it
-in a time of `32`.
-
-The cause is the outer boundary condition, which pins the conformal-factor
-correction to a value that is only right when the two masses cancel. A mixed
-pair has zero net mass, so the boundary is very nearly correct and emits
-something around `1e-06`. A same-sign pair does not, so the boundary is wrong
-and what it emits swamps the box. The growth factor is **flat in resolution and
-identical on both signs** — `7.1× / 7.0× / 6.9×` for PP at N = 128 / 192 / 256
-and `7.1× / 7.0×` for MM at N = 128 / 192 — which confirms it tracks net mass
-rather than sign, and that it lives in the initial data and the boundary
-condition rather than in the discretisation.
-
-Inside the clean window the nulls are flat at the measurement floor:
-
-| grid | PP drift (`t < 32`) | MM drift (`t < 32`) | min χ (PP / MM) |
+| grid | PP centroid drift | MM centroid drift | min χ (PP / MM) |
 |---|---|---|---|
-| 128 | `+0.00011` | `−0.00011` | `0.97947` / `1.00000` |
-| 192 | `+0.00012` | `−0.00013` | `0.97920` / `1.00000` |
-| 256 | `+0.00013` | — | `0.97914` / — |
+| 128 | `+0.00073` | `−0.00026` | `0.97947` / `1.00000` |
+| 192 | `+0.00048` | `−0.00035` | `0.97920` / `1.00000` |
+| 256 | `+0.00052` | — | `0.97914` / — |
 
-Four orders of magnitude below the runaway's `+2.88`, and *flat* across
-resolutions rather than shrinking — which marks it as the floor of the
-measurement rather than a converging signal. The MM cells sit at min χ exactly
-`1.00000`: two negative masses leave the geometry perfectly flat, as they
-should.
+Four orders of magnitude below the runaway's `+2.88`. A configuration that
+cannot manufacture net momentum even while merging is a stronger null than one
+that merely sits still.
 
-**So: these cells are quotable up to `t ≈ 32` and no further.** The runaway
-signal needs `t ≳ 100` to measure, so null and signal cannot be compared at
-equal times. The boundary error is spherically symmetric and cannot manufacture
-a dipole, so the phase-1 statement still stands, but the *mirror* cell
-(`control_mirror_mp_*`, zero net mass, unaffected) is the stronger null and
-should carry that argument.
+**One measurement the same-sign cells do not contain.** The sector splitter
+assigns matter by field sign, so both stars of a same-sign pair land in one
+sector: the tracker reports a single core at the pair midpoint and
+`coord_sep = nan`. Per-star trajectories exist only where frames do — PP at
+N=256. For MM, which shows the same ×7 growth with the same timing, whether the
+two phantom stars merged like the PP pair or pushed apart as Bondi predicts for
+two negative masses is **not yet measured**; the flux diagnostic is blind there
+too (it integrates canonical-sector energy and reads zero in a phantom-only
+box). The `control_pair_mm_d10_L64_N128_lev0_frames` re-run (physics identical
+to the archived MM cell, frames on) exists to answer it.
+
+What does survive from the old caveat is a statement about `t = 0`, not the
+evolution: the elliptic solve's outer boundary condition is genuinely wrong for
+a same-sign pair (the box carries net `2M`), which is why the solve residual
+floors near `5.4e-04 %` and the gate is held flat at `0.002` on every same-sign
+rung.
 
 ### The wave zone — a null with a number
 
@@ -216,12 +260,16 @@ closing reverse depending on which of two stars is heavier.
 Getting there required lightening the *canonical* rather than fattening the
 phantom, because the phantom branch has a floor — see below.
 
-On the quantitative side, the phase-3 cell gives the canonical star's pull at
-`0.809` of its matched value against `0.7995` predicted (`1.2%`) and the
-phantom's at `0.973` against `1.000` (`2.7%`). The fit must be
-separation-corrected because the pair is no longer rigid, and **only ratios are
-quotable, never the constants**: on the matched cell the same fit returns
-`0.0161` and `0.0119` for two numbers both known to be `0.014350`.
+On the quantitative side, the three *changed-partner* pull ratios — the
+scaling law itself — land at `0.809 / 0.597 / 0.739` against
+`0.7995 / 0.5974 / 0.7471` predicted (`1.2%`, `0.05%`, `1.1%`). Each cell's
+*unchanged*-partner ratio doubles as an internal control, and it degrades as
+the pair deforms: `0.973` (gap `−0.59`), `1.052` (gap `+0.60`), `0.725` (gap
+`−1.38`). The separation-corrected fit is trustworthy while the pair stays
+near-rigid and visibly is not once the gap moves by more than `~1`; quote the
+changed-partner ratios, and **never the constants** — on the matched cell the
+same fit returns `0.0161` and `0.0119` for two numbers both known to be
+`0.014350`.
 
 **Read the gap late, not early.** Every cell dips around `t = 50` and then
 recovers, and the dip is larger than the signal until about `t = 100`:
@@ -270,6 +318,11 @@ Supporting material, `t = 120`, lone canonical star at four frequencies.
 | `stability_canonical_w085_L64_N128_lev0` | `0.99343` | `0.99275` |
 | `stability_canonical_w090_L64_N128_lev0` | `0.99464` | `0.99343` |
 
+These four cells carry no `Ham_and_Mom_errors.txt` or `launch_config.sh`: they
+reused the cached single-star initial data (no per-cell elliptic solve) and
+were launched from the since-retired job queue, so `metadata.json` and
+`evolution_params.txt` are their provenance record.
+
 All four static. On the binary that subtracted the potential twice in the
 stress-energy trace, these same initial-data bytes drove the lapse to
 `0.13`–`0.44` and on to a horizon.
@@ -284,6 +337,7 @@ stress-energy trace, these same initial-data bytes drove the lapse to
 | `collapse_diagnostics.dat` | lapse, `chi`, `K` — downsampled to `dt = 0.5` |
 | `constraint_norms.dat`, `energy_conditions.dat`, `curvature_invariants.dat` | likewise downsampled |
 | `psi4_*.dat` | extracted wave content |
+| `well_tracking.dat` (PP N=256 only) | two-well positions vs time, derived from the frame slice cache — the merger record |
 | `Ham_and_Mom_errors.txt` | elliptic solve convergence history |
 | `evolution_params.txt`, `grtresna_params.txt` | what was evolved, what was solved |
 | `launch_config.sh` | the exact environment the cell was launched with |

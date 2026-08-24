@@ -57,14 +57,17 @@ better than `3.5%` at every separation.
 
 **Two honest limits, stated up front.**
 
-*The same-sign nulls are only good to `t ≈ 32`.* Their outer boundary condition
-assumes the two masses cancel, which is true for a mixed pair and false for a
-same-sign one, so at `t ≈ 32` — the light-crossing time from the wall — a large
-wave arrives and floods the box. The stars survive it (peak field unchanged,
-constraints bounded) but the diagnostics do not. The effect is identical at all
-three resolutions, confirming it lives in the boundary condition rather than the
-grid. The *mirror* cell, which has zero net mass and is unaffected, is the
-stronger null.
+*The same-sign pairs merge, and their per-star story is only measured where
+frames exist.* Two positive stars attract: the PP N=256 frames show the two
+wells closing `8.75 → merged` by `t ≈ 35`, and the ×7 box-activity growth that
+follows is merger ejecta draining out through the sponge — not a boundary
+artefact (net inward boundary flux stays at round-off all run; an earlier
+version of this pack claimed a boundary wave at `t ≈ 32`, and the flux
+measurement retires that). The null verdict is *strengthened*: the pair centroid
+moves ≤ `7e-04` over the full `t = 200`, through the merger. What is not yet
+measured is the MM side — same ×7 growth, but both stars share one tracking
+sector, so whether two negative masses repelled as Bondi predicts awaits the
+frames re-run. The *mirror* cell, zero net mass, remains the cleanest null.
 
 *No wave zone is reached.* With shells at `R = 16/24/32/40`, `ψ₄(l=2)` falls as
 `r^−4.0`; radiation would give `r^−1`. Every shell is in the near zone, so this
@@ -151,7 +154,7 @@ file is, the per-cell numbers, and the caveats. The short version:
 | `runaway_pair_d{08,10,12,16}_L64_N128` | 4 | the separation law, `a ∝ d^−2.051` |
 | `runaway_pair_d10_L64_N{192,256}` | 2 | the resolution ladder's finer rungs — `d10_N128` above is its base. **The headline** |
 | `control_lone_{canonical,phantom}` | 2 | a lone star does not drift |
-| `control_pair_{pp,mm}_d10_L64_N128` | 2 | same-sign pairs do not run away (to `t ≈ 32`) |
+| `control_pair_{pp,mm}_d10_L64_N128` | 2 | same-sign pairs merge yet their centroid never moves — no runaway |
 | `control_pair_pp_d10_L64_N{192,256}` | 2 | the null's own resolution ladder |
 | `control_pair_mm_d10_L64_N192` | 1 | the mm null's second rung |
 | `control_mirror_mp_d10_L64_N128` | 1 | flipping the pair reverses the runaway exactly |
@@ -178,17 +181,19 @@ file is, the per-cell numbers, and the caveats. The short version:
 
 ### Two limits this pack does not paper over
 
-**The same-sign nulls degrade after `t ≈ 32`.** The elliptic solver's outer
-boundary condition pins the conformal-factor correction to a value valid only
-when the two masses cancel. A mixed pair satisfies that; a same-sign pair does
-not, so its boundary is genuinely wrong and emits a wave that reaches the centre
-one light-crossing time later — `t = 32` for a box of half-width `32` — and
-grows the scalar content of the box sevenfold before draining out. The stars
-survive it: peak field strength moves by `5%` and the constraint norms stay
-bounded near `2e-05`. The growth factor is `7.1×/7.0×/6.9×` at N=128/192/256,
-flat in resolution, which is what identifies it as a boundary-condition effect
-rather than a grid effect. **Read those cells to `t ≈ 32` only.** The mirror
-cell has zero net mass, is not affected, and is the stronger null.
+**The same-sign cells have no per-star tracking.** The sector splitter assigns
+matter by field sign, so both stars of a same-sign pair land in one sector: the
+tracker reports a single core at the pair midpoint and `separation = nan`.
+Their sevenfold activity growth (onset `t ≈ 40`, peak `t ≈ 95`, flat across
+N = 128/192/256) is, where frames allow it to be measured, the *merger* of the
+two stars — the PP wells close `8.75 → merged` at `t ≈ 35` and the ejecta later
+drains through the sponge, with net inward boundary flux at round-off
+throughout. (An earlier revision blamed a boundary wave arriving at `t ≈ 32`;
+the flux measurement retires that.) The centroid null holds over the full run:
+≤ `7e-04` against the runaway's `+2.88`. The MM pair's per-star fate — repulsion
+is the Bondi prediction for two negative masses — is unmeasured pending the
+frames re-run, and the flux diagnostic reads zero in a phantom-only box, so it
+cannot arbitrate. The mirror cell, zero net mass, is the cleanest null.
 
 **No wave zone is reached.** `r·ψ₄` should be flat in the radiation zone. Across
 `R = 16/24/32/40` it falls by a factor of `16`, a power law of `r^−4.0` against

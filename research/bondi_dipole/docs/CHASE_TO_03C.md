@@ -115,7 +115,7 @@ and by `drift ≈ 18` the envelope is in the saturated region.
 
 **So `longrun_pair_d10_t400_L64_N128_lev0` is already at the edge of its box**,
 and its final quarter is the first data in the campaign taken with the leading
-star's halo inside the sponge. That is worth recording in `Findings.md`
+star's halo inside the sponge. That is worth recording in the findings section of `GPU_RUN_PAPER.md`
 independently of this plan; here it fixes the ceiling:
 
 > Without recentring, no cell in a 64-box can report a trajectory past
