@@ -322,16 +322,10 @@ class BaseParameterChecker
         grteclyn_pp.queryAdd("output_path", output_path);
 
         std::string plot_directory = output_path + "/plots";
-        if (!FilesystemTools::directory_exists(plot_directory))
-        {
-            FilesystemTools::mkdir_recursive(plot_directory);
-        }
+        FilesystemTools::ensure_directory_exists(plot_directory);
 
         std::string checkpoint_directory = output_path + "/checkpoints";
-        if (!FilesystemTools::directory_exists(checkpoint_directory))
-        {
-            FilesystemTools::mkdir_recursive(checkpoint_directory);
-        }
+        FilesystemTools::ensure_directory_exists(checkpoint_directory);
 
         std::string plot_file  = plot_directory + "/plt";
         std::string check_file = checkpoint_directory + "/chk";

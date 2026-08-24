@@ -40,10 +40,7 @@ void puncture_tracker_params_t::check_params()
 
     std::string pt_output_path = output_path + "/punctures_output";
 
-    if (!FilesystemTools::directory_exists(pt_output_path))
-    {
-        FilesystemTools::mkdir_recursive(pt_output_path);
-    }
+    FilesystemTools::ensure_directory_exists(pt_output_path);
     puncture_tracking_pp.add("output_path", pt_output_path);
 
     std::string filename = "punctures";

@@ -43,15 +43,11 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
     // (or at m_first_step if this is not the first two timesteps)
     if (m_time < m_restart_time + 1.5 * m_dt || m_first_step)
     {
-        if (!FilesystemTools::directory_exists(m_params.data_path))
-        {
-            FilesystemTools::mkdir_recursive(m_params.data_path);
-        }
+        FilesystemTools::ensure_directory_exists(m_params.data_path);
 
-        if (m_params.write_extraction &&
-            !FilesystemTools::directory_exists(m_params.extraction_path))
+        if (m_params.write_extraction)
         {
-            FilesystemTools::mkdir_recursive(m_params.extraction_path);
+            FilesystemTools::ensure_directory_exists(m_params.extraction_path);
         }
     }
 
