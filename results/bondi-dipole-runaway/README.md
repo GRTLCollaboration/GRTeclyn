@@ -36,6 +36,7 @@ Independent checks bracket it:
 | does it keep accelerating? | `t = 400` | `a` flat at `1.44e-04` through the final quarter |
 | does the pull follow the source? | phantom `0.7995 ×` mass | canonical pull ratio `0.809` vs `0.7995` predicted |
 | does mesh refinement change it? | `max_level = 1` | level 1 never tagged; drift matches to `0.001%` |
+| is the base grid just under-solved? | initial data solved `4.4×` deeper | drift moves `0.0015%`; refining the grid moves it `4.6%` |
 
 **And the sign flips with the mass ordering.** Four cells spanning mass ratios
 `0.597` to `1.333`:
@@ -51,23 +52,36 @@ gravitational effect from an artefact: no artefact story predicts a sign reversa
 that tracks the mass ordering, still less one that crosses exactly where the
 masses match.
 
-And the separation law across four cells at `d = 8/10/12/16` gives
-`a ∝ d^−2.051` against `−2` exact, with `a·d²` returning the star's mass to
-better than `3.5%` at every separation.
+And the separation law across five cells at `d = 8/10/12/16/20` gives
+`a ∝ d^−2.028` against `−2` exact, with `a·d²` returning the partner star's mass
+to within `0.1%` from `d = 12` outward. The widest cell was run to test whether
+the `2.9%` excess at the closest separation was a finite-size correction or a
+floor in the measurement: it decays monotonically to `GM` and does not level
+off, so it is the former.
 
-**Two honest limits, stated up front.**
+**Two things the campaign found rather than assumed, stated up front.**
 
-*The same-sign pairs merge, and their per-star story is only measured where
-frames exist.* Two positive stars attract: the PP N=256 frames show the two
-wells closing `8.75 → merged` by `t ≈ 35`, and the ×7 box-activity growth that
-follows is merger ejecta draining out through the sponge — not a boundary
-artefact (net inward boundary flux stays at round-off all run; an earlier
-version of this pack claimed a boundary wave at `t ≈ 32`, and the flux
-measurement retires that). The null verdict is *strengthened*: the pair centroid
-moves ≤ `7e-04` over the full `t = 200`, through the merger. What is not yet
-measured is the MM side — same ×7 growth, but both stars share one tracking
-sector, so whether two negative masses repelled as Bondi predicts awaits the
-frames re-run. The *mirror* cell, zero net mass, remains the cleanest null.
+*Both same-sign pairs merge — and that is the campaign's sharpest test of what
+holds the stars together.* The PP frames show the two wells closing
+`8.78 → merged` at `t = 33.6`; the MM frames, added 2026-08-24, show the two
+phantom hills closing `8.57 → merged` at `t = 32.8`. Newtonian gravity's sign is
+opposite between those two cells — two positive masses attract, two negative
+masses repel, which is Bondi's own result — so if gravity set the timescale one
+would coalesce and the other fly apart. They instead collapse within 2.4% of
+the same time, which means the dominant force is **blind to the sign of the
+mass**. It is the overlap of two copies of the *same* scalar field, some `35×`
+stronger than gravity at this separation. The mixed pair has no such channel at
+all, because its two stars are different fields with no cross-term, leaving
+gravity as their only interaction — which is why the runaway cell is the clean
+one and these are controls.
+
+The ×7 box-activity growth that follows each merger is ejecta draining out
+through the sponge, not a boundary artefact (net inward boundary flux stays at
+round-off all run; an earlier version of this pack claimed a boundary wave at
+`t ≈ 32`, and the flux measurement retires that). The null verdict is
+*strengthened* by the merger rather than weakened: the pair centroid moves
+≤ `7e-04` over the full `t = 200`, through infall, coalescence and ringdown. The
+*mirror* cell, zero net mass, remains the cleanest null.
 
 *No wave zone is reached.* With shells at `R = 16/24/32/40`, `ψ₄(l=2)` falls as
 `r^−4.0`; radiation would give `r^−1`. Every shell is in the near zone, so this
@@ -83,7 +97,7 @@ Per-cell numbers, the caveats in full, and how to read a cell name are in
 | path | contents |
 |---|---|
 | [`MATTER_MODEL.md`](MATTER_MODEL.md) | the bicomplex model, where the sign flip lives, dressed-star initial data, code map |
-| [`LAUNCH.md`](LAUNCH.md) | exact launch command and full configuration for every cell |
+| [`LAUNCH.md`](LAUNCH.md) | how a cell is launched, what every knob selects, and the configuration table for all of them — the authoritative per-cell record is each `campaign/<cell>/launch_config.sh` |
 | `campaign/<cell>/` | every run — the resolution ladder, the separation series, the nulls, the wave-zone box and the long run (see the data dictionary below, and `campaign/README.md` for the guide) |
 | `stars/` | dressed-star profile tables `r φ₀(r) α(r)` + the M(ω) family scan |
 | `analysis/` | derived tables and the scripts that regenerate them |
@@ -138,7 +152,7 @@ absolute; drifts quoted anywhere in this pack are `x(t) − x(0)`.
 
 ## campaign/ — the cells behind the result (complete)
 
-Twenty-four cells, one folder each, all on **uniform** grids: the convergence
+Twenty-seven cells, one folder each, all on **uniform** grids: the convergence
 argument needs a single cell size everywhere, so nothing here uses mesh
 refinement — with one deliberate exception, `amrcheck_*`, which switches it on
 once to show the choice costs nothing. Each folder carries the same streams and provenance files — the
@@ -151,15 +165,17 @@ file is, the per-cell numbers, and the caveats. The short version:
 
 | group | cells | what it settles |
 |---|---|---|
-| `runaway_pair_d{08,10,12,16}_L64_N128` | 4 | the separation law, `a ∝ d^−2.051` |
+| `runaway_pair_d{08,10,12,16,20}_L64_N128` | 5 | the separation law, `a ∝ d^−2.05` |
 | `runaway_pair_d10_L64_N{192,256}` | 2 | the resolution ladder's finer rungs — `d10_N128` above is its base. **The headline** |
 | `control_lone_{canonical,phantom}` | 2 | a lone star does not drift |
 | `control_pair_{pp,mm}_d10_L64_N128` | 2 | same-sign pairs merge yet their centroid never moves — no runaway |
 | `control_pair_pp_d10_L64_N{192,256}` | 2 | the null's own resolution ladder |
 | `control_pair_mm_d10_L64_N192` | 1 | the mm null's second rung |
+| `control_pair_mm_d10_L64_N128_lev0_frames` | 1 | the phantom pair's per-star fate — it merges too, on the pp pair's clock |
 | `control_mirror_mp_d10_L64_N128` | 1 | flipping the pair reverses the runaway exactly |
 | `massscale_*` + `massratio_*` (2) | 3 | the pull follows the partner's mass — and reverses with it |
 | `amrcheck_pair_d10_L64_N128_lev1` | 1 | mesh refinement changes nothing (six-digit match) |
+| `deepsolve_pair_d10_L64_N128` | 1 | a `4.4×` deeper constraint solve changes nothing — the base rung is grid-limited |
 | `wavezone_pair_d10_L128_N256` | 1 | doubled box, four extraction shells |
 | `longrun_pair_d10_t400_L64_N128` | 1 | the acceleration is steady to `t = 400` |
 | `stability_canonical_w{075,080,085,090}` | 4 | the star family is stable at all |
@@ -186,14 +202,17 @@ matter by field sign, so both stars of a same-sign pair land in one sector: the
 tracker reports a single core at the pair midpoint and `separation = nan`.
 Their sevenfold activity growth (onset `t ≈ 40`, peak `t ≈ 95`, flat across
 N = 128/192/256) is, where frames allow it to be measured, the *merger* of the
-two stars — the PP wells close `8.75 → merged` at `t ≈ 35` and the ejecta later
+two stars — the PP wells close `8.78 → merged` at `t = 33.6`, the MM hills
+`8.57 → merged` at `t = 32.8` (`analysis/track_wells.py`), and the ejecta later
 drains through the sponge, with net inward boundary flux at round-off
 throughout. (An earlier revision blamed a boundary wave arriving at `t ≈ 32`;
 the flux measurement retires that.) The centroid null holds over the full run:
-≤ `7e-04` against the runaway's `+2.88`. The MM pair's per-star fate — repulsion
-is the Bondi prediction for two negative masses — is unmeasured pending the
-frames re-run, and the flux diagnostic reads zero in a phantom-only box, so it
-cannot arbitrate. The mirror cell, zero net mass, is the cleanest null.
+≤ `7e-04` against the runaway's `+2.88`. That the phantom pair merges on the PP
+pair's clock, when gravity's sign is opposite between the two, is what identifies
+the dominant force as same-field overlap rather than gravity; Bondi's `−−`
+repulsion is real but `~35×` too weak to see here. The flux diagnostic cannot
+arbitrate it either way — it reads zero in a phantom-only box. The mirror cell,
+zero net mass, is the cleanest null.
 
 **No wave zone is reached.** `r·ψ₄` should be flat in the radiation zone. Across
 `R = 16/24/32/40` it falls by a factor of `16`, a power law of `r^−4.0` against
@@ -252,6 +271,15 @@ To re-run the physics itself, see [`LAUNCH.md`](LAUNCH.md).
   matter with per-lump signs), 32 MPI ranks on CPU, one solve at a time.
 - Evolution: **GRTeclyn** (`RadialRecipe`, CCZ4 + bicomplex scalar matter),
   single rank, one GPU per cell, no mesh refinement.
+- Compute: **≈73 GPU-hours** of NVIDIA H100 time across the 27 evolutions, one
+  card per evolution. At `N = 128`, `L = 64` the cost is `5.44` GPU-hours per
+  1000 units of evolution time, flat to `2%` across sixteen cells; the ladder
+  rungs scale `4.4×` (N=192) and `13.4×` (N=256) off that, shallower than the
+  naive `N⁴`. Summed wall-clock is `81.6` h, larger only because some cells
+  shared a card and a shared cell's clock keeps running while the other holds
+  the GPU. The elliptic solves are CPU work on top of this — 20 min (256³) to
+  ~4 h (512³) per cell on 32 ranks, overlapping other cells' GPU time. The
+  per-cell ledger is in `research/bondi_dipole/docs/GPU_RUN_PAPER.md`.
 - Working notes (narrative, not part of this pack): [`research/bondi_dipole/docs/`](../../research/bondi_dipole/docs/)
   (working copy: `research/bondi_dipole_debug.md`).
 - Code state: wrapper commit recorded per cell in `campaign/<cell>/metadata.json`;

@@ -1,0 +1,29 @@
+{
+  "bs_omega": 0.7603045190007871,
+  "bs_phi_c": 0.08,
+  "bs_profile_width": 8.0,
+  "bs_selfgrav": true,
+  "lump_centers": [
+    [
+      5.0,
+      0.0,
+      -0.0
+    ],
+    [
+      -5.0,
+      6.123233995736766e-16,
+      0.0
+    ]
+  ],
+  "lump_count": 2,
+  "matter_model": "grtresna_bicomplex_scalar",
+  "num_scalar_fields": 2,
+  "scalar_field_signs": [
+    -1,
+    -1
+  ],
+  "scalar_lambda": 10240.0,
+  "scalar_mass": 1.0,
+  "scalar_mu": 21845333.0,
+  "scalar_sign": 1
+}

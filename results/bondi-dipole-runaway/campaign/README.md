@@ -71,19 +71,40 @@ still settling. `a·d²` should return the star's mass at every separation.
 
 | cell | `d` | `a` measured | `a·d²` | separation at `t = 200` | total momentum |
 |---|---|---|---|---|---|
-| `runaway_pair_d08_L64_N128_lev0` | 8 | `2.3210e-04` | `0.01485` | `8.187` | `5.8e-05` |
-| `runaway_pair_d10_L64_N128_lev0` | 10 | `1.4541e-04` | `0.01454` | `10.107` | `3.7e-05` |
-| `runaway_pair_d12_L64_N128_lev0` | 12 | `1.0003e-04` | `0.01440` | `12.063` | `2.3e-05` |
-| `runaway_pair_d16_L64_N128_lev0` | 16 | `5.5968e-05` | `0.01433` | `16.025` | `9.8e-06` |
+| `runaway_pair_d08_L64_N128_lev0` | 8 | `2.3070e-04` | `0.01476` | `8.187` | `5.8e-05` |
+| `runaway_pair_d10_L64_N128_lev0` | 10 | `1.4481e-04` | `0.01448` | `10.107` | `3.7e-05` |
+| `runaway_pair_d12_L64_N128_lev0` | 12 | `9.9758e-05` | `0.01437` | `12.063` | `2.3e-05` |
+| `runaway_pair_d16_L64_N128_lev0` | 16 | `5.6026e-05` | `0.01434` | `16.025` | `9.8e-06` |
+| `runaway_pair_d20_L64_N128_lev0` | 20 | `3.5891e-05` | `0.01436` | `20.013` | `4.9e-06` |
 
-True `GM = 0.014350`. A power law through the four accelerations gives
-`d^−2.051` against `−2` exact. `d = 10` is the headline cell: its acceleration
+True `GM = 0.014350`. A power law through the five accelerations gives
+`d^−2.028` against `−2` exact — adding the widest cell moved the exponent
+*toward* the exact value, from `−2.051` on four points. `d = 10` is the headline cell: its acceleration
 is constant across four disjoint fits of the run
 (`1.473 / 1.442 / 1.456 / 1.469 e−04`).
 
 The trend in `a·d²` is physical and should not be hidden — the closest pair
-overshoots by `3.5%` and the agreement tightens monotonically with separation,
+overshoots by `2.9%` and the agreement tightens monotonically with separation,
 which is where finite-size and post-Newtonian corrections both push.
+
+**`d = 20` was run to decide what that trend is.** If `a·d²` had levelled off
+around `1%` above `GM`, the excess would have looked like a floor in the
+measurement rather than a property of the configuration. It does not level off:
+the ratio `a·d²/GM` runs `1.029 → 1.009 → 1.001 → 0.999 → 1.000` across
+`d = 8/10/12/16/20`, landing within `0.1%` of `GM` from `d = 12` outward. The
+deviation is a finite-size correction — largest exactly where the two stars'
+envelopes overlap most — and it behaves like one. Total momentum halves with
+each step out too (`5.8e-05` down to `4.9e-06`), tracking the acceleration
+rather than sitting at a fixed floor.
+
+**One convention note, so the two documents can be read side by side.** The
+accelerations above are fitted from `t ≥ 5`. `GPU_RUN_PAPER.md` fits the same
+cells over the *last two thirds* of each run and therefore quotes slightly
+larger values (`0.01498 / 0.01463 / 0.01448 / 0.01450 / 0.01455`). The two conventions
+differ by `0.8–1.5%` — a late-window fit weights the part of the run where the
+pair has drifted furthest and the separation has changed most. That spread is
+comparable to the finite-size trend being discussed here, so the *trend* is the
+robust statement and any single `a·d²` should be quoted with its window named.
 
 ### The resolution ladder — does the runaway survive refinement?
 
@@ -122,6 +143,30 @@ One nuance the coarse grid hides: N=128 says the pair is rigid (separation
 back to `10.003` at `t = 200`), but both fine rungs agree it actually closes
 slightly (`9.930` / `9.915`). Rigidity is a `1%`-level statement; the
 fine-grid value is the honest one.
+
+**The coarse rung's offset is not solve residual — it was tested.**
+`deepsolve_pair_d10_L64_N128_lev0` is the headline cell with a single parameter
+changed: the elliptic solver's tolerance tightened from `8.6e-04 %` to
+`2e-04 %`. The solver went where it was told (exit at pass 16 on Ham
+`1.94e-04 %`, a `4.4×` deeper residual, its ladder reproducing the original
+digit for digit through pass 12) and the evolution did not care:
+
+| `t` | original N=128 | deep-solve N=128 | difference |
+|---|---|---|---|
+| 50 | `0.17283` | `0.17283` | `+0.000002` |
+| 100 | `0.71272` | `0.71273` | `+0.000011` |
+| 200 | `2.88117` | `2.88122` | `+0.000044` |
+
+`a` agrees to four digits too: `1.4634e-04` in both. **A `4.4×` deeper solve
+moves the answer by `0.0015%`; refining the grid moves it by `4.6%`.** The `t = 0`
+constraint violation barely shifted either (`2.022e-04 → 1.999e-04`, ~1%),
+because it is dominated by solve-grid → evolution-grid transfer noise — the
+`1/dx²` term above — which no solver tolerance can touch. So the ladder's spread
+is a property of the evolution grid, there is no cheap fix at fixed resolution,
+and the fine-pair error bar stands as quoted. The matter agrees as well as the
+geometry (confined fraction `0.276 → 0.269`, rms radius `6.642 → 7.237`,
+identical in both cells), which is the check worth making before trusting any
+geometric diagnostic.
 
 Two independent checks agree: doubling the box moves the drift by `4%`
 (`wavezone`, below), and running four times longer leaves the acceleration flat
@@ -173,7 +218,7 @@ gravitational wells image by image (the full series is packed as that cell's
 
 | `t` | 0 | 13 | 20 | 26 | 32 | ~35 |
 |---|---|---|---|---|---|---|
-| gap between wells | `8.75` | `8.25` | `8.00` | `7.25` | `5.25` | **merged** |
+| gap between wells | `8.78` | `8.25` | `8.00` | `7.25` | `5.25` | **merged** |
 
 Two positive masses attract, fall together, and **merge at `t ≈ 35`**. The ×7
 activity growth (onset `t ≈ 40`, peak `t ≈ 97`) is merger ejecta, which then
@@ -190,28 +235,59 @@ physics looks like.
 | constraint error | `3.7e-06 → 6.6e-06` | `2.1e-05 → 2.3e-05`, bounded |
 
 **The null verdict is strengthened, not weakened.** Over the full `t = 200` —
-through infall, merger and ringdown — the pair's centroid moves by:
+through the plunge, merger and ringdown — the pair's centroid moves by:
 
 | grid | PP centroid drift | MM centroid drift | min χ (PP / MM) |
 |---|---|---|---|
-| 128 | `+0.00073` | `−0.00026` | `0.97947` / `1.00000` |
+| 128 | `+0.00073` | `−0.00026` (`−0.00022` in the frames re-run) | `0.97947` / `1.00000` |
 | 192 | `+0.00048` | `−0.00035` | `0.97920` / `1.00000` |
 | 256 | `+0.00052` | — | `0.97914` / — |
 
-Four orders of magnitude below the runaway's `+2.88`. A configuration that
+Four orders of magnitude below the runaway's `+2.88`. **Do not read
+`min χ = 1.00000` as "flat geometry"** — it is the diagnostic's blind spot. A
+phantom star raises `χ` into a *hill* (up to `1.011` on the `R = 8` shell, see
+`shell_profiles.dat`), and a minimum only ever sees wells. The MM geometry is as
+curved as the PP one; the sign is the other way. A configuration that
 cannot manufacture net momentum even while merging is a stronger null than one
 that merely sits still.
 
-**One measurement the same-sign cells do not contain.** The sector splitter
-assigns matter by field sign, so both stars of a same-sign pair land in one
-sector: the tracker reports a single core at the pair midpoint and
-`coord_sep = nan`. Per-star trajectories exist only where frames do — PP at
-N=256. For MM, which shows the same ×7 growth with the same timing, whether the
-two phantom stars merged like the PP pair or pushed apart as Bondi predicts for
-two negative masses is **not yet measured**; the flux diagnostic is blind there
-too (it integrates canonical-sector energy and reads zero in a phantom-only
-box). The `control_pair_mm_d10_L64_N128_lev0_frames` re-run (physics identical
-to the archived MM cell, frames on) exists to answer it.
+**The per-star measurement needs frames, and both sides now have them.** The
+sector splitter assigns matter by field sign, so both stars of a same-sign pair
+land in one sector: the tracker reports a single core at the pair midpoint and
+`coord_sep = nan`. Per-star trajectories therefore exist only where frames do —
+PP at N=256, and MM in the `control_pair_mm_d10_L64_N128_lev0_frames` re-run
+(physics identical to the archived MM cell, frames on) added 2026-08-24. Both
+were tracked with `analysis/track_wells.py`, which follows the two strongest
+maxima of the y-averaged `|χ−1|` profile — wells for PP, hills for MM:
+
+| `t` | PP gap (N=256) | MM gap (N=128) |
+|---|---|---|
+| 0 | `8.78` | `8.57` |
+| 20 | `7.75` | `7.56` |
+| 30 | `6.00` | `5.54` |
+| **merged** | **`t = 33.6`** | **`t = 32.8`** |
+
+**The phantom pair merges too, within 2.4% of the same time.** Treat that as
+"the same timescale" and not as a resolved difference — the only PP cell with a
+slice cache is N=256 and the only MM cell with one is N=128, so the profiles are
+sampled at `dx = 0.25` and `dx = 0.5`; the `t = 0` gaps (`8.78` vs `8.57`, both
+from a nominal separation of `10`) already show that.
+
+This is the campaign's sharpest mechanism control. Newtonian gravity's sign is
+*opposite* between these two cells: two positive masses attract, two negative
+masses mutually repel — that is Bondi's own result, and it is why "`−−` should
+fly apart" was the naive expectation. If gravity set the timescale, PP would
+coalesce while MM separated. They instead collapse together within 2.4% of each
+other, so the force that drives them is **blind to the sign of the mass**: the
+same-field overlap attraction, roughly `35×` gravity at `d = 10`. Bondi's `−−`
+repulsion is real but far too weak to see underneath it. The mixed pair has no
+such channel — the canonical and phantom stars are *different fields* with no
+cross-term in the potential (`Source/Matter/ComplexScalarField.impl.hpp`,
+`ComplexExoticScalarField.impl.hpp`) — so gravity is its only interaction, which
+is exactly why the runaway cell is the clean one.
+
+The flux diagnostic cannot arbitrate any of this: it integrates canonical-sector
+energy and reads zero in a phantom-only box.
 
 What does survive from the old caveat is a statement about `t = 0`, not the
 evolution: the elliptic solve's outer boundary condition is genuinely wrong for
@@ -337,7 +413,7 @@ stress-energy trace, these same initial-data bytes drove the lapse to
 | `collapse_diagnostics.dat` | lapse, `chi`, `K` — downsampled to `dt = 0.5` |
 | `constraint_norms.dat`, `energy_conditions.dat`, `curvature_invariants.dat` | likewise downsampled |
 | `psi4_*.dat` | extracted wave content |
-| `well_tracking.dat` (PP N=256 only) | two-well positions vs time, derived from the frame slice cache — the merger record |
+| `well_tracking.dat` (the same-sign cells that cached slices: PP N=256, MM N=128 `_frames`) | the two lumps' positions vs time, derived from the `chi_minus_1` slice cache by `analysis/track_wells.py` — the merger record, and the only per-star measurement a same-sign pair has |
 | `Ham_and_Mom_errors.txt` | elliptic solve convergence history |
 | `evolution_params.txt`, `grtresna_params.txt` | what was evolved, what was solved |
 | `launch_config.sh` | the exact environment the cell was launched with |

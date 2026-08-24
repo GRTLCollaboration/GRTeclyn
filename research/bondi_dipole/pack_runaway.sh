@@ -70,7 +70,9 @@ collect() {  # $1 = directory to walk, $2 = name prefix for cells found in it
         # treadmill directories are implementation tests for the recentring
         # box: they reuse another cell's initial data, answer engineering
         # questions rather than physics ones, and carry their own README.
-        case " ${CELLS_SKIP:-treadmill_pair_d10_L64_N128_lev0} " in
+        # chase03c is the 0.3c follow-up run, not part of this paper's campaign, and
+        # it is still evolving -- a partial time series must not ship as a result.
+        case " ${CELLS_SKIP:-treadmill_pair_d10_L64_N128_lev0 chase03c_pair_d10_L64_N128_lev0} " in
           *" ${name} "*) echo "[pack-runaway] ${name}: not a campaign cell -- skipping" ;;
           *)             cells+=("${prefix}${name}|${sub%/}") ;;
         esac ;;
@@ -173,6 +175,22 @@ PY
     python3 "${SCRIPT_DIR}/thin_frames.py" "${run}/frames" "${out}/frames" \
       --dt "${FRAME_DT:-10}"
   fi
+
+  # Same-sign pairs put both stars in one sector, so the tracker reports a
+  # single core and no separation -- their per-star trajectory can only be read
+  # off the fields.  Where a same-sign cell cached chi slices, derive the
+  # two-lump track here so it is regenerated with the pack rather than kept as
+  # a hand-made file (a repack wipes each cell directory).
+  case "${cell}" in
+    control_pair_pp_*|control_pair_mm_*)
+      if [[ -d "${run}/frames/_slice_cache/chi_minus_1_z" ]]; then
+        "${ROOT}/.venv/bin/python" \
+          "${ROOT}/results/bondi-dipole-runaway/analysis/track_wells.py" \
+          "${run}/frames" "${out}/well_tracking.dat" --label "${cell}" \
+          || echo "[pack-runaway] ${cell}: well tracking failed, continuing"
+      fi
+      ;;
+  esac
 
   found_txt=$(find "${out}" -maxdepth 1 \( -name '*.txt' -o -name '*.json' -o -name '*.sh' \))
   [[ -n "${found_txt}" ]] && scrub ${found_txt}
