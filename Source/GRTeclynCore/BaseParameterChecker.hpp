@@ -226,8 +226,8 @@ class BaseParameterChecker
             amr_pp.error("max_level", "must be >= 0");
         }
 
-        // The refinement ratio is fixed to 2 since GRTeclyn is not tested with
-        // other values.
+        // The refinement ratio is defaulted to 2 since GRTeclyn is not tested
+        // with other values. Use of other values is at your own risk!
         amrex::Vector<int> ref_ratio(max_level, 2); // ref ratios between levels
         amr_pp.addarr("ref_ratio", ref_ratio);
 
