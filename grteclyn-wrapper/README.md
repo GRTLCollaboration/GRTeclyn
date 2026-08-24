@@ -23,7 +23,7 @@ env) is configured with a gitignored [`.env`](#site-paths-env) — see below.
 
 ## Running a campaign without numerical artifacts
 
-Read this before launching anything whose numbers will be believed. Rules 9 and 10 are the preflight — run them first; 9 checks the cell, 10 checks the machine. Every rule
+Read this before launching anything whose numbers will be believed. Rules 9 and 10 are the preflight — run them first; 9 checks the cell, 10 checks the machine; 11 is how to tell a launch actually happened. Every rule
 below is here because breaking it silently produced a result that looked clean
 and was wrong. The full diagnosis of each is in
 [`research/bondi_dipole/docs/MatterDebugg.md`](../research/bondi_dipole/docs/MatterDebugg.md).
@@ -304,6 +304,36 @@ meaningless and must stay out of the campaign plan's ledger.
 
 See also [Rules (do not skip)](#rules-do-not-skip) for the campaign-mechanics
 rules (population sizing, scratch locality, pump convention).
+
+### 11. A launch that prints nothing did not happen — never prefix a launcher with `env`
+
+**What was measured, 2026-08-24.** Six consecutive attempts to start the 0.3c
+chase cell through `env BONDI_...=... bash run_pair_selfgrav.sh` all returned
+exit 0 within a second — no output, no launcher process, no `launcher.pid`, no
+cell directory, and an empty `bash -x` trace. The identical command with bare
+`BONDI_...=... bash run_pair_selfgrav.sh` prefixes worked on the first try.
+
+**The mechanism.** Sandboxed and agent-driven shells may stub `env` out: the
+stub returns success without executing its argument. An interactive terminal
+has the real `/usr/bin/env`, which is why the same line works when a person
+pastes it and dies silently when a harness runs it. `set -euo pipefail` cannot
+save you — the script never starts, so there is nothing to fail — and the
+exit code is 0, so every "did it work" check based on status passes.
+
+**The practical rule.** Launch with plain `VAR=value cmd` prefixes; they are
+POSIX, they survive `setsid`/`nohup` chains (put them before the whole chain),
+and they need no external binary. And judge a launch by evidence, never by
+exit code: within seconds a real launch has a live launcher PID, a growing
+launch log, and a `launcher.pid` in the runs directory. Absence of any one of
+those means the launch did not happen, whatever the shell said.
+
+**The debris trap that compounds it.** A `--dry-run` (or an aborted launch)
+leaves a cell directory containing `params.txt`, `metadata.json` and a
+`score.json` full of nulls — and the launcher's already-exists guard then
+kills every later *real* launch of that cell instantly. When a "running"
+cell is suspect, check for an evolution log and a non-empty `data/` before
+believing it; the dry-run signature is everything written within one second
+and `data/` empty. Delete the debris and launch again.
 
 ## What was fixed — 2026-08-21
 
