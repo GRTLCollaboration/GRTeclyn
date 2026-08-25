@@ -6,7 +6,6 @@
 // Other includes
 #include "SmallDataIO.hpp"
 
-#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Vector.H>
@@ -215,40 +214,6 @@ void SmallDataIO::write_header_line(
         for (const std::string &header_item : a_header_strings)
         {
             m_file << std::setw(m_data_width) << header_item;
-        }
-        m_file << "\n";
-    }
-}
-
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void SmallDataIO::write_data_line(const std::vector<amrex::Real> &a_data,
-                                  const amrex::Real a_coord)
-{
-    const std::vector<amrex::Real> coords(1, a_coord);
-    write_data_line(a_data, coords);
-}
-
-void SmallDataIO::write_time_data_line(const std::vector<amrex::Real> &a_data)
-{
-    write_data_line(a_data, m_time);
-}
-
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
-void SmallDataIO::write_data_line(const std::vector<amrex::Real> &a_data,
-                                  const std::vector<amrex::Real> &a_coords)
-// NOLINTEND(bugprone-easily-swappable-parameters)
-{
-    if (amrex::ParallelDescriptor::IOProcessor())
-    {
-        m_file << std::fixed << std::setprecision(m_coords_precision);
-        for (amrex::Real coord : a_coords)
-        {
-            m_file << std::setw(m_coords_width) << coord;
-        }
-        m_file << std::scientific << std::setprecision(m_data_precision);
-        for (amrex::Real data : a_data)
-        {
-            m_file << std::setw(m_data_width) << data;
         }
         m_file << "\n";
     }

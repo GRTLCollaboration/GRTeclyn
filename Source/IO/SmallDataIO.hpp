@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_REAL.H>
 
 //! A class for reading and writing small data to a file in ASCII format.
@@ -161,17 +162,46 @@ class SmallDataIO
     //! Writes a data line
     //! Use this for 0D or 1D data, where the first column is either the time or
     //! another coordinate.
-    void write_data_line(const std::vector<amrex::Real> &a_data,
-                         const amrex::Real a_coord);
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    template <typename T_Data, typename T_Coord>
+    void write_data_line(const std::vector<T_Data> &a_data,
+                         const T_Coord a_coord)
+    {
+        const std::vector<T_Coord> coords(1, a_coord);
+        write_data_line(a_data, coords);
+    }
 
     //! Writes a data line for a specific time.
-    void write_time_data_line(const std::vector<amrex::Real> &a_data);
+    template <typename T_Data>
+    void write_time_data_line(const std::vector<T_Data> &a_data)
+    {
+        write_data_line(a_data, m_time);
+    }
 
     //! Writes a data line
     //! Use this for 1D or 2D data when the first two or more columns are
     //! coordinates.
-    void write_data_line(const std::vector<amrex::Real> &a_data,
-                         const std::vector<amrex::Real> &a_coords = {});
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    template <typename T_Data, typename T_Coord>
+    void write_data_line(const std::vector<T_Data> &a_data,
+                         const std::vector<T_Coord> &a_coords)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
+    {
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            m_file << std::fixed << std::setprecision(m_coords_precision);
+            for (T_Coord coord : a_coords)
+            {
+                m_file << std::setw(m_coords_width) << coord;
+            }
+            m_file << std::scientific << std::setprecision(m_data_precision);
+            for (T_Data data : a_data)
+            {
+                m_file << std::setw(m_data_width) << data;
+            }
+            m_file << "\n";
+        }
+    }
 
     //! This just adds a double line break to the file.
     void line_break();

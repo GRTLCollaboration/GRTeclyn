@@ -511,7 +511,8 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
                         data[ivar] = m_interp_data[ivar][idx];
                     }
 
-                    extraction_file.write_data_line(data, {u, v});
+                    extraction_file.write_data_line(
+                        data, std::vector<amrex::ParticleReal>{u, v});
                 }
             }
             extraction_file.line_break();

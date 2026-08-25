@@ -128,8 +128,9 @@ template <int num_components> class LineExtraction
                     interp_var_data[icomp * m_num_points + ipoint];
             }
             output_file.write_data_line(
-                data_line,
-                {interp_x[ipoint], interp_y[ipoint], interp_z[ipoint]});
+                data_line, std::vector<amrex::ParticleReal>{interp_x[ipoint],
+                                                            interp_y[ipoint],
+                                                            interp_z[ipoint]});
         }
     }
 };
