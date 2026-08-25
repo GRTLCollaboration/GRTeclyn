@@ -54,25 +54,28 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     params_t m_params;
     std::vector<vars_t>
         m_vars; //!< the vector of of variables and their features to extract
-    double m_dt{};
-    double m_time{};
+    amrex::Real m_dt{};
+    amrex::Real m_time{};
     bool m_first_step{};
-    double m_restart_time{};
-    int m_num_interp_points{}; //!< the total number of points this
-                               //!< rank will extract (0 on ranks > 0)
-    double m_du{};             //!< the grid spacing in u (used in integrate)
-    double m_dv{};             //!< the grid spacing in v (used in integrate)
+    amrex::Real m_restart_time{};
+    int m_num_interp_points{};  //!< the total number of points this
+                                //!< rank will extract (0 on ranks > 0)
+    amrex::ParticleReal m_du{}; //!< the grid spacing in u (used in integrate)
+    amrex::ParticleReal m_dv{}; //!< the grid spacing in v (used in integrate)
 
-    std::vector<std::vector<double>> m_interp_data;
-    std::array<std::vector<double>, AMREX_SPACEDIM> m_interp_coords;
+    std::vector<std::vector<amrex::ParticleReal>> m_interp_data;
+    std::array<std::vector<amrex::ParticleReal>, AMREX_SPACEDIM>
+        m_interp_coords;
     // this is the really long type used for integrands
-    // the vector<double> is a vector of all the extracted variables at that
-    // point in the order they were added
-    using integrand_t =
-        std::function<double(std::vector<double> &, double, double, double)>;
+    // the vector<amrex::ParticleReal> is a vector of all the extracted
+    // variables at that point in the order they were added
+    using integrand_t = std::function<amrex::ParticleReal(
+        std::vector<amrex::ParticleReal> &, amrex::ParticleReal,
+        amrex::ParticleReal, amrex::ParticleReal)>;
     std::vector<integrand_t> m_integrands;
     std::vector<std::array<IntegrationMethod, 2>> m_integration_methods;
-    std::vector<std::reference_wrapper<std::vector<double>>> m_integrals;
+    std::vector<std::reference_wrapper<std::vector<amrex::ParticleReal>>>
+        m_integrals;
     std::vector<bool> m_broadcast_integrals;
 
     bool m_done_extraction{}; //!< whether or not the extract function has
@@ -90,10 +93,15 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
   public:
     //! Normal constructor which requires vars to be added after construction
     //! using add_var or add_vars
-    SurfaceExtraction(const SurfaceGeometry &a_geom,
-                      surface_extraction_params_t a_params, double a_dt,
-                      double a_time, bool a_first_step,
-                      double a_restart_time = 0.0);
+    SurfaceExtraction(surface_extraction_params_t a_params, amrex::Real a_dt,
+                      amrex::Real a_time, bool a_first_step,
+                      amrex::Real a_restart_time = 0.0);
+
+    //! Constructor for geometries which require instance-specific parameters
+    SurfaceExtraction(surface_extraction_params_t a_params,
+                      SurfaceGeometry a_geom, amrex::Real a_dt,
+                      amrex::Real a_time, bool a_first_step,
+                      amrex::Real a_restart_time = 0.0);
 
     //! add a single variable or derivative of variable
     void add_var(int a_var, const VariableType var_type = VariableType::state,
@@ -115,17 +123,16 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
-                      const std::vector<vars_t> &a_vars, double a_dt,
-                      double a_time, bool a_first_step,
-                      double a_restart_time = 0.0);
+    SurfaceExtraction(const params_t &a_params,
+                      const std::vector<vars_t> &a_vars, amrex::Real a_dt,
+                      amrex::Real a_time, bool a_first_step,
+                      amrex::Real a_restart_time = 0.0);
 
     //! Another alternative constructor with a predefined vector of variables
     //! no derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
-                      const std::vector<int> &a_vars, double a_dt,
-                      double a_time, bool a_first_step,
-                      double a_restart_time = 0.0);
+    SurfaceExtraction(const params_t &a_params, const std::vector<int> &a_vars,
+                      amrex::Real a_dt, amrex::Real a_time, bool a_first_step,
+                      amrex::Real a_restart_time = 0.0);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     //! Do the extraction
@@ -138,7 +145,8 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     //! The last argument is whether to broadcast the result to all MPI ranks
     //! or just keep on rank 0. Most use cases won't need this set to true.
     void add_integrand(
-        const integrand_t &a_integrand, std::vector<double> &out_integrals,
+        const integrand_t &a_integrand,
+        std::vector<amrex::ParticleReal> &out_integrals,
         const IntegrationMethod &a_method_u = IntegrationMethod::trapezium,
         const IntegrationMethod &a_method_v = IntegrationMethod::trapezium,
         const bool a_broadcast_integral     = false);
@@ -149,7 +157,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     //! The last argument is whether to broadcast the result to all MPI ranks
     //! or just keep on rank 0. Most use cases won't need this set to true.
     void add_var_integrand(
-        int a_var, std::vector<double> &out_integrals,
+        int a_var, std::vector<amrex::ParticleReal> &out_integrals,
         const IntegrationMethod &a_method_u = IntegrationMethod::trapezium,
         const IntegrationMethod &a_method_v = IntegrationMethod::trapezium,
         const bool a_broadcast_integral     = false);
@@ -161,7 +169,7 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     //! integrand. It calls add_integrand() and integrate()
     //! The last argument is whether to broadcast the result to all MPI ranks
     //! or just keep on rank 0. Most use cases won't need this set to true.
-    std::vector<double> integrate(
+    std::vector<amrex::ParticleReal> integrate(
         integrand_t a_integrand,
         const IntegrationMethod &a_method_u = IntegrationMethod::trapezium,
         const IntegrationMethod &a_method_v = IntegrationMethod::trapezium,
@@ -171,14 +179,15 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     void write_extraction(std::string a_file_prefix) const;
 
     //! write some integrals to a file at this timestep
-    void write_integrals(const std::string &a_filename,
-                         const std::vector<std::vector<double>> &a_integrals,
-                         const std::vector<std::string> &a_labels = {}) const;
+    void write_integrals(
+        const std::string &a_filename,
+        const std::vector<std::vector<amrex::ParticleReal>> &a_integrals,
+        const std::vector<std::string> &a_labels = {}) const;
 
     //! convenience caller for write_integrals in the case of just integral per
     //! surface
     void write_integral(const std::string &a_filename,
-                        const std::vector<double> &a_integrals,
+                        const std::vector<amrex::ParticleReal> &a_integrals,
                         const std::string &a_label = "") const;
 };
 

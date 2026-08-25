@@ -16,7 +16,8 @@
 #include <cmath>
 
 AMREX_FORCE_INLINE
-OscillatonInitialData::OscillatonInitialData(params_t a_params, double a_dx)
+OscillatonInitialData::OscillatonInitialData(params_t a_params,
+                                             amrex::Real a_dx)
     : m_dx(a_dx), m_params(a_params)
 {
 }

@@ -11,22 +11,42 @@
 
 #include "GRAMR.hpp"
 
+struct puncture_tracker_params_t
+{
+    bool enabled{};          // whether puncture tracking is enabled
+    bool disable_writeout{}; // if true, don't write .dat file (doesn't
+                             // affect checkpoint and plotfiles)
+    std::string filename;
+    std::string checkpoint_subdir;
+    std::string full_filename;
+
+    int level{};
+    int writeout_level{};
+    std::string output_path{"."}; // default
+
+    std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_coords{};
+
+    inline static void check_params();
+    inline void fill_params();
+};
+
 //!  The class tracks the puncture locations by advecting them in the reverse
 //!  direction to the shift. It is an amrex AoS ParticleContainer.
 template <unsigned int num_punctures>
 class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 {
   public:
+
+    using params_t = puncture_tracker_params_t;
+
     static constexpr unsigned int num_puncture_coords =
         num_punctures * AMREX_SPACEDIM;
 
   private:
-    amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords;
 
-    std::string m_punctures_filename;
-    bool m_disable_writeout{false}; // if true, don't write .dat file (doesn't
-                                    // affect checkpoint and plotfiles)
-    std::string m_checkpoint_subdir;
+    params_t m_params{};
+
+    amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords{};
 
     GRAMR *m_gr_amr{nullptr};
 
@@ -34,15 +54,21 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     bool m_puncture_coords_set{false};
     bool m_started{false};
 
-    double m_restart_time{0.0};
+    amrex::Real m_restart_time{0.0};
 
   public:
     //! The constructor
     using amrex::ParticleContainer<AMREX_SPACEDIM, 1>::ParticleContainer;
 
+    //! Load the puncture tracker parameters
+    void configure();
+
     //! Initialize the tracker. Note that this does not set up the underlying
     //! ParticleContainer
     void initialize(GRAMR *a_gr_amr);
+
+    //! Whether puncture tracking is enabled
+    [[nodiscard]] bool is_enabled() const { return m_params.enabled; }
 
     //! start the puncture tracker from the initial punctures
     void start_from_initial_punctures();
@@ -57,7 +83,8 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     void write_plotfile(const std::string &a_dir);
 
     //! Track the punctures and write out if requested
-    void track(double a_time, double a_dt, const bool a_write_punctures = true);
+    void track(amrex::Real a_time, amrex::Real a_dt,
+               const bool a_write_punctures = true);
 
     //! Set the puncture coordinates (for the initial coordinates)
     void
@@ -65,6 +92,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
                             &a_puncture_coords);
 
     //! Get the puncture coordinates
+    [[nodiscard]]
     const amrex::Array<amrex::Real, num_puncture_coords> &
     get_puncture_coords() const;
 
@@ -93,6 +121,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     void write_initial_punctures() const;
 
     //! SmallDataIO requires a std::vector to write the coords
+    [[nodiscard]]
     std::vector<amrex::Real> get_puncture_vector() const;
 };
 

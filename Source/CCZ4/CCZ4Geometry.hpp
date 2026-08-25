@@ -208,7 +208,7 @@ make_trace_free(Tensor::Rank2 &tensor_LL, const CCZ4Vars vars,
                 const Tensor::Rank2 &inverse_metric)
 {
     auto trace = TensorAlgebra::compute_trace(tensor_LL, inverse_metric);
-    double one_over_gr_spacedim = 1. / ((double)GR_SPACEDIM);
+    amrex::Real one_over_gr_spacedim = 1. / ((amrex::Real)GR_SPACEDIM);
     FOR (i, j)
     {
         tensor_LL(i, j) -= one_over_gr_spacedim * vars.h(i, j) * trace;
@@ -365,7 +365,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
     const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
     const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
     const Tensor::Sym12Rank2 &d2_chi, const Tensor::Sym12Sym34Rank4 &d2_h,
-    const Tensor::Rank2 &h_UU, const chris_t &chris, const double dZ_coeff)
+    const Tensor::Rank2 &h_UU, const chris_t &chris, const amrex::Real dZ_coeff)
 {
     // get contributions from conformal metric and factor with zero Z vector
     Tensor::Rank1 zero_Z{};

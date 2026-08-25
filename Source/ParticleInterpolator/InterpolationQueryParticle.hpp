@@ -22,8 +22,8 @@ class InterpolationQueryParticle
   public:
     struct out_t
     {
-        int comp;
-        amrex::ParticleReal *out_data_ptr;
+        int comp{};
+        amrex::ParticleReal *out_data_ptr{};
         BCParity parity{
             BCParity::undefined}; // default parity is undefined, but should be
                                   // set for diagnostic variables
@@ -31,14 +31,15 @@ class InterpolationQueryParticle
 
     using comp_map_t = std::map<Derivative, std::vector<out_t>>;
     using iterator =
-        typename std::map<Derivative, std::vector<out_t>>::iterator;
+        typename std::map<Derivative, std::vector<out_t>>::const_iterator;
 
   private:
     template <int num_components> friend class ParticleInterpolator;
 
     size_t m_num_points;
-    std::array<const double *, AMREX_SPACEDIM> m_coords{};
-    comp_map_t m_comps;
+
+    std::array<const amrex::ParticleReal *, AMREX_SPACEDIM> m_coords{};
+    comp_map_t m_comps{};
     VariableType m_variable_type{}; // for a given InterpolationQueryParticle
                                     // the variable type must be the same!
     bool m_variable_type_set =
@@ -48,13 +49,16 @@ class InterpolationQueryParticle
     InterpolationQueryParticle(int num_points) : m_num_points(num_points) {}
 
     // Returns the pointer that was passed to setCoords
-    [[nodiscard]] const double *coords(int dim) const
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    [[nodiscard]] const amrex::ParticleReal *coords(int dim) const
+
     {
         AMREX_ASSERT(dim >= 0 && dim < AMREX_SPACEDIM);
         return m_coords[dim];
     }
 
-    InterpolationQueryParticle &setCoords(int dim, const double *coords)
+    InterpolationQueryParticle &setCoords(int dim,
+                                          const amrex::ParticleReal *coords)
     {
         AMREX_ASSERT(dim < AMREX_SPACEDIM);
         this->m_coords[dim] = coords;
@@ -62,7 +66,7 @@ class InterpolationQueryParticle
     }
 
     InterpolationQueryParticle &
-    addComp(int comp, double *out_ptr,
+    addComp(int comp, amrex::ParticleReal *out_ptr,
             VariableType variable_type = VariableType::state,
             BCParity parity            = BCParity::undefined,
             const Derivative &deriv    = Derivative::LOCAL)
@@ -129,6 +133,7 @@ class InterpolationQueryParticle
         return m_variable_type;
     }
 
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     int numComps()
     {
         int accum = 0;
@@ -143,9 +148,9 @@ class InterpolationQueryParticle
 
     [[nodiscard]] size_t numPoints() const { return m_num_points; }
 
-    iterator compsBegin() { return m_comps.begin(); }
+    [[nodiscard]] iterator compsBegin() const { return m_comps.cbegin(); }
 
-    iterator compsEnd() { return m_comps.end(); }
+    [[nodiscard]] iterator compsEnd() const { return m_comps.cend(); }
 };
 
 #endif /* INTERPOLATIONQUERYPARTICLE_HPP_ */

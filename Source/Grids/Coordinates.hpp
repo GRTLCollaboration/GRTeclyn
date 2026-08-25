@@ -20,11 +20,11 @@ class Coordinates
     amrex::Real x{};
     amrex::Real y{};
     amrex::Real z{};
-    std::array<double, AMREX_SPACEDIM> m_center;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
 
     AMREX_GPU_HOST_DEVICE
-    Coordinates(amrex::IntVect integer_coords, double dx,
-                std::array<amrex::Real, AMREX_SPACEDIM> center = {0})
+    Coordinates(amrex::IntVect integer_coords, amrex::Real dx,
+                std::array<amrex::Real, AMREX_SPACEDIM> center = {0.0})
         : m_center(center)
     {
         compute_coord(x, integer_coords[0], dx, center[0]);
@@ -44,8 +44,8 @@ class Coordinates
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static void
-    compute_coord(amrex::Real &out, int position, double dx,
-                  double center_distance = 0)
+    compute_coord(amrex::Real &out, int position, amrex::Real dx,
+                  amrex::Real center_distance = 0.0)
     {
         out = (position + 0.5) * dx - center_distance;
     }
@@ -63,8 +63,8 @@ class Coordinates
     /// This static function returns the radius subject to a floor
     /// for when no coordinates object exists.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static amrex::Real
-    get_radius(amrex::IntVect integer_coords, double dx,
-               std::array<double, AMREX_SPACEDIM> center = {0})
+    get_radius(amrex::IntVect integer_coords, amrex::Real dx,
+               std::array<amrex::Real, AMREX_SPACEDIM> center = {0.0})
     {
         amrex::Real x = NAN;
         amrex::Real y = NAN;

@@ -39,7 +39,7 @@ void KleinGordonLevel::variableSetUp()
 
     amrex::ParmParse pp("klein_gordon");
     std::string model{};
-    pp.query("model", model);
+    pp.get("model", model);
 
     const int ncomp_rho{1}; // only one component associated with energy density
     const int nghosts_rho{2};
@@ -69,14 +69,14 @@ void KleinGordonLevel::initData()
 {
     BL_PROFILE("KleinGordonLevel::initData()");
 
-    std::array<double, AMREX_SPACEDIM> center{};
+    std::array<amrex::Real, AMREX_SPACEDIM> center{};
     std::string model{};
     amrex::Real initial_time{0.0};
 
     amrex::ParmParse pp;
-    pp.query("center", center);
-    pp.query("klein_gordon.model", model);
-    pp.query("klein_gordon.initial_time", initial_time);
+    pp.get("geometry.center", center);
+    pp.get("klein_gordon.model", model);
+    pp.get("klein_gordon.initial_time", initial_time);
 
     amrex::MultiFab &state_new = get_new_data(state_index);
     auto const &array_new      = state_new.arrays();
@@ -108,7 +108,7 @@ void KleinGordonLevel::initData()
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                        amrex::MultiFab &a_rhs,
-                                       const double a_time)
+                                       const amrex::Real a_time)
 {
     BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
 
@@ -142,7 +142,7 @@ void KleinGordonLevel::eval_model_specific_rhs(amrex::MultiFab &a_soln,
     const auto &rhs_arrays        = a_rhs.arrays();
 
     model_t my_model;
-    KleinGordonRHS kg_rhs(simParams().sigma, dx, my_model);
+    KleinGordonRHS kg_rhs(dx, my_model);
 
     amrex::ParallelFor(
         a_soln,
@@ -172,9 +172,9 @@ void KleinGordonLevel::tag_cells(amrex::TagBoxArray &tags,
     const amrex::Real dx         = Geom().CellSize(0);
     const int current_level      = Level();
     const amrex::Real box_length = Geom().ProbLength(0);
-    std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
+    std::array<amrex::Real, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
     GRParmParse pp;
-    pp.query("center", center);
+    pp.query("geometry.center", center);
 
     FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
                                           center};

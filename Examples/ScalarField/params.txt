@@ -1,139 +1,64 @@
-# See the documentation for an explanation of the parameters.
+# GRTeclyn scalar-field oscillaton example
 
 #################################################
 # Filesystem parameters
 
-verbosity = 0
+grteclyn.output_path = .
+amr.verbose = 0
 
-# location / naming of output files
-output_path = .
-amr.check_file = ScalarFieldChk_
-amr.plot_file = ScalarFieldPlot_
-
-# HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
-checkpoint_interval = -1
-# set to 0 to turn off plot files (except at t=0 and t=stop_time)
-# set to -1 to never ever print plotfiles
-plot_interval = 50
+amr.check_file = checkpoints/ScalarFieldChk_
+amr.plot_file = plots/ScalarFieldPlot_
+amr.check_int = -1
+amr.plot_int = 50
 amr.plot_vars = chi lapse phi Pi
 amr.derive_plot_vars = constraints
 
-# subpaths - specific directories for hdf5, pout, extraction data
-# (these are created at runtime)
-data_subpath = "data"
+#################################################
+# Scalar-field and line-extraction parameters
+
+# The fitted oscillaton solution uses geometric units with G = 1 and scalar
+# mass = 1.
+scalar_field.G_Newton = 1.0
+scalar_field.scalar_mass = 1.0
 
 # Write phi and rho along the positive x=y=z diagonal every level-0 timestep.
-# The radius is the Euclidean coordinate distance from the simulation center.
-activate_line_extraction = 1
-line_extraction_num_points = 128
-line_extraction_max_radius = 50.0
-
-# change the name of output files
-# pout_prefix = "pout"
-print_progress_only_to_rank_0 = 1
-
-# ignore_checkpoint_name_mismatch = 0
-# write_plot_ghosts = 0
-
-#################################################
-# Initial Data parameters
-
-# Change the gravitational constant of the Universe!
-# Default is 1.0, for standard geometric units
-# The fitted oscillaton solution uses geometric units with G = 1.
-G_Newton = 1.0
-
-# The oscillaton fit is expressed in units of the scalar mass.
-scalar_mass = 1.0
+line_extraction.enabled = true
+line_extraction.num_points = 128
+line_extraction.max_radius = 50.0
+line_extraction.output_subpath = extraction_data
 
 #################################################
 # Grid parameters
 
-# 'N' is the number of subdivisions in each direction of a cubic box
-# 'L' is the length of the longest side of the box, dx_coarsest = L/N
-# NB - If you use reflective BC and want to specify the subdivisions and side
-# of the box were there are no symmetries, specify 'N_full' and 'L_full' instead
-# NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
-# 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
-# NB - the N values need to be multiples of the block_factor
-N_full = 64
-L_full = 64
+# This octant domain corresponds to a 64^3 full domain of side length 64.
+amr.n_cell = 32 32 32
+geometry.prob_extent = 32 32 32
+geometry.center = 0 0 0
 
-# Maximum number of times you can regrid above coarsest level
-max_level = 1 # There are (max_level+1) grids, so min is zero
-
-# Frequency of regridding at each level and thresholds on the tagging
-# Need one for each level except the top one, ie max_level items
-# Generally you do not need to regrid frequently on every level
-# in this example turn off regridding on all levels
-# Level Regridding: 0   1   2   3   4   5
-regrid_interval   = -1  -1  -1  -1  -1  -1
-# regrid_threshold  = 0.5
-
-# Max and min box sizes
-max_box_size = 32
-min_box_size = 16
-
-tag_buffer_size = 0 # this example uses a fixed grid
-
-# grid_buffer_size = 8
-# fill_ratio = 0.7
-# num_ghosts = 3
-# center = 256.0 256.0 256.0 # defaults to center of the grid
+amr.max_level = 1
+amr.regrid_int = -1
+amr.max_grid_size = 32
+amr.blocking_factor = 16
+amr.n_error_buf = 0
 
 #################################################
-# Boundary Conditions parameters
+# Boundary-condition parameters
 
-#Periodic directions - 0 = false, 1 = true
-isPeriodic = 0 0 0
-# if not periodic, then specify the boundary type
-# 0 = static, 1 = sommerfeld, 2 = reflective
-# 3 = extrapolating, 4 = mixed
-# (see BoundaryConditions.hpp for details)
-hi_boundary = 1 1 1
-lo_boundary = 2 2 2
-
-# if sommerfeld boundaries selected, must select
-# non zero asymptotic values
-nonzero_asymptotic_vars = chi h11 h22 h33 lapse
-nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
-
-# if you are using extrapolating BC:
-# extrapolation_order = 1
-# extrapolating_vars = phi Pi
+geometry.is_periodic = 0 0 0
+boundary.hi_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
+boundary.lo_condition = "REFLECTIVE_BC" "REFLECTIVE_BC" "REFLECTIVE_BC"
 
 #################################################
 # Evolution parameters
 
-# dt will be dx*dt_multiplier on each grid level
-dt_multiplier = 0.1
-stop_time = 10.0
-# max_steps = 4
+evolution.dt_multiplier = 0.1
+evolution.stop_time = 10.0
+evolution.spatial_derivative_order = 4
+evolution.nan_check = true
+evolution.sigma = 0.5
 
-# Spatial derivative order (only affects CCZ4 RHS)
-max_spatial_derivative_order = 4 # can be 4 or 6
+gauge.shift_advec_coeff = 0.0
 
-nan_check = 1
-
-# Lapse evolution
-lapse_advec_coeff = 1.0
-lapse_coeff = 2.0
-lapse_power = 1.0
-
-# Shift evolution
-shift_advec_coeff = 0.0 # Usually no advection for beta
-shift_Gamma_coeff = 0.75
-eta = 1.0 # eta of gamma driver, should be of order ~1/M_ADM of spacetime
-
-# CCZ4 parameters
-kappa1 = 0.
-kappa2 = 0.
-kappa3 = 0.
-
-# coefficient for KO numerical dissipation
-sigma = 0.5
-
-# min_chi = 1.e-4
-# min_lapse = 1.e-4
-
-#################################################
+ccz4.kappa1 = 0.0
+ccz4.kappa2 = 0.0
+ccz4.kappa3 = 0.0

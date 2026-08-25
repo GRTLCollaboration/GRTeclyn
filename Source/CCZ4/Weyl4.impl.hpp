@@ -132,7 +132,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // Compute inverse, Christoffel symbols, Ricci tensor and Z terms
     // Note that unlike in CCZ4 equations we want R_ij + 0.5(D_iZ_j + D_jZ_i)
     // rather than R_ij + D_iZ_j + D_jZ_i hence use compute_ricci_Z_general
-    double dZ_coeff = (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1. : 0.;
+    amrex::Real dZ_coeff = (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1. : 0.;
 
     auto ricci_and_Z_terms = CCZ4Geometry::compute_ricci_Z_general(
         vars, d1_chi, d1_Gamma, d1_h, d2_chi, d2_h, h_UU, chris, dZ_coeff);
@@ -368,13 +368,7 @@ void Weyl4::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
 
-    GRParmParse pp;
-    std::array<double, AMREX_SPACEDIM> center{};
-    int formulation = 0;
-    pp.get("extraction_center", center);
-    pp.get("formulation", formulation);
-
-    Weyl4 weyl4(center, geomdata.CellSize(0), dcomp, formulation);
+    Weyl4 weyl4(geomdata.CellSize(0), dcomp);
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept

@@ -13,20 +13,19 @@
 
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
-    CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
-    double a_sigma, int a_formulation)
-    : CCZ4RHSWithMatter(matter_t{}, a_params, a_dx, a_sigma, a_formulation)
+    amrex::Real a_dx)
+    : CCZ4RHSWithMatter(matter_t{}, a_dx)
 {
 }
 
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
-    matter_t a_matter, CCZ4_params_t<typename gauge_t::params_t> a_params,
-    double a_dx, double a_sigma, int a_formulation)
-    : CCZ4RHS<gauge_t, deriv_t>(a_params, a_dx, a_sigma, a_formulation,
-                                0.0 /*No cosmological constant*/),
+    matter_t a_matter, amrex::Real a_dx)
+    : CCZ4RHS<gauge_t, deriv_t>(a_dx, 0.0 /*No cosmological constant*/),
       m_matter(a_matter)
 {
+    GRParmParse pp;
+    pp.get("ccz4.formulation", m_formulation);
 }
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
@@ -50,7 +49,7 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
                                                           this->m_deriv, h_UU);
 
     // Update RHS for K and Theta depending on formulation
-    if (this->m_formulation == CCZ4RHS<>::USE_BSSN)
+    if (m_formulation == CCZ4RHS<>::USE_BSSN)
     {
         rhs_cell_data[c_K] += 0.5 * vars.lapse() * (source.trS + source.rho);
         rhs_cell_data[c_Theta] = 0.0;

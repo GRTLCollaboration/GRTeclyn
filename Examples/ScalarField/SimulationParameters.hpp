@@ -6,81 +6,95 @@
 #ifndef SIMULATIONPARAMETERS_HPP_
 #define SIMULATIONPARAMETERS_HPP_
 
-#include "GRParmParse.hpp"
-#include "SimulationParametersBase.hpp"
+#include "BaseParameterChecker.hpp"
+#include "CCZ4RHS.hpp"
+#include "MovingPunctureGauge.hpp"
 
-#include "OscillatonInitialData.hpp"
-#include "Potential.hpp"
-
+#include <array>
 #include <cmath>
+#include <string>
 
-class SimulationParameters : public SimulationParametersBase
+class SimulationParameters
 {
   public:
-    // NOLINTNEXTLINE(readability-identifier-length)
-    explicit SimulationParameters(GRParmParse &pp)
-        : SimulationParametersBase(pp)
-    {
-        read_scalar_field_params(pp);
-        check_scalar_field_params();
-    }
+    SimulationParameters() = delete;
 
-    // NOLINTNEXTLINE(readability-identifier-length)
-    void read_scalar_field_params(GRParmParse &pp)
+    static void check_params()
     {
-        initial_params.center = center;
-        pp.load("G_Newton", G_Newton, 1.0);
-        pp.load("scalar_mass", potential_params.scalar_mass, 1.0);
-        pp.load("activate_line_extraction", activate_line_extraction, false);
-        if (activate_line_extraction)
+        BaseParameterChecker::check_params();
+        CCZ4_params_t::check_params();
+        MovingPunctureGauge::params_t::check_params();
+
+        GRParmParse scalar_field_pp("scalar_field");
+        amrex::Real G_Newton{1.0};
+        scalar_field_pp.queryAdd("G_Newton", G_Newton);
+        if (G_Newton < 0.0)
         {
-            pp.load("line_extraction_num_points", line_extraction_num_points,
-                    128);
-            pp.load("line_extraction_max_radius", line_extraction_max_radius,
-                    0.5 * L);
+            scalar_field_pp.error("G_Newton", "must be >= 0.0");
         }
-    }
 
-    void check_scalar_field_params()
-    {
-        check_parameter("G_Newton", G_Newton, G_Newton >= 0.0,
-                        "must be >= 0.0");
-        check_parameter("scalar_mass", potential_params.scalar_mass,
-                        potential_params.scalar_mass >= 0.0, "must be >= 0.0");
-        warn_parameter("scalar_mass", potential_params.scalar_mass,
-                       potential_params.scalar_mass <
-                           0.2 / coarsest_dx / dt_multiplier,
-                       "oscillations of the scalar field may not be resolved "
-                       "on the coarsest level");
-        if (activate_line_extraction)
+        amrex::Real scalar_mass{1.0};
+        scalar_field_pp.queryAdd("scalar_mass", scalar_mass);
+        if (scalar_mass < 0.0)
         {
-            check_parameter("line_extraction_num_points",
-                            line_extraction_num_points,
-                            line_extraction_num_points >= 2, "must be >= 2");
-            check_parameter("line_extraction_max_radius",
-                            line_extraction_max_radius,
-                            line_extraction_max_radius > 0.0, "must be > 0.0");
+            scalar_field_pp.error("scalar_mass", "must be >= 0.0");
+        }
 
+        GRParmParse geometry_pp("geometry");
+        std::array<amrex::Real, AMREX_SPACEDIM> prob_extent{};
+        geometry_pp.get("prob_extent", prob_extent);
+        amrex::Real coarsest_dx{};
+        geometry_pp.get("coarsest_dx", coarsest_dx);
+
+        GRParmParse evolution_pp("evolution");
+        amrex::Real dt_multiplier{};
+        evolution_pp.get("dt_multiplier", dt_multiplier);
+        if (scalar_mass >= 0.2 / coarsest_dx / dt_multiplier)
+        {
+            scalar_field_pp.warning(
+                "scalar_mass", "oscillations of the scalar field may not be "
+                               "resolved on the coarsest level");
+        }
+
+        GRParmParse line_pp("line_extraction");
+        bool line_extraction_enabled{false};
+        line_pp.queryAdd("enabled", line_extraction_enabled);
+        std::string output_subpath{"extraction_data"};
+        line_pp.queryAdd("output_subpath", output_subpath);
+
+        if (line_extraction_enabled)
+        {
+            int num_points{128};
+            line_pp.queryAdd("num_points", num_points);
+            if (num_points < 2)
+            {
+                line_pp.error("num_points", "must be >= 2");
+            }
+
+            amrex::Real max_radius{amrex::Real(0.5) * prob_extent[0]};
+            line_pp.queryAdd("max_radius", max_radius);
+            if (max_radius <= 0.0)
+            {
+                line_pp.error("max_radius", "must be > 0.0");
+            }
+
+            std::array<amrex::Real, AMREX_SPACEDIM> center{};
+            geometry_pp.get("center", center);
             const amrex::Real coordinate_offset =
-                line_extraction_max_radius /
+                max_radius /
                 std::sqrt(static_cast<amrex::Real>(AMREX_SPACEDIM));
             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
             {
-                const amrex::Real end_coord = center[dir] + coordinate_offset;
-                check_parameter(
-                    "line extraction end coordinate", end_coord,
-                    end_coord < reflective_domain_hi[dir],
-                    "must lie inside the upper boundary in every direction");
+                if (center[dir] + coordinate_offset >= prob_extent[dir])
+                {
+                    line_pp.error(
+                        "max_radius",
+                        "places the line extraction outside the upper "
+                        "boundary in at least one direction");
+                }
             }
         }
     }
-
-    amrex::Real G_Newton{1.0};
-    bool activate_line_extraction{false};
-    int line_extraction_num_points{128};
-    amrex::Real line_extraction_max_radius{};
-    OscillatonInitialData::params_t initial_params{};
-    Potential::params_t potential_params{};
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */

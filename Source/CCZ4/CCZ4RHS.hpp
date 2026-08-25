@@ -9,6 +9,7 @@
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GRParmParse.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "TensorAlgebra.hpp"
 
@@ -20,23 +21,24 @@
 /** This struct collects the gauge independent CCZ4 parameters i.e. the damping
  * ones
  */
-struct CCZ4_base_params_t
+struct CCZ4_params_t
 {
-    double kappa1;    //!< Damping parameter kappa1 as in arXiv:1106.2254
-    double kappa2;    //!< Damping parameter kappa2 as in arXiv:1106.2254
-    double kappa3;    //!< Damping parameter kappa3 as in arXiv:1106.2254
-    bool covariantZ4; //!< if true, replace kappa1->kappa1/lapse as in
-                      //!<  arXiv:1307.7391 eq. 27
-};
+    amrex::Real kappa1; //!< Damping parameter kappa1 as in arXiv:1106.2254
+    amrex::Real kappa2; //!< Damping parameter kappa2 as in arXiv:1106.2254
+    amrex::Real kappa3; //!< Damping parameter kappa3 as in arXiv:1106.2254
+    bool covariantZ4;   //!< if true, replace kappa1->kappa1/lapse as in
+                        //!<  arXiv:1307.7391 eq. 27
 
-/// Parameter struct for CCZ4
-/** This struct collects all parameters that are necessary for CCZ4 such as
- * gauge and damping parameters. It inherits from CCZ4_base_params_t and
- * gauge_t::params_t
- */
-template <class gauge_params_t = MovingPunctureGauge::params_t>
-struct CCZ4_params_t : public CCZ4_base_params_t, public gauge_params_t
-{
+    static void check_params();
+
+    void fill_params()
+    {
+        GRParmParse ccz4_pp("ccz4");
+        ccz4_pp.get("kappa1", kappa1);
+        ccz4_pp.get("kappa2", kappa2);
+        ccz4_pp.get("kappa3", kappa3);
+        ccz4_pp.get("covariantZ4", covariantZ4);
+    }
 };
 
 /// Compute class to calculate the CCZ4 right hand side
@@ -60,24 +62,20 @@ class CCZ4RHS
         NO
     };
 
-    using params_t = CCZ4_params_t<typename gauge_t::params_t>;
+    using params_t = CCZ4_params_t;
 
   protected:
-    params_t m_params; //!< CCZ4 parameters
-    gauge_t m_gauge;   //!< Class to compute gauge in rhs_equation
-    double m_sigma;    //!< Coefficient for Kreiss-Oliger dissipation
-    int m_formulation;
-    double m_cosmological_constant;
+    params_t m_params;   //!< CCZ4 parameters
+    gauge_t m_gauge;     //!< Class to compute gauge in rhs_equation
+    amrex::Real m_sigma; //!< Coefficient for Kreiss-Oliger dissipation
+    amrex::Real m_cosmological_constant;
     deriv_t m_deriv;
 
   public:
     /// Constructor
-    CCZ4RHS(
-        params_t a_params,            //!< The CCZ4 parameters
-        double a_dx,                  //!< The grid spacing
-        double a_sigma,               //!< Kreiss-Oliger dissipation coefficient
-        int a_formulation = USE_CCZ4, //!< Switches between CCZ4, BSSN,...
-        double a_cosmological_constant = 0 //!< Value of the cosmological const.
+    CCZ4RHS(amrex::Real a_dx, //!< The grid spacing
+            amrex::Real a_cosmological_constant =
+                0 //!< Value of the cosmological const.
     );
 
     /// Compute function
@@ -108,6 +106,63 @@ class CCZ4RHS
                       const amrex::Array4<amrex::Real> &rhs,
                       const amrex::Array4<const amrex::Real> &state) const;
 };
+
+inline void CCZ4_params_t::check_params()
+{
+    GRParmParse ccz4_pp("ccz4");
+
+    int formulation{};
+    formulation = CCZ4RHS<>::USE_CCZ4;
+    ccz4_pp.queryAdd("formulation", formulation);
+    if (formulation != CCZ4RHS<>::USE_CCZ4 &&
+        formulation != CCZ4RHS<>::USE_BSSN)
+    {
+        ccz4_pp.error("formulation", "must be 0 (BSSN) or 1 (CCZ4)");
+    }
+
+    if (formulation == CCZ4RHS<>::USE_BSSN)
+    {
+        for (const char *kappa_name : {"kappa1", "kappa2", "kappa3"})
+        {
+            if (ccz4_pp.contains(kappa_name))
+            {
+                ccz4_pp.warning(
+                    kappa_name,
+                    "should not be provided with BSSN formulation, setting "
+                    "it to zero");
+            }
+        }
+        ccz4_pp.add("kappa1", 0.0);
+        ccz4_pp.add("kappa2", 0.0);
+        ccz4_pp.add("kappa3", 0.0);
+    }
+    else
+    {
+        amrex::Real kappa1 = 0.1;
+        ccz4_pp.queryAdd("kappa1", kappa1);
+        if (kappa1 <= 0.0)
+        {
+            ccz4_pp.warning("kappa1",
+                            "should be greater than 0.0 to damp constraints "
+                            "(see arXiv:1106.2254).");
+        }
+
+        amrex::Real kappa2 = 0.0;
+        ccz4_pp.queryAdd("kappa2", kappa2);
+        if (kappa2 <= -1.0)
+        {
+            ccz4_pp.warning("kappa2",
+                            "should be greater than -1.0 to damp constraints "
+                            "(see arXiv:1106.2254).");
+        }
+
+        amrex::Real kappa3 = 1.0;
+        ccz4_pp.queryAdd("kappa3", kappa3);
+    }
+
+    bool covariantZ4 = true;
+    ccz4_pp.queryAdd("covariantZ4", covariantZ4);
+}
 
 #include "CCZ4RHS.impl.hpp"
 

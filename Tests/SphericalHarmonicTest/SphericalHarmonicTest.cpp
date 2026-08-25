@@ -41,37 +41,38 @@ void run_spherical_harmonic_test()
                                  amrex::The_Managed_Arena());
         amrex::FArrayBox diff_fab(box, NUM_SPHERICAL_HARMONICS_VARS,
                                   amrex::The_Managed_Arena());
-        double length = 64.0;
+        amrex::Real length = 64.0;
 
-        const double dx     = length / (N_GRID);
-        const double center = 0.5 * length;
-        auto in_array       = in_fab.array();
-        auto out_array      = out_fab.array();
-        auto diff_array     = diff_fab.array();
+        const amrex::Real dx     = length / (N_GRID);
+        const amrex::Real center = 0.5 * length;
+        auto in_array            = in_fab.array();
+        auto out_array           = out_fab.array();
+        auto diff_array          = diff_fab.array();
 
-        std::array<double, AMREX_SPACEDIM> center_vector = {center, center,
-                                                            center};
+        std::array<amrex::Real, AMREX_SPACEDIM> center_vector = {center, center,
+                                                                 center};
         HarmonicTest harmonic_test(center_vector, dx);
 
         amrex::ParallelFor(
             box,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
-                const double x = (i + 0.5) * dx - center;
-                const double y = (j + 0.5) * dx - center;
-                const double z = (k + 0.5) * dx - center;
-                const double r =
+                const amrex::Real x = (i + 0.5) * dx - center;
+                const amrex::Real y = (j + 0.5) * dx - center;
+                const amrex::Real z = (k + 0.5) * dx - center;
+                const amrex::Real r =
                     std::max(1e-6, std::sqrt(x * x + y * y + z * z));
                 // NOLINTNEXTLINE(readability-identifier-length)
-                const double rr     = r * r;
-                const double rr_inv = 1.0 / rr;
-                const double rho    = std::max(1e-6, std::sqrt(x * x + y * y));
+                const amrex::Real rr     = r * r;
+                const amrex::Real rr_inv = 1.0 / rr;
+                const amrex::Real rho =
+                    std::max(1e-6, std::sqrt(x * x + y * y));
 
                 const amrex::IntVect iv{i, j, k};
                 // here testing the es = -1, el = 2, em = -1 case
                 // and also the calculation of r in coords
-                double harmonic = sqrt(5.0 / 16.0 / M_PI) * x *
-                                  (2 * z * z - z * r - rr) * rr_inv / rho;
+                amrex::Real harmonic = sqrt(5.0 / 16.0 / M_PI) * x *
+                                       (2. * z * z - z * r - rr) * rr_inv / rho;
                 in_array(iv, c_phi) = harmonic * rr_inv;
 
                 amrex::CellData<amrex::Real> cell = out_array.cellData(i, j, k);
@@ -83,8 +84,8 @@ void run_spherical_harmonic_test()
 
         amrex::Gpu::streamSynchronize();
 
-        const int cout_precision    = 17;
-        const double test_tolerance = 1e-14;
+        const int cout_precision         = 17;
+        const amrex::Real test_tolerance = 1e-14;
 
         amrex::Real max_diff = 0.0;
         amrex::IntVect max_diff_index{};

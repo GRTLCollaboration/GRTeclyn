@@ -31,6 +31,13 @@ static const std::array<BCParity, 2> scalar_field_parities = {BCParity::even,
 
 static const std::array<BCParity, NUM_VARS> parities = ArrayTools::concatenate(
     CCZ4StateVariables::parities, scalar_field_parities);
+
+static const std::array<amrex::Real, 2> scalar_field_asymptotic_values = {0.0,
+                                                                          0.0};
+
+static const std::array<amrex::Real, NUM_VARS> asymptotic_values =
+    ArrayTools::concatenate(CCZ4StateVariables::asymptotic_values,
+                            scalar_field_asymptotic_values);
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */

@@ -34,7 +34,7 @@ void run_ccz4_rhs_test()
     {
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 3;
-        constexpr double dx      = 0.5 / (num_cells - 1);
+        constexpr amrex::Real dx = 0.5 / ((amrex::Real)num_cells - 1.0);
 
         amrex::Box box(
             amrex::IntVect(0, 0, 0),
@@ -61,37 +61,38 @@ void run_ccz4_rhs_test()
         const int use_covariantZ4 = 1;
         const int formulation     = 0;
 
-        CCZ4_params_t<MovingPunctureGauge::params_t> current_ccz4_params;
-        current_ccz4_params.kappa1            = 0.1;
-        current_ccz4_params.kappa2            = 0;
-        current_ccz4_params.kappa3            = 1;
-        current_ccz4_params.covariantZ4       = use_covariantZ4;
-        current_ccz4_params.lapse_advec_coeff = 0.0;
-        current_ccz4_params.lapse_power       = 1.0;
-        current_ccz4_params.lapse_coeff       = 2.0;
-        current_ccz4_params.shift_Gamma_coeff = 0.75;
-        current_ccz4_params.shift_advec_coeff = 0;
-        current_ccz4_params.eta               = 1.82;
+        GRParmParse pp;
+        pp.add("ccz4.kappa1", 0.1);
+        pp.add("ccz4.kappa2", 0.0);
+        pp.add("ccz4.kappa3", 1.0);
+        pp.add("ccz4.covariantZ4", use_covariantZ4);
+
+        pp.add("gauge.shift_Gamma_coeff", 0.75);
+        pp.add("gauge.lapse_advec_coeff", 0.0);
+        pp.add("gauge.lapse_power", 1.0);
+        pp.add("gauge.lapse_coeff", 2.0);
+        pp.add("gauge.shift_advec_coeff", 0.0);
+        pp.add("gauge.eta", 1.82);
+
+        pp.add("evolution.sigma", 0.3);
+        pp.add("ccz4.formulation", formulation);
 
         Old::CCZ4_params_t<Old::MovingPunctureGauge::params_t> old_ccz4_params;
-        old_ccz4_params.kappa1      = current_ccz4_params.kappa1;
-        old_ccz4_params.kappa2      = current_ccz4_params.kappa2;
-        old_ccz4_params.kappa3      = current_ccz4_params.kappa3;
-        old_ccz4_params.covariantZ4 = current_ccz4_params.covariantZ4;
-        old_ccz4_params.lapse_advec_coeff =
-            current_ccz4_params.lapse_advec_coeff;
-        old_ccz4_params.lapse_power = current_ccz4_params.lapse_power;
-        old_ccz4_params.lapse_coeff = current_ccz4_params.lapse_coeff;
-        old_ccz4_params.shift_Gamma_coeff =
-            current_ccz4_params.shift_Gamma_coeff;
-        old_ccz4_params.shift_advec_coeff =
-            current_ccz4_params.shift_advec_coeff;
-        old_ccz4_params.eta = current_ccz4_params.eta;
+        old_ccz4_params.kappa1            = 0.1;
+        old_ccz4_params.kappa2            = 0;
+        old_ccz4_params.kappa3            = 1;
+        old_ccz4_params.covariantZ4       = use_covariantZ4;
+        old_ccz4_params.lapse_advec_coeff = 0.0;
+        old_ccz4_params.lapse_power       = 1.0;
+        old_ccz4_params.lapse_coeff       = 2.0;
+        old_ccz4_params.shift_Gamma_coeff = 0.75;
+        old_ccz4_params.shift_advec_coeff = 0;
+        old_ccz4_params.eta               = 1.82;
 
         amrex::Real sigma = 0.3;
 
         CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> current_ccz4_rhs{
-            current_ccz4_params, dx, sigma};
+            dx};
 
         Old::CCZ4RHS<Old::MovingPunctureGauge, Old::FourthOrderDerivatives>
             old_ccz4_rhs{old_ccz4_params, dx, sigma};

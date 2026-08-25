@@ -43,9 +43,6 @@ class ParticleInterpolator
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_hi{};
 
-    // number of cells per level
-    amrex::Vector<amrex::GpuArray<int, AMREX_SPACEDIM>> m_domain_ncell{};
-
     // reflective BC flags per side on the low and high sides
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_hi_boundary_reflective{{false}};
@@ -68,20 +65,26 @@ class ParticleInterpolator
     // copy of BC params
     BoundaryConditions::params_t m_bc_params;
 
-    // store the query here
-    InterpolationQueryParticle *m_query{};
     // for getting the starting component of query
-    int get_start_comp();
+    int get_start_comp(const InterpolationQueryParticle &query);
+    std::size_t m_num_query_points{}; // for storing number of query points
+                                      // (later used in the minimal check to
+                                      // verify that the query has not changed).
+    // it is possible that the user uses the same number of points, but the
+    // actual query coords are different, but this would require a more complex
+    // infrastructre -- to be considered in the future.
+    // we also do not really carefully check for ordering of comps and assume
+    // the user knows what they are doing -- this will be changed in Adam's PR.
 
     // mpi stuff
     MPIContextParticle m_mpi;
 
     std::vector<int> m_answer_idx{}; // indices of the answers (send buffers)
-    std::vector<std::vector<double>>
+    std::vector<std::vector<amrex::ParticleReal>>
         m_answer_data{}; // send buffers on the answering rank
 
     std::vector<int> m_query_idx{}; // indices of query (receiving buffers)
-    std::vector<std::vector<double>>
+    std::vector<std::vector<amrex::ParticleReal>>
         m_query_data{}; // receive buffers on the query rank
 
     // a parity helper (the same way as it was defined in the AMRInterpolator)
@@ -99,12 +102,12 @@ class ParticleInterpolator
                      bool low_reflect, bool high_reflect);
 
     // A function to check whether the query point is inside the physical domain
-    void check_domain(amrex::GpuArray<double, AMREX_SPACEDIM> &x,
+    void check_domain(amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
     // A helper function that aggregates all the points together from senders
     // and receivers, collects the them into out arrays and applies parity
-    void aggregate_points();
+    void aggregate_points(const InterpolationQueryParticle &query);
 
     // A helper function to prepare send buffers, packs m_answer_idx and
     // m_answer_data
@@ -118,7 +121,7 @@ class ParticleInterpolator
     void exchange_answers();
 
     // Apply parities and store interpolated values in out arrays
-    void apply_parity_and_store_values();
+    void apply_parity_and_store_values(const InterpolationQueryParticle &query);
 
   public:
 
@@ -130,21 +133,21 @@ class ParticleInterpolator
     ParticleInterpolator() = default; // default constructible
 
     // initialise everything and perform some sanity checks
-    void setup(GRAMR *gramr_ptr,
-               const BoundaryConditions::params_t &a_bc_params,
-               bool a_verbosity = false);
+    void setup(GRAMR *gramr_ptr);
 
     // allocate particles at the query points
-    void populate_from_query();
+    void populate_from_query(const InterpolationQueryParticle &query);
 
     // A helper function that does interpolation from grid onto particles
     void interpolate_to_particle(int lev, amrex::MultiFab &mfab,
-                                 const amrex::Geometry &geom);
+                                 const amrex::Geometry &geom, int start_comp);
 
     // final interpolation routine exposed to the users
-    void interp(InterpolationQueryParticle &query,
-                const std::string &name_derived = "",
-                double time_derived             = 0.0);
+    // a_refresh_particles flag allows to "refresh" the particles, if e.g. the
+    // user opts to change the query in the interpolation
+    void interp(const InterpolationQueryParticle &query,
+                bool a_refresh_particles, const std::string &name_derived = "",
+                amrex::Real time_derived = 0.0);
 
     void ensure_redistributed();
 

@@ -26,6 +26,10 @@ void run_positive_chi_and_lapse_unit_test()
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(amrex_argc, amrex_argv);
     {
+        GRParmParse pp;
+        pp.add("ccz4.min_chi", 1e-4);
+        pp.add("ccz4.min_lapse", 1e-4);
+
         constexpr int N_GRID = 8;
         amrex::Box box(amrex::IntVect(0, 0, 0),
                        amrex::IntVect(N_GRID - 1, N_GRID - 1, N_GRID - 1));
@@ -37,7 +41,8 @@ void run_positive_chi_and_lapse_unit_test()
                            [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
                                const amrex::IntVect iv{ix, iy, iz};
-                               double value = (ix < N_GRID / 2) ? 1 : 1e-10;
+                               amrex::Real value =
+                                   (ix < N_GRID / 2.) ? 1. : 1e-10;
 
                                in_array(iv, c_chi)   = value;
                                in_array(iv, c_lapse) = value;
@@ -45,12 +50,14 @@ void run_positive_chi_and_lapse_unit_test()
 
         amrex::Gpu::streamSynchronize();
 
+        PositiveChiAndLapse positive_chi_lapse;
+
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
-                           { PositiveChiAndLapse()(ix, iy, iz, in_array); });
+                           { positive_chi_lapse(ix, iy, iz, in_array); });
 
         amrex::Gpu::streamSynchronize();
 
-        constexpr double test_threshold = 1e-15;
+        constexpr amrex::Real test_threshold = 1e-15;
 
         // We have to do this on the host as are using doctest functions
         amrex::LoopOnCpu(
@@ -59,7 +66,7 @@ void run_positive_chi_and_lapse_unit_test()
             {
                 const amrex::IntVect iv(ix, iy, iz);
 
-                double correct_value = (ix < N_GRID / 2) ? 1 : 1e-4;
+                amrex::Real correct_value = (ix < N_GRID / 2.) ? 1. : 1e-4;
                 INFO("At " << iv);
                 CHECK(in_array(iv, c_chi) ==
                       doctest::Approx(correct_value).epsilon(test_threshold));

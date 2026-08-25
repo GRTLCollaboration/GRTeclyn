@@ -35,7 +35,7 @@ amrex::Vector<std::string> EMTensor<matter_t, em_tensor_options>::var_names()
 }
 
 template <class matter_t, enum EMTensorOptions em_tensor_options>
-EMTensor<matter_t, em_tensor_options>::EMTensor(double a_dx, int a_dcomp)
+EMTensor<matter_t, em_tensor_options>::EMTensor(amrex::Real a_dx, int a_dcomp)
     : m_deriv(a_dx), m_dcomp(a_dcomp)
 {
 }

@@ -10,7 +10,6 @@
 #ifndef PUNCTURETRACKER_IMPL_HPP_
 #define PUNCTURETRACKER_IMPL_HPP_
 
-// #include "AMReXParameters.hpp" // for writing data
 #include "DimensionDefinitions.hpp"
 #include "FilesystemTools.hpp"
 #include "GRAMRLevel.hpp"
@@ -19,34 +18,93 @@
 #include "StateVariables.hpp"
 
 // AMReX includes
+#include <AMReX_AmrLevel.H> // complete type needed during GRAMRLevel includes
 #include <AMReX_AmrParGDB.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_TracerParticle_mod_K.H> // for linear_interpolation
+
+void puncture_tracker_params_t::check_params()
+{
+    GRParmParse puncture_tracking_pp("puncture_tracking");
+    GRParmParse pp;
+
+    bool enabled = false; // default
+    puncture_tracking_pp.queryAdd("enabled", enabled);
+    if (!enabled)
+    {
+        return;
+    }
+
+    std::string output_path;
+    pp.get("grteclyn.output_path", output_path);
+
+    std::string pt_output_path = output_path + "/punctures_output";
+
+    FilesystemTools::ensure_directory_exists(pt_output_path);
+    puncture_tracking_pp.add("output_path", pt_output_path);
+
+    std::string filename = "punctures";
+    puncture_tracking_pp.add("filename", filename);
+
+    bool disable_writeout = false;
+    puncture_tracking_pp.queryAdd("disable_writeout", disable_writeout);
+
+    int max_level;
+    pp.get("amr.max_level", max_level);
+    int level = max_level;
+    puncture_tracking_pp.queryAdd("level", level);
+    if (level < 0 || level > max_level)
+    {
+        puncture_tracking_pp.warning(
+            "level", "must be between 0 and max_level (inclusive)");
+    }
+
+    int writeout_level = 0;
+    puncture_tracking_pp.queryAdd("writeout_level", writeout_level);
+
+    std::array<amrex::Real, AMREX_SPACEDIM> center{};
+    pp.get("geometry.center", center);
+
+    std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_coords{
+        center[0], center[1] - amrex::Real(1.0), center[2],
+        center[0], center[1] + amrex::Real(1.0), center[2]};
+    puncture_tracking_pp.queryAdd("initial_coords", initial_coords);
+}
+
+void puncture_tracker_params_t::fill_params()
+{
+    amrex::ParmParse puncture_tracking_pp("puncture_tracking");
+
+    puncture_tracking_pp.get("enabled", enabled);
+    if (!enabled)
+    {
+        return;
+    }
+
+    puncture_tracking_pp.get("output_path", output_path);
+    puncture_tracking_pp.get("filename", filename);
+    full_filename     = output_path + "/" + filename;
+    checkpoint_subdir = filename;
+
+    puncture_tracking_pp.get("disable_writeout", disable_writeout);
+
+    puncture_tracking_pp.get("level", level);
+    puncture_tracking_pp.get("writeout_level", writeout_level);
+
+    puncture_tracking_pp.get("initial_coords", initial_coords);
+}
+
+template <unsigned int num_punctures>
+void PunctureTracker<num_punctures>::configure()
+{
+    m_params.fill_params();
+}
 
 //! Set up puncture tracker
 template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::initialize(GRAMR *a_gr_amr)
 {
-    amrex::ParmParse puncture_tracking_pp("puncture_tracking");
-
-    std::string filename{"punctures"}; // default
-    puncture_tracking_pp.queryAdd("filename", filename);
-
-    std::string output_path{"."}; // default
-    // Maybe we might want to change this to a more generic GRTeclyn output_path
-    // at some point
-    puncture_tracking_pp.queryAdd("output_path", output_path);
-
-    puncture_tracking_pp.queryAdd("disable_writeout", m_disable_writeout);
-
-    if (!FilesystemTools::directory_exists(output_path))
-    {
-        FilesystemTools::mkdir_recursive(output_path);
-    }
-
-    m_punctures_filename = output_path + "/" + filename;
-    m_checkpoint_subdir  = filename;
-
+    AMREX_ASSERT(m_params.enabled);
     AMREX_ASSERT(a_gr_amr != nullptr);
     m_gr_amr = a_gr_amr;
 
@@ -89,7 +147,7 @@ void PunctureTracker<num_punctures>::restart(
     // Define the particle container
     Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
 
-    Restart(a_restart_chk_dir, m_checkpoint_subdir);
+    Restart(a_restart_chk_dir, m_params.checkpoint_subdir);
 
     m_started = true;
 
@@ -125,7 +183,7 @@ void PunctureTracker<num_punctures>::checkpoint(const std::string &a_chk_dir)
     AMREX_ASSERT(m_started);
 
     Redistribute();
-    Checkpoint(a_chk_dir, m_checkpoint_subdir);
+    Checkpoint(a_chk_dir, m_params.checkpoint_subdir);
 }
 
 //! set and write initial puncture locations
@@ -205,15 +263,15 @@ template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::write_initial_punctures() const
 {
     AMREX_ASSERT(m_initialized);
-    if (m_disable_writeout)
+    if (m_params.disable_writeout)
     {
         return;
     }
     // now the write out to a new file
-    bool first_step = true;
-    double dt       = 1.; // doesn't matter
-    double time     = 0.;
-    SmallDataIO punctures_file(m_punctures_filename, dt, time, m_restart_time,
+    bool first_step  = true;
+    amrex::Real dt   = 1.; // doesn't matter
+    amrex::Real time = 0.;
+    SmallDataIO punctures_file(m_params.full_filename, dt, time, m_restart_time,
                                SmallDataIO::APPEND, first_step);
     std::vector<std::string> header1_strings(
         static_cast<size_t>(num_puncture_coords));
@@ -232,7 +290,7 @@ void PunctureTracker<num_punctures>::write_initial_punctures() const
 
 //! track the punctures and write out if requested
 template <unsigned int num_punctures>
-void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
+void PunctureTracker<num_punctures>::track(amrex::Real a_time, amrex::Real a_dt,
                                            const bool a_write_punctures)
 {
     BL_PROFILE("PunctureTracker::track");
@@ -320,10 +378,12 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
                         // domain otherwise AMReX will mark them invalid
                         FOR1 (idir)
                         {
-                            p.pos(idir) =
-                                std::max(p.pos(idir), problem_domain_lo[idir]);
-                            p.pos(idir) =
-                                std::min(p.pos(idir), problem_domain_hi[idir]);
+                            p.pos(idir) = std::max(
+                                p.pos(idir), static_cast<amrex::ParticleReal>(
+                                                 problem_domain_lo[idir]));
+                            p.pos(idir) = std::min(
+                                p.pos(idir), static_cast<amrex::ParticleReal>(
+                                                 problem_domain_hi[idir]));
                         }
                     }); // amrex::ParallelFor
             } // punc_iter
@@ -335,10 +395,10 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
     update_puncture_coords();
 
     // write them out
-    if (a_write_punctures && !m_disable_writeout)
+    if (a_write_punctures && !m_params.disable_writeout)
     {
         bool first_step = false;
-        SmallDataIO punctures_file(m_punctures_filename, a_dt, a_time,
+        SmallDataIO punctures_file(m_params.full_filename, a_dt, a_time,
                                    m_restart_time, SmallDataIO::APPEND,
                                    first_step);
 

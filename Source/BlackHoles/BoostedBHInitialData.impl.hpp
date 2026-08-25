@@ -12,10 +12,71 @@
 
 #include "DimensionDefinitions.hpp"
 #include <cmath>
+#include <string>
 
-AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(params_t a_params)
-    : m_params(a_params)
+void BoostedBHInitialData::params_t::check_params(int a_id)
 {
+    GRParmParse bh_pp("bh" + std::to_string(a_id));
+
+    amrex::Real mass;
+    bh_pp.get("mass", mass);
+    if (mass <= 0.0)
+    {
+        bh_pp.error("mass", "must be > 0");
+    }
+
+    std::array<amrex::Real, AMREX_SPACEDIM> momentum;
+    bh_pp.get("momentum", momentum);
+    if (std::sqrt(ArrayTools::norm2(momentum)) >= 0.3 * mass)
+    {
+        bh_pp.warning("momentum", "approximation used for boosted BH is only "
+                                  "valid when |P| / mass is small");
+    }
+
+    GRParmParse geom_pp("geometry");
+    std::array<amrex::Real, AMREX_SPACEDIM> center{};
+    geom_pp.get("center", center);
+    std::array<amrex::Real, AMREX_SPACEDIM> prob_extent{};
+    geom_pp.get("prob_extent", prob_extent);
+
+    std::array<amrex::Real, AMREX_SPACEDIM> offset{};
+    bh_pp.queryAdd("offset", offset);
+    std::array<amrex::Real, AMREX_SPACEDIM> bh_center = center;
+    FOR (idir)
+    {
+        bh_center[idir] += offset[idir];
+    }
+
+    FOR (idir)
+    {
+        if (bh_center[idir] < 0.0 || bh_center[idir] > prob_extent[idir])
+        {
+            bh_pp.warning("offset", "places the black hole outside the "
+                                    "computational domain");
+        }
+    }
+}
+
+void BoostedBHInitialData::params_t::fill_params()
+{
+    GRParmParse bh_pp("bh" + std::to_string(id));
+    GRParmParse geom_pp("geometry");
+    bh_pp.get("mass", mass);
+    bh_pp.get("momentum", momentum);
+
+    geom_pp.get("center", center);
+    std::array<amrex::Real, AMREX_SPACEDIM> offset{};
+    bh_pp.get("offset", offset);
+    FOR (idir)
+    {
+        center[idir] += offset[idir];
+    }
+}
+
+AMREX_FORCE_INLINE BoostedBHInitialData::BoostedBHInitialData(int a_id)
+    : m_params(a_id)
+{
+    m_params.fill_params();
 }
 
 [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
@@ -45,8 +106,8 @@ BoostedBHInitialData::Aij(Coordinates a_coords) const
 
     FOR (i, j)
     {
-        const double delta = (i == j) ? 1 : 0;
-        out(i, j)          = 1.5 *
+        const amrex::Real delta = (i == j) ? 1 : 0;
+        out(i, j)               = 1.5 *
                     (m_params.momentum[i] * l(j) + m_params.momentum[j] * l(i) -
                      (delta - l(i) * l(j)) * l_dot_p) /
                     (r * r);

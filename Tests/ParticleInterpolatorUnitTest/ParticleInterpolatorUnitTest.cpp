@@ -6,6 +6,9 @@
 // Doctest header
 #include "doctest.h"
 
+// State vars
+#include "StateVariables.hpp"
+
 // Test include
 #include "ParticleInterpolatorUnitTest.hpp"
 
@@ -47,8 +50,7 @@ void run_particle_interpolator_test()
     // second argument
     std::filesystem::path this_file(__FILE__);
     std::filesystem::path input_file =
-        this_file.parent_path() /
-        std::filesystem::path("ParticleInterpolatorUnitTest.inputs");
+        this_file.parent_path() / std::filesystem::path("params_test.txt");
     char *input_file_c_str = strdup(input_file.c_str());
 
     auto new_args = doctest::cli_args;
@@ -58,27 +60,40 @@ void run_particle_interpolator_test()
     char **new_argv = new_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(new_argc, new_argv);
+    amrex::Initialize(
+        new_argc, new_argv,
+        std::function<void()>(SimulationParameters::check_params));
     {
         // Simulation parameters
         GRParmParse pp;
-        SimulationParameters sim_params(pp);
-        GRAMR::set_simulation_parameters(sim_params);
         ParticleInterpolatorLevel::variableSetUp();
 
         // Set the center
-        PolynomialDerivedQuantity::set_center(sim_params.center);
+        std::array<amrex::Real, AMREX_SPACEDIM> center{};
+        pp.get("geometry.center", center);
+        PolynomialDerivedQuantity::set_center(center);
 
         // Set up the AMR object
         DefaultLevelFactory<ParticleInterpolatorLevel>
             interpolator_test_level_fact;
         GRAMR gr_amr(&interpolator_test_level_fact);
-        gr_amr.init(0., sim_params.stop_time);
+
+        amrex::Real stop_time{};
+        pp.get("evolution.stop_time", stop_time);
+        gr_amr.init(0., stop_time);
 
         // Read from params
-        const int num_points  = sim_params.num_points;
-        bool verbosity        = sim_params.verbosity;
-        double extract_radius = sim_params.L / 4;
+        int num_points{};
+        pp.get("test.num_points", num_points);
+
+        bool verbosity{};
+        pp.get("particle_interpolator.verbosity", verbosity);
+
+        std::array<amrex::Real, AMREX_SPACEDIM> prob_extent{};
+        pp.get("geometry.prob_extent", prob_extent);
+
+        // Using lenght of x direction to define extraction radius
+        amrex::Real extract_radius = prob_extent[0] / 4;
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();
@@ -101,24 +116,25 @@ void run_particle_interpolator_test()
             myproc * base + std::min(myproc, remainder); // global start index
 
         // Allocate vectors for writing
-        std::vector<double> A_local(n_local); // for storing derived polynomial
-        std::vector<double> B_local(n_local); // for storing state polynomial
-        std::vector<double> interp_x_local(n_local);
-        std::vector<double> interp_y_local(n_local);
-        std::vector<double> interp_z_local(n_local);
+        std::vector<amrex::Real> A_local(
+            n_local); // for storing derived polynomial
+        std::vector<amrex::Real> B_local(
+            n_local); // for storing state polynomial
+        std::vector<amrex::Real> interp_x_local(n_local);
+        std::vector<amrex::Real> interp_y_local(n_local);
+        std::vector<amrex::Real> interp_z_local(n_local);
 
         for (int j = 0; j < n_local; ++j)
         {
-            int ipoint   = start + j; // global index
-            double phi   = ipoint * 2. * M_PI / num_points;
-            double theta = ipoint * M_PI / num_points;
+            int ipoint        = start + j; // global index
+            amrex::Real phi   = ipoint * 2. * M_PI / num_points;
+            amrex::Real theta = ipoint * M_PI / num_points;
 
             interp_x_local[j] =
-                sim_params.center[0] + extract_radius * cos(phi) * sin(theta);
+                center[0] + extract_radius * cos(phi) * sin(theta);
             interp_y_local[j] =
-                sim_params.center[1] + extract_radius * sin(phi) * sin(theta);
-            interp_z_local[j] =
-                sim_params.center[2] + extract_radius * cos(theta);
+                center[1] + extract_radius * sin(phi) * sin(theta);
+            interp_z_local[j] = center[2] + extract_radius * cos(theta);
         }
 
         // set-up query for derived variable A
@@ -134,30 +150,31 @@ void run_particle_interpolator_test()
         query_state.setCoords(0, interp_x_local.data())
             .setCoords(1, interp_y_local.data())
             .setCoords(2, interp_z_local.data())
-            .addComp(0, B_local.data(), VariableType::state);
+            .addComp(c_polystate, B_local.data(), VariableType::state);
 
         // set up interpolation using Particles for derived vars
         ParticleInterpolator<1> interpolator_derived;
 
-        interpolator_derived.setup(&gr_amr, sim_params.boundary_params,
-                                   verbosity);
-        interpolator_derived.interp(query_derived,
-                                    PolynomialDerivedQuantity::name, 0.0);
+        interpolator_derived.setup(&gr_amr);
+        interpolator_derived.interp(
+            query_derived, false, PolynomialDerivedQuantity::name,
+            0.0); // do not refresh particles as the query remains the same
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;
-        interpolator_state.setup(&gr_amr, sim_params.boundary_params,
-                                 verbosity);
-        interpolator_state.interp(query_state);
+        interpolator_state.setup(&gr_amr);
+        interpolator_state.interp(
+            query_state,
+            false); // do not refresh particles as the query remains the same
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {
-            double x = interp_x_local[ipoint] - sim_params.center[0];
-            double y = interp_y_local[ipoint] - sim_params.center[1];
-            double z = interp_z_local[ipoint] - sim_params.center[2];
+            amrex::Real x = interp_x_local[ipoint] - center[0];
+            amrex::Real y = interp_y_local[ipoint] - center[1];
+            amrex::Real z = interp_z_local[ipoint] - center[2];
 
-            double A_known = 42. + x * x + y * y * z * z;
-            double B_known = pow(x, 3);
+            amrex::Real A_known = 42. + x * x + y * y * z * z;
+            amrex::Real B_known = pow(z, 3);
 
             INFO("Interpolated A is "
                  << A_local[ipoint] << " at point x = " << x << " y = " << y

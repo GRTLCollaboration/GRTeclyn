@@ -110,6 +110,42 @@ static const std::array<BCParity, NUM_CCZ4_VARS> parities = {
     BCParity::odd_y, // B2
     BCParity::odd_z, // B3
 };
+
+static const std::array<amrex::Real, NUM_CCZ4_VARS> asymptotic_values = {
+    1.0, // chi
+
+    1.0, // h11
+    0.0, // h12
+    0.0, // h13
+    1.0, // h22
+    0.0, // h23
+    1.0, // h33
+
+    0.0, // K
+
+    0.0, // A11
+    0.0, // A12
+    0.0, // A13
+    0.0, // A22
+    0.0, // A23
+    0.0, // A33
+
+    0.0, // Theta
+
+    0.0, // Gamma1
+    0.0, // Gamma2
+    0.0, // Gamma3
+
+    1.0, // lapse
+
+    0.0, // shift1
+    0.0, // shift2
+    0.0, // shift3
+
+    0.0, // B1
+    0.0, // B2
+    0.0, // B3
+};
 } // namespace CCZ4StateVariables
 
 #endif /* CCZ4STATEVARIABLES_HPP */

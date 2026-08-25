@@ -12,42 +12,45 @@
 #include "ScalarFieldAMR.hpp"
 #include "ScalarFieldLevel.hpp"
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-int runGRTeclyn(int /*argc*/, char * /*argv*/[])
+int runGRTeclyn()
 {
     BL_PROFILE("runGRTeclyn()");
 
     GRParmParse pp; // NOLINT(readability-identifier-length)
-    SimulationParameters sim_params(pp);
 
-    if (sim_params.just_check_params)
+    if (just_check_params())
     {
         return 0;
     }
 
-    GRAMR::set_simulation_parameters(sim_params);
     DefaultLevelFactory<ScalarFieldLevel> scalar_field_level_bld;
     ScalarFieldAMR gr_amr(&scalar_field_level_bld);
 
-    gr_amr.init(0.0, sim_params.stop_time);
+    amrex::Real stop_time{};
+    pp.get("evolution.stop_time", stop_time);
+    int max_steps{};
+    pp.get("evolution.max_steps", max_steps);
 
-    while (
-        (gr_amr.okToContinue() != 0) &&
-        (gr_amr.levelSteps(0) < sim_params.max_steps ||
-         sim_params.max_steps < 0) &&
-        (gr_amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
+    gr_amr.init(0.0, stop_time);
+
+    while ((gr_amr.okToContinue() != 0) &&
+           (gr_amr.levelSteps(0) < max_steps || max_steps < 0) &&
+           (gr_amr.cumTime() < stop_time || stop_time < 0.0))
     {
-        gr_amr.coarseTimeStep(sim_params.stop_time);
+        gr_amr.coarseTimeStep(stop_time);
     }
 
-    if (gr_amr.stepOfLastCheckPoint() < gr_amr.levelSteps(0) &&
-        sim_params.checkpoint_interval >= 0)
+    int check_int{};
+    pp.get("amr.check_int", check_int);
+    int plot_int{};
+    pp.get("amr.plot_int", plot_int);
+
+    if (gr_amr.stepOfLastCheckPoint() < gr_amr.levelSteps(0) && check_int >= 0)
     {
         gr_amr.checkPoint();
     }
 
-    if (gr_amr.stepOfLastPlotFile() < gr_amr.levelSteps(0) &&
-        sim_params.plot_interval >= 0)
+    if (gr_amr.stepOfLastPlotFile() < gr_amr.levelSteps(0) && plot_int >= 0)
     {
         gr_amr.writePlotFile();
     }
@@ -59,7 +62,7 @@ int main(int argc, char *argv[])
 {
     mainSetup(argc, argv);
 
-    const int status = runGRTeclyn(argc, argv);
+    const int status = runGRTeclyn();
 
     if (status == 0)
     {

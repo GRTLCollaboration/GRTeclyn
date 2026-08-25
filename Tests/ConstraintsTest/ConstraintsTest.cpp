@@ -82,10 +82,10 @@ void run_constraints_test()
         constexpr int num_out_ghosts        = 0;
         amrex::MultiFab out_mf{box_array, distribution_mapping,
                                num_constraints_comps, num_out_ghosts, mf_info};
-        constexpr int dcomp   = 0;
-        constexpr double time = 0.0;
-        int *bcrec            = nullptr;
-        int level             = 0;
+        constexpr int dcomp        = 0;
+        constexpr amrex::Real time = 0.0;
+        int *bcrec                 = nullptr;
+        int level                  = 0;
 
         // Check that Constraints::compute_mf is of type amrex::DeriveFuncMF
         static_assert(std::is_convertible_v<decltype(&Constraints::compute_mf),

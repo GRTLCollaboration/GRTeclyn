@@ -9,6 +9,7 @@
 #include "ConstraintsWithMatter.hpp"
 #include "EMTensor.hpp"
 #include "FixedGridsTagger.hpp"
+#include "GRParmParse.hpp"
 #include "GammaCalculator.hpp"
 #include "LineExtraction.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
@@ -63,38 +64,55 @@ void ScalarFieldLevel::specificPostTimeStep()
 {
     BL_PROFILE("ScalarFieldLevel::specificPostTimeStep()");
 
-    if (Level() == 0 && simParams().activate_line_extraction)
+    GRParmParse line_pp("line_extraction");
+    bool line_extraction_enabled{};
+    line_pp.get("enabled", line_extraction_enabled);
+
+    if (Level() == 0 && line_extraction_enabled)
     {
         const amrex::Real time         = get_state_data(state_index).curTime();
         const amrex::Real dt           = get_gramr_ptr()->dtLevel(0);
         const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
         const bool first_step          = (time <= dt);
 
-        const auto start_coords = simParams().center;
-        auto end_coords         = start_coords;
-        const amrex::Real coordinate_offset =
-            simParams().line_extraction_max_radius /
-            std::sqrt(static_cast<amrex::Real>(AMREX_SPACEDIM));
+        GRParmParse geometry_pp("geometry");
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> start_coords{};
+        geometry_pp.get("center", start_coords);
+        auto end_coords = start_coords;
+        amrex::ParticleReal max_radius{};
+        line_pp.get("max_radius", max_radius);
+        const amrex::ParticleReal coordinate_offset =
+            max_radius /
+            std::sqrt(static_cast<amrex::ParticleReal>(AMREX_SPACEDIM));
         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
         {
             end_coords[dir] += coordinate_offset;
         }
 
-        const LineExtraction<1> phi_extraction(
-            c_phi, simParams().line_extraction_num_points, start_coords,
-            end_coords, dt, time, restart_time, first_step);
+        int num_points{};
+        line_pp.get("num_points", num_points);
+        std::string output_subpath{};
+        line_pp.get("output_subpath", output_subpath);
+        GRParmParse grteclyn_pp("grteclyn");
+        std::string output_path{};
+        grteclyn_pp.get("output_path", output_path);
+        const std::string data_path = output_path + "/" + output_subpath + "/";
+
+        const LineExtraction<1> phi_extraction(c_phi, num_points, start_coords,
+                                               end_coords, dt, time,
+                                               restart_time, first_step);
         phi_extraction.execute_query(
             &get_scalar_field_amr_ptr()->phi_interpolator,
-            simParams().data_path + "phi_profile_");
+            data_path + "phi_profile_");
 
-        const LineExtraction<1> rho_extraction(
-            0, simParams().line_extraction_num_points, start_coords, end_coords,
-            dt, time, restart_time, first_step);
+        const LineExtraction<1> rho_extraction(0, num_points, start_coords,
+                                               end_coords, dt, time,
+                                               restart_time, first_step);
         const LineExtraction<1>::derived_vars_t rho_vars{
             ScalarFieldEnergyDensity::name, {"rho"}, {BCParity::even}};
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator,
-            simParams().data_path + "rho_profile_", rho_vars);
+            data_path + "rho_profile_", rho_vars);
     }
 }
 
@@ -102,7 +120,7 @@ void ScalarFieldLevel::initData()
 {
     BL_PROFILE("ScalarFieldLevel::initData()");
 
-    if (m_verbosity > 0)
+    if (get_gramr_ptr()->Verbose() > 0)
     {
         amrex::Print() << "ScalarFieldLevel::initData " << Level() << "\n";
     }
@@ -110,7 +128,10 @@ void ScalarFieldLevel::initData()
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
 
-    const OscillatonInitialData initial_data(simParams().initial_params,
+    OscillatonInitialData::params_t initial_params;
+    GRParmParse geometry_pp("geometry");
+    geometry_pp.get("center", initial_params.center);
+    const OscillatonInitialData initial_data(initial_params,
                                              Geom().CellSize(0));
     static_assert(std::is_trivially_copyable_v<OscillatonInitialData>,
                   "OscillatonInitialData must be device copyable");
@@ -139,7 +160,7 @@ void ScalarFieldLevel::initData()
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                        amrex::MultiFab &a_rhs,
-                                       const double /*a_time*/)
+                                       const amrex::Real /*a_time*/)
 {
     BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
 
@@ -158,20 +179,26 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                                   soln_arrays[box_no]);
                        });
 
-    if (simParams().max_spatial_derivative_order != 4)
+    GRParmParse evolution_pp("evolution");
+    int max_spatial_derivative_order{};
+    evolution_pp.get("spatial_derivative_order", max_spatial_derivative_order);
+    if (max_spatial_derivative_order != 4)
     {
         amrex::Abort("ScalarField currently supports fourth-order spatial "
                      "derivatives only");
     }
 
-    const Potential potential(simParams().potential_params);
-    const ScalarFieldWithPotential scalar_field(potential,
-                                                simParams().G_Newton);
+    GRParmParse scalar_field_pp("scalar_field");
+    Potential::params_t potential_params;
+    scalar_field_pp.get("scalar_mass", potential_params.scalar_mass);
+    amrex::Real G_Newton{};
+    scalar_field_pp.get("G_Newton", G_Newton);
+    const Potential potential(potential_params);
+    const ScalarFieldWithPotential scalar_field(potential, G_Newton);
     const CCZ4RHSWithMatter<ScalarFieldWithPotential,
                             MovingPunctureGaugeWithMatter,
                             FourthOrderDerivatives>
-        ccz4_rhs(scalar_field, simParams().ccz4_params, Geom().CellSize(0),
-                 simParams().sigma, CCZ4RHS<>::USE_CCZ4);
+        ccz4_rhs(scalar_field, Geom().CellSize(0));
 
     amrex::ParallelFor(a_rhs,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -228,9 +255,11 @@ void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     BL_PROFILE("ScalarFieldLevel::tag_cells()");
 
     const auto &tag_arrays = a_tag_box_array.arrays();
+    GRParmParse geometry_pp("geometry");
+    std::array<amrex::Real, AMREX_SPACEDIM> center{};
+    geometry_pp.get("center", center);
     const FixedGridsTagger tagger(Geom().CellSize(0), Level(),
-                                  Geom().ProbLength(0) * 2.0,
-                                  simParams().initial_params.center);
+                                  Geom().ProbLength(0) * 2.0, center);
 
     amrex::ParallelFor(a_tag_box_array,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)

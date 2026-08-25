@@ -7,15 +7,13 @@ EBASE = KleinGordon
 AMREX_HOME ?= $(realpath ../../../amrex)
 
 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
-
-include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
@@ -35,5 +33,3 @@ VPATH_LOCATIONS += $(src_dirs)
 INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
-
-

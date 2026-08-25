@@ -1,0 +1,6 @@
+/* Render emojis inline at a reasonable size */
+img.twemoji {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+}

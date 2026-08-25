@@ -12,7 +12,7 @@
 struct surface_extraction_params_t
 {
     int num_surfaces{}; //!< number of surfaces over which to extraction
-    amrex::Gpu::ManagedVector<double>
+    amrex::Gpu::ManagedVector<amrex::Real>
         surface_param_values; //!< the values of the
                               //!< parameter that gives the required
                               //!< surfaces with SurfaceGeom geometry (e.g.
@@ -35,6 +35,8 @@ struct surface_extraction_params_t
         return *(std::min_element(extraction_levels.begin(),
                                   extraction_levels.end()));
     }
+
+    void fill_params() {}
 };
 
 #endif /* SURFACEEXTRACTIONPARAMETERS_HPP_ */

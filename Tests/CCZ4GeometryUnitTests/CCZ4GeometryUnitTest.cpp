@@ -143,7 +143,7 @@ void run_ccz4_geometry_unit_tests()
 
         amrex::Gpu::streamSynchronize();
 
-        double test_threshold = 1e-14;
+        amrex::Real test_threshold = 1e-14;
 
         const amrex::CellData<const amrex::Real> &geometry_test_cell_data =
             geometry_array.cellData(0, 0, 0);

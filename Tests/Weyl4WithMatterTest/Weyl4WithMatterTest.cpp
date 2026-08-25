@@ -96,8 +96,8 @@ void run_matter_weyl4_test()
         constexpr int dcomp_weyl4 = 0;
         constexpr int num_comps_weyl4 =
             2; // compute will automatically +1 for imaginary component
-        double G_Newton = 1.0;
-        std::array<double, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
+        amrex::Real G_Newton = 1.0;
+        std::array<amrex::Real, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
 
         amrex::MultiFab out_mf{box_array, distribution_mapping, num_comps_weyl4,
                                0, mf_info};
@@ -105,14 +105,17 @@ void run_matter_weyl4_test()
         const auto &in_c_arrays = in_mf.const_arrays();
         const auto &out_arrays  = out_mf.arrays();
 
-        double time = 0.0;
-        int *bcrec  = nullptr;
-        int level   = 0;
+        amrex::Real time = 0.0;
+        int *bcrec       = nullptr;
+        int level        = 0;
 
         GRParmParse pp;
-        int formulation = CCZ4RHS<>::USE_BSSN;
-        pp.queryAdd("extraction_center", center);
-        pp.queryAdd("formulation", formulation);
+        GRParmParse extraction_pp("weyl_extraction");
+        // This test deliberately exercises the BSSN formulation.
+        int formulation{};
+        formulation = CCZ4RHS<>::USE_BSSN;
+        extraction_pp.queryAdd("center", center);
+        pp.queryAdd("ccz4.formulation", formulation);
         pp.queryAdd("G_newton", G_Newton);
 
         Weyl4WithMatter<DefaultScalarField>::compute_mf(

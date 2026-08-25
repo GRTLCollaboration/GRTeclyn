@@ -26,9 +26,9 @@
 // This has to be initialised outside the class declaration in C++14
 const std::string SmallDataIO::s_default_file_extension = ".dat";
 
-SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
-                         double a_time, double a_restart_time, Mode a_mode,
-                         bool a_first_step,
+SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
+                         amrex::Real a_time, amrex::Real a_restart_time,
+                         Mode a_mode, bool a_first_step,
                          const file_structure_t *a_file_structure,
                          const std::string &a_file_extension,
                          int a_data_precision, int a_coords_precision,
@@ -116,9 +116,10 @@ SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
     }
 }
 
-SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
-                         double a_time, double a_restart_time, Mode a_mode,
-                         bool a_first_step, const std::string &a_file_extension,
+SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
+                         amrex::Real a_time, amrex::Real a_restart_time,
+                         Mode a_mode, bool a_first_step,
+                         const std::string &a_file_extension,
                          int a_data_precision, int a_coords_precision,
                          int a_filename_steps_width)
     : SmallDataIO(a_filename_prefix, a_dt, a_time, a_restart_time, a_mode,
@@ -127,9 +128,9 @@ SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
 {
 }
 
-SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, double a_dt,
-                         double a_time, double a_restart_time, Mode a_mode,
-                         const std::string &a_file_extension,
+SmallDataIO::SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
+                         amrex::Real a_time, amrex::Real a_restart_time,
+                         Mode a_mode, const std::string &a_file_extension,
                          int a_data_precision, int a_coords_precision,
                          int a_filename_steps_width)
     : SmallDataIO(a_filename_prefix, a_dt, a_time, a_restart_time, a_mode,
@@ -174,6 +175,7 @@ SmallDataIO::~SmallDataIO()
 
 // ------------ Writing Functions ------------
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::write_header_line(
     const std::vector<std::string> &a_header_strings,
     const std::string &a_pre_header_string)
@@ -218,32 +220,33 @@ void SmallDataIO::write_header_line(
     }
 }
 
-void SmallDataIO::write_data_line(const std::vector<double> &a_data,
-                                  const double a_coord)
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+void SmallDataIO::write_data_line(const std::vector<amrex::Real> &a_data,
+                                  const amrex::Real a_coord)
 {
-    const std::vector<double> coords(1, a_coord);
+    const std::vector<amrex::Real> coords(1, a_coord);
     write_data_line(a_data, coords);
 }
 
-void SmallDataIO::write_time_data_line(const std::vector<double> &a_data)
+void SmallDataIO::write_time_data_line(const std::vector<amrex::Real> &a_data)
 {
     write_data_line(a_data, m_time);
 }
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-void SmallDataIO::write_data_line(const std::vector<double> &a_data,
-                                  const std::vector<double> &a_coords)
+void SmallDataIO::write_data_line(const std::vector<amrex::Real> &a_data,
+                                  const std::vector<amrex::Real> &a_coords)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     if (amrex::ParallelDescriptor::IOProcessor())
     {
         m_file << std::fixed << std::setprecision(m_coords_precision);
-        for (double coord : a_coords)
+        for (amrex::Real coord : a_coords)
         {
             m_file << std::setw(m_coords_width) << coord;
         }
         m_file << std::scientific << std::setprecision(m_data_precision);
-        for (double data : a_data)
+        for (amrex::Real data : a_data)
         {
             m_file << std::setw(m_data_width) << data;
         }
@@ -515,7 +518,7 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
         skip_ahead(file_stream, m_file_structure.num_header_rows[a_block],
                    a_block);
 
-        double discard = 0.0;
+        amrex::Real discard = 0.0;
         for (int irow = 0; irow < m_file_structure.num_data_rows[a_block];
              ++irow)
         {
@@ -621,7 +624,7 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
         skip_ahead(file_stream, m_file_structure.num_header_rows[a_block],
                    a_block);
 
-        double discard = 0.0;
+        amrex::Real discard = 0.0;
         for (int row = 0; row < m_file_structure.num_data_rows[a_block]; ++row)
         {
             for (int file_column = 0;
@@ -654,6 +657,7 @@ void SmallDataIO::get_all_data_columns(std::vector<SmallDataIO::column_t> &out,
     get_columns(out, min_data_column, max_data_column, a_block);
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::get_column(std::vector<SmallDataIO::column_t> &out,
                              int a_column, int a_block)
 {
@@ -683,6 +687,7 @@ void SmallDataIO::get_data_from_header(std::vector<amrex::Real> &out,
 
         // find numbers in header using regex
         // I think this takes a long time to compile...
+        // NOLINTNEXTLINE(bugprone-unused-local-non-trivial-variable)
         std::regex number("[+-]?([0-9]*\\.)?[0-9]+");
         auto numbers_begin =
             std::sregex_iterator(line.begin(), line.end(), number);
@@ -740,8 +745,9 @@ void SmallDataIO::skip_ahead(std::istringstream &file_stream,
     }
 }
 
-void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
-                                         const std::vector<double> &a_coords)
+void SmallDataIO::get_specific_data_line(
+    std::vector<amrex::Real> &a_out_data,
+    const std::vector<amrex::Real> &a_coords)
 {
     if (amrex::ParallelDescriptor::IOProcessor())
     {
@@ -752,7 +758,7 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
         // get a string of the coords as they are in the file
         std::stringstream coords_ss;
         coords_ss << std::fixed << std::setprecision(m_coords_precision);
-        for (double coord : a_coords)
+        for (amrex::Real coord : a_coords)
         {
             coords_ss << std::setw(m_coords_width) << coord;
         }
@@ -768,7 +774,7 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
                 for (std::size_t ichar = a_coords.size() * m_coords_width;
                      ichar < line.size(); ichar += m_data_width)
                 {
-                    double data_value =
+                    amrex::Real data_value =
                         std::stod(line.substr(ichar, m_data_width));
                     a_out_data.push_back(data_value);
                 }
@@ -783,18 +789,14 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
                 "SmallDataIO : Data to be read in at coord not found in file");
         }
     }
-    // now broadcast the vector to all ranks using Chombo broadcast function
-    // need to convert std::vector to Vector first
-    // xxxxx    amrex::Vector<double> data_Vect(a_out_data);
-    // xxxxx    int broadcast_rank = 0;
-    // xxxxx broadcast(data_Vect, broadcast_rank);
-    // xxxxx    a_out_data = data_Vect;
+    // Optionally, broadcast the data using SmallDataIO::broadcast_data
 }
 
-void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
-                                         const double a_coord)
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+void SmallDataIO::get_specific_data_line(std::vector<amrex::Real> &a_out_data,
+                                         const amrex::Real a_coord)
 {
-    std::vector<double> coords(1, a_coord);
+    std::vector<amrex::Real> coords(1, a_coord);
     get_specific_data_line(a_out_data, coords);
 }
 
@@ -802,7 +804,7 @@ void SmallDataIO::get_specific_data_line(std::vector<double> &a_out_data,
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
-                                          double a_dt, double a_time,
+                                          amrex::Real a_dt, amrex::Real a_time,
                                           const std::string &a_file_extension,
                                           int a_filename_steps_width)
 // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -826,24 +828,25 @@ std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
 }
 
 // returns m_data_epsilon
-double SmallDataIO::get_data_epsilon() const { return m_data_epsilon; }
+amrex::Real SmallDataIO::get_data_epsilon() const { return m_data_epsilon; }
 
 // returns the default data_epsilon
-double SmallDataIO::get_default_data_epsilon()
+amrex::Real SmallDataIO::get_default_data_epsilon()
 {
     return pow(10.0, -s_default_data_precision);
 }
 
 // returns m_coords_epsilon
-double SmallDataIO::get_coords_epsilon() const { return m_coords_epsilon; }
+amrex::Real SmallDataIO::get_coords_epsilon() const { return m_coords_epsilon; }
 
 // returns the default coords epsilon
-double SmallDataIO::get_default_coords_epsilon()
+amrex::Real SmallDataIO::get_default_coords_epsilon()
 {
     return pow(10.0, -s_default_coords_precision);
 }
 
 // Helper function to redistribute data amongst all ranks
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::broadcast_data(std::vector<SmallDataIO::column_t> &data)
 {
     int nrows{0};

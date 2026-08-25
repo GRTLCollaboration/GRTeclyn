@@ -15,7 +15,6 @@
 #include "StateTypes.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
-
 // amrex includes
 
 #include <AMReX_AmrLevel.H>
@@ -25,15 +24,14 @@
 
 // initialise everything and perform some sanity checks
 template <int num_components>
-void ParticleInterpolator<num_components>::setup(
-    GRAMR *gramr_ptr, const BoundaryConditions::params_t &a_bc_params,
-    bool a_verbosity)
+void ParticleInterpolator<num_components>::setup(GRAMR *gramr_ptr)
 {
     // is GRAMR properly set?
     AMREX_ASSERT(gramr_ptr != nullptr);
     m_gramr_ptr = gramr_ptr;
-    m_bc_params = a_bc_params;
-    m_verbosity = a_verbosity;
+    m_bc_params.fill_params();
+    GRParmParse particle_interpolator_pp("particle_interpolator");
+    particle_interpolator_pp.get("verbosity", m_verbosity);
 
     this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gramr_ptr->GetParGDB()));
     m_initialized = true;
@@ -44,29 +42,13 @@ void ParticleInterpolator<num_components>::setup(
     m_prob_lo = geom0.RoundOffLo(); // use rounded-off low boundary
     m_prob_hi = geom0.RoundOffHi(); // use rounded-off high boundary
 
-    const int num_levels = m_gramr_ptr->finestLevel() + 1;
-
-    // Now write in the number of cells on each level (this is needed for
-    // handling the higher boundary with symmetric BC in Lagrange interpolation)
-    m_domain_ncell.resize(num_levels);
-
-    for (int lev = 0; lev < num_levels; ++lev)
-    {
-        const amrex::Geometry &geom = m_gramr_ptr->getLevel(lev).Geom();
-
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        {
-            m_domain_ncell[lev][d] = geom.Domain().length(d);
-        }
-    }
-
     // set the reflective flags from BC params
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
-        m_lo_boundary_reflective[dir] =
-            (m_bc_params.lo_boundary[dir] == BoundaryConditions::REFLECTIVE_BC);
-        m_hi_boundary_reflective[dir] =
-            (m_bc_params.hi_boundary[dir] == BoundaryConditions::REFLECTIVE_BC);
+        m_lo_boundary_reflective[dir] = (m_bc_params.lo_condition[dir] ==
+                                         BoundaryConditions::REFLECTIVE_BC);
+        m_hi_boundary_reflective[dir] = (m_bc_params.hi_condition[dir] ==
+                                         BoundaryConditions::REFLECTIVE_BC);
     }
 
     // get resolution on level 0
@@ -85,7 +67,7 @@ int ParticleInterpolator<num_components>::get_var_parity(
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
         // get the coords
-        const double x = query.m_coords[dir][point_idx];
+        const amrex::ParticleReal x = query.m_coords[dir][point_idx];
 
         // check where we are w.r.t to the problem domain
         const bool beyond_lo =
@@ -142,12 +124,12 @@ ParticleInterpolator<num_components>::reflect_particle(amrex::Real x,
 
 // allocate particles at the query points
 template <int num_components>
-void ParticleInterpolator<num_components>::populate_from_query()
+void ParticleInterpolator<num_components>::populate_from_query(
+    const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
-    AMREX_ALWAYS_ASSERT(m_query);
 
-    auto &query = *m_query;
+    m_num_query_points = query.numPoints(); // register number of query points
 
     // Some ranks can have zero points queried, so return here
     if (query.m_num_points == 0)
@@ -169,7 +151,7 @@ void ParticleInterpolator<num_components>::populate_from_query()
     auto particle_data = ptile.getParticleTileData();
 
     // get coords from query
-    amrex::GpuArray<const double *, AMREX_SPACEDIM> query_coords{
+    amrex::GpuArray<const amrex::ParticleReal *, AMREX_SPACEDIM> query_coords{
         query.m_coords[0], query.m_coords[1]
 #if (AMREX_SPACEDIM == 3)
         ,
@@ -180,7 +162,7 @@ void ParticleInterpolator<num_components>::populate_from_query()
     // Run a check on coords you are interpolating on
     for (int i = 0; i < int(query.m_num_points); ++i)
     {
-        amrex::GpuArray<double, AMREX_SPACEDIM> coords;
+        amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> coords;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             coords[d] = query_coords[d][i];
@@ -197,8 +179,9 @@ void ParticleInterpolator<num_components>::populate_from_query()
     const auto hi_reflect = m_hi_boundary_reflective;
 
     // coords on device
-    amrex::GpuArray<amrex::Gpu::DeviceVector<double>, AMREX_SPACEDIM> coords_d;
-    amrex::GpuArray<const double *, AMREX_SPACEDIM> coords_d_ptr{};
+    amrex::GpuArray<amrex::Gpu::DeviceVector<amrex::Real>, AMREX_SPACEDIM>
+        coords_d;
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> coords_d_ptr{};
 
     // copy coords to device vectors
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -246,9 +229,8 @@ void ParticleInterpolator<num_components>::populate_from_query()
 // a helper function that helps with interpolation from grid onto particles
 template <int num_components>
 void ParticleInterpolator<num_components>::interpolate_to_particle(
-    int lev, amrex::MultiFab &mfab, const amrex::Geometry &geom)
+    int lev, amrex::MultiFab &mfab, const amrex::Geometry &geom, int start_comp)
 {
-    int start_comp  = get_start_comp();
     const int ncomp = num_components;
 
     AMREX_ASSERT(mfab.nComp() >= start_comp + ncomp);
@@ -260,7 +242,16 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
     const auto dxi               = geom.InvCellSizeArray();
     const auto lo_reflective     = m_lo_boundary_reflective;
     const auto hi_reflective     = m_hi_boundary_reflective;
-    const auto domain_ncell      = m_domain_ncell[lev];
+
+    // number of cells on the current level
+    // (this is needed for handling the higher boundary with symmetric BC in
+    // Lagrange interpolation)
+    amrex::GpuArray<int, AMREX_SPACEDIM> domain_ncell{};
+
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        domain_ncell[d] = geom.Domain().length(d);
+    }
 
     // loop over tiles and interpolate now
     for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
@@ -304,34 +295,52 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 // It uses/collates together all the methods defined in this class
 template <int num_components>
 void ParticleInterpolator<num_components>::interp(
-    InterpolationQueryParticle &query, const std::string &name_derived,
-    double time_derived /*=0.0*/)
+    const InterpolationQueryParticle &query, bool a_refresh_particles,
+    const std::string &name_derived, amrex::Real time_derived /*=0.0*/)
 {
-    // Particles can be reused for repeated queries at the same points, but the
-    // query owns the output arrays and is commonly reconstructed each step.
-    m_query = &query;
+    AMREX_ASSERT(m_initialized);
 
     // Populate particles
-    if (!m_particles_populated)
+    // here we need to cover various scenarious:
+    // (1) first call, refresh=false -> populate once + redistribute (automatic
+    // since we start with m_need_redistribute=true) (2) first call,
+    // refresh=true -> populate once + redistribute (3) later call, refresh=true
+    // -> clear + repopulate + redistribute (need to force
+    // m_need_redistribute=true)
+    if (!m_particles_populated || a_refresh_particles)
     {
-        if (m_verbosity)
+        if (a_refresh_particles && m_particles_populated)
         {
-            amrex::AllPrint()
+            if (m_verbosity)
+            {
+                amrex::Print() << "ParticleInterpolator: refreshing particles "
+                                  "from query\n";
+            }
+
+            this->clearParticles();
+            force_redistribute(true); // force a redistribution since we have
+                                      // cleared the particles
+        }
+        else if (m_verbosity)
+        {
+            amrex::Print()
                 << "ParticleInterpolator: populating particles from query\n";
         }
 
-        populate_from_query();
+        populate_from_query(query);
     }
 
-    AMREX_ASSERT(m_initialized);
+    AMREX_ALWAYS_ASSERT(query.numPoints() ==
+                        m_num_query_points); // check that the number of query
+                                             // points has not changed
     ensure_redistributed();
 
     VariableType variable_type = query.getVariableType();
+    int start_comp             = get_start_comp(query);
 
     // Interpolate to all particles
     if (variable_type == VariableType::state)
     {
-        int start_comp  = get_start_comp();
         const int ncomp = num_components;
 
         for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
@@ -354,7 +363,7 @@ void ParticleInterpolator<num_components>::interp(
                                        state_index, start_comp, ncomp,
                                        start_comp);
 
-            interpolate_to_particle(lev, state, geom);
+            interpolate_to_particle(lev, state, geom, start_comp);
         }
     }
     // Interpolation for derived vars, takes in MultiFab and comps (unique
@@ -381,7 +390,7 @@ void ParticleInterpolator<num_components>::interp(
             const auto &geom = level.Geom();
             auto &mf         = *derived_mf_vect[lev];
 
-            interpolate_to_particle(lev, mf, geom);
+            interpolate_to_particle(lev, mf, geom, start_comp);
         }
     }
     else
@@ -391,16 +400,16 @@ void ParticleInterpolator<num_components>::interp(
     }
 
     // Aggregate results
-    aggregate_points();
+    aggregate_points(query);
 }
 
 // A function that puts the logic of mpi send and receive buffers together and
 // prepares the final out arrays from interpolation
 template <int num_components>
-void ParticleInterpolator<num_components>::aggregate_points()
+void ParticleInterpolator<num_components>::aggregate_points(
+    const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
-    AMREX_ALWAYS_ASSERT(m_query);
 
     // pack m_answer_idx and m_answer_data
     prepare_send_buffers();
@@ -409,7 +418,7 @@ void ParticleInterpolator<num_components>::aggregate_points()
     // exchange answers
     exchange_answers();
     // apply parity
-    apply_parity_and_store_values();
+    apply_parity_and_store_values(query);
 }
 
 // Prepare send buffers and package them up: who do I send answers to?
@@ -422,7 +431,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 
     // a temporary storage vector for component values, one entry per local
     // particle
-    std::array<std::vector<double>, num_components> comp_values;
+    std::array<std::vector<amrex::ParticleReal>, num_components> comp_values;
     // layout data for storing query ranks and indices
     std::vector<int> query_ranks;
     std::vector<int> query_indices;
@@ -460,19 +469,19 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
 
             amrex::Gpu::streamSynchronize();
 
-            const int level_size = static_cast<int>(
-                query_ranks
-                    .size()); // this should count per level, starts at zero and
-                              // then adds as we loop through levels
+            const int data_offset = static_cast<int>(
+                query_ranks.size()); // offset in the arrays accumulated over
+                                     // previous levels/tiles
 
-            // Resize query_ranks and query_indices
-            query_ranks.resize(level_size + num_particles);
-            query_indices.resize(level_size + num_particles);
+            // Resize query_ranks and query_indices (and append the space for
+            // particles in this level/tile)
+            query_ranks.resize(data_offset + num_particles);
+            query_indices.resize(data_offset + num_particles);
 
             // each component vector has num_particles
             for (int k = 0; k < num_components; ++k)
             {
-                comp_values[k].resize(level_size + num_particles);
+                comp_values[k].resize(data_offset + num_particles);
             }
 
             for (int i = 0; i < num_particles; ++i)
@@ -487,7 +496,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
                 // how many answers each querying rank will receive
                 m_mpi.incrementAnswerCount(query_rank);
                 // write in
-                const int j    = level_size + i; // shift the index
+                const int j    = data_offset + i; // shift the index
                 query_ranks[j] = query_rank;
                 query_indices[j] =
                     p.id(); // need particle identifier to know which particle
@@ -497,7 +506,7 @@ void ParticleInterpolator<num_components>::prepare_send_buffers()
                 for (int k = 0; k < num_components; ++k)
                 {
                     comp_values[k][j] =
-                        static_cast<double>(host_soa_real[k][i]);
+                        static_cast<amrex::ParticleReal>(host_soa_real[k][i]);
                 }
             }
 
@@ -603,15 +612,16 @@ void ParticleInterpolator<num_components>::exchange_answers()
 
 // Build values at particle positions and apply parities
 template <int num_components>
-void ParticleInterpolator<num_components>::apply_parity_and_store_values()
+void ParticleInterpolator<num_components>::apply_parity_and_store_values(
+    const InterpolationQueryParticle &query)
 {
-    AMREX_ALWAYS_ASSERT(m_query);
 
-    auto &query    = *m_query;
-    int start_comp = get_start_comp();
+    int start_comp = get_start_comp(query);
 
     const int num_points = static_cast<int>(query.numPoints());
     const int total_recv = m_mpi.totalQueryCount();
+
+    AMREX_ALWAYS_ASSERT(total_recv == num_points);
 
     // Build a mapping between query index ip and position i in
     // m_query_data[?][i]
@@ -648,8 +658,7 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
     for (auto deriv_it = query.compsBegin(); deriv_it != query.compsEnd();
          ++deriv_it)
     {
-        using comps_t = std::vector<typename InterpolationQueryParticle::out_t>;
-        comps_t &comps = deriv_it->second;
+        const auto &comps = deriv_it->second;
 
         const Derivative &dkey = deriv_it->first;
 
@@ -667,6 +676,8 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
             {
                 const int recv_idx = mpi_mapping[ip];
 
+                AMREX_ASSERT(recv_idx >= 0);
+
                 int parity = get_var_parity(comp, ip, query, dkey,
                                             variable_type, entry.parity);
 
@@ -679,18 +690,21 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values()
 // A function to check whether the query point is inside the physical domain
 template <int num_components>
 void ParticleInterpolator<num_components>::check_domain(
-    amrex::GpuArray<double, AMREX_SPACEDIM> &x, int guard_cells) const
+    amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
+    int guard_cells) const
 {
     AMREX_ASSERT(guard_cells >= 0);
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
 
-        const double lo_g = m_prob_lo[d] - guard_cells * m_coarsest_dx[d];
-        const double hi_g = m_prob_hi[d] + guard_cells * m_coarsest_dx[d];
+        const amrex::ParticleReal lo_g =
+            m_prob_lo[d] - guard_cells * m_coarsest_dx[d];
+        const amrex::ParticleReal hi_g =
+            m_prob_hi[d] + guard_cells * m_coarsest_dx[d];
 
         // reflect into the required side if reflective
-        double xr = x[d];
+        amrex::ParticleReal xr = x[d];
         if (m_lo_boundary_reflective[d] && xr < m_prob_lo[d])
         {
             xr = 2.0 * m_prob_lo[d] - xr; // reflect across lo
@@ -730,12 +744,16 @@ void ParticleInterpolator<num_components>::check_domain(
 
 // A getter function to get the starting component from the query
 template <int num_components>
-int ParticleInterpolator<num_components>::get_start_comp()
+int ParticleInterpolator<num_components>::get_start_comp(
+    const InterpolationQueryParticle &query)
 {
-    AMREX_ASSERT(m_query);
-    auto it         = m_query->compsBegin();
+    auto it = query.compsBegin();
+    AMREX_ASSERT(it != query.compsEnd());
+
     const auto &vec = it->second;
-    int start_comp  = vec.front().comp;
+    AMREX_ASSERT(!vec.empty());
+
+    int start_comp = vec.front().comp;
 
     return start_comp;
 }
@@ -752,7 +770,7 @@ void ParticleInterpolator<num_components>::ensure_redistributed()
     {
         m_last_redistribute_step.resize(
             nlev, -1); // put -1s to indicate no redistribute has happened yet
-        // upon initialisation this would automatically trigger a regrid
+
         m_need_redistribute = true;
     }
 

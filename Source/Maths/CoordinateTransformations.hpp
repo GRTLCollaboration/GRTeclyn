@@ -17,8 +17,9 @@ namespace CoordinateTransformations
 // Jacobian transformation matrix
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-static Tensor::Rank2 spherical_jacobian(const amrex::Real x, const double y,
-                                        const double z)
+static Tensor::Rank2 spherical_jacobian(const amrex::Real x,
+                                        const amrex::Real y,
+                                        const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // calculate useful position quantities
@@ -51,7 +52,8 @@ static Tensor::Rank2 spherical_jacobian(const amrex::Real x, const double y,
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 static Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
-                                                const double y, const double z)
+                                                const amrex::Real y,
+                                                const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // calculate useful position quantities
@@ -86,7 +88,8 @@ static Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 static Tensor::Sym12Rank2
 spherical_to_cartesian_LL(const Tensor::Sym12Rank2 &spherical_g,
-                          const amrex::Real x, const double y, const double z)
+                          const amrex::Real x, const amrex::Real y,
+                          const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Sym12Rank2 cartesian_g{0.};
@@ -111,7 +114,8 @@ spherical_to_cartesian_LL(const Tensor::Sym12Rank2 &spherical_g,
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 static Tensor::Sym12Rank2
 spherical_to_cartesian_UU(const Tensor::Sym12Rank2 &spherical_g_UU,
-                          const amrex::Real x, const double y, const double z)
+                          const amrex::Real x, const amrex::Real y,
+                          const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Sym12Rank2 cartesian_g_UU{0.};
@@ -137,7 +141,8 @@ spherical_to_cartesian_UU(const Tensor::Sym12Rank2 &spherical_g_UU,
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 static Tensor::Sym12Rank2
 cartesian_to_spherical_LL(const Tensor::Sym12Rank2 &cartesian_g,
-                          const amrex::Real x, const double y, const double z)
+                          const amrex::Real x, const amrex::Real y,
+                          const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Sym12Rank2 spherical_g{0.};
@@ -163,7 +168,7 @@ cartesian_to_spherical_LL(const Tensor::Sym12Rank2 &cartesian_g,
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 static Tensor::Sym12Rank2
 cartesian_to_spherical_UU(const Tensor::Sym12Rank2 &cartesian_g_UU,
-                          amrex::Real x, double y, double z)
+                          amrex::Real x, amrex::Real y, amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Sym12Rank2 spherical_g_UU{0.};
@@ -188,7 +193,8 @@ cartesian_to_spherical_UU(const Tensor::Sym12Rank2 &cartesian_g_UU,
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 Tensor::Rank1 spherical_to_cartesian_U(const Tensor::Rank1 &spherical_v_U,
-                                       amrex::Real x, double y, double z)
+                                       amrex::Real x, amrex::Real y,
+                                       amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank1 cartesian_v_U{0., 0., 0.};
@@ -212,7 +218,8 @@ Tensor::Rank1 spherical_to_cartesian_U(const Tensor::Rank1 &spherical_v_U,
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 Tensor::Rank1 spherical_to_cartesian_L(const Tensor::Rank1 &spherical_v_L,
-                                       amrex::Real x, double y, double z)
+                                       amrex::Real x, amrex::Real y,
+                                       amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank1 cartesian_v_L{0., 0., 0.};
@@ -236,7 +243,8 @@ Tensor::Rank1 spherical_to_cartesian_L(const Tensor::Rank1 &spherical_v_L,
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 Tensor::Rank1 cartesian_to_spherical_U(const Tensor::Rank1 &cartesian_v_U,
-                                       amrex::Real x, double y, double z)
+                                       amrex::Real x, amrex::Real y,
+                                       amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank1 spherical_v_U{0., 0., 0.};
@@ -260,7 +268,8 @@ Tensor::Rank1 cartesian_to_spherical_U(const Tensor::Rank1 &cartesian_v_U,
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 Tensor::Rank1 cartesian_to_spherical_L(const Tensor::Rank1 &cartesian_v_L,
-                                       amrex::Real x, double y, double z)
+                                       amrex::Real x, amrex::Real y,
+                                       amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank1 spherical_v_L{0., 0., 0.};

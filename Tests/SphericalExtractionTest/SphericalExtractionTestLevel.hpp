@@ -35,12 +35,17 @@ class SphericalExtractionTestLevel : public GRAMRLevel
         auto const dx          = geom.CellSizeArray();
 
         GRParmParse pp;
-        SimulationParameters sim_params(pp);
+        GRParmParse test_pp("test");
 
-        const int es      = sim_params.es;
-        const int el      = sim_params.el;
-        const int em      = sim_params.em;
-        const auto center = sim_params.center;
+        int es{0};
+        int el{2};
+        int em{0}; // spherical harmonic params
+        test_pp.get("es", es);
+        test_pp.get("el", el);
+        test_pp.get("em", em);
+
+        std::array<double, AMREX_SPACEDIM> center{};
+        pp.get("geometry.center", center);
 
         // Fill the state
         amrex::ParallelFor(
@@ -60,8 +65,8 @@ class SphericalExtractionTestLevel : public GRAMRLevel
                 const auto Y_lm =
                     SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
 
-                array(i, j, k, c_phi) = Y_lm.Real;
-                array(i, j, k, c_Pi)  = Y_lm.Im;
+                array(i, j, k, c_phi_Re) = Y_lm.Real;
+                array(i, j, k, c_phi_Im) = Y_lm.Im;
             });
 
         amrex::Gpu::streamSynchronize();
@@ -69,7 +74,7 @@ class SphericalExtractionTestLevel : public GRAMRLevel
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const double a_time) override
+                         const amrex::Real a_time) override
     {
     }
 
@@ -85,9 +90,10 @@ class SphericalExtractionTestLevel : public GRAMRLevel
         const int current_level      = Level();
         const amrex::Real box_length = Geom().ProbLength(0);
 
-        std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
+        std::array<amrex::Real, AMREX_SPACEDIM> center{
+            AMREX_D_DECL(0., 0., 0.)};
         GRParmParse pp;
-        pp.query("center", center);
+        pp.query("geometry.center", center);
 
         FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
                                               center};

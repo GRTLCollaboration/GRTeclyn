@@ -21,18 +21,18 @@ class OscillatonInitialData
   public:
     struct params_t
     {
-        std::array<double, AMREX_SPACEDIM> center{};
+        std::array<amrex::Real, AMREX_SPACEDIM> center{};
     };
 
     AMREX_FORCE_INLINE
-    OscillatonInitialData(params_t a_params, double a_dx);
+    OscillatonInitialData(params_t a_params, amrex::Real a_dx);
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const;
 
   protected:
-    double m_dx;
+    amrex::Real m_dx;
     params_t m_params;
 
     // These parameters come from fitting a known oscillaton solution

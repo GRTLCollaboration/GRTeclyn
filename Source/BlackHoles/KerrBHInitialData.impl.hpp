@@ -32,9 +32,9 @@ void KerrBHInitialData::compute(Cell<data_t> current_cell) const
     compute_kerr(spherical_g, spherical_K, spherical_shift, kerr_lapse, coords);
 
     // work out where we are on the grid
-    data_t x = coords.x;
-    double y = coords.y;
-    double z = coords.z;
+    amrex::Real x = coords.x;
+    amrex::Real y = coords.y;
+    amrex::Real z = coords.z;
 
     using namespace CoordinateTransformations;
     // Convert spherical components to cartesian components using coordinate
@@ -45,9 +45,9 @@ void KerrBHInitialData::compute(Cell<data_t> current_cell) const
 
     using namespace TensorAlgebra;
     // Convert to BSSN vars
-    data_t deth = compute_determinant(vars.h);
-    auto h_UU   = compute_inverse_sym(vars.h);
-    vars.chi    = pow(deth, -1. / 3.);
+    amrex::Real deth = compute_determinant(vars.h);
+    auto h_UU        = compute_inverse_sym(vars.h);
+    vars.chi         = pow(deth, -1. / 3.);
 
     // transform extrinsic curvature into A and TrK - note h is still non
     // conformal version which is what we need here
@@ -76,46 +76,46 @@ template <class data_t>
 void KerrBHInitialData::compute_kerr(Tensor<2, data_t> &spherical_g,
                                      Tensor<2, data_t> &spherical_K,
                                      Tensor<1, data_t> &spherical_shift,
-                                     data_t &kerr_lapse,
+                                     amrex::Real &kerr_lapse,
                                      const Coordinates<data_t> coords) const
 {
     // Kerr black hole params - mass M and spin a
-    double M = m_params.mass;
-    double a = m_params.spin;
+    amrex::Real M = m_params.mass;
+    amrex::Real a = m_params.spin;
 
     // work out where we are on the grid
-    data_t x = coords.x;
-    double y = coords.y;
-    double z = coords.z;
+    amrex::Real x = coords.x;
+    amrex::Real y = coords.y;
+    amrex::Real z = coords.z;
 
     // the radius, subject to a floor
-    data_t r  = coords.get_radius();
-    data_t r2 = r * r;
+    amrex::Real r  = coords.get_radius();
+    amrex::Real r2 = r * r;
 
     // the radius in xy plane, subject to a floor
-    data_t rho2 = simd_max(x * x + y * y, 1e-12);
-    data_t rho  = sqrt(rho2);
+    amrex::Real rho2 = simd_max(x * x + y * y, 1e-12);
+    amrex::Real rho  = sqrt(rho2);
 
     // calculate useful position quantities
-    data_t cos_theta  = z / r;
-    data_t sin_theta  = rho / r;
-    data_t cos_theta2 = cos_theta * cos_theta;
-    data_t sin_theta2 = sin_theta * sin_theta;
+    amrex::Real cos_theta  = z / r;
+    amrex::Real sin_theta  = rho / r;
+    amrex::Real cos_theta2 = cos_theta * cos_theta;
+    amrex::Real sin_theta2 = sin_theta * sin_theta;
 
     // calculate useful metric quantities
-    double r_plus  = M + sqrt(M * M - a * a);
-    double r_minus = M - sqrt(M * M - a * a);
+    amrex::Real r_plus  = M + sqrt(M * M - a * a);
+    amrex::Real r_minus = M - sqrt(M * M - a * a);
 
     // The Boyer-Lindquist coordinate
-    data_t r_BL = r * pow(1.0 + 0.25 * r_plus / r, 2.0);
+    amrex::Real r_BL = r * pow(1.0 + 0.25 * r_plus / r, 2.0);
 
     // Other useful quantities per 1001.4077
-    data_t Sigma = r_BL * r_BL + a * a * cos_theta2;
-    data_t Delta = r_BL * r_BL - 2.0 * M * r_BL + a * a;
+    amrex::Real Sigma = r_BL * r_BL + a * a * cos_theta2;
+    amrex::Real Delta = r_BL * r_BL - 2.0 * M * r_BL + a * a;
     // In the paper this is just 'A', but not to be confused with A_ij
-    data_t AA = pow(r_BL * r_BL + a * a, 2.0) - Delta * a * a * sin_theta2;
+    amrex::Real AA = pow(r_BL * r_BL + a * a, 2.0) - Delta * a * a * sin_theta2;
     // The rr component of the conformal spatial matric
-    data_t gamma_rr =
+    amrex::Real gamma_rr =
         Sigma * pow(r + 0.25 * r_plus, 2.0) / (r * r2 * (r_BL - r_minus));
 
     // Metric in semi isotropic Kerr-Schild coordinates, r, theta (t or th), phi

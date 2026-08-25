@@ -1,70 +1,88 @@
-max_steps = 8
-stop_time = 2
+# GRTeclyn KleinGordon parameter file for the GitHub Actions regression test
+# Commented parameters show default or suggested values
 
 #################################################
-# Geometry and Boundary Conditions parameters
+# Filesystem parameters
+# grteclyn.output_path = . # base path for all output
 
-# Periodic directions - 0 = false, 1 = true
-isPeriodic          =  1   1   1
-center              =  16 16 16
+amr.verbose = 1
 
-L_full              =  32     # geometric extent (same for all directions)
-N_full              =  64     # size of coarse grid
+# Plotfiles default to <grteclyn.output_path>/plots and checkpoint files to
+# <grteclyn.output_path>/checkpoints
+# amr.check_file = checkpoints/chk
+# amr.plot_file = plots/plt
+# amr.restart = checkpoints/chk00000
+# amr.file_name_digits = 5
 
-
-#################################################
-# AMR parameters
-
-verbosity           =  1
-max_level           =  0     # maximum level number allowed
-regrid_interval     =  2     # must be defined even if single level
-max_box_size        =  64    # maximum allowed grid size
-block_factor        =  16    # block factor
-
-amr.v = 1
-
-
-
-##################################################
-
-output_path = "."           # not used right now
-amr.plot_files_output = 1   # write plot files or not (overrides all other plot file commands)
-#How often to write plot files, can use either
-plot_interval = 1           # (hold over from GRChombo)
-amr.plot_int = 1            # (AMReX variable)
-checkpoint_interval = 8
-
-amr.checkpoint_files_output = 1  # write checkpoint files or not (overrides all other checkpoint options)
+# Number of level-0 time steps between checkpoint files; -1 disables output
 amr.check_int = 8
+# Number of level-0 time steps between plot files; -1 disables output
+amr.plot_int  = 1
 
-amr.plot_vars = ALL
-amr.derive_plot_vars = ALL   #also write out derived parameters
-amr.plot_file = plt
-amr.check_file =chk
+# amr.plot_vars        = ALL
+amr.derive_plot_vars = ALL
 
+#################################################
+# Grid parameters
 
-rk_order = 4
-dt_multiplier = 0.2
-sigma = 0.3 #coefficient for KO dissipation
-nan_check=True
+# Number of cells and physical domain extent on the coarsest level
+amr.n_cell           = 64 64 64
+geometry.prob_extent = 32 32 32
+# geometry.center      = 16 16 16 # defaults to the grid center
 
-tag_buffer_size=1
+amr.max_level = 0 # there are max_level + 1 levels
 
-#Klein Gordon Parameters
-# Choose from "Wave" or "SineGordon1D" or "SineGordon3D"
+# Regridding interval in level timesteps; -1 disables regridding
+# Supply one shared value or max_level values, one per coarse-to-fine
+# transition
+# amr.regrid_int = -1
 
-# Example parameters for SineGordon models
-# NB: alpha must be defined
-# If SineGordon3D is specified then the initial time
-# can't be 0 because then the solution is uniformly 0
+# Maximum number of cells along each side of a grid box
+amr.max_grid_size   = 64
+# Grid box side lengths must be divisible by this value
+amr.blocking_factor = 16
+# Minimum fraction of tagged cells required in generated grids
+# amr.grid_eff = 0.7
 
+# Number of cells by which tagged regions are grown
+amr.n_error_buf     = 1
+
+#################################################
+# Boundary condition parameters
+
+# Periodic directions: 0 = false, 1 = true
+geometry.is_periodic = 1 1 1
+# Physical boundary conditions default to UNSET_BC in periodic directions
+# boundary.hi_condition = "UNSET_BC" "UNSET_BC" "UNSET_BC"
+# boundary.lo_condition = "UNSET_BC" "UNSET_BC" "UNSET_BC"
+
+#################################################
+# Evolution parameters
+
+# dt is dx * dt_multiplier on each grid level
+evolution.dt_multiplier = 0.2
+evolution.stop_time      = 2
+evolution.max_steps      = 8
+# evolution.nan_check      = true
+
+# Coefficient for KO numerical dissipation
+evolution.sigma = 0.3
+
+#################################################
+# Klein-Gordon parameters
+
+# Choose from "Wave", "SineGordon1D", or "SineGordon3D"
+# For SineGordon3D, initial_time cannot be zero because the solution would then
+# be uniformly zero
 klein_gordon.model = SineGordon3D
-klein_gordon.alpha = 0.7
-klein_gordon.initial_time = -5.4;
+klein_gordon.initial_time = -5.4
 
+# Sine-Gordon parameters
+# alpha must be defined
+sine_gordon.alpha = 0.7
 
-# Example parameters for Wave model
-# NB: wave_vector must be defined
-#klein_gordon.model = Wave
-#klein_gordon.wave_vector = 10.
-#klein_gordon.scalar_mass = 1      # potential is scalar_mass^2 phi^2 - only relevant for Wave models
+# Wave parameters
+# wave_vector must be defined
+# klein_gordon.model = Wave
+# wave.wave_vector = 10.0
+# wave.scalar_mass = 1.0 # potential is scalar_mass^2 phi^2

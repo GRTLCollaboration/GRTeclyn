@@ -8,6 +8,8 @@
 #ifndef TWOPUNCTURESINITIALDATA_HPP_
 #define TWOPUNCTURESINITIALDATA_HPP_
 
+#include "ArrayTools.hpp"
+#include "BoundaryConditions.hpp"
 #include "CCZ4Vars.hpp"
 #include "Coordinates.hpp"
 #include "GRParmParse.hpp"
@@ -21,8 +23,8 @@
 class TwoPuncturesInitialData
 {
   private:
-    double m_dx;
-    std::array<double, AMREX_SPACEDIM> m_center;
+    amrex::Real m_dx;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
     // Let's assume we only need one TwoPunctures object for the whole
     // simulation
     static inline TP::TwoPunctures s_two_punctures;
@@ -30,11 +32,10 @@ class TwoPuncturesInitialData
     static inline bool s_two_punctures_solved = false;
 
   public:
-    TwoPuncturesInitialData(
-        const double a_dx,
-        const std::array<amrex::Real, AMREX_SPACEDIM> a_center)
-        : m_dx(a_dx), m_center(a_center)
+    TwoPuncturesInitialData(const amrex::Real a_dx) : m_dx(a_dx)
     {
+        GRParmParse pp;
+        pp.get("geometry.center", m_center);
         read_parameters();
     }
 
@@ -59,16 +60,17 @@ class TwoPuncturesInitialData
             solve();
         }
 
-        bh1_params.mass = s_two_punctures.par_m_plus;
-        bh2_params.mass = s_two_punctures.par_m_minus;
+        // Puncture ID 1 is the minus puncture and ID 2 is the plus puncture.
+        bh1_params.mass = s_two_punctures.par_m_minus;
+        bh2_params.mass = s_two_punctures.par_m_plus;
 
         bh1_params.center = m_center;
         bh2_params.center = m_center;
         int offset_dir    = (s_two_punctures.swap_xz) ? 2 : 0;
         bh1_params.center[offset_dir] +=
-            s_two_punctures.center_offset[offset_dir] + s_two_punctures.par_b;
-        bh2_params.center[offset_dir] +=
             s_two_punctures.center_offset[offset_dir] - s_two_punctures.par_b;
+        bh2_params.center[offset_dir] +=
+            s_two_punctures.center_offset[offset_dir] + s_two_punctures.par_b;
     }
 
     AMREX_FORCE_INLINE void
@@ -144,23 +146,23 @@ class TwoPuncturesInitialData
         {
             return;
         }
-        GRParmParse pp("two_punctures");
+        GRParmParse tp_pp("two_punctures");
 
         s_two_punctures.verbose = false;
-        pp.queryAdd("verbose", s_two_punctures.verbose);
+        tp_pp.queryAdd("verbose", s_two_punctures.verbose);
 
         // default to using bare masses rather than solving for target masses
         bool calculate_target_masses = false;
-        pp.queryAdd("calculate_target_masses", calculate_target_masses);
+        tp_pp.queryAdd("calculate_target_masses", calculate_target_masses);
         s_two_punctures.give_bare_mass = !calculate_target_masses;
 
         if (calculate_target_masses)
         {
-            pp.get("target_mass_plus", s_two_punctures.target_M_plus);
-            pp.get("target_mass_minus", s_two_punctures.target_M_minus);
+            tp_pp.get("target_mass_plus", s_two_punctures.target_M_plus);
+            tp_pp.get("target_mass_minus", s_two_punctures.target_M_minus);
 
             s_two_punctures.adm_tol = 1.0e-10;
-            pp.queryAdd("adm_tol", s_two_punctures.adm_tol);
+            tp_pp.queryAdd("adm_tol", s_two_punctures.adm_tol);
             if (s_two_punctures.verbose)
             {
                 amrex::Print()
@@ -173,8 +175,8 @@ class TwoPuncturesInitialData
         }
         else
         {
-            pp.get("mass_plus", s_two_punctures.par_m_plus);
-            pp.get("mass_minus", s_two_punctures.par_m_minus);
+            tp_pp.get("mass_plus", s_two_punctures.par_m_plus);
+            tp_pp.get("mass_minus", s_two_punctures.par_m_minus);
             if (s_two_punctures.verbose)
             {
                 amrex::Print()
@@ -188,14 +190,19 @@ class TwoPuncturesInitialData
 
         std::array<amrex::Real, AMREX_SPACEDIM> momentum_plus{};
         std::array<amrex::Real, AMREX_SPACEDIM> momentum_minus{};
-        pp.get("momentum_plus", momentum_plus);
-        pp.get("momentum_minus", momentum_minus);
+        tp_pp.get("momentum_plus", momentum_plus);
+        tp_pp.get("momentum_minus", momentum_minus);
 
         std::array<amrex::Real, AMREX_SPACEDIM> spin_plus{};
         std::array<amrex::Real, AMREX_SPACEDIM> spin_minus{};
-        pp.get("spin_plus", spin_plus);
-        pp.get("spin_minus", spin_minus);
+        tp_pp.get("spin_plus", spin_plus);
+        tp_pp.get("spin_minus", spin_minus);
 
+        // TwoPunctures implements swap_xz as an exchange of the x and z axes,
+        // not as a proper rotation. These momentum and spin components use
+        // that internal convention. In particular, with swap_xz enabled, a
+        // physical spin in the positive z direction is specified by a
+        // negative x component here.
         FOR (i)
         {
             s_two_punctures.par_P_plus[i]  = momentum_plus[i];
@@ -233,70 +240,76 @@ class TwoPuncturesInitialData
 
         // default to Taylor expansion interpolation as it is much faster
         bool use_spectral_interpolation = false;
-        pp.queryAdd("use_spectral_interpolation", use_spectral_interpolation);
+        tp_pp.queryAdd("use_spectral_interpolation",
+                       use_spectral_interpolation);
         s_two_punctures.grid_setup_method =
             (use_spectral_interpolation) ? "evaluation" : "Taylor expansion";
 
-        std::string initial_lapse = "psi^n";
-        pp.queryAdd("initial_lapse", s_two_punctures.initial_lapse);
+        s_two_punctures.initial_lapse = "twopunctures-averaged";
+        tp_pp.queryAdd("initial_lapse", s_two_punctures.initial_lapse);
 
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            s_two_punctures.initial_lapse == "twopunctures-antisymmetric" ||
-                s_two_punctures.initial_lapse == "twopunctures-averaged" ||
-                s_two_punctures.initial_lapse == "psi^n" ||
-                s_two_punctures.initial_lapse == "brownsville",
-            "two_punctures.initial_lapse must be one of "
-            "'twopunctures-antisymmetric', 'twopunctures-averaged', "
-            "'psi^n', or 'brownsville'");
+        if (s_two_punctures.initial_lapse != "twopunctures-antisymmetric" &&
+            s_two_punctures.initial_lapse != "twopunctures-averaged" &&
+            s_two_punctures.initial_lapse != "psi^n" &&
+            s_two_punctures.initial_lapse != "brownsville")
+        {
+            tp_pp.error("initial_lapse",
+                        "must be one of 'twopunctures-antisymmetric', "
+                        "'twopunctures-averaged', 'psi^n', or 'brownsville'");
+        }
         if (s_two_punctures.initial_lapse == "psi^n")
         {
             s_two_punctures.initial_lapse_psi_exponent = -2.0;
-            pp.queryAdd("initial_lapse_psi_exponent",
-                        s_two_punctures.initial_lapse_psi_exponent);
+            tp_pp.queryAdd("initial_lapse_psi_exponent",
+                           s_two_punctures.initial_lapse_psi_exponent);
         }
 
         // spectral grid parameters
         s_two_punctures.npoints_A = 30;
-        pp.queryAdd("num_points_A", s_two_punctures.npoints_A);
+        tp_pp.queryAdd("num_points_A", s_two_punctures.npoints_A);
         s_two_punctures.npoints_B = 30;
-        pp.queryAdd("num_points_B", s_two_punctures.npoints_B);
+        tp_pp.queryAdd("num_points_B", s_two_punctures.npoints_B);
         s_two_punctures.npoints_phi = 16;
-        pp.queryAdd("num_points_phi", s_two_punctures.npoints_phi);
-        AMREX_ALWAYS_ASSERT(s_two_punctures.npoints_phi % 4 == 0);
+        tp_pp.queryAdd("num_points_phi", s_two_punctures.npoints_phi);
+        if (s_two_punctures.npoints_phi < 4 ||
+            s_two_punctures.npoints_phi % 4 != 0)
+        {
+            tp_pp.error("num_points_phi", "must be >= 4 and divisible by 4");
+        }
 
         // solver parameters
         s_two_punctures.Newton_tol = 1.0e-10;
-        pp.queryAdd("solver_tol", s_two_punctures.Newton_tol);
+        tp_pp.queryAdd("solver_tolerance", s_two_punctures.Newton_tol);
         s_two_punctures.Newton_maxit = 5;
-        pp.queryAdd("solver_maxit", s_two_punctures.Newton_maxit);
+        tp_pp.queryAdd("solver_max_iterations", s_two_punctures.Newton_maxit);
         s_two_punctures.TP_epsilon = 1.0e-6;
-        pp.queryAdd("epsilon", s_two_punctures.TP_epsilon);
+        tp_pp.queryAdd("epsilon", s_two_punctures.TP_epsilon);
         s_two_punctures.TP_Tiny = 0.0;
-        pp.queryAdd("tiny", s_two_punctures.TP_Tiny);
+        tp_pp.queryAdd("tiny", s_two_punctures.TP_Tiny);
         s_two_punctures.TP_Extend_Radius = 0.0;
-        pp.queryAdd("extend_radius", s_two_punctures.TP_Extend_Radius);
+        tp_pp.queryAdd("extend_radius", s_two_punctures.TP_Extend_Radius);
 
         // BH positions
         amrex::Real offset_plus{};
         amrex::Real offset_minus{};
-        pp.get("offset_plus", offset_plus);
-        pp.get("offset_minus", offset_minus);
+        tp_pp.get("offset_plus", offset_plus);
+        tp_pp.get("offset_minus", offset_minus);
 
         s_two_punctures.swap_xz = false;
-        pp.queryAdd("swap_xz", s_two_punctures.swap_xz);
+        tp_pp.queryAdd("swap_xz", s_two_punctures.swap_xz);
 
-        double center_offset_xz = 0.5 * (offset_plus + offset_minus);
-        int offset_dir          = (s_two_punctures.swap_xz) ? 2 : 0;
+        amrex::Real center_offset_xz = 0.5 * (offset_plus + offset_minus);
+        int offset_dir               = (s_two_punctures.swap_xz) ? 2 : 0;
         s_two_punctures.center_offset[offset_dir] = center_offset_xz;
         s_two_punctures.par_b = 0.5 * (offset_plus - offset_minus);
 
         // debug output
         s_two_punctures.do_residuum_debug_output = false;
-        pp.queryAdd("do_residuum_debug_output",
-                    s_two_punctures.do_residuum_debug_output);
+        tp_pp.queryAdd("do_residuum_debug_output",
+                       s_two_punctures.do_residuum_debug_output);
         s_two_punctures.do_initial_debug_output = false;
-        pp.queryAdd("do_initial_debug_output",
-                    s_two_punctures.do_initial_debug_output);
+        tp_pp.queryAdd("do_initial_debug_output",
+                       s_two_punctures.do_initial_debug_output);
 
         // Irrelevant parameters set to default value
         s_two_punctures.keep_u_around                   = false;
@@ -315,6 +328,267 @@ class TwoPuncturesInitialData
         s_two_punctures.mm_adm            = 0;
 
         s_parameters_read = true;
+    }
+
+    static void check_params()
+    {
+        // These checks are mostly taken from the Einstein Toolkit thorn
+        // documentation:
+        // https://einsteintoolkit.org/thornguide/EinsteinInitialData/TwoPunctures/documentation.html
+
+        GRParmParse tp_pp("two_punctures");
+
+        bool verbose = false;
+        tp_pp.queryAdd("verbose", verbose);
+
+        bool calculate_target_masses = false;
+        tp_pp.queryAdd("calculate_target_masses", calculate_target_masses);
+
+        double mass_plus{};
+        double mass_minus{};
+        if (calculate_target_masses)
+        {
+            tp_pp.get("target_mass_plus", mass_plus);
+            tp_pp.get("target_mass_minus", mass_minus);
+
+            double adm_tol = 1.0e-10;
+            tp_pp.queryAdd("adm_tol", adm_tol);
+            if (adm_tol <= 0.0)
+            {
+                tp_pp.error("adm_tol", "must be > 0.0");
+            }
+        }
+        else
+        {
+            tp_pp.get("mass_plus", mass_plus);
+            tp_pp.get("mass_minus", mass_minus);
+        }
+
+        const char *mass_plus_name =
+            calculate_target_masses ? "target_mass_plus" : "mass_plus";
+        const char *mass_minus_name =
+            calculate_target_masses ? "target_mass_minus" : "mass_minus";
+        if (mass_plus < 0.0)
+        {
+            tp_pp.error(mass_plus_name, "must be >= 0.0");
+        }
+        if (mass_minus < 0.0)
+        {
+            tp_pp.error(mass_minus_name, "must be >= 0.0");
+        }
+
+        std::array<amrex::Real, AMREX_SPACEDIM> momentum_plus{};
+        std::array<amrex::Real, AMREX_SPACEDIM> momentum_minus{};
+        std::array<amrex::Real, AMREX_SPACEDIM> spin_plus{};
+        std::array<amrex::Real, AMREX_SPACEDIM> spin_minus{};
+        tp_pp.get("momentum_plus", momentum_plus);
+        tp_pp.get("momentum_minus", momentum_minus);
+        tp_pp.get("spin_plus", spin_plus);
+        tp_pp.get("spin_minus", spin_minus);
+
+        // The target masses are puncture ADM masses, so |P| / M must remain
+        // below one. A bare puncture mass is not the physical ADM mass, so it
+        // can only support a warning for the same nominal ratio.
+        auto check_momentum = [&tp_pp, calculate_target_masses](
+                                  const char *momentum_name,
+                                  const auto &momentum, const char *mass_name,
+                                  double mass)
+        {
+            const double momentum_magnitude =
+                std::sqrt(ArrayTools::norm2(momentum));
+            if (momentum_magnitude == 0.0)
+            {
+                return;
+            }
+            if (mass == 0.0)
+            {
+                tp_pp.error(momentum_name,
+                            "must be zero when the mass is zero");
+            }
+            if (momentum_magnitude >= mass)
+            {
+                const std::string message =
+                    "gives |P| / " + std::string(mass_name) + " >= 1";
+                if (calculate_target_masses)
+                {
+                    tp_pp.error(momentum_name, message);
+                }
+                else
+                {
+                    tp_pp.warning(momentum_name,
+                                  message +
+                                      ", but this uses a bare mass rather than "
+                                      "the physical ADM mass");
+                }
+            }
+        };
+        check_momentum("momentum_plus", momentum_plus, mass_plus_name,
+                       mass_plus);
+        check_momentum("momentum_minus", momentum_minus, mass_minus_name,
+                       mass_minus);
+
+        auto check_spin = [&tp_pp, calculate_target_masses](
+                              const char *spin_name, const auto &spin,
+                              const char *mass_name, double mass)
+        {
+            const double spin_magnitude = std::sqrt(ArrayTools::norm2(spin));
+            if (spin_magnitude == 0.0)
+            {
+                return;
+            }
+            if (mass == 0.0)
+            {
+                tp_pp.error(spin_name, "must be zero when the mass is zero");
+            }
+            if (spin_magnitude >= mass * mass)
+            {
+                const std::string message =
+                    "gives |J| / " + std::string(mass_name) + "^2 >= 1";
+                if (calculate_target_masses)
+                {
+                    tp_pp.error(spin_name, message);
+                }
+                else
+                {
+                    tp_pp.warning(spin_name,
+                                  message +
+                                      ", but this uses a bare mass rather than "
+                                      "the physical black-hole mass");
+                }
+            }
+        };
+        check_spin("spin_plus", spin_plus, mass_plus_name, mass_plus);
+        check_spin("spin_minus", spin_minus, mass_minus_name, mass_minus);
+
+        bool use_spectral_interpolation = false;
+        tp_pp.queryAdd("use_spectral_interpolation",
+                       use_spectral_interpolation);
+
+        std::string initial_lapse = "twopunctures-averaged";
+        tp_pp.queryAdd("initial_lapse", initial_lapse);
+        if (initial_lapse != "twopunctures-antisymmetric" &&
+            initial_lapse != "twopunctures-averaged" &&
+            initial_lapse != "psi^n" && initial_lapse != "brownsville")
+        {
+            tp_pp.error("initial_lapse",
+                        "must be one of 'twopunctures-antisymmetric', "
+                        "'twopunctures-averaged', 'psi^n', or 'brownsville'");
+        }
+        if (initial_lapse == "psi^n")
+        {
+            double initial_lapse_psi_exponent = -2.0;
+            tp_pp.queryAdd("initial_lapse_psi_exponent",
+                           initial_lapse_psi_exponent);
+        }
+
+        int num_points_a = 30;
+        tp_pp.queryAdd("num_points_A", num_points_a);
+        if (num_points_a < 4)
+        {
+            tp_pp.error("num_points_A", "must be >= 4");
+        }
+
+        int num_points_b = 30;
+        tp_pp.queryAdd("num_points_B", num_points_b);
+        if (num_points_b < 4)
+        {
+            tp_pp.error("num_points_B", "must be >= 4");
+        }
+
+        int num_points_phi = 16;
+        tp_pp.queryAdd("num_points_phi", num_points_phi);
+        if (num_points_phi < 4 || num_points_phi % 4 != 0)
+        {
+            tp_pp.error("num_points_phi", "must be >= 4 and divisible by 4");
+        }
+
+        int solver_max_iterations = 5;
+        tp_pp.queryAdd("solver_max_iterations", solver_max_iterations);
+        if (solver_max_iterations < 0)
+        {
+            tp_pp.error("solver_max_iterations", "must be >= 0");
+        }
+
+        double solver_tolerance = 1.0e-10;
+        tp_pp.queryAdd("solver_tolerance", solver_tolerance);
+        if (solver_tolerance < 0.0)
+        {
+            tp_pp.error("solver_tolerance", "must be >= 0.0");
+        }
+
+        double epsilon = 1.0e-6;
+        tp_pp.queryAdd("epsilon", epsilon);
+        if (epsilon < 0.0)
+        {
+            tp_pp.error("epsilon", "must be >= 0.0");
+        }
+
+        double tiny = 0.0;
+        tp_pp.queryAdd("tiny", tiny);
+        if (tiny < 0.0)
+        {
+            tp_pp.error("tiny", "must be >= 0.0");
+        }
+
+        double extend_radius = 0.0;
+        tp_pp.queryAdd("extend_radius", extend_radius);
+        if (extend_radius < 0.0)
+        {
+            tp_pp.error("extend_radius", "must be >= 0.0");
+        }
+
+        double offset_plus{};
+        double offset_minus{};
+        tp_pp.get("offset_plus", offset_plus);
+        tp_pp.get("offset_minus", offset_minus);
+
+        bool swap_xz = false;
+        tp_pp.queryAdd("swap_xz", swap_xz);
+
+        // TwoPunctures always solves with the punctures on its internal x
+        // axis. When swap_xz is enabled, it exchanges x and z during
+        // interpolation, so the physical separation and center offset belong
+        // in the z component here.
+        GRParmParse geom_pp("geometry");
+        std::array<double, AMREX_SPACEDIM> center{};
+        std::array<double, AMREX_SPACEDIM> prob_extent{};
+        geom_pp.get("center", center);
+        geom_pp.get("prob_extent", prob_extent);
+
+        GRParmParse boundary_pp("boundary");
+        const auto lo_condition = BoundaryConditions::params_t::read_conditions(
+            boundary_pp, "lo_condition");
+        const auto hi_condition = BoundaryConditions::params_t::read_conditions(
+            boundary_pp, "hi_condition");
+
+        const int offset_dir = swap_xz ? 2 : 0;
+        const double domain_lo =
+            lo_condition[offset_dir] == BoundaryConditions::REFLECTIVE_BC
+                ? -prob_extent[offset_dir]
+                : 0.0;
+        const double domain_hi =
+            hi_condition[offset_dir] == BoundaryConditions::REFLECTIVE_BC
+                ? 2.0 * prob_extent[offset_dir]
+                : prob_extent[offset_dir];
+        if (center[offset_dir] + offset_plus < domain_lo ||
+            center[offset_dir] + offset_plus > domain_hi)
+        {
+            tp_pp.warning("offset_plus",
+                          "places the puncture outside the computational "
+                          "domain after applying reflective symmetry");
+        }
+        if (center[offset_dir] + offset_minus < domain_lo ||
+            center[offset_dir] + offset_minus > domain_hi)
+        {
+            tp_pp.warning("offset_minus",
+                          "places the puncture outside the computational "
+                          "domain after applying reflective symmetry");
+        }
+
+        bool do_residuum_debug_output = false;
+        tp_pp.queryAdd("do_residuum_debug_output", do_residuum_debug_output);
+        bool do_initial_debug_output = false;
+        tp_pp.queryAdd("do_initial_debug_output", do_initial_debug_output);
     }
 
     static const TP::TwoPunctures &get_two_punctures()
