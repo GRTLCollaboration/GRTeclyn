@@ -70,12 +70,13 @@ class SphericalGeometry
 
     //! returns the Cartesian coordinate in direction a_dir with specified
     //! radius, theta and phi.
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters,
+    // readability-convert-member-functions-to-static)
     [[nodiscard]] amrex::ParticleReal
     get_grid_coord(int a_dir, amrex::ParticleReal a_radius,
                    amrex::ParticleReal a_theta, amrex::ParticleReal a_phi) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
+    // NOLINTEND(bugprone-easily-swappable-parameters,
+    // readability-convert-member-functions-to-static)
     {
         if (a_dir < 0 || a_dir >= AMREX_SPACEDIM)
         {
