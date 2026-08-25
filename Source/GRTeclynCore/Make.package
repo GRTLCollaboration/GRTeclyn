@@ -1,8 +1,7 @@
 GRTECLYN_CEXE_sources += GRAMR.cpp \
                          GRAMRLevel.cpp
 
-GRTECLYN_CEXE_headers += AMReXParameters.hpp \
-                         ArrayTools.hpp \
+GRTECLYN_CEXE_headers += ArrayTools.hpp \
                          DefaultLevelFactory.hpp \
                          GRAMR.hpp \
                          GRAMRLevel.hpp \
@@ -10,5 +9,4 @@ GRTECLYN_CEXE_headers += AMReXParameters.hpp \
                          Interval.hpp \
                          NullBCFill.hpp \
                          SetupFunctions.hpp \
-                         SimulationParametersBase.hpp \
                          VariableType.hpp

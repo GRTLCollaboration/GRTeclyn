@@ -11,6 +11,7 @@
 #include <AMReX_Amr.H>
 #include <algorithm>
 #include <chrono>
+#include <limits>
 #include <ratio>
 #include <vector>
 
@@ -24,8 +25,6 @@
 // Forward declaration for get_gramrlevels function declarations
 class GRAMRLevel;
 
-class SimulationParameters;
-
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class GRAMR : public amrex::Amr
 {
@@ -38,21 +37,16 @@ class GRAMR : public amrex::Amr
 
     void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override;
 
-    static void
-    set_simulation_parameters(const SimulationParameters &a_sim_params);
-    static const SimulationParameters &get_simulation_parameters();
-
     [[nodiscard]] amrex::Real get_walltime_since_start() const;
 
     [[nodiscard]] amrex::Real get_restart_time() const;
 
   private:
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    static const SimulationParameters *m_sim_params;
 
     void set_restart_time(amrex::Real a_restart_time);
 
-    amrex::Real m_start_walltime{std::nan("0.0")};
+    // NaN marks the start time as unset and matches the configured Real type.
+    amrex::Real m_start_walltime{std::numeric_limits<amrex::Real>::quiet_NaN()};
     amrex::Real m_restart_time{0.0};
 };
 

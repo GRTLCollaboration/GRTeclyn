@@ -110,10 +110,12 @@ void run_matter_weyl4_test()
         int level        = 0;
 
         GRParmParse pp;
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-        int formulation = CCZ4RHS<>::USE_BSSN;
-        pp.queryAdd("extraction_center", center);
-        pp.queryAdd("formulation", formulation);
+        GRParmParse extraction_pp("weyl_extraction");
+        // This test deliberately exercises the BSSN formulation.
+        int formulation{};
+        formulation = CCZ4RHS<>::USE_BSSN;
+        extraction_pp.queryAdd("center", center);
+        pp.queryAdd("ccz4.formulation", formulation);
         pp.queryAdd("G_newton", G_Newton);
 
         Weyl4WithMatter<DefaultScalarField>::compute_mf(

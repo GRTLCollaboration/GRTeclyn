@@ -12,49 +12,56 @@
 // Problem specific includes:
 #include "KleinGordonLevel.hpp"
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-int runGRTeclyn(int /*argc*/, char * /*argv*/[])
+int runGRTeclyn()
 {
     BL_PROFILE("runGRTeclyn()");
 
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
     GRParmParse pp; // NOLINT(readability-identifier-length)
-    SimulationParameters sim_params(pp);
 
-    if (sim_params.just_check_params)
+    if (just_check_params())
     {
         return 0;
     }
 
-    GRAMR::set_simulation_parameters(sim_params);
+    std::string model{};
+    pp.get("klein_gordon.model", model);
 
-    amrex::Print() << "Now running " << sim_params.model << " simulation"
+    double stop_time{};
+    pp.get("evolution.stop_time", stop_time);
+    int max_steps{};
+    pp.get("evolution.max_steps", max_steps);
+
+    amrex::Print() << "Now running " << model << " simulation"
                    << "\n";
 
     DefaultLevelFactory<KleinGordonLevel> KleinGordon_level_bld;
 
     GRAMR amr(&KleinGordon_level_bld);
 
-    amr.init(0., sim_params.stop_time);
+    amr.init(0., stop_time);
 
     while ((amr.okToContinue() != 0) &&
-           (amr.levelSteps(0) < sim_params.max_steps ||
-            sim_params.max_steps < 0) &&
-           (amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
+           (amr.levelSteps(0) < max_steps || max_steps < 0) &&
+           (amr.cumTime() < stop_time || stop_time < 0.0))
     {
-        amr.coarseTimeStep(sim_params.stop_time);
+        amr.coarseTimeStep(stop_time);
     }
 
+    int check_int{}; // Steps between checkpoint file outputs
+    pp.get("amr.check_int", check_int);
+
+    int plot_int{}; // Steps between plot file outputs
+    pp.get("amr.plot_int", plot_int);
+
     // Write final checkpoint and plotfile
-    if (amr.stepOfLastCheckPoint() < amr.levelSteps(0) &&
-        sim_params.checkpoint_interval >= 0)
+    if (amr.stepOfLastCheckPoint() < amr.levelSteps(0) && check_int >= 0)
     {
         amr.checkPoint();
     }
 
-    if (amr.stepOfLastPlotFile() < amr.levelSteps(0) &&
-        sim_params.plot_interval >= 0)
+    if (amr.stepOfLastPlotFile() < amr.levelSteps(0) && plot_int >= 0)
     {
         amr.writePlotFile();
     }
@@ -66,7 +73,7 @@ int main(int argc, char *argv[])
 {
     mainSetup(argc, argv);
 
-    int status = runGRTeclyn(argc, argv);
+    int status = runGRTeclyn();
 
     if (status == 0)
     {

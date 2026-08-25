@@ -119,16 +119,12 @@ void Weyl4WithMatter<matter_t>::compute_mf(amrex::MultiFab &out_mf,
     const auto &src_arrays = src_mf.const_arrays();
 
     GRParmParse pp;
-    std::array<amrex::Real, AMREX_SPACEDIM> center{};
-    int formulation      = 0;
     amrex::Real G_Newton = 0;
 
-    pp.get("extraction_center", center);
-    pp.get("formulation", formulation);
     pp.queryAdd("G_newton", G_Newton);
 
-    Weyl4WithMatter<matter_t> my_weyl4_with_matter(
-        center, geomdata.CellSize(0), out_comp, formulation, G_Newton);
+    Weyl4WithMatter<matter_t> my_weyl4_with_matter(geomdata.CellSize(0),
+                                                   out_comp, G_Newton);
 
     amrex::ParallelFor(
         out_mf,

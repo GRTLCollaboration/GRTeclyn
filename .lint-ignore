@@ -14,7 +14,7 @@ external/*
 Source/AMRInterpolator/*
 Source/ParticleInterpolators/*
 Source/CCZ4/GammaCalculator.hpp
-Source/CCZ4/IntegratedMovingPunctureGauge.hpp
+lint-only: Source/CCZ4/IntegratedMovingPunctureGauge.hpp
 Source/BlackHoles/KerrBH*
 Source/IO/MultiLevelTask.hpp
 Examples/ScalarField/*

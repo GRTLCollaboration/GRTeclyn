@@ -30,9 +30,7 @@ class BinaryBHInitialData
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_FORCE_INLINE
-    BinaryBHInitialData(BoostedBHInitialData::params_t a_bh1_params,
-                        BoostedBHInitialData::params_t a_bh2_params,
-                        amrex::Real a_dx,
+    BinaryBHInitialData(amrex::Real a_dx,
                         int a_initial_lapse = Lapse::PRE_COLLAPSED);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 

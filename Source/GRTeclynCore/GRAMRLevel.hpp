@@ -40,8 +40,6 @@ class GRAMRLevel : public amrex::AmrLevel
 
     ~GRAMRLevel() override;
 
-    static const SimulationParameters &simParams();
-
     GRAMR *get_gramr_ptr();
 
     /**
@@ -193,8 +191,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
     BoundaryConditions m_boundaries; // the class for implementing BCs
 
-    int m_verbosity = 0; //!< Level of verbosity of the output
-    int m_num_ghosts{};  //!< Number of ghost cells
+    bool nan_check{};
 
   private:
 

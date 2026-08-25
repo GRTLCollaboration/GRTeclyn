@@ -15,8 +15,6 @@ include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
 
-include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
-
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 src_dirs := $(GRTECLYN_SOURCE)/ParticleInterpolator \

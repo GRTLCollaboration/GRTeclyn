@@ -80,11 +80,12 @@ void run_weyl4_test()
         // Weyl4::compute_mf looks up these parameters from the ParmParse table
         // so we need to add them to it
         GRParmParse pp;
+        GRParmParse extraction_pp("weyl_extraction");
         std::array<amrex::Real, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-        int formulation = CCZ4RHS<>::USE_CCZ4;
-        pp.queryAdd("extraction_center", center);
-        pp.queryAdd("formulation", formulation);
+        int formulation{};
+        formulation = CCZ4RHS<>::USE_CCZ4;
+        extraction_pp.queryAdd("center", center);
+        pp.queryAdd("ccz4.formulation", formulation);
 
         constexpr int num_weyl4_comps = 2;
         constexpr int num_out_ghosts  = 0;

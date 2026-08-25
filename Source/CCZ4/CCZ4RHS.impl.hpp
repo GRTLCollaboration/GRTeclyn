@@ -15,28 +15,15 @@
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class gauge_t, class deriv_t>
-inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
-    CCZ4_params_t<typename gauge_t::params_t> a_params, amrex::Real a_dx,
-    amrex::Real a_sigma, int a_formulation, amrex::Real a_cosmological_constant)
-    : m_params(a_params), m_gauge(a_params), m_sigma(a_sigma),
-      m_formulation(a_formulation),
-      m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
+inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(amrex::Real a_dx,
+                                          amrex::Real a_cosmological_constant)
+    : m_gauge(), m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    // A user who wants to use BSSN should also have damping paramters = 0
-    if (m_formulation == formulations::USE_BSSN)
-    {
-        if ((m_params.kappa1 != 0.) || (m_params.kappa2 != 0.) ||
-            (m_params.kappa3 != 0.))
-        {
-            amrex::Abort("BSSN formulation is selected - CCZ4 kappa values "
-                         "should be set to zero in params");
-        }
-    }
-    if (m_formulation > formulations::USE_BSSN)
-    {
-        amrex::Abort("The requested formulation is not supported");
-    }
+    m_params.fill_params();
+
+    GRParmParse pp;
+    pp.get("evolution.sigma", m_sigma);
 }
 
 template <class gauge_t, class deriv_t>
@@ -246,7 +233,7 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
                      vars.K() * vars.K() -
                  2.0 * vars.Theta() * vars.K()) -
             0.5 * vars.Theta() * kappa1_times_lapse *
-                (((amrex::Real)GR_SPACEDIM + 1.0) +
+                (((amrex::Real)GR_SPACEDIM + 1) +
                  m_params.kappa2 * ((amrex::Real)GR_SPACEDIM - 1.0)) -
             Z_dot_d1lapse - vars.lapse() * m_cosmological_constant;
 

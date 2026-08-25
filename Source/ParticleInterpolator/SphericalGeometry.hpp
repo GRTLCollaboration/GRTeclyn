@@ -14,6 +14,8 @@
 #include <cmath>
 #include <string>
 
+#include "GRParmParse.hpp"
+
 //! This SurfaceGeometry template class provides spherical shell geometry
 //! implementation for the SurfaceExtraction class
 //! u = theta, v = phi
@@ -23,10 +25,19 @@ class SphericalGeometry
     std::array<amrex::ParticleReal, AMREX_SPACEDIM> m_center;
 
   public:
-    SphericalGeometry(
-        const std::array<amrex::ParticleReal, AMREX_SPACEDIM> &a_center)
-        : m_center(a_center)
+    SphericalGeometry()
     {
+        GRParmParse pp;
+        pp.get("geometry.center", m_center);
+    }
+
+    template <class T>
+    explicit SphericalGeometry(const std::array<T, AMREX_SPACEDIM> &a_center)
+    {
+        for (int idir = 0; idir < AMREX_SPACEDIM; ++idir)
+        {
+            m_center[idir] = static_cast<amrex::ParticleReal>(a_center[idir]);
+        }
     }
 
     //! returns the grid spacing in theta
@@ -60,29 +71,28 @@ class SphericalGeometry
     //! returns the Cartesian coordinate in direction a_dir with specified
     //! radius, theta and phi.
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     [[nodiscard]] amrex::ParticleReal
     get_grid_coord(int a_dir, amrex::ParticleReal a_radius,
                    amrex::ParticleReal a_theta, amrex::ParticleReal a_phi) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-        switch (a_dir)
+        if (a_dir < 0 || a_dir >= AMREX_SPACEDIM)
         {
-        case (0):
-            return m_center[0] + a_radius * sin(a_theta) * cos(a_phi);
-        case (1):
-            return m_center[1] + a_radius * sin(a_theta) * sin(a_phi);
-        case (2):
-            return m_center[2] + a_radius * cos(a_theta);
-        default:
             amrex::Abort("SphericalGeometry: Direction not supported");
-            return 0.;
         }
+
+        const amrex::ParticleReal cylindrical_radius = a_radius * sin(a_theta);
+        const std::array<amrex::ParticleReal, AMREX_SPACEDIM> displacement{
+            AMREX_D_DECL(cylindrical_radius * cos(a_phi),
+                         cylindrical_radius * sin(a_phi),
+                         a_radius * cos(a_theta))};
+        return m_center[a_dir] + displacement[a_dir];
     }
 
     //! returns the area element on a sphere with radius a_radius at the point
     //! (a_theta, a_phi)
     [[nodiscard]] static amrex::ParticleReal
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     area_element(amrex::ParticleReal a_radius, amrex::ParticleReal a_theta,
                  amrex::ParticleReal /*a_phi*/)
     {
