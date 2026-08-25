@@ -69,22 +69,17 @@ class FixedGridsTagger
             Coordinates::compute_coord(coordinate_from_center, cell[direction],
                                        m_dx, m_center[direction]);
 
-            const amrex::Real distance_from_center_to_lower_boundary =
-                m_center[direction];
-            const amrex::Real distance_from_center_to_upper_boundary =
+            // clang-tidy incorrectly treats this initializer as missing.
+            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
+            amrex::Real distance_to_boundary =
                 m_domain_lengths[direction] - m_center[direction];
-
-            amrex::Real distance_from_center_to_boundary =
-                distance_from_center_to_upper_boundary;
             if (coordinate_from_center < 0.0)
             {
-                distance_from_center_to_boundary =
-                    distance_from_center_to_lower_boundary;
+                distance_to_boundary = m_center[direction];
             }
 
             const amrex::Real tagging_distance_from_center =
-                fraction_of_each_side_to_refine *
-                distance_from_center_to_boundary;
+                fraction_of_each_side_to_refine * distance_to_boundary;
             if (std::abs(coordinate_from_center) >=
                 tagging_distance_from_center)
             {
