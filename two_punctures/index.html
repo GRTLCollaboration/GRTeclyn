@@ -172,12 +172,13 @@
 </li>
 </ul>
 <p><pre class="highlight"><code>cd /path/to/GRTeclyn/Examples/BinaryBH</code></pre>
-then 
+then
 <pre class="highlight"><code>make -j 4 USE_TWOPUNCTURES=TRUE</code></pre></p>
 <p>Note that TwoPunctures will be appended to the filename stem/build config, that is the executable will look something like <code>BinaryBH3d.gnu.MPI.TwoPunctures.ex</code>.</p>
 <h2 id="parameters">Parameters</h2>
 <p>We provide an example parameter file for TwoPunctures runs in the <code>BinaryBH</code> example folder.</p>
 <p>They are all scoped by the prefix <code>two_punctures</code>. They should be self explanatory and are mostly the same as in GRChombo and other TwoPunctures implementations. Commented out values have their default value assigned to them.</p>
+<p>See the <a href="../parameters/">Parameters guide</a> for more info.</p>
 <p>A few tips:</p>
 <ul>
 <li>
@@ -187,6 +188,10 @@ then
 <p>Since TwoPunctures does not support interpolation on the GPU, the interpolation of data onto the grid is done on the CPU into a MultiFab which has a host memory arena. The data is then copied asynchronously to the usual state MultiFab. In the case spectral interpolation is used (<code>two_punctures.use_spectral_interpolation = true</code>), the initial data interpolation is very slow and this is further exacerbated by the larger number of cells per MPI process one typically has when running on GPUs. It may take several hours. The easiest workaround is to compute the initial data in a CPU-only run with more MPI processes, write a checkpoint file and then restart on GPUs from that.</p>
 </li>
 </ul>
+<div class="admonition warning">
+<p class="admonition-title">The <code>swap_xz</code> convention</p>
+<p>This option is useful when doing head on mergers, as it makes sense for the merger axis to be aligned with the one used for the extraction of Weyl scalars (since then only <span class="arithmatex">\(m=0\)</span> modes are active). However, the convention here is a bit confusing. TwoPunctures always solves with the punctures on its internal x axis. Setting <code>two_punctures.swap_xz = true</code> exchanges the x and z axes during interpolation, so <code>offset_plus</code> and <code>offset_minus</code> describe physical z offsets instead of x offsets. This is an axis exchange, not a proper rotation, and the momentum and spin inputs use the internal TwoPunctures convention. In particular, with <code>swap_xz</code> enabled, a physical spin in the positive z direction is entered as a negative x component. Check vector components and signs carefully when enabling this option.</p>
+</div>
               
             </div>
           </div><footer>

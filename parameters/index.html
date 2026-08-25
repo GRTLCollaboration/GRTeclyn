@@ -74,6 +74,18 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Parameters guide</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#where-parameters-are-loaded">Where parameters are loaded</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#common-scopes">Common scopes</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#physical-boundary-conditions">Physical boundary conditions</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#twopunctures-parameters">TwoPunctures parameters</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#checking-a-parameter-file-without-running">Checking a parameter file without running</a>
+    </li>
     </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
@@ -141,7 +153,76 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="parameters-guide">Parameters guide</h1>
-<p>To be constructed by Sam/Katy</p>
+<p>GRTeclyn uses the AMReX <a href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#parmparse"><code>ParmParse</code></a> system for runtime parameters. At start-up, AMReX reads the parameter file and any command-line overrides into a global table. The GRTeclyn wrapper <code>GRParmParse</code> provides access to this table: an unscoped parser can look up a full name, while a scoped parser automatically adds its prefix. For example,</p>
+<pre class="highlight"><code class="language-cpp">GRParmParse evolution_pp("evolution");
+evolution_pp.get("sigma", sigma);</code></pre>
+<p>reads <code>evolution.sigma</code>. Required values are normally read with <code>get</code>, while <code>queryAdd</code> is used to supply a default and add the resolved value to the table.</p>
+<h2 id="where-parameters-are-loaded">Where parameters are loaded</h2>
+<p>Parameters normally live in the class that uses them, often in a nested <code>params_t</code> structure. That class reads its values from <code>GRParmParse</code> when they are needed. Keeping the values close to the relevant code makes ownership and defaults easier to identify and avoids passing unrelated parameters throughout the code.</p>
+<div class="admonition note">
+<p class="admonition-title">For GRChombo users</p>
+<p>GRTeclyn does not construct and pass around a single <code>sim_params</code> object. <code>SimulationParameters.hpp</code> coordinates parameter validation, but it is not a container holding every parameter in the simulation.</p>
+</div>
+<p>Each example's <code>SimulationParameters.hpp</code> calls the shared checks in <code>BaseParameterChecker</code> and the checks supplied by its problem-specific classes. These checks run during AMReX initialisation, after the parameter table has been populated but before the classes load the values for use in the simulation. A new parameter-owning class may provide a static <code>check_params()</code> function and register it here when early validation is useful. This can check allowed values and relationships between parameters, and can issue warnings or stop with a clear error message.</p>
+<h2 id="common-scopes">Common scopes</h2>
+<p>Parameter names use dot-separated scopes. The main scopes include:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Typical contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>amr</code></td>
+<td>Cell counts, refinement levels, regridding, grid-box sizes and output intervals</td>
+</tr>
+<tr>
+<td><code>geometry</code> and <code>boundary</code></td>
+<td>Domain size and centre, periodicity and physical boundary conditions</td>
+</tr>
+<tr>
+<td><code>evolution</code></td>
+<td>Time step, stopping conditions, derivative order, dissipation and runtime checks</td>
+</tr>
+<tr>
+<td><code>ccz4</code> and <code>gauge</code></td>
+<td>Formulation and moving-puncture gauge parameters</td>
+</tr>
+<tr>
+<td><code>tagging</code></td>
+<td>Refinement thresholds and tagging controls</td>
+</tr>
+<tr>
+<td><code>weyl_extraction</code> and <code>puncture_tracking</code></td>
+<td>Gravitational-wave extraction and black-hole tracking</td>
+</tr>
+<tr>
+<td>Example-specific scopes</td>
+<td>For example <code>bh1</code> and <code>bh2</code></td>
+</tr>
+</tbody>
+</table>
+<p>This is only a guide to the organisation. The example <code>params_*.txt</code> files document the available parameters, defaults and suggested values for each executable, and we have tried to add useful comments where the naming is unclear.</p>
+<p>Note that for parameters that are common with AMReX, we keep the (sometimes ugly) AMReX naming, to avoid any confusion or duplication. Again the comments in the params files are there to help.</p>
+<h3 id="physical-boundary-conditions">Physical boundary conditions</h3>
+<p>For each non-periodic direction, <code>boundary.hi_condition</code> and <code>boundary.lo_condition</code> select one of the following options:</p>
+<ul>
+<li><code>FIRST_ORDER_EXTRAPOLATION_BC</code> uses AMReX's <code>foextrap</code> condition, which copies the current value in the nearest interior cell into the exterior ghost cells. This is constant extrapolation in space, not a boundary value held fixed in time.</li>
+<li><code>SOMMERFELD_BC</code> applies an outgoing-radiation condition to the RHS in the outer valid cells. Its asymptotic values come from the state-variable definitions and may be changed through <code>set_vars_asymptotic_values()</code>.</li>
+<li><code>REFLECTIVE_BC</code> fills ghost cells using the parity assigned to each state variable.</li>
+</ul>
+<p>Use <code>UNSET_BC</code> for periodic directions, where physical boundary conditions do not apply. A condition supplied for a periodic direction is ignored.</p>
+<h2 id="twopunctures-parameters">TwoPunctures parameters</h2>
+<p>When GRTeclyn is built with TwoPunctures support, its initial-data parameters use the <code>two_punctures</code> scope. They include the bare or target masses, the plus and minus puncture offsets, momenta and spins, the initial lapse, spectral resolution and nonlinear solver settings. See the BinaryBH parameter files and the <a href="../two_punctures/">TwoPunctures guide</a> for some helpful tips.</p>
+<h2 id="checking-a-parameter-file-without-running">Checking a parameter file without running</h2>
+<p>To validate a parameter file and exit before constructing the grid or evolving, place the GRTeclyn option after AMReX's <code>--</code> command-line separator:</p>
+<pre class="highlight"><code class="language-bash">./BinaryBH3d.gnu.ex params_test.txt -- -check_params</code></pre>
+<p>For an MPI build, use the same arguments after the executable, for example:</p>
+<pre class="highlight"><code class="language-bash">mpiexec -n 4 ./BinaryBH3d.gnu.MPI.ex params_test.txt -- -check_params</code></pre>
+<p>The <code>--</code> and <code>-check_params</code> are separate arguments. The checker loads the parameter table, applies registered defaults, reports warnings or errors, writes the resolved table to <code>parameters_and_version.txt</code>, and then exits without starting the simulation.</p>
+<p>The checker prints a short summary stating whether any warnings were found. Warnings do not prevent a simulation from running, but you should understand why they can safely be ignored before continuing. The checks catch selected parameter errors but cannot guarantee that a simulation will run successfully, so inspect <code>parameters_and_version.txt</code> to confirm that the resolved values match your intentions.</p>
               
             </div>
           </div><footer>
