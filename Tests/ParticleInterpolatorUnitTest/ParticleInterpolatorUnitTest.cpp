@@ -69,7 +69,7 @@ void run_particle_interpolator_test()
         ParticleInterpolatorLevel::variableSetUp();
 
         // Set the center
-        std::array<amrex::Real, AMREX_SPACEDIM> center{};
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> center{};
         pp.get("geometry.center", center);
         PolynomialDerivedQuantity::set_center(center);
 
@@ -116,13 +116,13 @@ void run_particle_interpolator_test()
             myproc * base + std::min(myproc, remainder); // global start index
 
         // Allocate vectors for writing
-        std::vector<amrex::Real> A_local(
+        std::vector<amrex::ParticleReal> A_local(
             n_local); // for storing derived polynomial
-        std::vector<amrex::Real> B_local(
+        std::vector<amrex::ParticleReal> B_local(
             n_local); // for storing state polynomial
-        std::vector<amrex::Real> interp_x_local(n_local);
-        std::vector<amrex::Real> interp_y_local(n_local);
-        std::vector<amrex::Real> interp_z_local(n_local);
+        std::vector<amrex::ParticleReal> interp_x_local(n_local);
+        std::vector<amrex::ParticleReal> interp_y_local(n_local);
+        std::vector<amrex::ParticleReal> interp_z_local(n_local);
 
         for (int j = 0; j < n_local; ++j)
         {
@@ -169,12 +169,12 @@ void run_particle_interpolator_test()
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {
-            amrex::Real x = interp_x_local[ipoint] - center[0];
-            amrex::Real y = interp_y_local[ipoint] - center[1];
-            amrex::Real z = interp_z_local[ipoint] - center[2];
+            amrex::ParticleReal x = interp_x_local[ipoint] - center[0];
+            amrex::ParticleReal y = interp_y_local[ipoint] - center[1];
+            amrex::ParticleReal z = interp_z_local[ipoint] - center[2];
 
-            amrex::Real A_known = 42. + x * x + y * y * z * z;
-            amrex::Real B_known = pow(z, 3);
+            amrex::ParticleReal A_known = 42. + x * x + y * y * z * z;
+            amrex::ParticleReal B_known = pow(z, 3);
 
             INFO("Interpolated A is "
                  << A_local[ipoint] << " at point x = " << x << " y = " << y
