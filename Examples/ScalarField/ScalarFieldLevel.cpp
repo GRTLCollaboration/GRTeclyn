@@ -166,14 +166,13 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                        });
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    amrex::ParallelFor(
-        a_rhs,
-        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-        {
-            ccz4_rhs
-                .compute_A_ij_and_Theta_and_Gamma<CCZ4RHS<>::USE_CCZ4, true>(
-                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
-        });
+    amrex::ParallelFor(a_rhs,
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       {
+                           ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
+                               ix, iy, iz, rhs_arrays[box_no],
+                               const_soln_arrays[box_no]);
+                       });
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     amrex::ParallelFor(

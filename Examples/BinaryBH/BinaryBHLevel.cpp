@@ -190,9 +190,6 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
         // NB: These are split up to avoid having to pre-compute all the
         //  first and second derivatives in memory on the GPU at once.
 
-        // NB: These are split up to avoid having to pre-compute all the
-        //  first and second derivatives in memory on the GPU at once.
-
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -201,42 +198,12 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                              const_soln_arrays[box_no]);
             });
 
-        amrex::ParmParse pp;
-
-        int my_formulation{0};
-        int my_covariantZ4{1};
-        pp.query("ccz4.formulation", my_formulation);
-        pp.query("covariantZ4", my_covariantZ4);
-
-        // amrex::AnyCTO allows for runtime options to be evaluated at
-        // compile time via fold expressions.
-        // The compiler generates expressions for both options but only
-        // the relevent option is selected at runtime.
-        // This reduces branching inside GPU kernels which is bad for
-        // performance as it results in workgroup/warp divergence.
-
-        amrex::AnyCTO(
-            amrex::TypeList<
-                amrex::CompileTimeOptions<
-                    CCZ4RHS<MovingPunctureGauge,
-                            FourthOrderDerivatives>::formulations::USE_CCZ4,
-                    CCZ4RHS<MovingPunctureGauge,
-                            FourthOrderDerivatives>::formulations::USE_BSSN>,
-                amrex::CompileTimeOptions<
-                    CCZ4RHS<MovingPunctureGauge,
-                            FourthOrderDerivatives>::covariantZ4::YES,
-                    CCZ4RHS<MovingPunctureGauge,
-                            FourthOrderDerivatives>::covariantZ4::NO>>{},
-            {my_formulation, my_covariantZ4},
-            [&](auto cto_func) { amrex::ParallelFor(a_rhs, cto_func); },
-            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz,
-                                 auto formulation, auto covariantZ4)
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                //
-                ccz4rhs
-                    .compute_A_ij_and_Theta_and_Gamma<formulation, covariantZ4>(
-                        ix, iy, iz, rhs_arrays[box_no],
-                        const_soln_arrays[box_no]);
+                ccz4rhs.compute_A_ij_and_Theta_and_Gamma(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
             });
 
         amrex::ParallelFor(

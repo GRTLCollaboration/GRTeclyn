@@ -57,15 +57,11 @@ void run_ccz4_rhs_test()
                                random_ccz4_initial_data(iv, in_array, coords);
                            });
 
-        // These need to be const and so declared separately
-        const int use_covariantZ4 = 1;
-        const int formulation     = 0;
-
         GRParmParse pp;
         pp.add("ccz4.kappa1", 0.1);
         pp.add("ccz4.kappa2", 0.0);
         pp.add("ccz4.kappa3", 1.0);
-        pp.add("ccz4.covariantZ4", use_covariantZ4);
+        pp.add("ccz4.covariantZ4", true);
 
         pp.add("gauge.shift_Gamma_coeff", 0.75);
         pp.add("gauge.lapse_advec_coeff", 0.0);
@@ -75,13 +71,13 @@ void run_ccz4_rhs_test()
         pp.add("gauge.eta", 1.82);
 
         pp.add("evolution.sigma", 0.3);
-        pp.add("ccz4.formulation", formulation);
+        pp.add("ccz4.formulation", CCZ4RHS<>::USE_CCZ4);
 
         Old::CCZ4_params_t<Old::MovingPunctureGauge::params_t> old_ccz4_params;
         old_ccz4_params.kappa1            = 0.1;
         old_ccz4_params.kappa2            = 0;
         old_ccz4_params.kappa3            = 1;
-        old_ccz4_params.covariantZ4       = use_covariantZ4;
+        old_ccz4_params.covariantZ4       = true;
         old_ccz4_params.lapse_advec_coeff = 0.0;
         old_ccz4_params.lapse_power       = 1.0;
         old_ccz4_params.lapse_coeff       = 2.0;
@@ -129,9 +125,8 @@ void run_ccz4_rhs_test()
             box,
             [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
             {
-                current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma<
-                    formulation, use_covariantZ4>(ix, iy, iz, current_out_array,
-                                                  in_c_array);
+                current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
+                    ix, iy, iz, current_out_array, in_c_array);
             });
 
         amrex::ParallelFor(box,

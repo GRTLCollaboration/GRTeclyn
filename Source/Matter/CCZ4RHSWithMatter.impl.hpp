@@ -16,8 +16,6 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
     amrex::Real a_dx)
     : CCZ4RHS<gauge_t, deriv_t>(a_dx, 0.0 /*No cosmological constant*/)
 {
-    GRParmParse pp;
-    pp.get("ccz4.formulation", m_formulation);
 }
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
@@ -40,18 +38,19 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
     const auto source = m_matter.compute_einstein_sources(ix, iy, iz, state,
                                                           this->m_deriv, h_UU);
 
-    // Update RHS for K and Theta depending on formulation
-    if (m_formulation == CCZ4RHS<>::USE_BSSN)
-    {
-        rhs_cell_data[c_K] += 0.5 * vars.lapse() * (source.trS + source.rho);
-        rhs_cell_data[c_Theta] = 0.0;
-    }
-    else
-    {
-        rhs_cell_data[c_K] +=
-            0.5 * vars.lapse() * (source.trS - 3.0 * source.rho);
-        rhs_cell_data[c_Theta] -= vars.lapse() * source.rho;
-    }
+    // Select the matter source terms without branching in the GPU kernel.
+    const amrex::Real ccz4_coeff = 1.0 - this->m_params.bssn_coeff;
+
+    const amrex::Real ccz4_K_matter_rhs =
+        0.5 * vars.lapse() * (source.trS - 3.0 * source.rho);
+    const amrex::Real bssn_K_matter_rhs =
+        0.5 * vars.lapse() * (source.trS + source.rho);
+    rhs_cell_data[c_K] += ccz4_coeff * ccz4_K_matter_rhs +
+                          this->m_params.bssn_coeff * bssn_K_matter_rhs;
+
+    const amrex::Real ccz4_Theta_matter_rhs = -vars.lapse() * source.rho;
+    rhs_cell_data[c_Theta] =
+        ccz4_coeff * (rhs_cell_data[c_Theta] + ccz4_Theta_matter_rhs);
 
     // Update RHS for other variables
     Tensor::Rank2 S_TF = source.S;

@@ -18,26 +18,30 @@
 #include <array>
 
 /// Base parameter struct for CCZ4
-/** This struct collects the gauge independent CCZ4 parameters i.e. the damping
- * ones
- */
+/** This struct collects the gauge-independent CCZ4 parameters. */
 struct CCZ4_params_t
 {
-    amrex::Real kappa1; //!< Damping parameter kappa1 as in arXiv:1106.2254
-    amrex::Real kappa2; //!< Damping parameter kappa2 as in arXiv:1106.2254
-    amrex::Real kappa3; //!< Damping parameter kappa3 as in arXiv:1106.2254
-    bool covariantZ4;   //!< if true, replace kappa1->kappa1/lapse as in
-                        //!<  arXiv:1307.7391 eq. 27
+    amrex::Real bssn_coeff; //!< 0 for CCZ4 and 1 for BSSN
+    amrex::Real kappa1;     //!< Damping parameter kappa1 as in arXiv:1106.2254
+    amrex::Real kappa2;     //!< Damping parameter kappa2 as in arXiv:1106.2254
+    amrex::Real kappa3;     //!< Damping parameter kappa3 as in arXiv:1106.2254
+    amrex::Real covariant_z4_coeff; //!< 1 to replace kappa1->kappa1/lapse as in
+                                    //!< arXiv:1307.7391 eq. 27
 
     static void check_params();
 
     void fill_params()
     {
         GRParmParse ccz4_pp("ccz4");
+        int formulation{};
+        ccz4_pp.get("formulation", formulation);
+        bssn_coeff = static_cast<amrex::Real>(formulation);
         ccz4_pp.get("kappa1", kappa1);
         ccz4_pp.get("kappa2", kappa2);
         ccz4_pp.get("kappa3", kappa3);
-        ccz4_pp.get("covariantZ4", covariantZ4);
+        bool covariant_z4{};
+        ccz4_pp.get("covariantZ4", covariant_z4);
+        covariant_z4_coeff = static_cast<amrex::Real>(covariant_z4);
     }
 };
 
@@ -54,12 +58,6 @@ class CCZ4RHS
     {
         USE_CCZ4 = 0,
         USE_BSSN = 1
-    };
-
-    enum covariantZ4 : int
-    {
-        YES,
-        NO
     };
 
     using params_t = CCZ4_params_t;
@@ -89,7 +87,6 @@ class CCZ4RHS
                          const amrex::Array4<const amrex::Real> &state) const;
 
     // Calculates rhs for A_ij and Theta and Gamma
-    template <int formulation, int use_covariant_Z4>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void compute_A_ij_and_Theta_and_Gamma(
         int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
         const amrex::Array4<const amrex::Real> &state) const;
@@ -117,7 +114,7 @@ inline void CCZ4_params_t::check_params()
     if (formulation != CCZ4RHS<>::USE_CCZ4 &&
         formulation != CCZ4RHS<>::USE_BSSN)
     {
-        ccz4_pp.error("formulation", "must be 0 (BSSN) or 1 (CCZ4)");
+        ccz4_pp.error("formulation", "must be 0 (CCZ4) or 1 (BSSN)");
     }
 
     if (formulation == CCZ4RHS<>::USE_BSSN)

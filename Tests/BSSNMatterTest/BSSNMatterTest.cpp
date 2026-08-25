@@ -88,16 +88,11 @@ void run_bssn_matter_test()
                 random_matter_bssn_initial_data(iv, in_array[ibox], coords);
             });
 
-        // This needs to be a const for the template below when calculating the
-        // RHS
-        const int covariantZ4 = 1;
-        const int formulation = 1;
-
         GRParmParse pp;
         pp.add("ccz4.kappa1", 0.0);
         pp.add("ccz4.kappa2", 0.0);
         pp.add("ccz4.kappa3", 0.0);
-        pp.add("ccz4.covariantZ4", covariantZ4);
+        pp.add("ccz4.covariantZ4", true);
 
         pp.add("gauge.shift_Gamma_coeff", 0.75);
         pp.add("gauge.lapse_advec_coeff", 1.0);
@@ -107,7 +102,7 @@ void run_bssn_matter_test()
         pp.add("gauge.eta", 1.0);
 
         pp.add("evolution.sigma", 0.1);
-        pp.add("ccz4.formulation", formulation);
+        pp.add("ccz4.formulation", CCZ4RHS<>::USE_BSSN);
 
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;
@@ -147,8 +142,7 @@ void run_bssn_matter_test()
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
-                current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma<
-                    CCZ4RHS<>::USE_BSSN, covariantZ4>(
+                current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
             });
         amrex::ParallelFor(
