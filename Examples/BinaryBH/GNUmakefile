@@ -30,7 +30,7 @@ src_dirs := $(GRTECLYN_SOURCE)/BlackHoles \
             $(GRTECLYN_SOURCE)/IO \
             $(GRTECLYN_SOURCE)/Maths \
             $(GRTECLYN_SOURCE)/Tagging \
-            .
+            $(realpath .)
 
 # Find all source and header files in the src_dirs
 CEXE_sources += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.cpp)))
@@ -38,6 +38,6 @@ CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.hpp)))
 CEXE_headers += $(notdir $(foreach dir, $(src_dirs), $(wildcard $(dir)/*.impl.hpp)))
 
 VPATH_LOCATIONS += $(src_dirs)
-INCLUDE_LOCATIONS += $(realpath .) $(src_dirs)
+INCLUDE_LOCATIONS += $(src_dirs)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
