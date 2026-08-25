@@ -416,7 +416,7 @@ const SmallDataIO::file_structure_t &SmallDataIO::get_file_structure() const
 }
 
 // Utility for viewing the file struture
-
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::print_file_structure() const
 {
     if (amrex::ParallelDescriptor::IOProcessor())
@@ -572,6 +572,7 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
             }
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         const int ncols = m_file_structure.num_data_columns[a_block];
 
         // To avoid calling std::map::find for each row of data,
@@ -613,16 +614,19 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
 }
 
 // Get a data column from a block
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::get_all_data_columns(std::vector<SmallDataIO::column_t> &out,
                                        int a_block)
 {
     assert(m_structure_defined);
     int min_data_column = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     int max_data_column = m_file_structure.num_data_columns[a_block];
     get_columns(out, min_data_column, max_data_column, a_block);
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void SmallDataIO::get_column(std::vector<SmallDataIO::column_t> &out,
                              int a_column, int a_block)
 {
@@ -681,6 +685,7 @@ void SmallDataIO::get_header_strings(std::vector<std::string> &header,
         header.resize(m_file_structure.num_data_columns[0]);
 
         std::istringstream file_stream(m_file_contents);
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         int nlines_to_skip = m_file_structure.num_header_rows[a_block] - 1;
         skip_ahead(file_stream, nlines_to_skip, a_block);
 
@@ -695,6 +700,7 @@ void SmallDataIO::get_header_strings(std::vector<std::string> &header,
 }
 // Helper function to skip lines e.g. header lines
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::skip_ahead(std::istringstream &file_stream,
                              int nlines_to_skip, int a_block) const
 // NOLINTEND(bugprone-easily-swappable-parameters)

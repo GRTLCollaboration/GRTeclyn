@@ -43,14 +43,14 @@ class SmallDataIO
     {
         int num_blocks{0}; // a block is separated by 2 blank lines
         std::vector<std::streamoff>
-            block_starts; // position offsets from the beginning of the file
+            block_starts{}; // position offsets from the beginning of the file
 
-        std::vector<int> num_header_rows;  // the number of header rows in
-                                           // each block
-        std::vector<int> num_data_rows;    // the number of data rows in each
-                                           // block
-        std::vector<int> num_data_columns; // number of data columns in each
-                                           // block
+        std::vector<int> num_header_rows{};  // the number of header rows in
+                                             // each block
+        std::vector<int> num_data_rows{};    // the number of data rows in each
+                                             // block
+        std::vector<int> num_data_columns{}; // number of data columns in each
+                                             // block
         void clear();
     };
 
