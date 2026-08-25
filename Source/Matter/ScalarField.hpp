@@ -10,6 +10,7 @@
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GRParmParse.hpp"
 #include "ScalarFieldVars.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "TensorAlgebra.hpp"
@@ -26,6 +27,10 @@
      user must specify in a class, although a default is provided which
      sets dVdphi and V_of_phi to zero.
      It assumes minimal coupling of the field to gravity.
+     Matter classes used by the diagnostic callbacks must be default
+     constructible. Their default constructors should therefore read all
+     runtime parameters needed to construct a fully configured matter object,
+     as ScalarField and its potential do here.
      \sa MatterCCZ4(), ConstraintsMatter()
 */
 template <class potential_t = DefaultPotential,
@@ -39,14 +44,42 @@ class ScalarField
 
   public:
 
-    //!  Constructor of class ScalarField, inputs are the matter parameters.
-    ScalarField() = default;
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE explicit ScalarField(potential_t a_potential,
-                                            amrex::Real a_G_Newton = 1.0)
-        : m_potential(a_potential), m_G_Newton(a_G_Newton)
+    struct params_t
     {
+        amrex::Real G_Newton{1.0};
+
+        static void check_params()
+        {
+            GRParmParse scalar_field_pp("scalar_field");
+            amrex::Real G_Newton{1.0};
+            scalar_field_pp.queryAdd("G_Newton", G_Newton);
+            if (G_Newton < 0.0)
+            {
+                scalar_field_pp.error("G_Newton", "must be >= 0.0");
+            }
+        }
+
+        void fill_params()
+        {
+            GRParmParse scalar_field_pp("scalar_field");
+            scalar_field_pp.query("G_Newton", G_Newton);
+        }
+    };
+
+    //!  Constructor of class ScalarField, inputs are the matter parameters.
+    ScalarField()
+    {
+        params_t params;
+        params.fill_params();
+        m_G_Newton = params.G_Newton;
+    }
+
+    AMREX_FORCE_INLINE explicit ScalarField(potential_t a_potential)
+        : m_potential(a_potential)
+    {
+        params_t params;
+        params.fill_params();
+        m_G_Newton = params.G_Newton;
     }
 
     using Vars = ScalarFieldVars;

@@ -14,15 +14,7 @@
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
     amrex::Real a_dx)
-    : CCZ4RHSWithMatter(matter_t{}, a_dx)
-{
-}
-
-template <class matter_t, class gauge_t, class deriv_t>
-CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
-    matter_t a_matter, amrex::Real a_dx)
-    : CCZ4RHS<gauge_t, deriv_t>(a_dx, 0.0 /*No cosmological constant*/),
-      m_matter(a_matter)
+    : CCZ4RHS<gauge_t, deriv_t>(a_dx, 0.0 /*No cosmological constant*/)
 {
     GRParmParse pp;
     pp.get("ccz4.formulation", m_formulation);

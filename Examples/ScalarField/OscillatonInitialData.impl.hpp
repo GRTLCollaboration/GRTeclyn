@@ -10,16 +10,17 @@
 #ifndef OSCILLATONINITIALDATA_IMPL_HPP_
 #define OSCILLATONINITIALDATA_IMPL_HPP_
 
+#include "GRParmParse.hpp"
 #include "OscillatonInitialData.hpp"
 #include "TensorAlgebra.hpp"
 
 #include <cmath>
 
 AMREX_FORCE_INLINE
-OscillatonInitialData::OscillatonInitialData(params_t a_params,
-                                             amrex::Real a_dx)
-    : m_dx(a_dx), m_params(a_params)
+OscillatonInitialData::OscillatonInitialData(amrex::Real a_dx) : m_dx(a_dx)
 {
+    GRParmParse geometry_pp("geometry");
+    geometry_pp.get("center", m_center);
 }
 
 template <std::size_t N>
@@ -46,7 +47,7 @@ OscillatonInitialData::operator()(int ix, int iy, int iz,
 {
     const amrex::CellData<amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_params.center);
+    const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_center);
 
     const std::array<amrex::Real, GR_SPACEDIM> position{coords.x, coords.y,
                                                         coords.z};

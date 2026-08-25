@@ -33,6 +33,7 @@ int runGRTeclyn()
 
     gr_amr.init(0.0, stop_time);
 
+    // Engage! Run the evolution
     while ((gr_amr.okToContinue() != 0) &&
            (gr_amr.levelSteps(0) < max_steps || max_steps < 0) &&
            (gr_amr.cumTime() < stop_time || stop_time < 0.0))

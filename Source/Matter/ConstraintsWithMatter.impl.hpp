@@ -12,16 +12,14 @@
 
 #include "ConstraintsWithMatter.hpp"
 #include "DimensionDefinitions.hpp"
-#include "GRParmParse.hpp"
 
 template <class matter_t>
 ConstraintsWithMatter<matter_t>::ConstraintsWithMatter(
-    amrex::Real dx, amrex::Real G_Newton, int a_c_Ham, const Interval &a_c_Moms,
+    amrex::Real dx, int a_c_Ham, const Interval &a_c_Moms,
     int a_c_Ham_abs_terms /* defaulted*/,
     const Interval &a_c_Moms_abs_terms /*defaulted*/)
     : Constraints(dx, a_c_Ham, a_c_Moms, a_c_Ham_abs_terms, a_c_Moms_abs_terms,
-                  0.0 /*No cosmological constant*/),
-      m_G_Newton(G_Newton)
+                  0.0 /*No cosmological constant*/)
 {
 }
 
@@ -53,15 +51,14 @@ ConstraintsWithMatter<matter_t>::operator()(
     constraints_t out = constraint_equations(vars, d1_chi, d1_Gamma, d1_h, d1_K,
                                              d1_A, d2_chi, d2_h, h_UU, chris);
 
-    // Energy Momentum Tensor
-    const auto emtensor =
-        my_matter.compute_emtensor(ix, iy, iz, state, m_deriv, h_UU);
+    const auto source =
+        m_matter.compute_einstein_sources(ix, iy, iz, state, m_deriv, h_UU);
 
     // Hamiltonian constraint
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
     {
-        out.Ham           += -16.0 * M_PI * m_G_Newton * emtensor.rho;
-        out.Ham_abs_terms += 16.0 * M_PI * m_G_Newton * std::abs(emtensor.rho);
+        out.Ham           += -2.0 * source.rho;
+        out.Ham_abs_terms += 2.0 * std::abs(source.rho);
     }
 
     // Momentum constraints
@@ -69,9 +66,8 @@ ConstraintsWithMatter<matter_t>::operator()(
     {
         FOR (i)
         {
-            out.Mom(i) += -8.0 * M_PI * m_G_Newton * emtensor.j(i);
-            out.Mom_abs_terms(i) +=
-                8.0 * M_PI * m_G_Newton * std::abs(emtensor.j(i));
+            out.Mom(i)           += -source.j(i);
+            out.Mom_abs_terms(i) += std::abs(source.j(i));
         }
     }
     // Write the constraints into the output FArrayBox
@@ -109,11 +105,6 @@ void ConstraintsWithMatter<matter_t>::compute_mf(
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
 
-    GRParmParse pp;
-    amrex::Real G_Newton = 0;
-
-    pp.get("G_Newton", G_Newton, 0);
-
     amrex::Real dx = geomdata.CellSize(0);
     int iham       = dcomp; // Ham
     Interval imom =
@@ -121,16 +112,12 @@ void ConstraintsWithMatter<matter_t>::compute_mf(
 
     AMREX_ALWAYS_ASSERT(ncomp == (1 + AMREX_SPACEDIM));
 
-    ConstraintsWithMatter<matter_t> my_matter_constraints(dx, G_Newton, iham,
-                                                          imom);
+    ConstraintsWithMatter<matter_t> constraints(dx, iham, imom);
 
     amrex::ParallelFor(
         out_mf,
         [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept
-        {
-            my_matter_constraints(ix, iy, iz, out_arrays[box_no],
-                                  src_arrays[box_no]);
-        });
+        { constraints(ix, iy, iz, out_arrays[box_no], src_arrays[box_no]); });
 }
 
 #endif /* CONSTRAINTSWITHMATTER_IMPL_HPP_ */

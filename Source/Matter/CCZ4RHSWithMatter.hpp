@@ -38,13 +38,11 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
 
     //! Constructor of class CCZ4RHSWithMatter
     /*!
-       The evolution parameters are read from the inputs. The matter object
-       supplies stress-energy sources with their gravitational coupling already
-       applied.
+       The evolution parameters are read from the inputs. The
+       default-constructed matter object supplies stress-energy sources with
+       their gravitational coupling already applied.
     */
     CCZ4RHSWithMatter(amrex::Real a_dx);
-
-    CCZ4RHSWithMatter(matter_t a_matter, amrex::Real a_dx);
 
     //! Add the stress-energy tensor terms to the CCZ4 and gauge RHS.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(

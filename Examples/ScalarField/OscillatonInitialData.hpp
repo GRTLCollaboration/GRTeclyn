@@ -19,13 +19,8 @@
 class OscillatonInitialData
 {
   public:
-    struct params_t
-    {
-        std::array<amrex::Real, AMREX_SPACEDIM> center{};
-    };
-
     AMREX_FORCE_INLINE
-    OscillatonInitialData(params_t a_params, amrex::Real a_dx);
+    explicit OscillatonInitialData(amrex::Real a_dx);
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
@@ -33,7 +28,7 @@ class OscillatonInitialData
 
   protected:
     amrex::Real m_dx;
-    params_t m_params;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center{};
 
     // These parameters come from fitting a known oscillaton solution
     static constexpr amrex::Real geometry_scale       = 7.0;

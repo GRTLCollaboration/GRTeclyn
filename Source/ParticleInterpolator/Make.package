@@ -5,6 +5,7 @@ GRTECLYN_CEXE_headers += Derivative.hpp \
                          InterpolationQueryParticle.hpp \
                          Lagrange.hpp \
                          LineExtraction.hpp \
+                         LineExtractionParameters.hpp \
                          MPIContextParticle.hpp \
                          MPIContextParticle.impl.hpp \
                          MPILayoutParticle.hpp \

@@ -112,13 +112,9 @@ void run_bssn_matter_test()
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
-        amrex::Real G_Newton = 1.0;
-        pp.queryAdd("G_Newton", G_Newton);
-
-        const DefaultScalarField scalar_field(DefaultPotential{}, G_Newton);
         CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGaugeWithMatter,
                           FourthOrderDerivatives>
-            current_ccz4_rhs{scalar_field, dx};
+            current_ccz4_rhs{dx};
 
         // Set up the constraints
         constexpr int num_bssn_matter_vars = c_Pi + 1;
