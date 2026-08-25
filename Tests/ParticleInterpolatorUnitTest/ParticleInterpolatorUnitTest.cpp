@@ -93,7 +93,7 @@ void run_particle_interpolator_test()
         pp.get("geometry.prob_extent", prob_extent);
 
         // Using lenght of x direction to define extraction radius
-        amrex::Real extract_radius = prob_extent[0] / 4;
+        amrex::Real extract_radius = prob_extent[0] / 4.0;
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();

@@ -11,6 +11,8 @@
 
 #include <cmath>
 
+using namespace amrex::literals;
+
 namespace CoordinateTransformations
 {
 
@@ -24,10 +26,10 @@ static Tensor::Rank2 spherical_jacobian(const amrex::Real x,
 {
     // calculate useful position quantities
     amrex::Real rho2 = x * x + y * y;
-    rho2             = std::max(rho2, 1e-12);
+    rho2             = std::max(rho2, 1e-12_rt);
     amrex::Real rho  = std::sqrt(rho2);
     amrex::Real r2   = x * x + y * y + z * z;
-    r2               = std::max(r2, 1e-12);
+    r2               = std::max(r2, 1e-12_rt);
     amrex::Real r    = std::sqrt(r2);
 
     // And the sines and cosines of phi and theta
@@ -59,10 +61,10 @@ static Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
     // calculate useful position quantities
     amrex::Real rho2 = x * x + y * y;
     amrex::Real rho  = std::sqrt(rho2);
-    rho              = std::max(rho, 1e-6);
+    rho              = std::max(rho, 1e-6_rt);
     amrex::Real r2   = x * x + y * y + z * z;
     amrex::Real r    = std::sqrt(r2);
-    r                = std::max(r, 1e-6);
+    r                = std::max(r, 1e-6_rt);
 
     // And the sines and cosines of phi and theta
     amrex::Real cos_phi = x / rho;
