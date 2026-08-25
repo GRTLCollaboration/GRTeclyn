@@ -626,9 +626,10 @@ void SmallDataIO::get_all_data_columns(std::vector<SmallDataIO::column_t> &out,
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void SmallDataIO::get_column(std::vector<SmallDataIO::column_t> &out,
                              int a_column, int a_block)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     get_columns(out, a_column, a_column, a_block);
 }
