@@ -13,12 +13,15 @@
 
 #include <algorithm>
 #include <memory>
+#include <string_view>
 #include <type_traits>
 
 class GRParmParse : public amrex::ParmParse
 {
   public:
     using amrex::ParmParse::ParmParse; // Just use ParmParse's constructor
+
+    [[nodiscard]] static bool warnings_issued() { return s_warning_issued; }
 
     // (MK): I called the functions below "load" rather than "get" to avoid
     // clashes with the many  different overloads of "get" in ParmParse. Also, I
@@ -103,6 +106,7 @@ class GRParmParse : public amrex::ParmParse
     /// Loads a vector with num_comp components from the parameter file, if the
     /// vector isn't defined, it is set to the supplied default
     template <class data_t>
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void load(const char *name, std::vector<data_t> &vector, const int num_comp,
               const std::vector<data_t> &default_vector)
     {
@@ -129,7 +133,58 @@ class GRParmParse : public amrex::ParmParse
              std::vector<data_t>(num_comp, default_value));
     }
 
+    void error(const char *name, const std::string_view a_error_message) const
+    {
+        const std::string error_message =
+            diagnostic_message("Error", name, a_error_message);
+        amrex::Abort(error_message);
+    }
+
+    void warning(const char *name,
+                 const std::string_view a_warning_message) const
+    {
+        s_warning_issued = true;
+        const std::string warning_message =
+            diagnostic_message("Warning", name, a_warning_message);
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            amrex::Warning(warning_message.c_str());
+        }
+    }
+
   protected:
+    inline static bool s_warning_issued{false};
+
+    [[nodiscard]] std::string
+    diagnostic_message(const char *a_diagnostic_type, const char *name,
+                       const std::string_view a_message) const
+    {
+        std::vector<std::string> values;
+        getarr(name, values);
+
+        std::string value_string;
+        if (values.size() > 1)
+        {
+            value_string += "[";
+        }
+        for (std::size_t ivalue = 0; ivalue < values.size(); ++ivalue)
+        {
+            if (ivalue > 0)
+            {
+                value_string += " ";
+            }
+            value_string += values[ivalue];
+        }
+        if (values.size() > 1)
+        {
+            value_string += "]";
+        }
+
+        return std::string(a_diagnostic_type) + " from parameter " +
+               this->prefixedName(name) + " = " + value_string + ": " +
+               std::string(a_message);
+    }
+
     template <typename data_t,
               std::enable_if_t<
                   !ArrayTools::is_std_array_or_vector<data_t>::value,

@@ -1,0 +1,54 @@
+#################################################
+# Puncture tracker test parameters
+
+amrex.verbose = 1
+amr.verbose = 0
+
+# Number of level-0 time steps between checkpoint files; -1 disables output
+amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
+amr.plot_int = -1
+amr.plot_vars = shift2
+
+#################################################
+# Grid parameters
+
+amr.n_cell = 48 48 24
+geometry.prob_extent = 8 8 4
+
+amr.max_level = 2 # There are (max_level+1) levels
+
+# Supply one shared value or max_level values, one per coarse-to-fine
+# transition
+amr.regrid_int = 0 0
+
+# Maximum number of cells along each side of a grid box
+amr.max_grid_size = 16
+# Grid box side lengths must be divisible by this value
+amr.blocking_factor = 8
+
+#################################################
+# Boundary condition parameters
+
+# Periodic directions: 0 = false, 1 = true
+geometry.is_periodic = 0 0 0
+# Options are currently FIRST_ORDER_EXTRAPOLATION_BC, SOMMERFELD_BC,
+# or REFLECTIVE_BC
+boundary.hi_condition = "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC"
+boundary.lo_condition = "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC" "REFLECTIVE_BC"
+
+#################################################
+# Evolution parameters
+
+# dt will be dx*dt_multiplier on each grid level
+evolution.dt_multiplier = 0.25
+# evolution.stop_time = 1.0
+evolution.max_steps = 2
+
+#################################################
+# Puncture tracking parameters
+
+puncture_tracking.enabled = 1
+puncture_tracking.level = 0
+puncture_tracking.initial_coords = 2.0 4.0 0.0 6.0 4.0 0.0
+puncture_tracking.output_path = PTOutput

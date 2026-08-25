@@ -50,8 +50,7 @@ void run_particle_interpolator_test()
     // second argument
     std::filesystem::path this_file(__FILE__);
     std::filesystem::path input_file =
-        this_file.parent_path() /
-        std::filesystem::path("ParticleInterpolatorUnitTest.inputs");
+        this_file.parent_path() / std::filesystem::path("params_test.txt");
     char *input_file_c_str = strdup(input_file.c_str());
 
     auto new_args = doctest::cli_args;
@@ -61,27 +60,40 @@ void run_particle_interpolator_test()
     char **new_argv = new_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(new_argc, new_argv);
+    amrex::Initialize(
+        new_argc, new_argv,
+        std::function<void()>(SimulationParameters::check_params));
     {
         // Simulation parameters
         GRParmParse pp;
-        SimulationParameters sim_params(pp);
-        GRAMR::set_simulation_parameters(sim_params);
         ParticleInterpolatorLevel::variableSetUp();
 
         // Set the center
-        PolynomialDerivedQuantity::set_center(sim_params.center);
+        std::array<double, AMREX_SPACEDIM> center{};
+        pp.get("geometry.center", center);
+        PolynomialDerivedQuantity::set_center(center);
 
         // Set up the AMR object
         DefaultLevelFactory<ParticleInterpolatorLevel>
             interpolator_test_level_fact;
         GRAMR gr_amr(&interpolator_test_level_fact);
-        gr_amr.init(0., sim_params.stop_time);
+
+        double stop_time{};
+        pp.get("evolution.stop_time", stop_time);
+        gr_amr.init(0., stop_time);
 
         // Read from params
-        const int num_points  = sim_params.num_points;
-        bool verbosity        = sim_params.verbosity;
-        double extract_radius = sim_params.L / 4;
+        int num_points{};
+        pp.get("test.num_points", num_points);
+
+        bool verbosity{};
+        pp.get("particle_interpolator.verbosity", verbosity);
+
+        std::array<double, AMREX_SPACEDIM> prob_extent{};
+        pp.get("geometry.prob_extent", prob_extent);
+
+        // Using lenght of x direction to define extraction radius
+        double extract_radius = prob_extent[0] / 4;
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();
@@ -117,11 +129,10 @@ void run_particle_interpolator_test()
             double theta = ipoint * M_PI / num_points;
 
             interp_x_local[j] =
-                sim_params.center[0] + extract_radius * cos(phi) * sin(theta);
+                center[0] + extract_radius * cos(phi) * sin(theta);
             interp_y_local[j] =
-                sim_params.center[1] + extract_radius * sin(phi) * sin(theta);
-            interp_z_local[j] =
-                sim_params.center[2] + extract_radius * cos(theta);
+                center[1] + extract_radius * sin(phi) * sin(theta);
+            interp_z_local[j] = center[2] + extract_radius * cos(theta);
         }
 
         // set-up query for derived variable A
@@ -142,26 +153,23 @@ void run_particle_interpolator_test()
         // set up interpolation using Particles for derived vars
         ParticleInterpolator<1> interpolator_derived;
 
-        interpolator_derived.setup(&gr_amr, sim_params.boundary_params,
-                                   verbosity);
-        interpolator_derived.interp(query_derived, false,
-                                    PolynomialDerivedQuantity::name,
-                                    0.0); // do not refresh particles as we
-                                          // assume the query remains the same
+        interpolator_derived.setup(&gr_amr);
+        interpolator_derived.interp(
+            query_derived, false, PolynomialDerivedQuantity::name,
+            0.0); // do not refresh particles as the query remains the same
 
         // set up interpolation using Particles for state vars
         ParticleInterpolator<1> interpolator_state;
-        interpolator_state.setup(&gr_amr, sim_params.boundary_params,
-                                 verbosity);
-        interpolator_state.interp(query_state,
-                                  false); // do not refresh particles as we
-                                          // assume the query remains the same
+        interpolator_state.setup(&gr_amr);
+        interpolator_state.interp(
+            query_state,
+            false); // do not refresh particles as the query remains the same
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {
-            double x = interp_x_local[ipoint] - sim_params.center[0];
-            double y = interp_y_local[ipoint] - sim_params.center[1];
-            double z = interp_z_local[ipoint] - sim_params.center[2];
+            double x = interp_x_local[ipoint] - center[0];
+            double y = interp_y_local[ipoint] - center[1];
+            double z = interp_z_local[ipoint] - center[2];
 
             double A_known = 42. + x * x + y * y * z * z;
             double B_known = pow(z, 3);

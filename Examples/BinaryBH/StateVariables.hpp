@@ -24,6 +24,9 @@ static const amrex::Vector<std::string> names = CCZ4StateVariables::names;
 
 static const std::array<BCParity, NUM_VARS> parities =
     CCZ4StateVariables::parities;
+
+static const std::array<double, NUM_VARS> asymptotic_values =
+    CCZ4StateVariables::asymptotic_values;
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */

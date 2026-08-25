@@ -133,9 +133,7 @@ class ParticleInterpolator
     ParticleInterpolator() = default; // default constructible
 
     // initialise everything and perform some sanity checks
-    void setup(GRAMR *gramr_ptr,
-               const BoundaryConditions::params_t &a_bc_params,
-               bool a_verbosity = false);
+    void setup(GRAMR *gramr_ptr);
 
     // allocate particles at the query points
     void populate_from_query(const InterpolationQueryParticle &query);

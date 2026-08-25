@@ -32,7 +32,7 @@ void run_puncture_tracker_test()
     // second argument
     std::filesystem::path this_file(__FILE__);
     std::filesystem::path input_file =
-        this_file.parent_path() / std::filesystem::path("test.inputs");
+        this_file.parent_path() / std::filesystem::path("params_test.txt");
     char *input_file_c_str = strdup(input_file.c_str());
 
     auto new_args = doctest::cli_args;
@@ -42,25 +42,27 @@ void run_puncture_tracker_test()
     char **new_argv = new_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(new_argc, new_argv);
+    amrex::Initialize(
+        new_argc, new_argv,
+        std::function<void()>(SimulationParameters::check_params));
     {
         GRParmParse pp; // NOLINT(readability-identifier-length)
-        SimulationParameters sim_params(pp);
-
-        GRAMR::set_simulation_parameters(sim_params);
 
         DefaultLevelFactory<PunctureTrackerLevel> level_factory;
 
         BHAMR<2> bh_amr(&level_factory);
-        bh_amr.init(0., sim_params.stop_time);
+        double stop_time{};
+        pp.get("evolution.stop_time", stop_time);
+        bh_amr.init(0., stop_time);
+
+        int max_steps{};
+        pp.get("evolution.max_steps", max_steps);
 
         while ((bh_amr.okToContinue() != 0) &&
-               (bh_amr.levelSteps(0) < sim_params.max_steps ||
-                sim_params.max_steps < 0) &&
-               (bh_amr.cumTime() < sim_params.stop_time ||
-                sim_params.stop_time < 0.0))
+               (bh_amr.levelSteps(0) < max_steps || max_steps < 0) &&
+               (bh_amr.cumTime() < stop_time || stop_time < 0.0))
         {
-            bh_amr.coarseTimeStep(sim_params.stop_time);
+            bh_amr.coarseTimeStep(stop_time);
         }
     }
     amrex::Finalize();

@@ -17,31 +17,37 @@
 //! using add_var or add_vars
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, params_t a_params, double a_dt,
-    double a_time, bool a_first_step, double a_restart_time)
-    : m_geom(a_geom), m_params(std::move(a_params)), m_dt(a_dt), m_time(a_time),
-      m_first_step(a_first_step), m_restart_time(a_restart_time),
-      m_num_interp_points((amrex::ParallelDescriptor::MyProc() == 0)
-                              ? m_params.num_surfaces * m_params.num_points_u *
-                                    m_params.num_points_v
-                              : 0),
-      m_du(m_geom.du(m_params.num_points_u)),
-      m_dv(m_geom.dv(m_params.num_points_v))
+    params_t a_params, double a_dt, double a_time, bool a_first_step,
+    double a_restart_time)
+    : SurfaceExtraction(std::move(a_params), SurfaceGeometry{}, a_dt, a_time,
+                        a_first_step, a_restart_time)
+{
+}
+
+template <class SurfaceGeometry, int num_components>
+SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
+    params_t a_params, SurfaceGeometry a_geom, double a_dt, double a_time,
+    bool a_first_step, double a_restart_time)
+    : m_geom(std::move(a_geom)), m_params(std::move(a_params)), m_dt(a_dt),
+      m_time(a_time), m_first_step(a_first_step), m_restart_time(a_restart_time)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
+    m_num_interp_points = (amrex::ParallelDescriptor::MyProc() == 0)
+                              ? m_params.num_surfaces * m_params.num_points_u *
+                                    m_params.num_points_v
+                              : 0;
+    m_du                = m_geom.du(m_params.num_points_u);
+    m_dv                = m_geom.dv(m_params.num_points_v);
+
     // check folders only in first two timesteps
     // (or at m_first_step if this is not the first two timesteps)
     if (m_time < m_restart_time + 1.5 * m_dt || m_first_step)
     {
-        if (!FilesystemTools::directory_exists(m_params.data_path))
-        {
-            FilesystemTools::mkdir_recursive(m_params.data_path);
-        }
+        FilesystemTools::ensure_directory_exists(m_params.data_path);
 
-        if (m_params.write_extraction &&
-            !FilesystemTools::directory_exists(m_params.extraction_path))
+        if (m_params.write_extraction)
         {
-            FilesystemTools::mkdir_recursive(m_params.extraction_path);
+            FilesystemTools::ensure_directory_exists(m_params.extraction_path);
         }
     }
 
@@ -165,11 +171,10 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_derived_vars(
 //! derivatives
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, const params_t &a_params,
-    const std::vector<vars_t> &a_vars, double a_dt, double a_time,
-    bool a_first_step, double a_restart_time)
+    const params_t &a_params, const std::vector<vars_t> &a_vars, double a_dt,
+    double a_time, bool a_first_step, double a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
-          a_geom, a_params, a_dt, a_time, a_first_step, a_restart_time)
+          a_params, a_dt, a_time, a_first_step, a_restart_time)
 {
     add_vars(a_vars);
 }
@@ -178,11 +183,10 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 //! no derivatives
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const SurfaceGeometry &a_geom, const params_t &a_params,
-    const std::vector<int> &a_vars, double a_dt, double a_time,
-    bool a_first_step, double a_restart_time)
+    const params_t &a_params, const std::vector<int> &a_vars, double a_dt,
+    double a_time, bool a_first_step, double a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
-          a_geom, a_params, a_dt, a_time, a_first_step, a_restart_time)
+          a_params, a_dt, a_time, a_first_step, a_restart_time)
 {
     add_state_vars(a_vars);
 }

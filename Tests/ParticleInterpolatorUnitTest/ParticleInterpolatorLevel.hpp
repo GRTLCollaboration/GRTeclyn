@@ -40,7 +40,7 @@ class ParticleInterpolatorLevel : public GRAMRLevel
 
         std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
         GRParmParse pp;
-        pp.query("center", center);
+        pp.query("geometry.center", center);
 
         // Fill the state
         amrex::ParallelFor(
@@ -79,7 +79,7 @@ class ParticleInterpolatorLevel : public GRAMRLevel
         const amrex::Real box_length = Geom().ProbLength(0);
         std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
         GRParmParse pp;
-        pp.query("center", center);
+        pp.query("geometry.center", center);
 
         FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
                                               center};

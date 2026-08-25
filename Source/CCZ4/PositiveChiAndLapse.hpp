@@ -8,23 +8,23 @@
 #define POSITIVECHIANDLAPSE_HPP_
 
 #include "CCZ4Vars.hpp"
+#include "GRParmParse.hpp"
 #include "StateVariables.hpp"
 
 class PositiveChiAndLapse
 {
   private:
-    double m_min_chi;
-    double m_min_lapse;
+    double m_min_chi{};
+    double m_min_lapse{};
 
   public:
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Constructor for class
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE PositiveChiAndLapse(
-        const double a_min_chi = 1e-4, const double a_min_lapse = 1e-4)
-        : m_min_chi(a_min_chi), m_min_lapse(a_min_lapse)
+    PositiveChiAndLapse()
     {
+        GRParmParse pp;
+        pp.get("ccz4.min_chi", m_min_chi);
+        pp.get("ccz4.min_lapse", m_min_lapse);
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,

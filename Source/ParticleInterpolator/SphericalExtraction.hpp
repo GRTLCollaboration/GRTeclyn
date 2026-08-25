@@ -34,8 +34,9 @@ class SphericalExtraction
   public:
     SphericalExtraction(const params_t &a_params, double a_dt, double a_time,
                         bool a_first_step, double a_restart_time = 0.0)
-        : Base(a_params.center, a_params.get_surface_extraction_params(), a_dt,
-               a_time, a_first_step, a_restart_time),
+        : Base(a_params.get_surface_extraction_params(),
+               SphericalGeometry(a_params.center), a_dt, a_time, a_first_step,
+               a_restart_time),
           m_center(a_params.center), m_num_modes(a_params.num_modes),
           m_modes(a_params.modes)
     {

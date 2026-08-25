@@ -90,10 +90,14 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
   public:
     //! Normal constructor which requires vars to be added after construction
     //! using add_var or add_vars
-    SurfaceExtraction(const SurfaceGeometry &a_geom,
-                      surface_extraction_params_t a_params, double a_dt,
+    SurfaceExtraction(surface_extraction_params_t a_params, double a_dt,
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
+
+    //! Constructor for geometries which require instance-specific parameters
+    SurfaceExtraction(surface_extraction_params_t a_params,
+                      SurfaceGeometry a_geom, double a_dt, double a_time,
+                      bool a_first_step, double a_restart_time = 0.0);
 
     //! add a single variable or derivative of variable
     void add_var(int a_var, const VariableType var_type = VariableType::state,
@@ -115,16 +119,15 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
+    SurfaceExtraction(const params_t &a_params,
                       const std::vector<vars_t> &a_vars, double a_dt,
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
 
     //! Another alternative constructor with a predefined vector of variables
     //! no derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
-                      const std::vector<int> &a_vars, double a_dt,
-                      double a_time, bool a_first_step,
+    SurfaceExtraction(const params_t &a_params, const std::vector<int> &a_vars,
+                      double a_dt, double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 

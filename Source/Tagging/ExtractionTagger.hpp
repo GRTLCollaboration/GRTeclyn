@@ -8,7 +8,7 @@
 
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
-#include "SphericalExtraction.hpp"
+#include "SphericalExtractionParameters.hpp"
 #include "Tensor.hpp"
 
 #include <AMReX_Array4.H>
@@ -20,24 +20,27 @@ class ExtractionTagger
 {
   protected:
     double m_dx;
-    int m_num_extraction_radii;
-    const double *m_extraction_radii_ptr;
-    const int *m_extraction_levels_ptr;
+    int m_num_extraction_radii{};
+    const double *m_extraction_radii_ptr{nullptr};
+    const int *m_extraction_levels_ptr{nullptr};
     std::array<double, AMREX_SPACEDIM> m_center;
     int m_level;
 
   public:
-    // Constructor takes only what it needs for extraction tagging
+    // a_params must outlive the tagger and any GPU kernel which captures it.
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     ExtractionTagger(const double dx, const int a_level,
-                     const spherical_extraction_params_t &a_params,
-                     const bool activate_extraction = false)
-        : m_dx(dx), m_num_extraction_radii(a_params.num_extraction_radii()),
-          m_extraction_radii_ptr(a_params.extraction_radii().data()),
-          m_extraction_levels_ptr(a_params.extraction_levels.data()),
-          m_center(a_params.center), m_level(a_level)
+                     const spherical_extraction_params_t &a_params)
+        : m_dx(dx), m_level(a_level)
     {
-        if (!activate_extraction)
+        m_center = a_params.center;
+        if (a_params.enabled)
+        {
+            m_num_extraction_radii  = a_params.num_extraction_radii();
+            m_extraction_radii_ptr  = a_params.extraction_radii().data();
+            m_extraction_levels_ptr = a_params.extraction_levels.data();
+        }
+        else
         {
             // Avoids conditionals in the kernel by setting num to 0
             m_num_extraction_radii = 0;

@@ -368,13 +368,7 @@ void Weyl4::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
 
-    GRParmParse pp;
-    std::array<double, AMREX_SPACEDIM> center{};
-    int formulation = 0;
-    pp.get("extraction_center", center);
-    pp.get("formulation", formulation);
-
-    Weyl4 weyl4(center, geomdata.CellSize(0), dcomp, formulation);
+    Weyl4 weyl4(geomdata.CellSize(0), dcomp);
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept

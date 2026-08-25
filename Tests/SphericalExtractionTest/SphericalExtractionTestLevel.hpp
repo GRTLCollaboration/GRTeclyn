@@ -35,12 +35,17 @@ class SphericalExtractionTestLevel : public GRAMRLevel
         auto const dx          = geom.CellSizeArray();
 
         GRParmParse pp;
-        SimulationParameters sim_params(pp);
+        GRParmParse test_pp("test");
 
-        const int es      = sim_params.es;
-        const int el      = sim_params.el;
-        const int em      = sim_params.em;
-        const auto center = sim_params.center;
+        int es{0};
+        int el{2};
+        int em{0}; // spherical harmonic params
+        test_pp.get("es", es);
+        test_pp.get("el", el);
+        test_pp.get("em", em);
+
+        std::array<double, AMREX_SPACEDIM> center{};
+        pp.get("geometry.center", center);
 
         // Fill the state
         amrex::ParallelFor(
@@ -87,7 +92,7 @@ class SphericalExtractionTestLevel : public GRAMRLevel
 
         std::array<double, AMREX_SPACEDIM> center{AMREX_D_DECL(0., 0., 0.)};
         GRParmParse pp;
-        pp.query("center", center);
+        pp.query("geometry.center", center);
 
         FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
                                               center};

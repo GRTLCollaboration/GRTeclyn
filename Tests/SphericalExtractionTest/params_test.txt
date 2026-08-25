@@ -1,0 +1,65 @@
+#################################################
+# AMReX parameters
+
+amrex.the_arena_init_size = 0 # avoid preallocating most of the device memory
+
+#################################################
+# Filesystem parameters
+
+amr.verbose = 1
+amrex.verbose = 1
+
+# Number of level-0 time steps between checkpoint files; -1 disables output
+amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
+amr.plot_int = -1
+
+#################################################
+# Grid parameters
+
+amr.n_cell = 32 32 32
+geometry.prob_extent = 16 16 16
+
+amr.max_level = 1
+# Supply one shared value or max_level values, one per coarse-to-fine
+# transition
+amr.regrid_int = 1
+
+#################################################
+# Boundary condition parameters
+
+# Periodic directions: 0 = false, 1 = true
+geometry.is_periodic = 1 1 1
+# Physical boundary conditions default to UNSET_BC in periodic directions
+# boundary.hi_condition = "UNSET_BC" "UNSET_BC" "UNSET_BC"
+# boundary.lo_condition = "UNSET_BC" "UNSET_BC" "UNSET_BC"
+
+#################################################
+# Evolution parameters
+
+evolution.max_steps = 1
+
+#################################################
+# Low resolution extraction parameters
+
+test_extraction_lo.enabled = 1
+test_extraction_lo.num_radii = 2
+test_extraction_lo.radii = 4. 6.
+test_extraction_lo.levels = 0 0
+test_extraction_lo.num_points_phi = 12
+test_extraction_lo.num_points_theta = 13
+
+# High resolution extraction parameters. We are only checking the convergence
+# in theta integration, so double the number of theta subintervals
+
+test_extraction_hi.enabled = 1
+test_extraction_hi.num_radii = 2
+test_extraction_hi.radii = 4. 6.
+test_extraction_hi.levels = 0 0
+test_extraction_hi.num_points_phi = 12
+test_extraction_hi.num_points_theta = 25
+
+# Spherical Harmonic to set and extract
+test.es = 0
+test.el = 2
+test.em = 0

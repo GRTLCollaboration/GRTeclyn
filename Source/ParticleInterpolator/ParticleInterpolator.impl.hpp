@@ -15,7 +15,6 @@
 #include "StateTypes.hpp"
 #include "StateVariables.hpp"
 #include "VariableType.hpp"
-
 // amrex includes
 
 #include <AMReX_AmrLevel.H>
@@ -25,15 +24,14 @@
 
 // initialise everything and perform some sanity checks
 template <int num_components>
-void ParticleInterpolator<num_components>::setup(
-    GRAMR *gramr_ptr, const BoundaryConditions::params_t &a_bc_params,
-    bool a_verbosity)
+void ParticleInterpolator<num_components>::setup(GRAMR *gramr_ptr)
 {
     // is GRAMR properly set?
     AMREX_ASSERT(gramr_ptr != nullptr);
     m_gramr_ptr = gramr_ptr;
-    m_bc_params = a_bc_params;
-    m_verbosity = a_verbosity;
+    m_bc_params.fill_params();
+    GRParmParse particle_interpolator_pp("particle_interpolator");
+    particle_interpolator_pp.get("verbosity", m_verbosity);
 
     this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gramr_ptr->GetParGDB()));
     m_initialized = true;
@@ -47,10 +45,10 @@ void ParticleInterpolator<num_components>::setup(
     // set the reflective flags from BC params
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
-        m_lo_boundary_reflective[dir] =
-            (m_bc_params.lo_boundary[dir] == BoundaryConditions::REFLECTIVE_BC);
-        m_hi_boundary_reflective[dir] =
-            (m_bc_params.hi_boundary[dir] == BoundaryConditions::REFLECTIVE_BC);
+        m_lo_boundary_reflective[dir] = (m_bc_params.lo_condition[dir] ==
+                                         BoundaryConditions::REFLECTIVE_BC);
+        m_hi_boundary_reflective[dir] = (m_bc_params.hi_condition[dir] ==
+                                         BoundaryConditions::REFLECTIVE_BC);
     }
 
     // get resolution on level 0
