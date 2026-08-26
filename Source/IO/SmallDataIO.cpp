@@ -6,7 +6,6 @@
 // Other includes
 #include "SmallDataIO.hpp"
 
-#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Vector.H>
@@ -220,40 +219,6 @@ void SmallDataIO::write_header_line(
     }
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void SmallDataIO::write_data_line(const std::vector<amrex::Real> &a_data,
-                                  const amrex::Real a_coord)
-{
-    const std::vector<amrex::Real> coords(1, a_coord);
-    write_data_line(a_data, coords);
-}
-
-void SmallDataIO::write_time_data_line(const std::vector<amrex::Real> &a_data)
-{
-    write_data_line(a_data, m_time);
-}
-
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
-void SmallDataIO::write_data_line(const std::vector<amrex::Real> &a_data,
-                                  const std::vector<amrex::Real> &a_coords)
-// NOLINTEND(bugprone-easily-swappable-parameters)
-{
-    if (amrex::ParallelDescriptor::IOProcessor())
-    {
-        m_file << std::fixed << std::setprecision(m_coords_precision);
-        for (amrex::Real coord : a_coords)
-        {
-            m_file << std::setw(m_coords_width) << coord;
-        }
-        m_file << std::scientific << std::setprecision(m_data_precision);
-        for (amrex::Real data : a_data)
-        {
-            m_file << std::setw(m_data_width) << data;
-        }
-        m_file << "\n";
-    }
-}
-
 void SmallDataIO::line_break()
 {
     if (amrex::ParallelDescriptor::IOProcessor())
@@ -451,7 +416,7 @@ const SmallDataIO::file_structure_t &SmallDataIO::get_file_structure() const
 }
 
 // Utility for viewing the file struture
-
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::print_file_structure() const
 {
     if (amrex::ParallelDescriptor::IOProcessor())
@@ -607,6 +572,7 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
             }
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         const int ncols = m_file_structure.num_data_columns[a_block];
 
         // To avoid calling std::map::find for each row of data,
@@ -648,18 +614,22 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
 }
 
 // Get a data column from a block
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::get_all_data_columns(std::vector<SmallDataIO::column_t> &out,
                                        int a_block)
 {
     assert(m_structure_defined);
     int min_data_column = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     int max_data_column = m_file_structure.num_data_columns[a_block];
     get_columns(out, min_data_column, max_data_column, a_block);
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void SmallDataIO::get_column(std::vector<SmallDataIO::column_t> &out,
                              int a_column, int a_block)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     get_columns(out, a_column, a_column, a_block);
 }
@@ -716,6 +686,7 @@ void SmallDataIO::get_header_strings(std::vector<std::string> &header,
         header.resize(m_file_structure.num_data_columns[0]);
 
         std::istringstream file_stream(m_file_contents);
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         int nlines_to_skip = m_file_structure.num_header_rows[a_block] - 1;
         skip_ahead(file_stream, nlines_to_skip, a_block);
 
@@ -730,6 +701,7 @@ void SmallDataIO::get_header_strings(std::vector<std::string> &header,
 }
 // Helper function to skip lines e.g. header lines
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::skip_ahead(std::istringstream &file_stream,
                              int nlines_to_skip, int a_block) const
 // NOLINTEND(bugprone-easily-swappable-parameters)

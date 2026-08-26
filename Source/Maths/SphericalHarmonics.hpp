@@ -10,6 +10,8 @@
 #include "Coordinates.hpp"
 #include "Tensor.hpp"
 
+using namespace amrex::literals;
+
 // Functions for the spin weighted spherical harmonics
 // See paper arXiv:gr-qc/0610128 eqn 40
 namespace SphericalHarmonics
@@ -34,7 +36,7 @@ spin_Y_lm(const amrex::Real x, const amrex::Real y, const amrex::Real z,
 
     // calculate useful position quantities
     amrex::Real r     = sqrt(x * x + y * y + z * z);
-    r                 = std::max(r, 1.0e-6);
+    r                 = std::max(r, 1.0e-6_rt);
     amrex::Real theta = acos(z / r);
     amrex::Real phi   = atan2(y, x);
 

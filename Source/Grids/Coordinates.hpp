@@ -10,9 +10,12 @@
 #include "DimensionDefinitions.hpp"
 
 #include <AMReX_IntVect.H>
+#include <AMReX_REAL.H>
 
 #include <array>
 #include <cmath>
+
+using namespace amrex::literals;
 
 class Coordinates
 {
@@ -57,7 +60,7 @@ class Coordinates
     {
         // Note that this is not currently dimension independent
         amrex::Real r = sqrt(x * x + y * y + z * z);
-        return std::max(r, 1e-6);
+        return std::max(r, 1.0e-6_rt);
     }
 
     /// This static function returns the radius subject to a floor
@@ -76,7 +79,7 @@ class Coordinates
         compute_coord(z, integer_coords[2], dx, center[2]);
 
         amrex::Real r = std::sqrt(x * x + y * y + z * z);
-        return std::max(r, 1e-6);
+        return std::max(r, 1.0e-6_rt);
     }
 };
 

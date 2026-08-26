@@ -179,9 +179,10 @@ void ParticleInterpolator<num_components>::populate_from_query(
     const auto hi_reflect = m_hi_boundary_reflective;
 
     // coords on device
-    amrex::GpuArray<amrex::Gpu::DeviceVector<amrex::Real>, AMREX_SPACEDIM>
+    amrex::GpuArray<amrex::Gpu::DeviceVector<amrex::ParticleReal>,
+                    AMREX_SPACEDIM>
         coords_d;
-    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> coords_d_ptr{};
+    amrex::GpuArray<const amrex::ParticleReal *, AMREX_SPACEDIM> coords_d_ptr{};
 
     // copy coords to device vectors
     for (int d = 0; d < AMREX_SPACEDIM; ++d)

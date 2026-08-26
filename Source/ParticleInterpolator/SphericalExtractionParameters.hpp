@@ -22,7 +22,8 @@
 struct spherical_extraction_params_t : surface_extraction_params_t
 {
     bool enabled{};
-    std::array<amrex::Real, AMREX_SPACEDIM> center{}; //!< center of the shells
+    std::array<amrex::ParticleReal, AMREX_SPACEDIM>
+        center{};                             //!< center of the shells
     int num_modes{};                          //!< number of modes to extract
     std::vector<std::pair<int, int>> modes{}; //!< l = first, m = second
 
@@ -78,9 +79,9 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         }
 
         GRParmParse geom_pp("geometry");
-        std::array<amrex::Real, AMREX_SPACEDIM> grid_center{};
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> grid_center{};
         geom_pp.get("center", grid_center);
-        std::array<amrex::Real, AMREX_SPACEDIM> center = grid_center;
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> center = grid_center;
         extraction_pp.queryAdd("center", center);
 
         int num_radii = 1;

@@ -61,12 +61,12 @@ void run_spherical_harmonic_test()
                 const amrex::Real y = (j + 0.5) * dx - center;
                 const amrex::Real z = (k + 0.5) * dx - center;
                 const amrex::Real r =
-                    std::max(1e-6, std::sqrt(x * x + y * y + z * z));
+                    std::max(1e-6_rt, std::sqrt(x * x + y * y + z * z));
                 // NOLINTNEXTLINE(readability-identifier-length)
                 const amrex::Real rr     = r * r;
                 const amrex::Real rr_inv = 1.0 / rr;
                 const amrex::Real rho =
-                    std::max(1e-6, std::sqrt(x * x + y * y));
+                    std::max(1e-6_rt, std::sqrt(x * x + y * y));
 
                 const amrex::IntVect iv{i, j, k};
                 // here testing the es = -1, el = 2, em = -1 case

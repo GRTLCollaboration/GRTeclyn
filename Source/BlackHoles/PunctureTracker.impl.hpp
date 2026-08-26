@@ -203,7 +203,8 @@ void PunctureTracker<num_punctures>::set_initial_punctures_pc()
         particle_tile.resize(num_punctures);
         const auto &particle_tile_data = particle_tile.getParticleTileData();
 
-        amrex::GpuArray<amrex::Real, num_puncture_coords> d_puncture_coords;
+        amrex::GpuArray<amrex::ParticleReal, num_puncture_coords>
+            d_puncture_coords;
         std::copy(m_puncture_coords.begin(), m_puncture_coords.end(),
                   d_puncture_coords.begin());
 
@@ -227,7 +228,7 @@ void PunctureTracker<num_punctures>::set_initial_punctures_pc()
 
 template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::set_puncture_coords(
-    const amrex::Array<amrex::Real,
+    const amrex::Array<amrex::ParticleReal,
                        PunctureTracker<num_punctures>::num_puncture_coords>
         &a_puncture_coords)
 {
@@ -237,7 +238,7 @@ void PunctureTracker<num_punctures>::set_puncture_coords(
 }
 
 template <unsigned int num_punctures>
-const amrex::Array<amrex::Real,
+const amrex::Array<amrex::ParticleReal,
                    PunctureTracker<num_punctures>::num_puncture_coords> &
 PunctureTracker<num_punctures>::get_puncture_coords() const
 {
@@ -246,13 +247,14 @@ PunctureTracker<num_punctures>::get_puncture_coords() const
 }
 
 template <unsigned int num_punctures>
-std::vector<amrex::Real>
+std::vector<amrex::ParticleReal>
 PunctureTracker<num_punctures>::get_puncture_vector() const
 {
     AMREX_ASSERT(m_initialized);
     AMREX_ASSERT(m_puncture_coords_set);
 
-    std::vector<amrex::Real> puncture_coords_vector(num_puncture_coords);
+    std::vector<amrex::ParticleReal> puncture_coords_vector(
+        num_puncture_coords);
     std::copy(m_puncture_coords.begin(), m_puncture_coords.end(),
               puncture_coords_vector.begin());
 

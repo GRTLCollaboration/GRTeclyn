@@ -40,8 +40,8 @@ class ParticleInterpolator
         false}; // a guard to make sure we do not uninitialised GRAMR
 
     // physical domain corners on level 0 for parity logic
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_hi{};
+    amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> m_prob_lo{};
+    amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> m_prob_hi{};
 
     // reflective BC flags per side on the low and high sides
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
