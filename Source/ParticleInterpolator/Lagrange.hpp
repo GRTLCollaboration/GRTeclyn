@@ -98,10 +98,10 @@ template <int N> class Lagrange
         switch (deriv_order)
         {
         case 1:
-            poly_interp_coeff_d1(0.0, rel_pos, N, weights);
+            poly_interp_coeff_d1(0.0, rel_pos, weights);
             break;
         case 2:
-            poly_interp_coeff_d2(0.0, rel_pos, N, weights);
+            poly_interp_coeff_d2(0.0, rel_pos, weights);
             break;
         default:
             amrex::poly_interp_coeff(0.0, rel_pos, N, weights);
@@ -114,13 +114,12 @@ template <int N> class Lagrange
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     poly_interp_coeff_d1(amrex::Real xInt, amrex::Real const *AMREX_RESTRICT x,
-                         int order,
                          amrex::Real *AMREX_RESTRICT weights) noexcept
     {
-        for (int j = 0; j < order; ++j)
+        for (int j = 0; j < N; ++j)
         {
             auto den = amrex::Real(1.0);
-            for (int i = 0; i < order; ++i)
+            for (int i = 0; i < N; ++i)
             {
                 if (i != j)
                 {
@@ -130,14 +129,14 @@ template <int N> class Lagrange
 
             weights[j] = amrex::Real(0.0);
 
-            for (int k = 0; k < order; ++k)
+            for (int k = 0; k < N; ++k)
             {
                 if (k == j)
                 {
                     continue;
                 }
                 auto num = amrex::Real(1.0);
-                for (int i = 0; i < order; ++i)
+                for (int i = 0; i < N; ++i)
                 {
                     if (i != j && i != k)
                     {
@@ -152,15 +151,14 @@ template <int N> class Lagrange
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     poly_interp_coeff_d2(amrex::Real xInt, amrex::Real const *AMREX_RESTRICT x,
-                         int order,
                          amrex::Real *AMREX_RESTRICT weights) noexcept
     {
-        for (int j = 0; j < order; ++j)
+        for (int j = 0; j < N; ++j)
         {
             weights[j] = amrex::Real(0.0);
 
             auto den = amrex::Real(1.0);
-            for (int i = 0; i < order; ++i)
+            for (int i = 0; i < N; ++i)
             {
                 if (i != j)
                 {
@@ -168,14 +166,14 @@ template <int N> class Lagrange
                 }
             }
 
-            for (int l = 0; l < order; ++l)
+            for (int l = 0; l < N; ++l)
             {
                 if (l == j)
                 {
                     continue;
                 }
 
-                for (int k = 0; k < order; ++k)
+                for (int k = 0; k < N; ++k)
                 {
                     if (k == j)
                     {
@@ -188,7 +186,7 @@ template <int N> class Lagrange
 
                     auto num = amrex::Real(1.0);
 
-                    for (int i = 0; i < order; ++i)
+                    for (int i = 0; i < N; ++i)
                     {
                         if (i != j && i != k && i != l)
                         {
@@ -239,7 +237,7 @@ template <int N> class Lagrange
                   static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
 
         build_stencil(xpos, i0, weights_local[0], lo_reflective[0],
-                      hi_reflective[0], domain_ncell[1], 0);
+                      hi_reflective[0], domain_ncell[0], 0);
         if (need_d1[0])
         {
             build_stencil(xpos, i0, weights_d1[0], lo_reflective[0],
@@ -289,7 +287,7 @@ template <int N> class Lagrange
                 amrex::ParticleReal *val, const Derivative *derivs,
                 InterpolationQueryParticle::out_t *const *comps_arr,
                 const int *comp_counts, int n_deriv,
-                amrex::Real const dxi) const
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
@@ -312,15 +310,34 @@ template <int N> class Lagrange
                 {
                     for (int j = 0; j < N; j++)
                     {
-                        weights[dim][j] = weights_d1[dim][j] * dxi;
+                        // dxi is required here through the chain ruke since
+                        // calculation of weights doesn't incorporate grid
+                        // spacing
+                        weights[dim][j] = weights_d1[dim][j] * dxi[dim];
                     }
                 }
                 else if (deriv[dim] == 2)
                 {
                     for (int j = 0; j < N; j++)
                     {
-                        weights[dim][j] = weights_d2[dim][j] * pow(dxi, 2);
+                        weights[dim][j] = weights_d2[dim][j] * pow(dxi[dim], 2);
                     }
+                }
+                else if (deriv[dim] > 2)
+                {
+                    std::string msg =
+                        "Lagrange::compute_weights() Oi oi oi! "
+                        "You have requested a " +
+                        std::to_string(deriv[dim]) +
+                        std::string((deriv[dim] == 3) ? "rd" : "th") +
+                        "derivative in your ParticleInterpolator "
+                        "query."
+                        "the ParticleInterpolator only supports "
+                        "interpolation"
+                        "of component values and their first and "
+                        "second derivatives.";
+
+                    amrex::Abort(msg);
                 }
                 else
                 {

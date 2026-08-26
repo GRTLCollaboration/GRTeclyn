@@ -119,6 +119,5 @@ class PolynomialDerivedQuantity
   private:
     int m_c_poly; // destination comp
 };
-// NOLINTEND(bugprone-easily-swappable-parameters)
 
 #endif /* POLYNOMIALDERIVEDQUANTITY_HPP_ */

@@ -19,6 +19,10 @@
 
 // This class interpolates one variable (that may be multi-component) at
 // arbitrary coordinates provided via InterpolationQuery, using amrex particles.
+// It can also interpolate first and second derivatives of components.
+// Note that any added derivative becomes a new component, so for example
+// if you want to interpolate chi, the first derivative of chi and h_11 the
+// value of num_components should be 3
 
 template <int num_components>
 class ParticleInterpolator

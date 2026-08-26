@@ -119,7 +119,10 @@ void run_particle_interpolator_test()
         std::vector<amrex::ParticleReal> A_local(
             n_local); // for storing derived polynomial
         std::vector<amrex::ParticleReal> A_dx(
-            n_local); // for storing derived polynomial first derivative
+            n_local); // for storing derived polynomial first derivative in x
+        std::vector<amrex::ParticleReal> A_dz(
+            n_local); // for storing derived polynomial first derivative in z
+
         std::vector<amrex::ParticleReal> A_dxdy(
             n_local); // for storing derived polynomial second derivative
 
@@ -153,6 +156,8 @@ void run_particle_interpolator_test()
                      BCParity::odd_xyz, Derivative::LOCAL)
             .addComp(0, A_dx.data(), VariableType::derived, BCParity::odd_xyz,
                      Derivative::dx)
+            .addComp(0, A_dz.data(), VariableType::derived, BCParity::odd_xyz,
+                     Derivative::dz)
             .addComp(0, A_dxdy.data(), VariableType::derived, BCParity::odd_xyz,
                      Derivative::dxdy);
 
@@ -167,7 +172,7 @@ void run_particle_interpolator_test()
                      BCParity::even, Derivative::dzdz);
 
         // set up interpolation using Particles for derived vars
-        ParticleInterpolator<3> interpolator_derived;
+        ParticleInterpolator<4> interpolator_derived;
 
         interpolator_derived.setup(&gr_amr);
         interpolator_derived.interp(
@@ -190,6 +195,8 @@ void run_particle_interpolator_test()
             amrex::ParticleReal A_known = pow(x, 3) * pow(y, 3) * pow(z, 3);
             amrex::ParticleReal A_known_dx =
                 3 * pow(x, 2) * pow(y, 3) * pow(z, 3);
+            amrex::ParticleReal A_known_dz =
+                3 * pow(x, 3) * pow(y, 3) * pow(z, 2);
             amrex::ParticleReal A_known_dxdy =
                 3 * pow(x, 2) * 3 * pow(y, 2) * pow(z, 3);
 
@@ -206,6 +213,12 @@ void run_particle_interpolator_test()
                           "Interpolated A dx is ", A_dx[ipoint],
                           " at point x = ", x, " y = ", y, " z = ", z,
                           ". The true value should be ", A_known_dx);
+
+            CHECK_MESSAGE(A_dz[ipoint] ==
+                              doctest::Approx(A_known_dz).epsilon(1e-10),
+                          "Interpolated A dz is ", A_dz[ipoint],
+                          " at point x = ", x, " y = ", y, " z = ", z,
+                          ". The true value should be ", A_known_dz);
 
             CHECK_MESSAGE(A_dxdy[ipoint] ==
                               doctest::Approx(A_known_dxdy).epsilon(1e-10),
