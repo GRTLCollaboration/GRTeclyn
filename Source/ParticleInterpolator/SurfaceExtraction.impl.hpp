@@ -17,8 +17,8 @@
 //! using add_var or add_vars
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    params_t a_params, double a_dt, double a_time, bool a_first_step,
-    double a_restart_time)
+    params_t a_params, amrex::Real a_dt, amrex::Real a_time, bool a_first_step,
+    amrex::Real a_restart_time)
     : SurfaceExtraction(std::move(a_params), SurfaceGeometry{}, a_dt, a_time,
                         a_first_step, a_restart_time)
 {
@@ -26,8 +26,8 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    params_t a_params, SurfaceGeometry a_geom, double a_dt, double a_time,
-    bool a_first_step, double a_restart_time)
+    params_t a_params, SurfaceGeometry a_geom, amrex::Real a_dt,
+    amrex::Real a_time, bool a_first_step, amrex::Real a_restart_time)
     : m_geom(std::move(a_geom)), m_params(std::move(a_params)), m_dt(a_dt),
       m_time(a_time), m_first_step(a_first_step), m_restart_time(a_restart_time)
 // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -61,14 +61,14 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 
         for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
         {
-            double surface_param_value =
+            amrex::ParticleReal surface_param_value =
                 m_params.surface_param_values[isurface];
             for (int iu = 0; iu < m_params.num_points_u; ++iu)
             {
-                double u = m_geom.u(iu, m_params.num_points_u);
+                amrex::ParticleReal u = m_geom.u(iu, m_params.num_points_u);
                 for (int iv = 0; iv < m_params.num_points_v; ++iv)
                 {
-                    double v = m_geom.v(iv, m_params.num_points_v);
+                    amrex::ParticleReal v = m_geom.v(iv, m_params.num_points_v);
                     FOR (idir)
                     {
                         int idx                    = index(isurface, iu, iv);
@@ -171,8 +171,9 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_derived_vars(
 //! derivatives
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const params_t &a_params, const std::vector<vars_t> &a_vars, double a_dt,
-    double a_time, bool a_first_step, double a_restart_time)
+    const params_t &a_params, const std::vector<vars_t> &a_vars,
+    amrex::Real a_dt, amrex::Real a_time, bool a_first_step,
+    amrex::Real a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
           a_params, a_dt, a_time, a_first_step, a_restart_time)
 {
@@ -183,8 +184,8 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 //! no derivatives
 template <class SurfaceGeometry, int num_components>
 SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
-    const params_t &a_params, const std::vector<int> &a_vars, double a_dt,
-    double a_time, bool a_first_step, double a_restart_time)
+    const params_t &a_params, const std::vector<int> &a_vars, amrex::Real a_dt,
+    amrex::Real a_time, bool a_first_step, amrex::Real a_restart_time)
     : SurfaceExtraction<SurfaceGeometry, num_components>(
           a_params, a_dt, a_time, a_first_step, a_restart_time)
 {
@@ -265,7 +266,8 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::extract(
 //! SurfaceGeometry template class
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::add_integrand(
-    const integrand_t &a_integrand, std::vector<double> &out_integrals,
+    const integrand_t &a_integrand,
+    std::vector<amrex::ParticleReal> &out_integrals,
     const IntegrationMethod &a_method_u, const IntegrationMethod &a_method_v,
     const bool a_broadcast_integral)
 {
@@ -329,16 +331,17 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::add_integrand(
 //! with add_var
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::add_var_integrand(
-    int a_var, std::vector<double> &out_integrals,
+    int a_var, std::vector<amrex::ParticleReal> &out_integrals,
     const IntegrationMethod &a_method_u, const IntegrationMethod &a_method_v,
     const bool a_broadcast_integral)
 {
 
     AMREX_ASSERT(a_var >= 0 && a_var < m_vars.size());
     integrand_t var_integrand =
-        [var = a_var](std::vector<double> &data, double /*unused*/,
-                      double /*unused*/, double /*unused*/)
-    { return data[var]; };
+        [var = a_var](std::vector<amrex::ParticleReal> &data,
+                      amrex::ParticleReal /*unused*/,
+                      amrex::ParticleReal /*unused*/,
+                      amrex::ParticleReal /*unused*/) { return data[var]; };
     add_integrand(var_integrand, out_integrals, a_method_u, a_method_v,
                   a_broadcast_integral);
 }
@@ -357,16 +360,17 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::integrate()
 
         for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
         {
-            double surface_param_value =
+            amrex::ParticleReal surface_param_value =
                 m_params.surface_param_values[isurface];
             for (int iu = 0; iu < m_params.num_points_u; ++iu)
             {
-                double u = m_geom.u(iu, m_params.num_points_u);
-                std::vector<double> inner_integral(num_integrals, 0.0);
+                amrex::ParticleReal u = m_geom.u(iu, m_params.num_points_u);
+                std::vector<amrex::ParticleReal> inner_integral(num_integrals,
+                                                                0.0);
                 for (int iv = 0; iv < m_params.num_points_v; ++iv)
                 {
-                    double v = m_geom.v(iv, m_params.num_points_v);
-                    std::vector<double> data_here(m_vars.size());
+                    amrex::ParticleReal v = m_geom.v(iv, m_params.num_points_v);
+                    std::vector<amrex::ParticleReal> data_here(m_vars.size());
                     for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
                     {
                         data_here[ivar] =
@@ -376,10 +380,10 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::integrate()
                          ++iintegral)
                     {
                         auto integrand = m_integrands[iintegral];
-                        double integrand_with_area_element =
+                        amrex::ParticleReal integrand_with_area_element =
                             integrand(data_here, surface_param_value, u, v) *
                             m_geom.area_element(surface_param_value, u, v);
-                        double weight =
+                        amrex::ParticleReal weight =
                             m_integration_methods[iintegral][1].weight(
                                 iv, m_params.num_points_v,
                                 m_geom.is_v_periodic());
@@ -389,8 +393,9 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::integrate()
                 }
                 for (int iintegral = 0; iintegral < num_integrals; ++iintegral)
                 {
-                    double weight = m_integration_methods[iintegral][0].weight(
-                        iu, m_params.num_points_u, m_geom.is_u_periodic());
+                    amrex::ParticleReal weight =
+                        m_integration_methods[iintegral][0].weight(
+                            iu, m_params.num_points_u, m_geom.is_u_periodic());
                     (m_integrals[iintegral].get())[isurface] +=
                         weight * m_du * inner_integral[iintegral];
                 }
@@ -419,12 +424,13 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::integrate()
 
 //! Integrate some integrand dependent on the interpolated data over the
 //! surface. The integrand function should be of the signature
-//! double integrand(std::vector<double> data_here,
-//!     double a_surface_param_value, double a_u, double a_v)
+//! amrex::ParticleReal integrand(std::vector<amrex::ParticleReal> data_here,
+//!     amrex::ParticleReal a_surface_param_value, amrex::ParticleReal a_u,
+//!     amrex::ParticleReal a_v)
 //! where data_here is a vector of all the interpolated variables at the
 //! point specified by the other arguments.
 template <class SurfaceGeometry, int num_components>
-std::vector<double>
+std::vector<amrex::ParticleReal>
 SurfaceExtraction<SurfaceGeometry, num_components>::integrate(
     integrand_t a_integrand, const IntegrationMethod &a_method_u,
     const IntegrationMethod &a_method_v, const bool a_broadcast_integral)
@@ -433,7 +439,7 @@ SurfaceExtraction<SurfaceGeometry, num_components>::integrate(
     m_integration_methods.clear();
     m_integrals.clear();
 
-    std::vector<double> out_integrals(m_params.num_surfaces, 0.0);
+    std::vector<amrex::ParticleReal> out_integrals(m_params.num_surfaces, 0.0);
     add_integrand(a_integrand, out_integrals, a_method_u, a_method_v,
                   a_broadcast_integral);
     integrate();
@@ -494,18 +500,19 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
             // Now the data
             for (int iu = 0; iu < m_params.num_points_u; ++iu)
             {
-                double u = m_geom.u(iu, m_params.num_points_u);
+                amrex::ParticleReal u = m_geom.u(iu, m_params.num_points_u);
                 for (int iv = 0; iv < m_params.num_points_v; ++iv)
                 {
-                    double v = m_geom.v(iv, m_params.num_points_v);
-                    int idx  = index(isurface, iu, iv);
-                    std::vector<double> data(m_vars.size());
+                    amrex::ParticleReal v = m_geom.v(iv, m_params.num_points_v);
+                    int idx               = index(isurface, iu, iv);
+                    std::vector<amrex::ParticleReal> data(m_vars.size());
                     for (std::size_t ivar = 0; ivar < m_vars.size(); ++ivar)
                     {
                         data[ivar] = m_interp_data[ivar][idx];
                     }
 
-                    extraction_file.write_data_line(data, {u, v});
+                    extraction_file.write_data_line(
+                        data, std::vector<amrex::ParticleReal>{u, v});
                 }
             }
             extraction_file.line_break();
@@ -517,7 +524,7 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::write_integrals(
     const std::string &a_filename,
-    const std::vector<std::vector<double>> &a_integrals,
+    const std::vector<std::vector<amrex::ParticleReal>> &a_integrals,
     const std::vector<std::string> &a_labels) const
 {
     if (amrex::ParallelDescriptor::MyProc() == 0)
@@ -581,8 +588,8 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_integrals(
         }
 
         // make vector of data for writing
-        std::vector<double> data_for_writing(num_integrals_per_surface *
-                                             m_params.num_surfaces);
+        std::vector<amrex::ParticleReal> data_for_writing(
+            num_integrals_per_surface * m_params.num_surfaces);
         for (size_t isurface = 0; isurface < m_params.num_surfaces; ++isurface)
         {
             for (size_t iintegral = 0; iintegral < num_integrals_per_surface;
@@ -602,10 +609,11 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_integrals(
 //! surface
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::write_integral(
-    const std::string &a_filename, const std::vector<double> &a_integrals,
+    const std::string &a_filename,
+    const std::vector<amrex::ParticleReal> &a_integrals,
     const std::string &a_label) const
 {
-    std::vector<std::vector<double>> integrals(1, a_integrals);
+    std::vector<std::vector<amrex::ParticleReal>> integrals(1, a_integrals);
     if (!a_label.empty())
     {
         std::vector<std::string> labels(1, a_label);

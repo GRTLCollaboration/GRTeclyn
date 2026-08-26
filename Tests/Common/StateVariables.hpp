@@ -42,10 +42,10 @@ static const std::array<BCParity, num_user_variables> user_variable_parities = {
 static const std::array<BCParity, NUM_VARS> parities = ArrayTools::concatenate(
     CCZ4StateVariables::parities, user_variable_parities);
 
-static const std::array<double, num_user_variables>
+static const std::array<amrex::Real, num_user_variables>
     user_variable_asymptotic_values{};
 
-static const std::array<double, NUM_VARS> asymptotic_values =
+static const std::array<amrex::Real, NUM_VARS> asymptotic_values =
     ArrayTools::concatenate(CCZ4StateVariables::asymptotic_values,
                             user_variable_asymptotic_values);
 } // namespace StateVariables

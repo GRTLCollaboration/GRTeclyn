@@ -107,7 +107,7 @@ void BinaryBHLevel::initData()
 
 #else
     // Set up the compute class for the BinaryBH initial data
-    double dx = Geom().CellSize(0);
+    amrex::Real dx = Geom().CellSize(0);
     BinaryBHInitialData binary_initial_data(dx);
     static_assert(std::is_trivially_copyable_v<BinaryBHInitialData>,
                   "BinaryBHInitialData needs to be device copyable");
@@ -156,7 +156,7 @@ void BinaryBHLevel::initData()
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
-                                    const double /*a_time*/)
+                                    const amrex::Real /*a_time*/)
 {
     GRParmParse pp;
 
@@ -325,8 +325,8 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         puncture_coords = get_puncture_tracker().get_puncture_coords();
     }
 
-    double bh1_mass{};
-    double bh2_mass{};
+    amrex::Real bh1_mass{};
+    amrex::Real bh2_mass{};
     pp.get("bh1.mass", bh1_mass);
     pp.get("bh2.mass", bh2_mass);
 

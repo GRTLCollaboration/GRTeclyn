@@ -26,18 +26,18 @@ class KerrBHInitialData
     //! Stuct for the params of the Kerr BHInitialData
     struct params_t
     {
-        double mass; //!<< The mass of the Kerr BH
-        std::array<double, AMREX_SPACEDIM>
-            center;  //!< The center of the Kerr BH
-        double spin; //!< The spin param a = J/M, so 0 <= |a| <= M
+        amrex::Real mass; //!<< The mass of the Kerr BH
+        std::array<amrex::Real, AMREX_SPACEDIM>
+            center;       //!< The center of the Kerr BH
+        amrex::Real spin; //!< The spin param a = J/M, so 0 <= |a| <= M
     };
 
   protected:
-    double m_dx;
+    amrex::Real m_dx;
     params_t m_params;
 
   public:
-    KerrBHInitialData(params_t a_params, double a_dx)
+    KerrBHInitialData(params_t a_params, amrex::Real a_dx)
         : m_dx(a_dx), m_params(a_params)
 
     {

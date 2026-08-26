@@ -46,7 +46,7 @@ void run_bssn_matter_test()
 
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 3;
-        constexpr double dx      = 0.5 / (num_cells - 1);
+        constexpr amrex::Real dx = 0.5 / (num_cells - 1);
 
         amrex::Box box(
             amrex::IntVect(0, 0, 0),
@@ -112,7 +112,7 @@ void run_bssn_matter_test()
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
-        double G_Newton = 1.0;
+        amrex::Real G_Newton = 1.0;
         pp.queryAdd("G_Newton", G_Newton);
 
         CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGaugeWithMatter,
@@ -172,9 +172,9 @@ void run_bssn_matter_test()
             });
 
         // NOLINTEND(bugprone-easily-swappable-parameters)
-        double time = 0.0;
-        int *bcrec  = nullptr;
-        int level   = 0;
+        amrex::Real time = 0.0;
+        int *bcrec       = nullptr;
+        int level        = 0;
 
         ConstraintsWithMatter<DefaultScalarField>::compute_mf(
             out_mf, dcomp, num_comp_constraints, in_mf, geom, time, bcrec,

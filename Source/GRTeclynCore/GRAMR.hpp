@@ -11,6 +11,7 @@
 #include <AMReX_Amr.H>
 #include <algorithm>
 #include <chrono>
+#include <limits>
 #include <ratio>
 #include <vector>
 
@@ -36,16 +37,17 @@ class GRAMR : public amrex::Amr
 
     void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override;
 
-    [[nodiscard]] double get_walltime_since_start() const;
+    [[nodiscard]] amrex::Real get_walltime_since_start() const;
 
-    [[nodiscard]] double get_restart_time() const;
+    [[nodiscard]] amrex::Real get_restart_time() const;
 
   private:
 
-    void set_restart_time(double a_restart_time);
+    void set_restart_time(amrex::Real a_restart_time);
 
-    double m_start_walltime{std::nan("0.0")};
-    double m_restart_time{0.0};
+    // NaN marks the start time as unset and matches the configured Real type.
+    amrex::Real m_start_walltime{std::numeric_limits<amrex::Real>::quiet_NaN()};
+    amrex::Real m_restart_time{0.0};
 };
 
 #endif /* GRAMR_HPP_ */

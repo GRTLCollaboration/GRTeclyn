@@ -24,7 +24,8 @@ class PolynomialDerivedQuantity
 
     // read in the center which will be used to populating the polynomial
     // properly
-    static void set_center(const std::array<double, AMREX_SPACEDIM> &my_center)
+    static void
+    set_center(const std::array<amrex::Real, AMREX_SPACEDIM> &my_center)
     {
         for (int index = 0; index < AMREX_SPACEDIM; ++index)
         {
@@ -87,16 +88,21 @@ class PolynomialDerivedQuantity
     // Compute function
     AMREX_GPU_DEVICE
     void
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     compute(int i, int j, int k, const amrex::Array4<amrex::Real> &a_array,
             const amrex::Array4<amrex::Real const> &state,
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &plo,
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx,
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &center) const
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // set up the coords
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real x = plo[0] + (i + 0.5) * dx[0] - center[0];
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real y = plo[1] + (j + 0.5) * dx[1] - center[1];
 #if AMREX_SPACEDIM == 3
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real z = plo[2] + (k + 0.5) * dx[2] - center[2];
 #else
         amrex::Real z = 0.0;

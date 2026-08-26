@@ -20,13 +20,13 @@
 class ChiTagger
 {
   protected:
-    double m_dx;
+    amrex::Real m_dx;
     FourthOrderDerivatives m_deriv;
     amrex::Real m_threshold;
 
   public:
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    ChiTagger(const double dx, const amrex::Real a_threshold)
+    ChiTagger(const amrex::Real dx, const amrex::Real a_threshold)
         : m_dx(dx), m_deriv(dx), m_threshold(a_threshold)
     {
     }

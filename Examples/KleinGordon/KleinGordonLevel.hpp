@@ -26,7 +26,7 @@ class KleinGordonLevel : public GRAMRLevel
     //! Advance this level for one step
 
     void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const double a_time) override;
+                         const amrex::Real a_time) override;
 
     /// Things to do after dt*rhs has been added to the solution
     void specificUpdateODE(amrex::MultiFab &a_soln) override {};

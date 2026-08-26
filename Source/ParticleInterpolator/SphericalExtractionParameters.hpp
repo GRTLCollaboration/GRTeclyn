@@ -22,9 +22,10 @@
 struct spherical_extraction_params_t : surface_extraction_params_t
 {
     bool enabled{};
-    std::array<double, AMREX_SPACEDIM> center{}; //!< center of the shells
-    int num_modes{};                             //!< number of modes to extract
-    std::vector<std::pair<int, int>> modes{};    //!< l = first, m = second
+    std::array<amrex::ParticleReal, AMREX_SPACEDIM>
+        center{};                             //!< center of the shells
+    int num_modes{};                          //!< number of modes to extract
+    std::vector<std::pair<int, int>> modes{}; //!< l = first, m = second
 
     explicit spherical_extraction_params_t(std::string a_param_scope)
         : m_param_scope(std::move(a_param_scope))
@@ -78,9 +79,9 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         }
 
         GRParmParse geom_pp("geometry");
-        std::array<double, AMREX_SPACEDIM> grid_center{};
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> grid_center{};
         geom_pp.get("center", grid_center);
-        std::array<double, AMREX_SPACEDIM> center = grid_center;
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> center = grid_center;
         extraction_pp.queryAdd("center", center);
 
         int num_radii = 1;
@@ -108,7 +109,7 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         const int min_level = *std::min_element(levels.begin(), levels.end());
         extraction_pp.add("min_level", min_level);
 
-        std::vector<double> radii(num_radii, 0.1);
+        std::vector<amrex::Real> radii(num_radii, 0.1);
         if (extraction_pp.contains("radii"))
         {
             if (extraction_pp.countval("radii") != num_radii)
@@ -138,7 +139,7 @@ struct spherical_extraction_params_t : surface_extraction_params_t
 
         std::array<int, AMREX_SPACEDIM> lo_condition{};
         std::array<int, AMREX_SPACEDIM> hi_condition{};
-        std::array<double, AMREX_SPACEDIM> prob_extent{};
+        std::array<amrex::Real, AMREX_SPACEDIM> prob_extent{};
 
         GRParmParse boundary_pp("boundary");
         lo_condition = BoundaryConditions::params_t::read_conditions(
@@ -147,8 +148,8 @@ struct spherical_extraction_params_t : surface_extraction_params_t
             boundary_pp, "hi_condition");
         geom_pp.get("prob_extent", prob_extent);
 
-        std::array<double, AMREX_SPACEDIM> reflective_domain_lo{};
-        std::array<double, AMREX_SPACEDIM> reflective_domain_hi{};
+        std::array<amrex::Real, AMREX_SPACEDIM> reflective_domain_lo{};
+        std::array<amrex::Real, AMREX_SPACEDIM> reflective_domain_hi{};
         FOR (idir)
         {
             reflective_domain_lo[idir] =
@@ -258,7 +259,7 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         extraction_levels.resize(num_extraction_radii());
         std::copy(levels.begin(), levels.end(), extraction_levels.begin());
 
-        std::vector<double> radii(num_extraction_radii());
+        std::vector<amrex::Real> radii(num_extraction_radii());
         extraction_pp.getarr("radii", radii, 0, num_extraction_radii());
         extraction_radii().resize(num_extraction_radii());
         std::copy(radii.begin(), radii.end(), extraction_radii().begin());

@@ -37,7 +37,8 @@ class InterpolationQueryParticle
     template <int num_components> friend class ParticleInterpolator;
 
     size_t m_num_points;
-    std::array<const double *, AMREX_SPACEDIM> m_coords{};
+
+    std::array<const amrex::ParticleReal *, AMREX_SPACEDIM> m_coords{};
     comp_map_t m_comps{};
     VariableType m_variable_type{}; // for a given InterpolationQueryParticle
                                     // the variable type must be the same!
@@ -49,13 +50,15 @@ class InterpolationQueryParticle
 
     // Returns the pointer that was passed to setCoords
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    [[nodiscard]] const double *coords(int dim) const
+    [[nodiscard]] const amrex::ParticleReal *coords(int dim) const
+
     {
         AMREX_ASSERT(dim >= 0 && dim < AMREX_SPACEDIM);
         return m_coords[dim];
     }
 
-    InterpolationQueryParticle &setCoords(int dim, const double *coords)
+    InterpolationQueryParticle &setCoords(int dim,
+                                          const amrex::ParticleReal *coords)
     {
         AMREX_ASSERT(dim < AMREX_SPACEDIM);
         this->m_coords[dim] = coords;
@@ -63,7 +66,7 @@ class InterpolationQueryParticle
     }
 
     InterpolationQueryParticle &
-    addComp(int comp, double *out_ptr,
+    addComp(int comp, amrex::ParticleReal *out_ptr,
             VariableType variable_type = VariableType::state,
             BCParity parity            = BCParity::undefined,
             const Derivative &deriv    = Derivative::LOCAL)

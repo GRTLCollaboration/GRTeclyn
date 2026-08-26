@@ -179,7 +179,7 @@ void BoundaryConditions::define(const amrex::Geometry &a_geom)
 /// change the asymptotic values of the variables for the Sommerfeld BCs
 /// this will allow them to evolve during a simulation if necessary
 void BoundaryConditions::set_vars_asymptotic_values(
-    std::array<double, NUM_VARS> &vars_asymptotic_values)
+    std::array<amrex::Real, NUM_VARS> &vars_asymptotic_values)
 {
     m_params.vars_asymptotic_values = vars_asymptotic_values;
     m_asymptotic_values.clear();
@@ -339,7 +339,7 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                         }
                         // asymptotic values - these need to have been set in
                         // the params file
-                        double radius =
+                        amrex::Real radius =
                             std::sqrt(loc[0] * loc[0] + loc[1] * loc[1] +
                                       loc[2] * loc[2]);
                         rhs(i, j, k, n) =

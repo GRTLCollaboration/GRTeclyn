@@ -109,7 +109,7 @@ void GRAMRLevel::computeInitialDt(
     if (Level() == 0)
     {
         GRParmParse pp;
-        double dt_multiplier{};
+        amrex::Real dt_multiplier{};
         pp.get("evolution.dt_multiplier", dt_multiplier);
         for (int i = 0; i <= finest_level; ++i)
         {
@@ -131,7 +131,7 @@ void GRAMRLevel::computeNewDt(
     if (Level() == 0)
     {
         GRParmParse pp;
-        double dt_multiplier{};
+        amrex::Real dt_multiplier{};
         pp.get("evolution.dt_multiplier", dt_multiplier);
 
         for (int i = 0; i <= finest_level; ++i)
@@ -146,10 +146,10 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
                                 int ncycle)
 {
     BL_PROFILE("GRAMRLevel::advance()");
-    double seconds_per_hour = 3600;
-    double evolution_speed  = (time - get_gramr_ptr()->get_restart_time()) *
-                             seconds_per_hour /
-                             get_gramr_ptr()->get_walltime_since_start();
+    amrex::Real seconds_per_hour = 3600.;
+    amrex::Real evolution_speed = (time - get_gramr_ptr()->get_restart_time()) *
+                                  seconds_per_hour /
+                                  get_gramr_ptr()->get_walltime_since_start();
     amrex::Print() << "[Level " << Level() << " step "
                    << parent->levelSteps(Level()) + 1
                    << "] average evolution speed = " << evolution_speed

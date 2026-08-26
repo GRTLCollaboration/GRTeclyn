@@ -23,23 +23,25 @@ template <int num_components> class LineExtraction
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int m_start_comp; // first component
     const int m_num_points; // number of points along the line
-    const std::array<double, AMREX_SPACEDIM>
+    const std::array<amrex::ParticleReal, AMREX_SPACEDIM>
         m_start_coords; // starting coords of the line
-    const std::array<double, AMREX_SPACEDIM>
+    const std::array<amrex::ParticleReal, AMREX_SPACEDIM>
         m_end_coords; // ending coords of the line
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     // for data write-out
-    double m_dt{};
-    double m_time{};
-    double m_restart_time{};
+    amrex::Real m_dt{};
+    amrex::Real m_time{};
+    amrex::Real m_restart_time{};
     bool m_first_step{};
 
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    LineExtraction(int a_start_comp, int a_num_points,
-                   std::array<double, AMREX_SPACEDIM> a_start_coords,
-                   std::array<double, AMREX_SPACEDIM> a_end_coords, double a_dt,
-                   double a_time, double a_restart_time, bool a_first_step)
+    LineExtraction(
+        int a_start_comp, int a_num_points,
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> a_start_coords,
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> a_end_coords,
+        amrex::Real a_dt, amrex::Real a_time, amrex::Real a_restart_time,
+        bool a_first_step)
         : m_start_comp(a_start_comp),
           m_num_points(
               (amrex::ParallelDescriptor::IOProcessor() ? a_num_points : 0)),
@@ -59,25 +61,29 @@ template <int num_components> class LineExtraction
         BL_PROFILE("LineExtraction::execute_query()");
 
         // build coordinates along x from start to end
-        std::vector<double> interp_x(m_num_points);
-        std::vector<double> interp_y(m_num_points);
-        std::vector<double> interp_z(m_num_points);
+        std::vector<amrex::ParticleReal> interp_x(m_num_points);
+        std::vector<amrex::ParticleReal> interp_y(m_num_points);
+        std::vector<amrex::ParticleReal> interp_z(m_num_points);
 
         for (int i = 0; i < m_num_points; ++i)
         {
             interp_x[i] =
-                m_start_coords[0] + (double(i) / double(m_num_points - 1)) *
+                m_start_coords[0] + (amrex::ParticleReal(i) /
+                                     amrex::ParticleReal(m_num_points - 1)) *
                                         (m_end_coords[0] - m_start_coords[0]);
             interp_y[i] =
-                m_start_coords[1] + (double(i) / double(m_num_points - 1)) *
+                m_start_coords[1] + (amrex::ParticleReal(i) /
+                                     amrex::ParticleReal(m_num_points - 1)) *
                                         (m_end_coords[1] - m_start_coords[1]);
             interp_z[i] =
-                m_start_coords[2] + (double(i) / double(m_num_points - 1)) *
+                m_start_coords[2] + (amrex::ParticleReal(i) /
+                                     amrex::ParticleReal(m_num_points - 1)) *
                                         (m_end_coords[2] - m_start_coords[2]);
         }
 
         // set up InterpolationQuery
-        std::vector<double> interp_var_data(m_num_points * num_components, 0.0);
+        std::vector<amrex::ParticleReal> interp_var_data(
+            m_num_points * num_components, 0.0);
 
         InterpolationQueryParticle query(m_num_points);
         query.setCoords(0, interp_x.data())
@@ -88,7 +94,8 @@ template <int num_components> class LineExtraction
         for (int k = 0; k < num_components; ++k)
         {
             // each component writes into its own stride
-            double *out_k = interp_var_data.data() + k * m_num_points;
+            amrex::ParticleReal *out_k =
+                interp_var_data.data() + k * m_num_points;
             query.addComp(
                 m_start_comp + k, out_k,
                 VariableType::state); // here state or derived? we will write
@@ -114,15 +121,16 @@ template <int num_components> class LineExtraction
 
         for (int ipoint = 0; ipoint < m_num_points; ++ipoint)
         {
-            std::vector<double> data_line(num_components);
+            std::vector<amrex::ParticleReal> data_line(num_components);
             for (int icomp = 0; icomp < num_components; ++icomp)
             {
                 data_line[icomp] =
                     interp_var_data[icomp * m_num_points + ipoint];
             }
             output_file.write_data_line(
-                data_line,
-                {interp_x[ipoint], interp_y[ipoint], interp_z[ipoint]});
+                data_line, std::vector<amrex::ParticleReal>{interp_x[ipoint],
+                                                            interp_y[ipoint],
+                                                            interp_z[ipoint]});
         }
     }
 };

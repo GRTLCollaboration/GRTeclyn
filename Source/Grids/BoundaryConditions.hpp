@@ -43,7 +43,7 @@ class BoundaryConditions
         std::array<int, AMREX_SPACEDIM> lo_condition{};
         std::array<bool, AMREX_SPACEDIM> is_periodic{};
 
-        std::array<double, NUM_VARS> vars_asymptotic_values =
+        std::array<amrex::Real, NUM_VARS> vars_asymptotic_values =
             StateVariables::asymptotic_values;
         params_t() = default;
         void fill_params();
@@ -60,7 +60,7 @@ class BoundaryConditions
     params_t m_params;        // the boundary params
     amrex::RealVect m_center; // the position of the center of the grid
     amrex::Geometry m_geom;   // the problem domain (excludes boundary cells)
-    mutable amrex::Gpu::DeviceVector<double> m_asymptotic_values{};
+    mutable amrex::Gpu::DeviceVector<amrex::Real> m_asymptotic_values{};
 
   public:
     /// Default constructor - need to call define afterwards
@@ -78,7 +78,7 @@ class BoundaryConditions
     /// change the asymptotic values of the variables for the Sommerfeld BCs
     /// this will allow them to evolve during a simulation if necessary
     void set_vars_asymptotic_values(
-        std::array<double, NUM_VARS> &vars_asymptotic_values);
+        std::array<amrex::Real, NUM_VARS> &vars_asymptotic_values);
 
     /// The function which returns the parity of each of the vars in
     /// StateVariables.hpp (It is only required for reflective boundary

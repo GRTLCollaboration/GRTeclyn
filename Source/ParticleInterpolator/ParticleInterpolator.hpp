@@ -40,8 +40,8 @@ class ParticleInterpolator
         false}; // a guard to make sure we do not uninitialised GRAMR
 
     // physical domain corners on level 0 for parity logic
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_lo{};
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_prob_hi{};
+    amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> m_prob_lo{};
+    amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> m_prob_hi{};
 
     // reflective BC flags per side on the low and high sides
     amrex::GpuArray<bool, AMREX_SPACEDIM> m_lo_boundary_reflective{{false}};
@@ -80,11 +80,11 @@ class ParticleInterpolator
     MPIContextParticle m_mpi;
 
     std::vector<int> m_answer_idx{}; // indices of the answers (send buffers)
-    std::vector<std::vector<double>>
+    std::vector<std::vector<amrex::ParticleReal>>
         m_answer_data{}; // send buffers on the answering rank
 
     std::vector<int> m_query_idx{}; // indices of query (receiving buffers)
-    std::vector<std::vector<double>>
+    std::vector<std::vector<amrex::ParticleReal>>
         m_query_data{}; // receive buffers on the query rank
 
     // a parity helper (the same way as it was defined in the AMRInterpolator)
@@ -102,7 +102,7 @@ class ParticleInterpolator
                      bool low_reflect, bool high_reflect);
 
     // A function to check whether the query point is inside the physical domain
-    void check_domain(amrex::GpuArray<double, AMREX_SPACEDIM> &x,
+    void check_domain(amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
     // A helper function that aggregates all the points together from senders
@@ -147,7 +147,7 @@ class ParticleInterpolator
     // user opts to change the query in the interpolation
     void interp(const InterpolationQueryParticle &query,
                 bool a_refresh_particles, const std::string &name_derived = "",
-                double time_derived = 0.0);
+                amrex::Real time_derived = 0.0);
 
     void ensure_redistributed();
 

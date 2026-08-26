@@ -102,9 +102,9 @@ void run_emtensor_test()
 
         const auto &in_c_arrays = in_mf.const_arrays();
 
-        double time = 0.0;
-        int *bcrec  = nullptr;
-        int level   = 0;
+        amrex::Real time = 0.0;
+        int *bcrec       = nullptr;
+        int level        = 0;
 
         EMTensor<DefaultScalarField,
                  EMTensorOptions::justEnergyDensity>::compute_mf(out_mf,

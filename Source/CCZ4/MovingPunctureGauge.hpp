@@ -27,70 +27,70 @@ class MovingPunctureGauge
     struct params_t
     {
         // lapse params:
-        double lapse_advec_coeff; //!< Switches advection terms in
-                                  //! the lapse condition on/off
-        double lapse_power;       //!< The power p in \f$\partial_t \alpha = - c
-                                  //!\alpha^p(K-2\Theta)\f$
-        double lapse_coeff;       //!< The coefficient c in \f$\partial_t \alpha
-                                  //!= -c \alpha^p(K-2\Theta)\f$
+        amrex::Real lapse_advec_coeff; //!< Switches advection terms in
+                                       //! the lapse condition on/off
+        amrex::Real lapse_power; //!< The power p in \f$\partial_t \alpha = - c
+                                 //!\alpha^p(K-2\Theta)\f$
+        amrex::Real lapse_coeff; //!< The coefficient c in \f$\partial_t \alpha
+                                 //!= -c \alpha^p(K-2\Theta)\f$
         // shift params:
-        double shift_Gamma_coeff; //!< Gives the F in \f$\partial_t
-                                  //!  \beta^i =  F B^i\f$
-        double shift_advec_coeff; //!< Switches advection terms in the
-                                  //! shift condition on/off
-        double eta; //!< The eta in \f$\partial_t B^i = \partial_t \tilde
-                    //!\Gamma - \eta B^i\f$
+        amrex::Real shift_Gamma_coeff; //!< Gives the F in \f$\partial_t
+                                       //!  \beta^i =  F B^i\f$
+        amrex::Real shift_advec_coeff; //!< Switches advection terms in the
+                                       //! shift condition on/off
+        amrex::Real eta; //!< The eta in \f$\partial_t B^i = \partial_t \tilde
+                         //!\Gamma - \eta B^i\f$
 
         static void check_params()
         {
             GRParmParse gauge_pp("gauge");
             // Lapse evolution
-            double lapse_advec_coeff = 1.;
+            amrex::Real lapse_advec_coeff = 1.;
             gauge_pp.queryAdd("lapse_advec_coeff", lapse_advec_coeff);
             if (std::min(std::abs(lapse_advec_coeff),
-                         std::abs(lapse_advec_coeff - 1.0)) >
-                std::numeric_limits<double>::epsilon())
+                         std::abs(lapse_advec_coeff - amrex::Real(1.0))) >
+                std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("lapse_advec_coeff",
                                  "usually set to 0.0 or 1.0");
             }
 
-            double lapse_power = 1.;
+            amrex::Real lapse_power = 1.;
             gauge_pp.queryAdd("lapse_power", lapse_power);
             if (std::abs(lapse_power - 1.0) >
-                std::numeric_limits<double>::epsilon())
+                std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("lapse_power", "set to 1.0 for 1+log slicing");
             }
 
-            double lapse_coeff = 2.;
+            amrex::Real lapse_coeff = 2.;
             gauge_pp.queryAdd("lapse_coeff", lapse_coeff);
             if (std::abs(lapse_coeff - 2.0) >
-                std::numeric_limits<double>::epsilon())
+                std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("lapse_coeff", "set to 2.0 for 1+log slicing");
             }
 
             // Shift Evolution
-            double shift_Gamma_coeff = 0.75;
+            amrex::Real shift_Gamma_coeff = 0.75;
             gauge_pp.queryAdd("shift_Gamma_coeff", shift_Gamma_coeff);
             if (std::abs(shift_Gamma_coeff - 0.75) >
-                std::numeric_limits<double>::epsilon())
+                std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("shift_Gamma_coeff", "usually set to 0.75");
             }
 
-            double shift_advec_coeff = 0.0;
+            amrex::Real shift_advec_coeff = 0.0;
             gauge_pp.queryAdd("shift_advec_coeff", shift_advec_coeff);
             if (std::min(std::abs(shift_advec_coeff),
-                         std::abs(shift_advec_coeff - 1.0)) >
-                std::numeric_limits<double>::epsilon())
+                         std::abs(shift_advec_coeff - amrex::Real(1.0))) >
+                std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("shift_advec_coeff",
                                  "usually set to 0.0 or 1.0");
             }
 
-            double eta = 1.0;
+            amrex::Real eta = 1.0;
             gauge_pp.queryAdd("eta", eta);
             if (eta < 0.1 || eta > 10)
             {

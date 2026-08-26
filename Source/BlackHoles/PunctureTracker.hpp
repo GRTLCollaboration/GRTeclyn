@@ -24,7 +24,7 @@ struct puncture_tracker_params_t
     int writeout_level{};
     std::string output_path{"."}; // default
 
-    std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_coords{};
+    std::array<amrex::ParticleReal, AMREX_SPACEDIM * 2UL> initial_coords{};
 
     inline static void check_params();
     inline void fill_params();
@@ -46,7 +46,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 
     params_t m_params{};
 
-    amrex::Array<amrex::Real, num_puncture_coords> m_puncture_coords{};
+    amrex::Array<amrex::ParticleReal, num_puncture_coords> m_puncture_coords{};
 
     GRAMR *m_gr_amr{nullptr};
 
@@ -54,7 +54,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     bool m_puncture_coords_set{false};
     bool m_started{false};
 
-    double m_restart_time{0.0};
+    amrex::Real m_restart_time{0.0};
 
   public:
     //! The constructor
@@ -83,16 +83,17 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     void write_plotfile(const std::string &a_dir);
 
     //! Track the punctures and write out if requested
-    void track(double a_time, double a_dt, const bool a_write_punctures = true);
+    void track(amrex::Real a_time, amrex::Real a_dt,
+               const bool a_write_punctures = true);
 
     //! Set the puncture coordinates (for the initial coordinates)
-    void
-    set_puncture_coords(const amrex::Array<amrex::Real, num_puncture_coords>
-                            &a_puncture_coords);
+    void set_puncture_coords(
+        const amrex::Array<amrex::ParticleReal, num_puncture_coords>
+            &a_puncture_coords);
 
     //! Get the puncture coordinates
     [[nodiscard]]
-    const amrex::Array<amrex::Real, num_puncture_coords> &
+    const amrex::Array<amrex::ParticleReal, num_puncture_coords> &
     get_puncture_coords() const;
 
 #ifndef AMREX_USE_CUDA

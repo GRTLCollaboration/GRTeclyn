@@ -15,15 +15,16 @@
 class FixedGridsTagger
 {
   protected:
-    double m_dx;
-    double m_L;
+    amrex::Real m_dx;
+    amrex::Real m_L;
     int m_level;
-    std::array<double, AMREX_SPACEDIM> m_center;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
 
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    FixedGridsTagger(const double dx, const int a_level, const double a_L,
-                     const std::array<double, AMREX_SPACEDIM> a_center)
+    FixedGridsTagger(const amrex::Real dx, const int a_level,
+                     const amrex::Real a_L,
+                     const std::array<amrex::Real, AMREX_SPACEDIM> a_center)
         : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center) {};
 
     AMREX_GPU_DEVICE void
@@ -34,7 +35,7 @@ class FixedGridsTagger
         // make sure the inner part is regridded around the horizon
         // take L as the length of full grid, so tag inner 1/2
         // of it, which means inner \pm L/4
-        double ratio = pow(2.0, -(m_level + 2.0));
+        amrex::Real ratio = pow(2.0, -(m_level + 2.0));
 
         amrex::IntVect cell(AMREX_D_DECL(ix, iy, iz));
 

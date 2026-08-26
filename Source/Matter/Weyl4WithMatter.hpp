@@ -19,8 +19,8 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
 {
   public:
     //! Constructor
-    Weyl4WithMatter(const double a_dx, const int a_dcomp,
-                    double a_G_Newton = 1.0)
+    Weyl4WithMatter(const amrex::Real a_dx, const int a_dcomp,
+                    amrex::Real a_G_Newton = 1.0)
         : Weyl4(a_dx, a_dcomp), m_dcomp(a_dcomp), m_G_Newton(a_G_Newton)
     {
     }
@@ -47,8 +47,8 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
   protected:
 
     matter_t m_matter;
-    int m_dcomp;       //!< index for storing the results of compute
-    double m_G_Newton; //!< Newton's constant, set to one by default
+    int m_dcomp;            //!< index for storing the results of compute
+    amrex::Real m_G_Newton; //!< Newton's constant, set to one by default
 
     //! Add matter terms to electric and magnetic parts
 

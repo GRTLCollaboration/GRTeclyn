@@ -24,7 +24,7 @@ static const amrex::Vector<std::string> names{"phi", "Pi"};
 
 static const std::array<BCParity, NUM_VARS> parities = {BCParity::even,
                                                         BCParity::even};
-static const std::array<double, NUM_VARS> asymptotic_values{};
+static const std::array<amrex::Real, NUM_VARS> asymptotic_values{};
 // The example parameter file uses periodic boundary conditions, in which the
 // parities aren't used but must be defined. However you could use reflective
 // boundary conditions with the above parity definitions.

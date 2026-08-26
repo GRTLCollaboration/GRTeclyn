@@ -81,7 +81,7 @@ void run_weyl4_test()
         // so we need to add them to it
         GRParmParse pp;
         GRParmParse extraction_pp("weyl_extraction");
-        std::array<double, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
+        std::array<amrex::Real, AMREX_SPACEDIM> center{0.0, 0.0, 0.0};
         int formulation{};
         formulation = CCZ4RHS<>::USE_CCZ4;
         extraction_pp.queryAdd("center", center);
@@ -92,7 +92,7 @@ void run_weyl4_test()
         amrex::MultiFab out_mf{box_array, distribution_mapping, num_weyl4_comps,
                                num_out_ghosts, mf_info};
         constexpr int dcomp = 0;
-        double time         = 0.0;
+        amrex::Real time    = 0.0;
         int *bcrec          = nullptr;
         int level           = 0;
 

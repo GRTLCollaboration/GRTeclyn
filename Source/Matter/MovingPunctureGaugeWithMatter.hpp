@@ -32,7 +32,7 @@ class MovingPunctureGaugeWithMatter : public MovingPunctureGauge
     rhs_gauge_add_matter_terms(const amrex::CellData<amrex::Real> &rhs,
                                const CCZ4Vars &vars, const Tensor::Rank2 &h_UU,
                                const emtensor_t &emtensor,
-                               const double &G_Newton)
+                               const amrex::Real &G_Newton)
     {
         FOR (i)
         {

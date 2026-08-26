@@ -69,7 +69,7 @@ void run_particle_interpolator_test()
         ParticleInterpolatorLevel::variableSetUp();
 
         // Set the center
-        std::array<double, AMREX_SPACEDIM> center{};
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM> center{};
         pp.get("geometry.center", center);
         PolynomialDerivedQuantity::set_center(center);
 
@@ -78,7 +78,7 @@ void run_particle_interpolator_test()
             interpolator_test_level_fact;
         GRAMR gr_amr(&interpolator_test_level_fact);
 
-        double stop_time{};
+        amrex::Real stop_time{};
         pp.get("evolution.stop_time", stop_time);
         gr_amr.init(0., stop_time);
 
@@ -89,11 +89,11 @@ void run_particle_interpolator_test()
         bool verbosity{};
         pp.get("particle_interpolator.verbosity", verbosity);
 
-        std::array<double, AMREX_SPACEDIM> prob_extent{};
+        std::array<amrex::Real, AMREX_SPACEDIM> prob_extent{};
         pp.get("geometry.prob_extent", prob_extent);
 
         // Using lenght of x direction to define extraction radius
-        double extract_radius = prob_extent[0] / 4;
+        amrex::Real extract_radius = prob_extent[0] / 4.0;
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();
@@ -116,17 +116,19 @@ void run_particle_interpolator_test()
             myproc * base + std::min(myproc, remainder); // global start index
 
         // Allocate vectors for writing
-        std::vector<double> A_local(n_local); // for storing derived polynomial
-        std::vector<double> B_local(n_local); // for storing state polynomial
-        std::vector<double> interp_x_local(n_local);
-        std::vector<double> interp_y_local(n_local);
-        std::vector<double> interp_z_local(n_local);
+        std::vector<amrex::ParticleReal> A_local(
+            n_local); // for storing derived polynomial
+        std::vector<amrex::ParticleReal> B_local(
+            n_local); // for storing state polynomial
+        std::vector<amrex::ParticleReal> interp_x_local(n_local);
+        std::vector<amrex::ParticleReal> interp_y_local(n_local);
+        std::vector<amrex::ParticleReal> interp_z_local(n_local);
 
         for (int j = 0; j < n_local; ++j)
         {
-            int ipoint   = start + j; // global index
-            double phi   = ipoint * 2. * M_PI / num_points;
-            double theta = ipoint * M_PI / num_points;
+            int ipoint        = start + j; // global index
+            amrex::Real phi   = ipoint * 2. * M_PI / num_points;
+            amrex::Real theta = ipoint * M_PI / num_points;
 
             interp_x_local[j] =
                 center[0] + extract_radius * cos(phi) * sin(theta);
@@ -167,12 +169,12 @@ void run_particle_interpolator_test()
 
         for (int ipoint = 0; ipoint < n_local; ++ipoint)
         {
-            double x = interp_x_local[ipoint] - center[0];
-            double y = interp_y_local[ipoint] - center[1];
-            double z = interp_z_local[ipoint] - center[2];
+            amrex::ParticleReal x = interp_x_local[ipoint] - center[0];
+            amrex::ParticleReal y = interp_y_local[ipoint] - center[1];
+            amrex::ParticleReal z = interp_z_local[ipoint] - center[2];
 
-            double A_known = 42. + x * x + y * y * z * z;
-            double B_known = pow(z, 3);
+            amrex::ParticleReal A_known = 42. + x * x + y * y * z * z;
+            amrex::ParticleReal B_known = pow(z, 3);
 
             INFO("Interpolated A is "
                  << A_local[ipoint] << " at point x = " << x << " y = " << y

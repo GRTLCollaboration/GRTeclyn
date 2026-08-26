@@ -62,12 +62,12 @@ void puncture_tracker_params_t::check_params()
     int writeout_level = 0;
     puncture_tracking_pp.queryAdd("writeout_level", writeout_level);
 
-    std::array<double, AMREX_SPACEDIM> center{};
+    std::array<amrex::Real, AMREX_SPACEDIM> center{};
     pp.get("geometry.center", center);
 
     std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_coords{
-        center[0], center[1] - 1.0, center[2],
-        center[0], center[1] + 1.0, center[2]};
+        center[0], center[1] - amrex::Real(1.0), center[2],
+        center[0], center[1] + amrex::Real(1.0), center[2]};
     puncture_tracking_pp.queryAdd("initial_coords", initial_coords);
 }
 
@@ -203,7 +203,8 @@ void PunctureTracker<num_punctures>::set_initial_punctures_pc()
         particle_tile.resize(num_punctures);
         const auto &particle_tile_data = particle_tile.getParticleTileData();
 
-        amrex::GpuArray<amrex::Real, num_puncture_coords> d_puncture_coords;
+        amrex::GpuArray<amrex::ParticleReal, num_puncture_coords>
+            d_puncture_coords;
         std::copy(m_puncture_coords.begin(), m_puncture_coords.end(),
                   d_puncture_coords.begin());
 
@@ -227,7 +228,7 @@ void PunctureTracker<num_punctures>::set_initial_punctures_pc()
 
 template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::set_puncture_coords(
-    const amrex::Array<amrex::Real,
+    const amrex::Array<amrex::ParticleReal,
                        PunctureTracker<num_punctures>::num_puncture_coords>
         &a_puncture_coords)
 {
@@ -237,7 +238,7 @@ void PunctureTracker<num_punctures>::set_puncture_coords(
 }
 
 template <unsigned int num_punctures>
-const amrex::Array<amrex::Real,
+const amrex::Array<amrex::ParticleReal,
                    PunctureTracker<num_punctures>::num_puncture_coords> &
 PunctureTracker<num_punctures>::get_puncture_coords() const
 {
@@ -246,13 +247,14 @@ PunctureTracker<num_punctures>::get_puncture_coords() const
 }
 
 template <unsigned int num_punctures>
-std::vector<amrex::Real>
+std::vector<amrex::ParticleReal>
 PunctureTracker<num_punctures>::get_puncture_vector() const
 {
     AMREX_ASSERT(m_initialized);
     AMREX_ASSERT(m_puncture_coords_set);
 
-    std::vector<amrex::Real> puncture_coords_vector(num_puncture_coords);
+    std::vector<amrex::ParticleReal> puncture_coords_vector(
+        num_puncture_coords);
     std::copy(m_puncture_coords.begin(), m_puncture_coords.end(),
               puncture_coords_vector.begin());
 
@@ -268,9 +270,9 @@ void PunctureTracker<num_punctures>::write_initial_punctures() const
         return;
     }
     // now the write out to a new file
-    bool first_step = true;
-    double dt       = 1.; // doesn't matter
-    double time     = 0.;
+    bool first_step  = true;
+    amrex::Real dt   = 1.; // doesn't matter
+    amrex::Real time = 0.;
     SmallDataIO punctures_file(m_params.full_filename, dt, time, m_restart_time,
                                SmallDataIO::APPEND, first_step);
     std::vector<std::string> header1_strings(
@@ -290,7 +292,7 @@ void PunctureTracker<num_punctures>::write_initial_punctures() const
 
 //! track the punctures and write out if requested
 template <unsigned int num_punctures>
-void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
+void PunctureTracker<num_punctures>::track(amrex::Real a_time, amrex::Real a_dt,
                                            const bool a_write_punctures)
 {
     BL_PROFILE("PunctureTracker::track");
@@ -378,10 +380,12 @@ void PunctureTracker<num_punctures>::track(double a_time, double a_dt,
                         // domain otherwise AMReX will mark them invalid
                         FOR1 (idir)
                         {
-                            p.pos(idir) =
-                                std::max(p.pos(idir), problem_domain_lo[idir]);
-                            p.pos(idir) =
-                                std::min(p.pos(idir), problem_domain_hi[idir]);
+                            p.pos(idir) = std::max(
+                                p.pos(idir), static_cast<amrex::ParticleReal>(
+                                                 problem_domain_lo[idir]));
+                            p.pos(idir) = std::min(
+                                p.pos(idir), static_cast<amrex::ParticleReal>(
+                                                 problem_domain_hi[idir]));
                         }
                     }); // amrex::ParallelFor
             } // punc_iter

@@ -13,7 +13,7 @@
 
 template <class matter_t, class gauge_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
-    double a_dx, double a_G_Newton)
+    amrex::Real a_dx, amrex::Real a_G_Newton)
     : CCZ4RHS<gauge_t, deriv_t>(a_dx, 0.0 /*No cosmological constant*/),
       m_G_Newton(a_G_Newton)
 {

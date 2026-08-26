@@ -30,7 +30,7 @@ template <class matter_t> class ConstraintsWithMatter : public Constraints
         Can specify the vars of the constraint vars instead of using the
         hardcoded ones.
     */
-    ConstraintsWithMatter(double dx, double G_Newton, int a_c_Ham,
+    ConstraintsWithMatter(amrex::Real dx, amrex::Real G_Newton, int a_c_Ham,
                           const Interval &a_c_Moms, int a_c_Ham_abs_terms = -1,
                           const Interval &a_c_Moms_abs_terms = Interval());
 
@@ -51,8 +51,8 @@ template <class matter_t> class ConstraintsWithMatter : public Constraints
                            int /*level*/);
 
   protected:
-    matter_t my_matter; //!< The matter object, e.g. a scalar field
-    double m_G_Newton;  //!< Newton's constant, set to one by default.
+    matter_t my_matter;     //!< The matter object, e.g. a scalar field
+    amrex::Real m_G_Newton; //!< Newton's constant, set to one by default.
 };
 
 #include "ConstraintsWithMatter.impl.hpp"

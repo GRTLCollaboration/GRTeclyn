@@ -18,7 +18,8 @@
 class HarmonicTest
 {
   public:
-    HarmonicTest(std::array<double, AMREX_SPACEDIM> a_center, double a_dx)
+    HarmonicTest(std::array<amrex::Real, AMREX_SPACEDIM> a_center,
+                 amrex::Real a_dx)
         : m_dx(a_dx), m_center(a_center)
     {
     }
@@ -28,8 +29,8 @@ class HarmonicTest
             const amrex::CellData<amrex::Real> &current_cell) const;
 
   private:
-    double m_dx;
-    std::array<double, AMREX_SPACEDIM> m_center;
+    amrex::Real m_dx;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
     compute_harmonic(Coordinates coords) const;

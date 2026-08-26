@@ -14,8 +14,8 @@
 class PositiveChiAndLapse
 {
   private:
-    double m_min_chi{};
-    double m_min_lapse{};
+    amrex::Real m_min_chi{};
+    amrex::Real m_min_lapse{};
 
   public:
     //! Constructor for class

@@ -10,6 +10,8 @@
 #include "Coordinates.hpp"
 #include "Tensor.hpp"
 
+using namespace amrex::literals;
+
 // Functions for the spin weighted spherical harmonics
 // See paper arXiv:gr-qc/0610128 eqn 40
 namespace SphericalHarmonics
@@ -24,8 +26,8 @@ struct Y_lm_t
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 // Calculates the spin weight es, el, em spherical harmonic
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Y_lm_t
-spin_Y_lm(const amrex::Real x, const double y, const double z, const int es,
-          const int el, const int em)
+spin_Y_lm(const amrex::Real x, const amrex::Real y, const amrex::Real z,
+          const int es, const int el, const int em)
 {
 
     AMREX_ASSERT((el >= 0) && (el >= std::abs(em)));
@@ -34,14 +36,15 @@ spin_Y_lm(const amrex::Real x, const double y, const double z, const int es,
 
     // calculate useful position quantities
     amrex::Real r     = sqrt(x * x + y * y + z * z);
-    r                 = std::max(r, 1.0e-6);
+    r                 = std::max(r, 1.0e-6_rt);
     amrex::Real theta = acos(z / r);
     amrex::Real phi   = atan2(y, x);
 
     using namespace Combinatorics;
-    double coefficient  = pow(-1.0, es) * sqrt((2.0 * el + 1.0) / (4.0 * M_PI));
-    coefficient        *= sqrt(factorial(el + em) * factorial(el - em) /
-                               factorial(el + es) / factorial(el - es));
+    amrex::Real coefficient =
+        pow(-1.0, es) * sqrt((2.0 * el + 1.0) / (4.0 * M_PI));
+    coefficient *= sqrt(factorial(el + em) * factorial(el - em) /
+                        factorial(el + es) / factorial(el - es));
 
     amrex::Real sum = 0.0;
     int lower_limit = em + es > 0 ? em + es : 0;
@@ -49,7 +52,8 @@ spin_Y_lm(const amrex::Real x, const double y, const double z, const int es,
 
     for (int i = lower_limit; i <= upper_limit; i++)
     {
-        double temp = n_choose_r(el + es, i) * n_choose_r(el - es, i - es - em);
+        amrex::Real temp =
+            n_choose_r(el + es, i) * n_choose_r(el - es, i - es - em);
         sum += temp * pow(-1.0, i) *
                pow(cos(theta / 2.0), 2 * (el - i) + es + em) *
                pow(sin(theta / 2.0), 2 * i - em - es);

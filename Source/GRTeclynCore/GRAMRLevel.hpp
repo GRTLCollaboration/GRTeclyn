@@ -145,7 +145,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
     virtual void specificEvalRHS(amrex::MultiFab &a_soln,
                                  amrex::MultiFab &a_rhs,
-                                 const double a_time) = 0;
+                                 const amrex::Real a_time) = 0;
 
     virtual void specificUpdateODE(amrex::MultiFab & /*a_soln*/) {}
 

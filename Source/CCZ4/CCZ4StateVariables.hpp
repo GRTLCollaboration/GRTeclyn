@@ -111,7 +111,7 @@ static const std::array<BCParity, NUM_CCZ4_VARS> parities = {
     BCParity::odd_z, // B3
 };
 
-static const std::array<double, NUM_CCZ4_VARS> asymptotic_values = {
+static const std::array<amrex::Real, NUM_CCZ4_VARS> asymptotic_values = {
     1.0, // chi
 
     1.0, // h11

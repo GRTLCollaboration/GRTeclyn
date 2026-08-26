@@ -24,10 +24,13 @@
 #include "Coordinates.hpp"
 #include "TensorAlgebra.hpp"
 
+using namespace amrex::literals;
+
 namespace
 {
-constexpr int ulp             = 15; // units in the last place
-constexpr double real_epsilon = std::numeric_limits<amrex::Real>::epsilon();
+constexpr int ulp = 15; // units in the last place
+constexpr amrex::Real real_epsilon =
+    std::numeric_limits<amrex::Real>::epsilon();
 
 void check_tensor(const Tensor::Rank2 &tensor,
                   const Tensor::Rank2 &correct_tensor,
@@ -83,7 +86,7 @@ void run_coordinate_transformations_test()
         const amrex::Real y     = coords.y;
         const amrex::Real z     = coords.z;
         const amrex::Real r     = coords.get_radius();
-        amrex::Real rho2        = std::max(x * x + y * y, 1e-12);
+        amrex::Real rho2        = std::max(x * x + y * y, 1e-12_rt);
         amrex::Real r2sin2theta = rho2;
 
         /* for debugging
