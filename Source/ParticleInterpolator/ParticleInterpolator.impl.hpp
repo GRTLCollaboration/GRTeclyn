@@ -355,6 +355,20 @@ void ParticleInterpolator<num_components>::interp(
 {
     AMREX_ASSERT(m_initialized);
 
+    if (query.numComps() > num_components)
+    {
+        std::string msg =
+            "ParticleInterpolator::interp() Oi oi oi! Your query asks for " +
+            std::to_string(query.numComps()) +
+            " components but this ParticleInterpolator was declared with only "
+            "num_components = " +
+            std::to_string(num_components) +
+            ". Each requested derivative counts as a separate "
+            "component.";
+
+        amrex::Abort(msg);
+    }
+
     // Populate particles
     // here we need to cover various scenarious:
     // (1) first call, refresh=false -> populate once + redistribute (automatic

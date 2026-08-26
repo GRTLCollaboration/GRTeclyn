@@ -124,12 +124,11 @@ class InterpolationQueryParticle
         return m_variable_type;
     }
 
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    int numComps()
+    [[nodiscard]] int numComps() const
     {
         int accum = 0;
 
-        for (auto &m_comp : m_comps)
+        for (const auto &m_comp : m_comps)
         {
             accum += static_cast<int>(m_comp.second.size());
         }
