@@ -42,7 +42,7 @@ test_dirs := $(patsubst %/, %, $(test_dirs_match))
 # Finally add in the Common directory
 test_dirs += $(GRTECLYN_TESTS_HOME)/Common
 
-search_dirs := . $(src_dirs) $(test_dirs)
+search_dirs := $(realpath .) $(src_dirs) $(test_dirs)
 
 doctest_dir := $(GRTECLYN_HOME)/external/doctest
 doctest_headers := doctest.h
