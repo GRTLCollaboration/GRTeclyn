@@ -2,7 +2,7 @@
 
 Here we describe the rough procedure that one should follow for making changes to the code. It is not set in stone, but strongly advised as best practice.
 
-No one is too new or junior to add code to the repository, you don't need permission, but if you are unsure contact Katy or Miren for informal guidance. It may take a little time for it to be reviewed, but please always consider adding your code if you have made a nice new feature, and consider it *an absolute moral obligation* to report bugs (by creating a [new issue](https://github.com/GRTeclyn/GRTeclyn/issues/new/choose)). Although contributing back your changes might not naively seem like the absolute best use of your time, remember that if everyone contributes back their features and modifications, this saves time for others when they need them for a project later on; this is the power of open source coding!
+No one is too new or junior to add code to the repository, you don't need permission, but if you are unsure contact Katy or Miren for informal guidance. It may take a little time for it to be reviewed, but please always consider adding your code if you have made a nice new feature, and consider it *an absolute moral obligation* to report bugs (by creating a [new issue](https://github.com/GRTLCollaboration/GRTeclyn/issues/new/choose)). Although contributing back your changes might not naively seem like the absolute best use of your time, remember that if everyone contributes back their features and modifications, this saves time for others when they need them for a project later on; this is the power of open source coding!
 
 ## Step 1: Testing
 

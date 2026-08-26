@@ -14,7 +14,7 @@ Note that some of the following instructions will only work with newer versions 
 
 ### Getting Clang Format
 
-We recommend installing `clang-format` using the Python package manager `pip` (see [here](https://packaging.python.org/tutorials/installing-packages/) if you don't have `pip` available). You should install the version that is current enforced by [the GitHub action](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/.github/workflows/lint.yml) that checks it (currently v19 at time of writing, NB: this is different to what GRChombo uses). This can be done with a command such as
+We recommend installing `clang-format` using the Python package manager `pip` (see [here](https://packaging.python.org/tutorials/installing-packages/) if you don't have `pip` available). You should install the version that is current enforced by [the GitHub action](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.github/workflows/lint.yml) that checks it (currently v19 at time of writing, NB: this is different to what GRChombo uses). This can be done with a command such as
 ```bash
 python3 -m pip install --user clang-format==19.1.7
 ```
@@ -28,7 +28,7 @@ Alternatively, you can install `clang-format` using your system's package manage
 
 ### Running Clang Format
 
-Before committing any changes that you have made, you should run `clang-format` on all files by executing the [`run_clang_format`](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/run_clang_format) script in the repository base directory.
+Before committing any changes that you have made, you should run `clang-format` on all files by executing the [`run_clang_format`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/run_clang_format) script in the repository base directory.
 
 Alternatively, you may be able to set up your text editor to automatically run `clang-format` when you save a file. There are guides for several editors such as
  * [Vim](https://clang.llvm.org/docs/ClangFormat.html#vim-integration)
@@ -37,7 +37,7 @@ Alternatively, you may be able to set up your text editor to automatically run `
  * [VS Code](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format)
  * [Sublime](https://github.com/rosshemsley/SublimeClangFormat)
 
-Note that some of these guides may assume you have installed `clang-format` in a different way to that described above. If you set up your editor using one of these guides make sure they are enforcing the `-style=file` option as this will use [our style configuration](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/.clang-format) rather than a different one.
+Note that some of these guides may assume you have installed `clang-format` in a different way to that described above. If you set up your editor using one of these guides make sure they are enforcing the `-style=file` option as this will use [our style configuration](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.clang-format) rather than a different one.
 
 ### Setting up the pre-commit hook
 

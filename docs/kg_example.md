@@ -29,7 +29,7 @@ This example can be useful if you:
 1. `git clone` GRTeclyn and AMReX as usual. Navigate to `Examples/KleinGordon`.
 2. Build using
 ```bash
-make -j 8 COMP=<your favourite toolchain> 
+make -j 8 COMP=<your favourite toolchain>
 ```
 See the [example configs](https://grtlcollaboration.github.io/GRTeclyn/example_configs/) for some common setups.
 3. Take a look inside the parameter file, `params_test.txt`:
@@ -59,15 +59,15 @@ All Klein Gordon parameters are prefaced by `klein-gordon`:
     - `klein_gordon.model`: Choose from `Wave`, `SineGordon1D` or `SineGordon3D`
     - **(Sine Gordon models only)** `klein_gordon.alpha`: The breather solutions oscillate and this controls the frequency of the oscillation. Must be less than 1!
     - `klein_gordon.initial_time`: This sets the initial state/phase of the solution.
-    - **(Wave models only)** `klein_gordon.wave_vector`: The characteristic wave number, $k_r$. The solution is in the form $\cos(k_r r - \omega t)$. 
+    - **(Wave models only)** `klein_gordon.wave_vector`: The characteristic wave number, $k_r$. The solution is in the form $\cos(k_r r - \omega t)$.
     - **(Wave models only)** `klein_gordon.scalar_mass`: The potential is in the form $m^2 \phi^2$, where $m$ is the mass of the scalar field.
-    
+
 4. Run the code using
 ```bash
 mpirun -np 2 ./KleinGordon3d.XXX.MPI.ex ./params_test.txt
 ```
 where the `XXX` represents the toolchain that you've chosen in Step 2.
-This example is very small, so 2 MPI ranks is more than sufficient. 
+This example is very small, so 2 MPI ranks is more than sufficient.
 
 ## Looking at the outputs
 
@@ -82,7 +82,7 @@ There are three derived variables:
 * `Pi_analytic` - the analytic solution to the first derivative of the field value at each cell
 * `rho` - the value of the energy density at each cell.
 
-Set `amr.plot_vars = ALL` and `amr.derive_plot_vars = ALL` to print all the state (`phi`, `Pi`) and derived variables (`phi_analytic`, `Pi_analytic`, `rho`). 
+Set `amr.plot_vars = ALL` and `amr.derive_plot_vars = ALL` to print all the state (`phi`, `Pi`) and derived variables (`phi_analytic`, `Pi_analytic`, `rho`).
 
 If you plot the outputs using AMReXplorer, you will get something like this:
 
@@ -91,17 +91,4 @@ If you plot the outputs using AMReXplorer, you will get something like this:
 You can then use the "Field" button to scroll through the different variables.
 
 
-### (Aside) How to add a derived variable
-
-Since the way GRTeclyn handles derived variables is quite different to GRChombo and the derived variables are quite straightforward in this example, this is a good place to start learning how to add your own derived quantities. 
-
- 1. Define their compute functions, e.g. `calc_energy_density`. Take a look at how this is done inside `DerivedVariables.hpp` and `DerivedVariables.impl.hpp`.
- 2. Add the variable to the list of derived variables, `derive_lst`, managed by AMReX. This happens within the `KleinGordonLevel` class, inside the member function called `variableSetUp()`. Notice that the compute function defined in Step 1 is passed into `deriv_lst.add` and that the variables are named e.g. `rho`.
- 3. When `writePlotFile` is called (at the AMReX level), it will cycle through the names of the variables in `derive_lst` and the ones that you have selected (using `amr.derive_plot_vars` in the parameter file) will be written to file. 
-
-
-
-
-
-
-
+The analytic solution and energy density are examples of GRTeclyn diagnostics (called derived variables by AMReX). See [Diagnostics](diagnostics.md) for details of how they are registered, calculated when needed and added to your own example.

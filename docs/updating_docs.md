@@ -1,10 +1,8 @@
 # Create or amend the documentation
 
-You should draft documentation for the wiki for any major new features that need explaining, or update the existing docs for any changes.
+You should draft documentation for any major new features that need explaining, or update the existing docs for any changes. The documentation lives in the `docs` folder alongside the code and changes should be included in your usual pull request to `main`.
 
-The docs are currently on the branch `enhancement/documentation` but will soon move to the `main/develop` branch. For now you can check out this branch and edit and push to it without review (assuming you have access).
-
-Once you have the relevant branch you can view the docs locally in your browser. First, create and activate a Python virtual environment using your preferred tool, for example:
+You can view the docs locally in your browser. First, create and activate a Python virtual environment using your preferred tool, for example:
 
 ```
 python3 -m venv .venv

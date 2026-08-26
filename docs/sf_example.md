@@ -6,13 +6,13 @@ The parameters that are provided give a good enough resolution for the physical 
 
 ## Physical scenario
 
-This page describes running the Scalar Field example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/ScalarField/params.txt).
+This page describes running the Scalar Field example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/params.txt).
 
 ### Initial data
 
-The initial scalar field profile is set in [`OscillatonInitialData.hpp`](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/ScalarField/OscillatonInitialData.hpp)).
+The initial scalar field profile is set in [`OscillatonInitialData.hpp`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/OscillatonInitialData.hpp).
 
-This uses a quasi-stationary solution obtained from a shooting method, which has then been interpolated using chebychev polynomials to give something we can impose analytically. At large radius it reduces to the Schwarzschild metric. 
+This uses a quasi-stationary solution obtained from a shooting method, which has then been interpolated using Chebyshev polynomials to give something we can impose analytically. At large radius it reduces to the Schwarzschild metric.
 
 The values for $\Gamma^i$ could be calculated analytically from derivatives of the conformal metric, but instead we calculate it numerically using the `GammaCalculator.hpp` tool, which is necessary where the initial data is not conformally flat.
 
@@ -24,7 +24,7 @@ In Cartesian coordinates this is
 
 $$ \gamma_{ij} = \delta_{ij} + (g_{rr} - 1) n_i n_j. $$
 
-The CCZ4 variables are `chi`$= det(\gamma)^{-1/3} = g_{rr}^{-1/3}$ and `h`$= \chi \gamma_{ij}$. The components of the extrinsic curvature `K` and `A`$=\tilde A_{ij}$ are zero.  At the initial oscillaton phase the field profile `phi` is zero and its conjugate momentum `Pi` is nonzero, which means it can satisfy the constraints for any scalar potential (but it will only be stationary for the massive potential corresponding to the solution). 
+The CCZ4 variables are `chi`$= det(\gamma)^{-1/3} = g_{rr}^{-1/3}$ and `h`$= \chi \gamma_{ij}$. The components of the extrinsic curvature `K` and `A`$=\tilde A_{ij}$ are zero.  At the initial oscillaton phase the field profile `phi` is zero and its conjugate momentum `Pi` is nonzero, which means it can satisfy the constraints for any scalar potential (but it will only be stationary for the massive potential corresponding to the solution).
 
 The conformal connection `Gamma`$=\tilde{\Gamma}^i$ is evaluated numerically from `h` using a separate class `GammaCalculator`, which is required for consistency since the metric is not conformally flat.
 
@@ -32,7 +32,7 @@ The fitted profiles are finite Chebyshev expansions in
 
 $$s = r^2 / (r^2 + L^2), \quad   x = 2s - 1.$$
 
-They are smooth and even at the origin.  
+They are smooth and even at the origin.
 
 The geometry approaches a Schwarzschild solution of mass $M=0.52459888$ at large r.
 
@@ -42,7 +42,7 @@ We currently impose a fixed hierarchy of 2:1 refinement grids.
 
 ### Diagnostics
 
-In this example we show how to extract evolution and diagnostic data along a line through the centre of the oscillaton using the particle interpolator.
+In this example we show how to extract evolution and diagnostic data along a line through the centre of the oscillaton using the particle interpolator. The field `phi` is an evolution variable, while the energy density `rho` is a diagnostic which is calculated only when the extraction requests it. See [Diagnostics](diagnostics.md) for more about this distinction.
 
 Further details are below.
 
@@ -64,10 +64,10 @@ You probably want to look at the scalar profile `phi`, and perhaps also the conf
 
 ### Plots from data files
 
-The example also outputs some ASCII datafiles for post processing in a `data` folder. Firstly, it gives a file `scalar_profile.dat`, which gives the scalar profile over time.
+The example also outputs ASCII data files for post-processing in the `extraction_data` folder. The files named `phi_profile_*.dat` contain the scalar field profile and those named `rho_profile_*.dat` contain the energy density. A separate numbered file is written at each extraction time.
 
-This can be plotted using the `python` script `plot_lineouts.png` found in the example folder.
+These can be plotted using the Python script `plot_lineouts.py` found in the example folder. Set its `data_path` to `Path("extraction_data")` when running it with the default parameter file.
 
-The resulting image should look like ![this](img/lineouts.png) 
+The resulting image should look like ![this](img/lineouts.png)
 
 Note that the small oscillation in the density over time is expected - for a real scalar field oscillon, the stress energy tensor is not completely stationary. However, it should not decay noticeably over time and the amplitude of the oscillations should remain just above 0.04.

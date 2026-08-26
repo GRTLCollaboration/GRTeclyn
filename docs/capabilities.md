@@ -12,7 +12,7 @@ Note that GRTeclyn is designed as a research tool, not a black box. Users are en
 
 ### Formulation of the Einstein equations
 
-* GRTeclyn uses the [CCZ4](https://inspirehep.net/literature/913488) formulation with constraint damping to evolve the Einstein equations. 
+* GRTeclyn uses the [CCZ4](https://inspirehep.net/literature/913488) formulation with constraint damping to evolve the Einstein equations.
 * The implementation supports full 3+1D spacetimes with dynamic metrics and gauge evolution.
 * The code is written modularly, with clearly separated evolution and diagnostic systems.
 
@@ -24,7 +24,7 @@ Note that GRTeclyn is designed as a research tool, not a black box. Users are en
 
 ### Black hole spacetimes
 
-* Binary black hole (BBH) simulations are supported using Bowen–York initial data. 
+* Binary black hole (BBH) simulations are supported using Bowen–York initial data.
 * The **BinaryBH** example is fully functional for boosted cases. Currently the code uses an approximate solution but we plan to integrate the TwoPunctures code shortly, which will allow fully general initial momenta and spins.
 * Puncture positions are tracked and recorded throughout the simulation using particle methods.
 
@@ -67,7 +67,7 @@ These features are implemented in working branches or are actively being ported 
 
 * **Gravitational wave extraction** — Weyl scalar calculations for waveform analysis, and output of data for CCE extraction.
 * **Apparent horizon finder** — for locating black hole horizons in dynamical simulations.
-* **Initial condition solver** — a link to the GRTelcyn solver, to solve the Hamiltonian and Momentum constraints numerically for scalar or vacuum spacetimes. Integration of TwoPunctures as discussed above.
+* **Initial condition solver** — a link to the GRTeclyn solver, to solve the Hamiltonian and Momentum constraints numerically for scalar or vacuum spacetimes. Integration of TwoPunctures as discussed above.
 * **AMR interpolation tools** — to enable conservative variable interpolation and post-processing, based on particle methods.
 * **ADM mass and momenta diagnostics** — for computing global quantities.
 * **Higher-order spatial stencils** — planned support for 6th-order differencing.

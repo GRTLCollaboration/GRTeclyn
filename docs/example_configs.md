@@ -286,7 +286,7 @@ An example of a single GPU run:
 ```
 srun -A <your project code> -p gpu --qos=<priority> --nodes=1 --ntasks=1 --gres=gpu:1 --time=00:10:00 ./main3d.gnu.MPI.CUDA.ex params_test.txt
 ```
-where `<your project code>` is the name of your allocation and `<priority>` sets your priority level. Choose from `standard`, `dev`, `low`, or `high`. Read more about the possible options [here](https://epcced.github.io/dirac-docs/tursa-user-guide/scheduler/)
+where `<your project code>` is the name of your allocation and `<priority>` sets your priority level. Choose from `standard`, `dev`, `low`, or `high`. Read more about the possible options [here](https://epcced.github.io/dirac-docs/scheduler/).
 
 NB: The `gpu` queue above is general. There are two types of A100s on Tursa, those with 40GB memory per card and those with 80GB memory per card. If you need a particular amount of memory, you can choose between them by setting either `-p gpu-a100-40` or `-p gpu-a100-80`. Using `-p gpu` will give you whichever is available first and so increases your chances of the job starting earlier.
 

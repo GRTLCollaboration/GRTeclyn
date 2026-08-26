@@ -2,13 +2,13 @@
 
 This page is intended to help those coming from using the numerical relativity code [GRChombo](https://github.com/GRTLCollaboration/GRChombo) that was the predecessor code to GRTeclyn. If you are new to GRChombo and GRTeclyn, you can skip it!
 
-## Why port to GRTelcyn?
+## Why port to GRTeclyn?
 
 GRTeclyn is a new and improved version of the GRChombo code. It supports GPUs, meaning your code can run as much as 10-20x faster if you have access to these resources. Even if you only have access to CPUs, GRTeclyn should be faster to run and has a few useful improvements and new features. Most importantly, GRTeclyn is now the default code for our collaboration and so all new features and updates will be focused here.
 
 ## Will it be painful?
 
-No - it might even be fun! Porting your code will help you to understand both codes better, and most of the changes are cosmetic rather than fundamental, since Chombo and AMReX share common ancestry in BoxLibs. You should find most of GRTelcyn looks pretty familiar. In this page we will provide some detailed tips to get you started, but the basic idea is: look at how the binary or scalar field examples have changed from GRChombo to GRTeclyn, and then copy the same approach for your own examples.
+No - it might even be fun! Porting your code will help you to understand both codes better, and most of the changes are cosmetic rather than fundamental, since Chombo and AMReX share common ancestry in BoxLibs. You should find most of GRTeclyn looks pretty familiar. In this page we will provide some detailed tips to get you started, but the basic idea is: look at how the binary or scalar field examples have changed from GRChombo to GRTeclyn, and then copy the same approach for your own examples.
 
 ## Key changes
 
@@ -19,6 +19,10 @@ In news that no one will be sad about, there is no longer any explicit vectorisa
 - **Accessing variables**
 
 We now load and store variables directly to the grid, rather than creating a local copy of the variables at each point and then using those (i.e. the thing that was usually called `vars`). There is therefore no `enum_mapping_function` nonsense. We still have a way to access the variables in a readable form, but it uses pointers to the grid values, and so is much more efficient. The new way means you have to do `vars.chi()` to get a scalar variable, `vars.shift(i)` to get the i-th component of a vector and `vars.h(i,j)` to get the i,j component of a tensor. If you take a look at the new `CCZ4RHS` class you will get the idea. Note the use of curved (not square) brackets for accessing components in a tensor. (This arises because these are now all AMReX arrays under the hood).
+
+- **Diagnostics are calculated when needed**
+
+GRTeclyn no longer carries a separate diagnostic state alongside the evolution state. Diagnostics are registered as AMReX derived variables and calculated from the current evolution state only when they are requested for a plot file or extraction. See [**Diagnostics**](diagnostics.md) for how to register an existing diagnostic or implement your own.
 
 - **Derivatives and symmetries**
 
