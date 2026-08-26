@@ -1,4 +1,0 @@
-GRTECLYN_CEXE_headers += ChiTagger.hpp \
-                         ExtractionTagger.hpp \
-                         FixedGridsTagger.hpp \
-                         PunctureTagger.hpp

@@ -1,5 +1,0 @@
-GRTECLYN_CEXE_headers += PolynomialDerivedQuantity.hpp \
-                         ParticleInterpolatorLevel.hpp \
-                         ParticleInterpolatorUnitTest.hpp \
-
-GRTECLYN_CEXE_sources += ParticleInterpolatorUnitTest.cpp
