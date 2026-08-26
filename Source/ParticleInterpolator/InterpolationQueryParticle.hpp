@@ -13,6 +13,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuContainers.H>
 #include <map>
+#include <set>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -39,6 +40,7 @@ class InterpolationQueryParticle
     size_t m_num_points;
     std::array<const amrex::ParticleReal *, AMREX_SPACEDIM> m_coords{};
     comp_map_t m_comps{};
+    std::set<int> m_unique_comps{};
     VariableType m_variable_type{}; // for a given InterpolationQueryParticle
                                     // the variable type must be the same!
     bool m_variable_type_set =
@@ -102,12 +104,14 @@ class InterpolationQueryParticle
         }
 
         result->second.push_back(out_t{comp, out_ptr, parity});
+        m_unique_comps.insert(comp);
         return *this;
     }
 
     InterpolationQueryParticle &clearComps()
     {
         m_comps.clear();
+        m_unique_comps.clear();
         m_variable_type_set = false; // reset the initialised var type flag
         return *this;
     }
@@ -131,6 +135,16 @@ class InterpolationQueryParticle
         }
 
         return accum;
+    }
+
+    [[nodiscard]] const std::set<int> &uniqueComps() const
+    {
+        return m_unique_comps;
+    }
+
+    [[nodiscard]] int numUniqueComps() const
+    {
+        return static_cast<int>(m_unique_comps.size());
     }
 
     [[nodiscard]] size_t numPoints() const { return m_num_points; }

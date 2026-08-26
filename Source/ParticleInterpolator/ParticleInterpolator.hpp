@@ -69,8 +69,6 @@ class ParticleInterpolator
     // copy of BC params
     BoundaryConditions::params_t m_bc_params;
 
-    // for getting the starting component of query
-    int get_start_comp(const InterpolationQueryParticle &query);
     std::size_t m_num_query_points{}; // for storing number of query points
                                       // (later used in the minimal check to
                                       // verify that the query has not changed).
@@ -144,7 +142,8 @@ class ParticleInterpolator
 
     // A helper function that does interpolation from grid onto particles
     void interpolate_to_particle(int lev, amrex::MultiFab &mfab,
-                                 const amrex::Geometry &geom, int start_comp);
+                                 const amrex::Geometry &geom,
+                                 const InterpolationQueryParticle &query);
 
     // final interpolation routine exposed to the users
     // a_refresh_particles flag allows to "refresh" the particles, if e.g. the

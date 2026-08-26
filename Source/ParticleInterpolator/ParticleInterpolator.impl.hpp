@@ -230,11 +230,12 @@ void ParticleInterpolator<num_components>::populate_from_query(
 // a helper function that helps with interpolation from grid onto particles
 template <int num_components>
 void ParticleInterpolator<num_components>::interpolate_to_particle(
-    int lev, amrex::MultiFab &mfab, const amrex::Geometry &geom, int start_comp)
+    int lev, amrex::MultiFab &mfab, const amrex::Geometry &geom,
+    const InterpolationQueryParticle &query)
 {
     const int ncomp = num_components;
 
-    AMREX_ASSERT(num_components == m_query->numComps());
+    AMREX_ASSERT(num_components == query.numComps());
 
     if (this->NumberOfParticlesAtLevel(lev) == 0)
         return;
@@ -256,7 +257,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 
     // Gather comp map into managed arrays
     const int num_derivs = static_cast<int>(
-        std::distance(m_query->compsBegin(), m_query->compsEnd()));
+        std::distance(query.compsBegin(), query.compsEnd()));
 
     amrex::Gpu::ManagedVector<Derivative> derivs(num_derivs);
     amrex::Gpu::ManagedVector<int> comp_counts(num_derivs);
@@ -268,7 +269,7 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
         num_derivs);
 
     int i = 0, off = 0;
-    for (auto comps_it = m_query->compsBegin(); comps_it != m_query->compsEnd();
+    for (auto comps_it = query.compsBegin(); comps_it != query.compsEnd();
          ++comps_it, ++i)
     {
         derivs[i] = comps_it->first;
@@ -390,12 +391,11 @@ void ParticleInterpolator<num_components>::interp(
     ensure_redistributed();
 
     VariableType variable_type = query.getVariableType();
-    int start_comp             = get_start_comp(query);
 
     // Interpolate to all particles
     if (variable_type == VariableType::state)
     {
-        const int ncomp = num_components;
+        const auto &unique_comps = query.uniqueComps();
 
         for (int lev = 0; lev <= m_gr_amr_ptr->finestLevel(); ++lev)
         {
@@ -413,17 +413,21 @@ void ParticleInterpolator<num_components>::interp(
             // boundaries of fine and coarse levels, whilst FillBoundary is
             // single-level operation only! There is a nice explanation on this
             // issue here: https://github.com/AMReX-Codes/amrex/issues/391
-            amrex::AmrLevel::FillPatch(level, state, s_num_ghosts, cur_time,
-                                       state_index, start_comp, ncomp,
-                                       start_comp);
+            // We fill one component at a time so that we do not rely on the
+            // queried comps being contiguous
+            for (const int comp : unique_comps)
+            {
+                AMREX_ALWAYS_ASSERT(comp >= 0 && comp < state.nComp());
+                amrex::AmrLevel::FillPatch(level, state, s_num_ghosts, cur_time,
+                                           state_index, comp, 1, comp);
+            }
 
-            interpolate_to_particle(lev, state, geom, start_comp);
+            interpolate_to_particle(lev, state, geom, query);
         }
     }
     // Interpolation for derived vars, takes in MultiFab and comps (unique
     // components numbers), as e.g. we may want to interpolate several fields at
-    // once. However, as per current implementation, we can have only contiguous
-    // comps
+    // once
     else if (variable_type == VariableType::derived)
     {
         // If you look into AMReX_AmrLevel.cpp you will find that derive calls
@@ -444,7 +448,7 @@ void ParticleInterpolator<num_components>::interp(
             const auto &geom = level.Geom();
             auto &mf         = *derived_mf_vect[lev];
 
-            interpolate_to_particle(lev, mf, geom, start_comp);
+            interpolate_to_particle(lev, mf, geom, query);
         }
     }
     else
@@ -670,8 +674,6 @@ void ParticleInterpolator<num_components>::apply_parity_and_store_values(
     const InterpolationQueryParticle &query)
 {
 
-    int start_comp = get_start_comp(query);
-
     const int num_points = static_cast<int>(query.numPoints());
     const int total_recv = m_mpi.totalQueryCount();
 
@@ -794,22 +796,6 @@ void ParticleInterpolator<num_components>::check_domain(
             amrex::Abort(msg);
         }
     }
-}
-
-// A getter function to get the starting component from the query
-template <int num_components>
-int ParticleInterpolator<num_components>::get_start_comp(
-    const InterpolationQueryParticle &query)
-{
-    auto it = query.compsBegin();
-    AMREX_ASSERT(it != query.compsEnd());
-
-    const auto &vec = it->second;
-    AMREX_ASSERT(!vec.empty());
-
-    int start_comp = vec.front().comp;
-
-    return start_comp;
 }
 
 // Ensure that particles are redistributed if needed
