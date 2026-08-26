@@ -106,19 +106,18 @@ evolution.sigma = 0.5
 #################################################
 # Line extraction parameters
 
-# Write phi and rho along the positive x=y=z diagonal every level-0 timestep.
+# Write phi and rho along a length-50 positive x=y=z diagonal every level-0
+# timestep.
 phi_line_extraction.enabled = true
 # phi_line_extraction.num_points = 128
-phi_line_extraction.max_radius = 50.0
 # phi_line_extraction.start = 0.0 0.0 0.0 # defaults to geometry.center
-# phi_line_extraction.direction = 1.0 1.0 1.0
+phi_line_extraction.end = 28.86751345948129 28.86751345948129 28.86751345948129
 # path defaults to <grteclyn.output_path>/extraction_data/
 phi_line_extraction.file_prefix = phi_profile_
 
 rho_line_extraction.enabled = true
 # rho_line_extraction.num_points = 128
-rho_line_extraction.max_radius = 50.0
 # rho_line_extraction.start = 0.0 0.0 0.0 # defaults to geometry.center
-# rho_line_extraction.direction = 1.0 1.0 1.0
+rho_line_extraction.end = 28.86751345948129 28.86751345948129 28.86751345948129
 # path defaults to <grteclyn.output_path>/extraction_data/
 rho_line_extraction.file_prefix = rho_profile_

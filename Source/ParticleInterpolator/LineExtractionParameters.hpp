@@ -10,9 +10,8 @@
 #include "GRParmParse.hpp"
 
 #include <array>
-#include <cmath>
 #include <string>
-#include <utility>
+#include <string_view>
 
 struct line_extraction_params_t
 {
@@ -23,8 +22,8 @@ struct line_extraction_params_t
     std::string data_path;
     std::string file_prefix;
 
-    explicit line_extraction_params_t(std::string a_param_scope)
-        : m_param_scope(std::move(a_param_scope))
+    explicit line_extraction_params_t(std::string_view a_param_scope)
+        : m_param_scope(a_param_scope)
     {
     }
 
@@ -51,34 +50,23 @@ struct line_extraction_params_t
         geometry_pp.get("center", start_coords);
         extraction_pp.queryAdd("start", start_coords);
 
-        std::array<amrex::Real, AMREX_SPACEDIM> direction{};
-        direction.fill(1.0);
-        extraction_pp.queryAdd("direction", direction);
-        amrex::Real direction_norm_squared = 0.0;
-        for (const auto direction_component : direction)
-        {
-            direction_norm_squared += direction_component * direction_component;
-        }
-        if (direction_norm_squared == 0.0)
-        {
-            extraction_pp.error("direction", "must be nonzero");
-        }
-
         std::array<amrex::Real, AMREX_SPACEDIM> prob_extent{};
         geometry_pp.get("prob_extent", prob_extent);
-        amrex::Real max_radius = 0.5 * prob_extent[0];
-        extraction_pp.queryAdd("max_radius", max_radius);
-        if (max_radius <= 0.0)
-        {
-            extraction_pp.error("max_radius", "must be > 0.0");
-        }
 
-        const amrex::Real direction_norm = std::sqrt(direction_norm_squared);
-        std::array<amrex::Real, AMREX_SPACEDIM> end_coords{};
+        std::array<amrex::Real, AMREX_SPACEDIM> end_coords = start_coords;
+        end_coords[0] += 0.5 * prob_extent[0];
+        extraction_pp.queryAdd("end", end_coords);
+
+        amrex::Real length_squared = 0.0;
         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
         {
-            end_coords[dir] = start_coords[dir] +
-                              max_radius * direction[dir] / direction_norm;
+            const amrex::Real displacement =
+                end_coords[dir] - start_coords[dir];
+            length_squared += displacement * displacement;
+        }
+        if (length_squared == 0.0)
+        {
+            extraction_pp.error("end", "must differ from start");
         }
 
         GRParmParse boundary_pp("boundary");
@@ -96,14 +84,15 @@ struct line_extraction_params_t
                 (hi_condition[dir] == BoundaryConditions::REFLECTIVE_BC)
                     ? 2.0 * prob_extent[dir]
                     : prob_extent[dir];
-            if (start_coords[dir] < domain_lo ||
-                start_coords[dir] > domain_hi || end_coords[dir] < domain_lo ||
-                end_coords[dir] > domain_hi)
+            if (start_coords[dir] < domain_lo || start_coords[dir] > domain_hi)
             {
-                extraction_pp.error(
-                    "max_radius",
-                    "places the line outside the computational domain after "
-                    "applying reflective symmetry");
+                extraction_pp.error("start",
+                                    "must lie inside the computational domain");
+            }
+            if (end_coords[dir] < domain_lo || end_coords[dir] > domain_hi)
+            {
+                extraction_pp.error("end",
+                                    "must lie inside the computational domain");
             }
         }
 
@@ -128,23 +117,7 @@ struct line_extraction_params_t
 
         extraction_pp.get("num_points", num_points);
         extraction_pp.get("start", start_coords);
-
-        std::array<amrex::ParticleReal, AMREX_SPACEDIM> direction{};
-        extraction_pp.get("direction", direction);
-        amrex::ParticleReal max_radius{};
-        extraction_pp.get("max_radius", max_radius);
-        amrex::ParticleReal direction_norm_squared = 0.0;
-        for (const auto direction_component : direction)
-        {
-            direction_norm_squared += direction_component * direction_component;
-        }
-        const amrex::ParticleReal direction_norm =
-            std::sqrt(direction_norm_squared);
-        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
-        {
-            end_coords[dir] = start_coords[dir] +
-                              max_radius * direction[dir] / direction_norm;
-        }
+        extraction_pp.get("end", end_coords);
 
         extraction_pp.get("path", data_path);
         extraction_pp.get("file_prefix", file_prefix);
