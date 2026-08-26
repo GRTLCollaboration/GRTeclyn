@@ -12,7 +12,7 @@
 #include "FourthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 
-class GammaCalculator
+template <class deriv_t = FourthOrderDerivatives> class GammaCalculator
 {
   public:
     AMREX_GPU_HOST_DEVICE
@@ -41,7 +41,7 @@ class GammaCalculator
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
   private:
-    FourthOrderDerivatives m_deriv;
+    deriv_t m_deriv;
 };
 
 #endif /* GAMMACALCULATOR_HPP_ */

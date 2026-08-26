@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# This script uses pathlib from the Python 3 standard library and requires
+# NumPy and Matplotlib. We recommend installing these in a virtual environment:
+#   python3 -m venv .venv
+#   source .venv/bin/activate
+#   python3 -m pip install numpy matplotlib
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -43,4 +49,3 @@ fig.subplots_adjust(
 
 fig.savefig(output_file, dpi=200)
 plt.show()
-

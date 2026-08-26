@@ -113,7 +113,7 @@ void ScalarFieldLevel::initData()
                            initial_data(ix, iy, iz, state_arrays[box_no]);
                        });
 
-    const GammaCalculator gamma_calculator(Geom().CellSize(0));
+    const GammaCalculator<> gamma_calculator(Geom().CellSize(0));
     amrex::ParallelFor(state_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        { gamma_calculator(ix, iy, iz, state_arrays[box_no]); });
