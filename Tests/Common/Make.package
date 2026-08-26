@@ -1,4 +1,0 @@
-GRTECLYN_CEXE_headers += InitialData.hpp \
-                         doctestCLIArgs.hpp \
-                         doctestOutput.hpp \
-                         StateVariables.hpp
