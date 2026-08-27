@@ -16,7 +16,7 @@ jobs:
             - name: Checkout GRTeclyn
               uses: actions/checkout@v7
               with:
-                  ref: develop
+                  ref: main
 
             - name: Get current doctest version
               id: current
@@ -68,5 +68,5 @@ jobs:
                       ---
                       *This PR was opened automatically by the `update-doctest` workflow.*
                   branch: update/doctest-v${{ env.LATEST_VER }}
-                  base: develop
+                  base: main
                   labels: dependencies
