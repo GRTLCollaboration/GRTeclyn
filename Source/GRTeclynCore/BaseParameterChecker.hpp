@@ -218,6 +218,18 @@ class BaseParameterChecker
             }
         }
         geom_pp.queryAdd("center", center);
+        FOR (idir)
+        {
+            if (center[idir] < 0.0 || center[idir] > prob_extent[idir])
+            {
+                geom_pp.warning(
+                    "center",
+                    "lies outside the computational domain in at least one "
+                    "direction; this may be intentional, but classes that "
+                    "assume an in-domain center may reject it");
+                break;
+            }
+        }
 
         int max_level = 0; // the max number of regriddings to do
         amr_pp.queryAdd("max_level", max_level);

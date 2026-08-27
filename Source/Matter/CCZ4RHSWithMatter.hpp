@@ -36,27 +36,15 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
 
     using params_t = CCZ4_params_t;
 
-    //!  Constructor of class MatterCCZ4
+    //! Constructor of class CCZ4RHSWithMatter
     /*!
-       Inputs are the grid spacing, plus the CCZ4 evolution parameters and a
-       matter object. It also takes the dissipation parameter sigma, and allows
-       the formulation to be toggled between CCZ4 and BSSN. The default is CCZ4.
-       It allows the user to set the value of Newton's constant, which is set to
-       one by default.
+       The evolution parameters are read from the inputs. The
+       default-constructed matter object supplies stress-energy sources with
+       their gravitational coupling already applied.
     */
-    CCZ4RHSWithMatter(amrex::Real a_dx, amrex::Real a_G_Newton = 1.0);
+    CCZ4RHSWithMatter(amrex::Real a_dx);
 
-    //!  The compute member which calculates the RHS at each point in the box
-    //!  \sa matter_rhs_equation()
-    template <int formulation, int use_covariant_Z4>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(const int ix, const int iy, const int iz,
-               const amrex::Array4<amrex::Real> &rhs_state,
-               const amrex::Array4<amrex::Real const> &state) const;
-
-  protected:
-    //! The function which adds in the EM Tensor terms to the CCZ4 rhs \sa
-    //! compute()
+    //! Add the stress-energy tensor terms to the CCZ4 and gauge RHS.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
         const int ix, const int iy, const int iz,
         const amrex::Array4<amrex::Real>
@@ -65,9 +53,21 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
             &state) //!< the current value of the variables at the point.
         const;
 
+    //! Add the evolution equations for the matter variables.
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_matter_rhs(int ix, int iy, int iz,
+                   const amrex::Array4<amrex::Real> &rhs_state,
+                   const amrex::Array4<const amrex::Real> &state) const;
+
+    //! Add dissipation to the CCZ4 and matter variables.
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    apply_dissipation(int ix, int iy, int iz,
+                      const amrex::Array4<amrex::Real> &rhs_state,
+                      const amrex::Array4<const amrex::Real> &state) const;
+
+  protected:
     // Class members
-    matter_t m_matter;      //!< The matter object, e.g. a scalar field.
-    amrex::Real m_G_Newton; //!< Newton's constant, set to one by default.
+    matter_t m_matter; //!< The matter object, e.g. a scalar field.
     int m_formulation{};
 };
 

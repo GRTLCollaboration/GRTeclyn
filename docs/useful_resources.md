@@ -45,11 +45,10 @@ One should review in particular the sections on classes and templating, which ar
 
 All these places offer courses relevant for scientific programming, best check them regularly
 
-* <https://www.archer.ac.uk/training/>
-* <https://training.prace-ri.eu/>
+* <https://www.archer2.ac.uk/training/>
 * [ATPESC](https://extremecomputingtraining.anl.gov/) - yearly course, typically around a week. Recommended for more advanced students
 * <https://learn.tacc.utexas.edu/>
-* <https://portal.xsede.org/training/overview>
+* <https://support.access-ci.org/knowledge-base/resources/learning>
 
 ---
 
@@ -80,13 +79,13 @@ In particular, [this](https://www.theserverside.com/blog/Coffee-Talk-Java-News-S
 
 ## VisIt
 
-The VisIt wiki is here:
+The VisIt website is here:
 
-<http://www.visitusers.org/index.php?title=Main_Page>
+<https://visit-dav.github.io/visit-website/>
 
 and the user manual is here:
 
-<http://visit-sphinx-user-manual.readthedocs.io/en/latest/>
+<https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/>
 
 ---
 

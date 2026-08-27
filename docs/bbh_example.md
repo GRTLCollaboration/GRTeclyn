@@ -6,7 +6,7 @@ This is the classic NR problem, but it is also quite an expensive example to run
 
 ## Physical scenario
 
-This page describes running the Binary BH example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/BinaryBH/params_profile.txt).
+This page describes running the Binary BH example using the parameters found in [this parameter file](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/BinaryBH/params_profile.txt).
 
 The initial conditions consist of a superposition of two equal mass black holes, with initial momenta and positions chosen to give approximately 10 circular orbits before merger.
 

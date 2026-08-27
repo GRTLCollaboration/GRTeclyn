@@ -11,14 +11,9 @@ Tests/CCZ4GeometryUnitTests/CCZ4GeometryExpectedValues.hpp
 external/*
 
 # These directories/files have yet to be ported to AMReX
-Source/AMRInterpolator/*
-Source/ParticleInterpolators/*
-Source/CCZ4/GammaCalculator.hpp
 lint-only: Source/CCZ4/IntegratedMovingPunctureGauge.hpp
 Source/BlackHoles/KerrBH*
 Source/IO/MultiLevelTask.hpp
-Examples/ScalarField/*
-Tests/.*
 
 # These are old files we don't want to change
 Tests/CCZ4RHSTest/*fdf5a7a*

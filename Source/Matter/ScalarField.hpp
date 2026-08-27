@@ -10,6 +10,7 @@
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GRParmParse.hpp"
 #include "ScalarFieldVars.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "TensorAlgebra.hpp"
@@ -26,6 +27,10 @@
      user must specify in a class, although a default is provided which
      sets dVdphi and V_of_phi to zero.
      It assumes minimal coupling of the field to gravity.
+     Matter classes used by the diagnostic callbacks must be default
+     constructible. Their default constructors should therefore read all
+     runtime parameters needed to construct a fully configured matter object,
+     as ScalarField and its potential do here.
      \sa MatterCCZ4(), ConstraintsMatter()
 */
 template <class potential_t = DefaultPotential,
@@ -35,11 +40,47 @@ class ScalarField
   protected:
     potential_t m_potential;
     //! The local copy of the potential
+    amrex::Real m_G_Newton{1.0};
 
   public:
 
+    struct params_t
+    {
+        amrex::Real G_Newton{1.0};
+
+        static void check_params()
+        {
+            GRParmParse scalar_field_pp("scalar_field");
+            amrex::Real G_Newton{1.0};
+            scalar_field_pp.queryAdd("G_Newton", G_Newton);
+            if (G_Newton < 0.0)
+            {
+                scalar_field_pp.error("G_Newton", "must be >= 0.0");
+            }
+        }
+
+        void fill_params()
+        {
+            GRParmParse scalar_field_pp("scalar_field");
+            scalar_field_pp.query("G_Newton", G_Newton);
+        }
+    };
+
     //!  Constructor of class ScalarField, inputs are the matter parameters.
-    ScalarField() = default;
+    ScalarField()
+    {
+        params_t params;
+        params.fill_params();
+        m_G_Newton = params.G_Newton;
+    }
+
+    AMREX_FORCE_INLINE explicit ScalarField(potential_t a_potential)
+        : m_potential(a_potential)
+    {
+        params_t params;
+        params.fill_params();
+        m_G_Newton = params.G_Newton;
+    }
 
     using Vars = ScalarFieldVars;
 
@@ -53,6 +94,13 @@ class ScalarField
         const deriv_t &a_deriv, //!< the object that calculates the derivative
         const Tensor::Rank2 &h_UU) //!< the inverse metric (raised indices)
         const;
+
+    //! Calculate the stress-energy sources including the factor 8 pi G.
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE einstein_sources_t
+    compute_einstein_sources(int ix, int iy, int iz,
+                             const amrex::Array4<const amrex::Real> &state,
+                             const deriv_t &a_deriv,
+                             const Tensor::Rank2 &h_UU) const;
 
     // ! The function which adds in the RHS for the matter field vars,
     // ! including the potential

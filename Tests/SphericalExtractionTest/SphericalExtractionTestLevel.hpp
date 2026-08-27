@@ -86,17 +86,10 @@ class SphericalExtractionTestLevel : public GRAMRLevel
         const auto &tag_arrs   = a_tag_box_array.arrays();
         const auto &state_arrs = state_new.arrays();
 
-        const amrex::Real dx         = Geom().CellSize(0);
-        const int current_level      = Level();
-        const amrex::Real box_length = Geom().ProbLength(0);
+        const amrex::Real dx    = Geom().CellSize(0);
+        const int current_level = Level();
 
-        std::array<amrex::Real, AMREX_SPACEDIM> center{
-            AMREX_D_DECL(0., 0., 0.)};
-        GRParmParse pp;
-        pp.query("geometry.center", center);
-
-        FixedGridsTagger my_tagging_criterion{dx, current_level, box_length,
-                                              center};
+        FixedGridsTagger my_tagging_criterion{dx, current_level};
 
         // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(

@@ -12,7 +12,7 @@ Note that GRTeclyn is designed as a research tool, not a black box. Users are en
 
 ### Formulation of the Einstein equations
 
-* GRTeclyn uses the [CCZ4](https://inspirehep.net/literature/913488) formulation with constraint damping to evolve the Einstein equations. 
+* GRTeclyn uses the [CCZ4](https://inspirehep.net/literature/913488) formulation with optional constraint damping to evolve the Einstein equations.
 * The implementation supports full 3+1D spacetimes with dynamic metrics and gauge evolution.
 * The code is written modularly, with clearly separated evolution and diagnostic systems.
 
@@ -24,13 +24,15 @@ Note that GRTeclyn is designed as a research tool, not a black box. Users are en
 
 ### Black hole spacetimes
 
-* Binary black hole (BBH) simulations are supported using Bowen–York initial data. 
-* The **BinaryBH** example is fully functional for boosted cases. Currently the code uses an approximate solution but we plan to integrate the TwoPunctures code shortly, which will allow fully general initial momenta and spins.
+* Binary black hole (BBH) simulations are supported using Bowen–York initial data.
+* The **BinaryBH** example is fully functional. The code uses an approximate solution for zero spin binaries, or the TwoPunctures code for fully general initial momenta and spins.
 * Puncture positions are tracked and recorded throughout the simulation using particle methods.
+* Weyl extraction and modes are calculated using particle methods.
 
 ### Scalar fields on dynamical backgrounds
 
-* Oscillaton example under development but minimally coupled scalar field is working.
+* **Oscillaton example** - for a minimally coupled scalar field, can easily be adapted to general potential.
+* AMR interpolation tools — the scalar field example provides a simple example of how we enable variable interpolation and post-processing, based on particle methods.
 
 ### Adaptive Mesh Refinement (AMR)
 
@@ -39,8 +41,7 @@ Note that GRTeclyn is designed as a research tool, not a black box. Users are en
 
 ### Finite differencing scheme
 
-* The code supports 4th-order finite differencing in space and 4th-order Runge-Kutta in time.
-* Support for higher-order stencils (6th order) is planned in future releases.
+* The code supports 4th and 6th-order finite differencing in space and 4th-order Runge-Kutta in time.
 
 ### Checkpointing and restart
 
@@ -65,12 +66,10 @@ Note that GRTeclyn is designed as a research tool, not a black box. Users are en
 
 These features are implemented in working branches or are actively being ported from GRChombo. They may be available on request (at your own risk pending testing).
 
-* **Gravitational wave extraction** — Weyl scalar calculations for waveform analysis, and output of data for CCE extraction.
 * **Apparent horizon finder** — for locating black hole horizons in dynamical simulations.
-* **Initial condition solver** — a link to the GRTelcyn solver, to solve the Hamiltonian and Momentum constraints numerically for scalar or vacuum spacetimes. Integration of TwoPunctures as discussed above.
-* **AMR interpolation tools** — to enable conservative variable interpolation and post-processing, based on particle methods.
+* **Initial condition solver** — a link to the GRTeclyn solver GRTresna, to solve the Hamiltonian and Momentum constraints numerically for matter spacetimes.
 * **ADM mass and momenta diagnostics** — for computing global quantities.
-* **Higher-order spatial stencils** — planned support for 6th-order differencing.
+* **AMR reductions** - integration with AMReX methods for calculating integrals or max/min values across the adaptive mesh.
 
 ---
 
@@ -79,7 +78,6 @@ These features are implemented in working branches or are actively being ported 
 The following features have been developed internally or in GRChombo and are expected to be ported or reimplemented in GRTeclyn. If you're interested in working on one of these, feel free to contact us — we may be able to share existing code for inspiration or adaptation.
 
 * **Fixed background metrics** — support for scalar field evolution on Schwarzschild or Kerr backgrounds using analytic metrics - by adapting the existing [GRDzhaDzha](https://github.com/GRTLCollaboration/GRDzhadzha) code to GRTeclyn.
-* **Massive vector (Proca) fields** — a matter class for evolving massive vector fields.
 * **Cartoon formalism** — support for dimensional reduction using symmetries (e.g., axisymmetry).
 * **Other matter models** — we will include perfect fluids and vector fields in future.
 ---
@@ -93,19 +91,22 @@ The following features have been developed internally or in GRChombo and are exp
 | Checkpointing & Restart                  | ✅ Ported       |
 | Moving puncture gauge                    | ✅ Ported       |
 | BinaryBH example                         | ✅ Ported       |
+| TwoPunctures initial data                | ✅ Ported       |
 | Diagnostic variables                     | ✅ Ported       |
 | AMReX GPU offload                        | ✅ Ported       |
 | MPI parallelism                          | ✅ Ported       |
 | Scalar field matter model                | ✅ Ported       |
 | Puncture tracking                        | ✅ Ported       |
-| Particle-based diagnostics               | 🔧 In progress  |
-| Weyl scalar / CCE extraction             | 🔧 In progress  |
+| Particle-based diagnostics               | ✅ Ported       |
+| Weyl scalar                              | ✅ Ported       |
+| 6th-order finite differencing            | ✅ Ported       |
 | Apparent horizon finder                  | 🔧 In progress  |
-| Initial condition solver                 | 🔧 In progress  |
-| ADM quantities                           | 🔧 In progress  |
-| 6th-order finite differencing            | 🔮 Planned      |
-| Proca field matter                       | 🔮 Planned      |
-| Perfect fluid matter                     | 🔮 Planned      |
+| Initial condition solver for matter      | 🔧 In progress  |
+| ADM quantities                           | 🔮 Planned      |
 | Cartoon formalism                        | 🔮 Planned      |
+| CCE extraction                           | 🔮 Planned      |
+| Fixed background metrics                 | 🔮 Planned      |
+| Proca field matter and gauge fields      | 🔮 Planned      |
+| Perfect fluid matter                     | 🔮 Planned      |
 
 ---

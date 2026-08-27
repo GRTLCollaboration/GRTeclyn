@@ -8,6 +8,7 @@
 
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
+#include "GRParmParse.hpp"
 
 // AMReX includes
 #include <AMReX_TagBox.H>
@@ -16,39 +17,77 @@ class FixedGridsTagger
 {
   protected:
     amrex::Real m_dx;
-    amrex::Real m_L;
     int m_level;
-    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center{};
+    std::array<amrex::Real, AMREX_SPACEDIM> m_domain_lengths{};
 
   public:
+    static void check_params()
+    {
+        GRParmParse geometry_pp("geometry");
+        std::array<amrex::Real, AMREX_SPACEDIM> center{};
+        geometry_pp.get("center", center);
+        std::array<amrex::Real, AMREX_SPACEDIM> domain_lengths{};
+        geometry_pp.get("prob_extent", domain_lengths);
+
+        for (int direction = 0; direction < AMREX_SPACEDIM; ++direction)
+        {
+            if (center[direction] < 0.0 ||
+                center[direction] > domain_lengths[direction])
+            {
+                geometry_pp.error(
+                    "center",
+                    "must lie within the computational domain in every "
+                    "direction when using FixedGridsTagger");
+            }
+        }
+    }
+
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    FixedGridsTagger(const amrex::Real dx, const int a_level,
-                     const amrex::Real a_L,
-                     const std::array<amrex::Real, AMREX_SPACEDIM> a_center)
-        : m_dx(dx), m_L(a_L), m_level(a_level), m_center(a_center) {};
+    FixedGridsTagger(amrex::Real a_dx, int a_level)
+        : m_dx(a_dx), m_level(a_level)
+    {
+        GRParmParse geometry_pp("geometry");
+        geometry_pp.get("center", m_center);
+        geometry_pp.get("prob_extent", m_domain_lengths);
+    }
 
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::TagBox::TagType> &tags) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-        // make sure the inner part is regridded around the horizon
-        // take L as the length of full grid, so tag inner 1/2
-        // of it, which means inner \pm L/4
-        amrex::Real ratio = pow(2.0, -(m_level + 2.0));
+        // Refine half the simulated domain length on level 0, then halve the
+        // refined length again on each subsequent level.
+        const amrex::Real fraction_of_each_side_to_refine =
+            pow(0.5, m_level + 1.0);
+        const amrex::IntVect cell(AMREX_D_DECL(ix, iy, iz));
 
-        amrex::IntVect cell(AMREX_D_DECL(ix, iy, iz));
-
-        const Coordinates coords(cell, m_dx, m_center);
-        const amrex::Real max_abs_xy =
-            std::max(std::abs(coords.x), std::abs(coords.y));
-        const amrex::Real max_abs_xyz =
-            std::max(max_abs_xy, std::abs(coords.z));
-
-        if (max_abs_xyz < m_L * ratio)
+        for (int direction = 0; direction < AMREX_SPACEDIM; ++direction)
         {
-            tags(ix, iy, iz) = amrex::TagBox::SET;
+            amrex::Real coordinate_from_center{};
+            Coordinates::compute_coord(coordinate_from_center, cell[direction],
+                                       m_dx, m_center[direction]);
+
+            // clang-tidy incorrectly treats this initializer as missing.
+            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
+            amrex::Real distance_to_boundary =
+                m_domain_lengths[direction] - m_center[direction];
+            if (coordinate_from_center < 0.0)
+            {
+                distance_to_boundary = m_center[direction];
+            }
+
+            const amrex::Real tagging_distance_from_center =
+                fraction_of_each_side_to_refine * distance_to_boundary;
+            if (std::abs(coordinate_from_center) >=
+                tagging_distance_from_center)
+            {
+                return;
+            }
         }
+
+        tags(ix, iy, iz) = amrex::TagBox::SET;
     }
 };
 

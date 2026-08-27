@@ -25,7 +25,7 @@ You can download a prebuilt version of ParaView for your local machine
 
 !!! warning
 
-    It is very important that you download the **exact** same version of ParaView as what is installed on the cluster if you want to run it remotely in a server/client configuration. 
+    It is very important that you download the **exact** same version of ParaView as what is installed on the cluster if you want to run it remotely in a server/client configuration.
 
 
 
@@ -50,15 +50,13 @@ reasons, we will get around this by "tunnelling" the port with ssh.
 To do this, follow the steps below
 
 1. Open ParaView locally. ![You will see something like the screenshot below](img/ParaviewLocal.png "Starting ParaView locally")
-Notice how the bottom right corner shows the name of your laptop/local machine. 
+Notice how the bottom right corner shows the name of your laptop/local machine.
 
-2. Click the 'Connect' icon (<img
-src="https://gitlab.kitware.com/paraview/paraview/-/raw/3762f9acc03c221b1755b137820855edb148edc5/Qt/Components/Resources/Icons/pqConnect.svg"
-width=20>) near the top left (or via the menu option File →
-Connect). Click 'Add Server' and set the fields to the values in the
+2. Click the 'Connect' icon (<img src="../img/pqConnect.svg" width="20" alt="Connect icon">)
+near the top left (or via the menu option File → Connect). Click 'Add Server' and set the fields to the values in the
 image below. Then click 'Configure' and set the 'Startup Type' field
 to 'Manual'. Click 'Save' and then click 'Close' ![ParaView configure screenshot](img/ParaviewConfigure.png "Configuring ParaView for remote connections")
-3. SSH into the remote cluster and load the relevant ParaView module. Start a Slurm job using 
+3. SSH into the remote cluster and load the relevant ParaView module. Start a Slurm job using
    ```bash
    srun -A <YOUR_ACCOUNT> -p <PARTITION> --nodes=1 --ntasks=4 --cpus-per-task=1 --walltime=00:30:00 pvserver
    ```
@@ -70,7 +68,7 @@ to 'Manual'. Click 'Save' and then click 'Close' ![ParaView configure screenshot
    Accepting connection(s): <hostname>:<remote port>
    ```
    where `<remote port>` is usually something `11111`.
-   Note that if loading a particularly large file, you may want more ranks. 
+   Note that if loading a particularly large file, you may want more ranks.
 
 4. In a local terminal, set up an SSH tunnel through the ports:
    ```bash
@@ -105,10 +103,10 @@ and the same version installed locally.
 To set up remote visualisation with reverse connections, follow the steps below
 
 1. Open ParaView locally.
-2. Click the 'Connect' icon (<img src="https://gitlab.kitware.com/paraview/paraview/-/raw/3762f9acc03c221b1755b137820855edb148edc5/Qt/Components/Resources/Icons/pqConnect.svg" width=20>)
-   near the top left (or via the menu option File → Connect). Click 'Add Server'. 
+2. Click the 'Connect' icon (<img src="../img/pqConnect.svg" width="20" alt="Connect icon">)
+   near the top left (or via the menu option File → Connect). Click 'Add Server'.
    Use the same settings as above, except in the drop down menu for "Server Type",
-   select "Client/Server (reverse connection)". Name it something new. 
+   select "Client/Server (reverse connection)". Name it something new.
    Then click 'Configure' and set the 'Startup Type' field to 'Manual'.
    Click 'Save'.
 3. Connect to the server we have just configured by selecting it and then
@@ -125,7 +123,7 @@ To set up remote visualisation with reverse connections, follow the steps below
    ```
    NB: notice the additional flags!
    Note the name of the node that you've been allocated
-   
+
 5. Set up the tunnel between the local `11111` port and the remote port
    (this can usually be set to `11111` but we will leave it generic in the
    following instructions) with the command
@@ -133,7 +131,7 @@ To set up remote visualisation with reverse connections, follow the steps below
    ssh -v -N -R 11111:<name of compute node>:<remote port> <username>@<hostname>
    ```
    It may ask for authentication and then look as though it has 'hung' (i.e. no
-   prompt) 
+   prompt)
    Note that these commands are virtually identical to the ones for the
    conventional client/server tunnelling but the `-L` flag has changed to `-R`.
    Assuming everything has worked, you should get the following output
@@ -158,7 +156,7 @@ version in the bottom left.
 There are also some tutorials that are linked to from the main ParaView website
 [here](https://www.paraview.org/tutorials/).
 
-There are some nice tutorials from the ALCF, including 
+There are some nice tutorials from the ALCF, including
 [a beginners guide](https://docs.alcf.anl.gov/polaris/visualization/paraview-tutorial/)
 for mesh and particle data and one with [more advanced techniques](https://github.com/argonne-lcf/GettingStarted/blob/master/Visualization/ParaViewPython.md).
 
@@ -170,7 +168,7 @@ ATPESC [here](https://youtu.be/sXY72e3Ce4g).
 
 Please refer to the [installation](https://github.com/AMReX-Codes/amrexplorer/blob/main/INSTALL.md) and [user guide](https://github.com/AMReX-Codes/amrexplorer/blob/main/docs/user-guide.md) for more information.
 
-AMReXplorer supports both Mac and Linux builds but you will need a C++20 compiler and `qt`. It can operate in server/client mode as well if your data is stored on a HPC system. 
+AMReXplorer supports both Mac and Linux builds but you will need a C++20 compiler and `qt`. It can operate in server/client mode as well if your data is stored on a HPC system.
 
 ![An example visualization with AMReXplorer](img/AMReXplorer.png "AMReXplorer example")
 
@@ -182,7 +180,7 @@ AMReXplorer supports both Mac and Linux builds but you will need a C++20 compile
 ```
 will plot the values of `chi` from the regression test output from the BinaryBH example using the `Palette` colourmap. The output will be in one directory above where the plotfiles are stored, in this case, this is `/lus/flare/projects/grteclyn/GRTeclyn/Examples/BinaryBH/`.
 
-You can specify the AMR level you would like to plot and where to take a slice for 3D data. 
+You can specify the AMR level you would like to plot and where to take a slice for 3D data.
 
 There are other very useful tools in that directory! More information on the AMReX plotfile tools can be found [here](https://amrex-codes.github.io/amrex/docs_html/Post_Processing.html).
 
@@ -199,7 +197,7 @@ There are other very useful tools in that directory! More information on the AMR
 Download Visit to your local machine from their [current releases](https://visit-dav.github.io/visit-website/releases-as-tables/).
 
 !!! warning
-    It is very important that you download the **exact** same version of VisIt as what is installed on the cluster if you want to run it remotely in a server/client configuration. 
+    It is very important that you download the **exact** same version of VisIt as what is installed on the cluster if you want to run it remotely in a server/client configuration.
 
 
 For Mac and Windows there are installers, for Linux you should download the tar file, plus the "Visit Install Script" (in the bullets above the executable) and follow the instructions in "Visit Install Notes". The tar file for Ubuntu 14.04 seems to work on Ubuntu 16.04 too.
@@ -208,7 +206,7 @@ Assuming your plot files are on a remote cluster, you have three options:
 
 1. Download the files to a local machine (or more likely onto an external hard drive connected to it, since the files are large) and run them directly there. (The command for copying files is scp).
 2. Install (or module load) VisIt and run it in command line mode by submitting a batch job. This is usually the best option for systems with a firewall preventing outgoing connections (e.g. Marenostrum, SupermucNG). Some example scripts and the appropriate run command for this can be found [here](https://github.com/GRTLCollaboration/Postprocessing_tools/tree/master/VisItTools). Note that some clusters do not support X11 forwarding. In these circumstances, you may be able to submit an interactive job that gives you a GUI desktop so you can run any GUI application that you would normally do on your personal machine. For example:
-    - CSD3 supports a [web login](https://login-web.hpc.cam.ac.uk/). See the documentation [here](https://docs.hpc.cam.ac.uk/user-guide/login-web.html) for more info. NB: the MFA token is different from the one you use for SSH access. 
+    - CSD3 supports a [web login](https://login-web.hpc.cam.ac.uk/). See the documentation [here](https://docs.hpc.cam.ac.uk/user-guide/login-web.html) for more info. NB: the MFA token is different from the one you use for SSH access.
     - All COSMAS support [x2go](https://wiki.x2go.org/doku.php). Information on how to set up x2go for COSMA access can be found [here](https://cosma.readthedocs.io/en/latest/x2go.html)
 3. Run Visit remotely by downloading **the same version** (ie, 1.12.3 etc) of Visit on the cluster and setting up a remote profile in Visit on your local machine (see below). This has the advantage that you can keep the data on the cluster, and use its (probably more powerful) compute power, although some clusters don't like you to run Visit on the login nodes as it can clog up the system for other users, and may have dedicated nodes for visualisation. You should check this with your local cluster administrator. **(Note: The remote version should be the one with Mesa support for rendering without a display, otherwise you will have problems saving images and movies.)**
 
@@ -235,7 +233,7 @@ VisIt has a GUI interface, so it is (sort of) intuitive. Opening a file should a
 
 The most useful plots for our data are Pseudocolour plots, using the Operators->Slice operators to view a slice (adjust the intercept to the centre of the grid) and Operators->Elevate to make the plot 3D, but the things you can do with VisIt are pretty limitless.
 
-There are VisIt tutorials which will help to discover all the functionality, see for example the ATPESC 2016 workshop which also has a [YouTube video](http://www.visitusers.org/index.php?title=Short_Tutorial).
+There are [VisIt tutorials](https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/tutorials/index.html) which will help you to discover the available functionality.
 
 See our (still relevant!) tips for making good visualisations in the [GRChombo wiki](https://github.com/GRTLCollaboration/GRChombo/wiki/Visualisation-tips). Feel free to add to them!
 
@@ -250,7 +248,7 @@ There are a number of example scripts for processing GRChombo files using the Vi
 > TIP: When installing `yt` try to do it in a virtual environment with `venv` or `pipx`. This will help avoid conflicts with other Python packages.
 
 
-There are a number of example scripts for processing GRChombo files [here](https://github.com/GRChombo/Postprocessing_tools/tree/master/YTAnalysisTools) and as `yt` recognizes the AMReX output format, these still apply to GRTeclyn. 
+There are a number of example scripts for processing GRChombo files [here](https://github.com/GRChombo/Postprocessing_tools/tree/master/YTAnalysisTools) and as `yt` recognizes the AMReX output format, these still apply to GRTeclyn.
 ### Basics
 
 The following script shows an example of the most basic commands:

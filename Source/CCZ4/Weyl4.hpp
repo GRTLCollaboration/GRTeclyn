@@ -70,8 +70,8 @@ class Weyl4
         the formulation.
     */
 
-    Weyl4(amrex::Real a_dx, int a_out_comp)
-        : m_dx(a_dx), m_deriv(a_dx), m_out_comp(a_out_comp)
+    Weyl4(amrex::Real a_dx, int a_dcomp)
+        : m_dx(a_dx), m_deriv(a_dx), m_dcomp(a_dcomp)
     {
         GRParmParse pp;
         GRParmParse extraction_pp("weyl_extraction");
@@ -98,8 +98,8 @@ class Weyl4
     std::array<amrex::Real, AMREX_SPACEDIM> m_center; //!< The grid center
     amrex::Real m_dx;                                 //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
-    int m_out_comp; //!< Which commponent to store Weyl4_Re (Weyl4_Im will be
-                    //!< m_out_comp+1)
+    int m_dcomp; //!< Which component to store Weyl4_Re (Weyl4_Im will be
+                 //!< m_dcomp + 1)
     int m_formulation{}; //!< CCZ4 or BSSN?
 
     //! Compute spatial volume element

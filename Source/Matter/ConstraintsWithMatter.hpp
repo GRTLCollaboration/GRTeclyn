@@ -17,9 +17,9 @@
      The class calculates the Hamiltonian and Momentum constraints at each point
    in a box. It inherits from the Constraints class which calculates the
    constraints without the matter terms. It adds in the matter terms for a given
-   matter class matter_t, which must provide it with the Energy Momentum Tensor.
-   For an example of a matter_t class see ScalarField. \sa Constraints(),
-   ScalarField()
+   matter class matter_t, which must provide the stress-energy sources with
+   their gravitational coupling already applied. For an example of a matter_t
+   class see ScalarField. \sa Constraints(), ScalarField()
 */
 template <class matter_t> class ConstraintsWithMatter : public Constraints
 {
@@ -30,8 +30,8 @@ template <class matter_t> class ConstraintsWithMatter : public Constraints
         Can specify the vars of the constraint vars instead of using the
         hardcoded ones.
     */
-    ConstraintsWithMatter(amrex::Real dx, amrex::Real G_Newton, int a_c_Ham,
-                          const Interval &a_c_Moms, int a_c_Ham_abs_terms = -1,
+    ConstraintsWithMatter(amrex::Real dx, int a_c_Ham, const Interval &a_c_Moms,
+                          int a_c_Ham_abs_terms              = -1,
                           const Interval &a_c_Moms_abs_terms = Interval());
 
     //! The compute member which calculates the constraints at each point in the
@@ -51,8 +51,7 @@ template <class matter_t> class ConstraintsWithMatter : public Constraints
                            int /*level*/);
 
   protected:
-    matter_t my_matter;     //!< The matter object, e.g. a scalar field
-    amrex::Real m_G_Newton; //!< Newton's constant, set to one by default.
+    matter_t m_matter; //!< The matter object, e.g. a scalar field
 };
 
 #include "ConstraintsWithMatter.impl.hpp"

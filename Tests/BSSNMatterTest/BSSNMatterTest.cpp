@@ -112,12 +112,9 @@ void run_bssn_matter_test()
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
-        amrex::Real G_Newton = 1.0;
-        pp.queryAdd("G_Newton", G_Newton);
-
         CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGaugeWithMatter,
                           FourthOrderDerivatives>
-            current_ccz4_rhs{dx, G_Newton};
+            current_ccz4_rhs{dx};
 
         // Set up the constraints
         constexpr int num_bssn_matter_vars = c_Pi + 1;
@@ -167,7 +164,11 @@ void run_bssn_matter_test()
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
-                current_ccz4_rhs.operator()<CCZ4RHS<>::USE_BSSN, covariantZ4>(
+                current_ccz4_rhs.add_emtensor_rhs(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+                current_ccz4_rhs.add_matter_rhs(ix, iy, iz, out_mf_array[ibox],
+                                                in_c_array[ibox]);
+                current_ccz4_rhs.apply_dissipation(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
             });
 
