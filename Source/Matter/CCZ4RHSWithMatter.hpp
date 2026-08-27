@@ -68,7 +68,6 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
   protected:
     // Class members
     matter_t m_matter; //!< The matter object, e.g. a scalar field.
-    int m_formulation{};
 };
 
 #include "CCZ4RHSWithMatter.impl.hpp"
