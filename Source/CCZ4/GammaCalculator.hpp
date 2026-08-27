@@ -10,6 +10,7 @@
 #include "CCZ4Vars.hpp"
 #include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "SixthOrderDerivatives.hpp"
 #include "StateVariables.hpp"
 
 template <class deriv_t = FourthOrderDerivatives> class GammaCalculator
@@ -30,12 +31,13 @@ template <class deriv_t = FourthOrderDerivatives> class GammaCalculator
         const CCZ4Vars vars(const_state_cell_data);
 
         const auto h_UU = CCZ4Geometry::compute_inverse_metric(vars);
-        const auto d1_h = m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
-        const auto christoffel = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
+        const Tensor::Sym12Rank3 d1_h =
+            m_deriv.d1_sym_tensor(ix, iy, iz, state, c_h11);
+        const auto chris = CCZ4Geometry::compute_christoffel(d1_h, h_UU);
 
         FOR (i)
         {
-            state_cell_data[c_Gamma1 + i] = christoffel.contracted(i);
+            state_cell_data[c_Gamma1 + i] = chris.contracted(i);
         }
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
