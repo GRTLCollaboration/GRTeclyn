@@ -161,7 +161,10 @@
 <li>AMD ROCm/HIP ≥ 6.0    (for HIP builds)</li>
 <li>Intel oneAPI ≥ 2025.2 (for SYCL builds)</li>
 </ul>
-<p>WARNING: The use of C++20 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The use of C++20 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.</p>
+</div>
 <ul>
 <li><strong><a href="https://www.mpi-forum.org/">MPI</a></strong> (optional but recommended)
   Required for running in parallel across nodes or cores.
@@ -182,9 +185,10 @@
 <li>Tell me more about <code>&lt;module name&gt;</code>: how does it change the environment?</li>
 </ul>
 <p>Some newer clusters use <a href="https://spack.io/">spack</a> to manage the installation of modules. On these systems, modules installed with spack will typically be appended by a 7 character hash (e.g. <code>hdf5-1.10.4-gcc-5.4.0-7zl2gou</code> on the CSD3 cluster). If there are multiple modules with similar names that only differ by their hash, you can can query the dependencies with the command <code>spack find -lvd &lt;name&gt;</code>.</p>
-<blockquote>
-<p><strong>Warning</strong>  See <a href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#gcc-on-macos">this page</a> if you want to build on macOS using Homebrew GCC.</p>
-</blockquote>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>See <a href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#gcc-on-macos">this page</a> if you want to build on macOS using Homebrew GCC.</p>
+</div>
 <p>The following are required, but are likely to be loaded by default on most systems:</p>
 <ul>
 <li>
@@ -215,6 +219,14 @@
 It will be cloned to the <code>amrex</code> directory.</p>
 <p>Next, clone the GRTeclyn repository
 <pre class="highlight"><code class="language-bash">git clone https://github.com/GRTLCollaboration/GRTeclyn.git</code></pre></p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If you have previously downloaded a version of GRTeclyn and the main branch was named <code>develop</code>, we have now renamed this to <code>main</code>. Follow these steps to rename your local branch:
+<pre class="highlight"><code>git branch -m develop main
+git fetch origin
+git branch -u origin/main main
+git remote set-head origin -a</code></pre></p>
+</div>
 <p><strong>Note</strong>
 We have assumed that you have cloned both of these repositories to the same directory so that the <code>amrex</code> and <code>GRTeclyn</code> directories share the same parent directory. This fact is used to locate AMReX when GRTeclyn builds its examples, and it is recommended as it makes it easier to be sure about the version you are using.</p>
 <p>If you want to keep AMReX elsewhere, you need to set the <code>AMREX_HOME</code> environment variable appropriately in your shell
