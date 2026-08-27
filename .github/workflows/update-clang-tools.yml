@@ -13,7 +13,7 @@ jobs:
       - name: Checkout GRTeclyn
         uses: actions/checkout@v7
         with:
-          ref: develop
+          ref: main
       - name: Get current clang tools versions
         run: |
           LLVM_VERSION=$(sed -n "s/.*LLVM_VERSION: '\([0-9]*\)'.*/\1/p" \
@@ -154,5 +154,5 @@ jobs:
             ---
             *This PR was opened automatically by the `update-clang-tools` workflow.*
           branch: update/clang-tools-v${{ env.LATEST_LLVM_MAJOR }}
-          base: develop
+          base: main
           labels: dependencies

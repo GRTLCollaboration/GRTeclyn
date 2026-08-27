@@ -14,7 +14,9 @@ To compile and run **GRTeclyn**, you will need the following software and tools:
   - AMD ROCm/HIP ≥ 6.0    (for HIP builds)
   - Intel oneAPI ≥ 2025.2 (for SYCL builds)
 
-WARNING: The use of C++20 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.
+!!! warning
+
+    The use of C++20 is stricter than GRChombo’s C++14 requirement. Older compilers that worked with GRChombo may not work here — but if you have a newer one available, and could build GRChombo, you can likely build GRTeclyn too.
 
 - **[MPI](https://www.mpi-forum.org/)** (optional but recommended)
   Required for running in parallel across nodes or cores.
@@ -37,7 +39,10 @@ Here are some useful module commands:
 
 Some newer clusters use [spack](https://spack.io/) to manage the installation of modules. On these systems, modules installed with spack will typically be appended by a 7 character hash (e.g. `hdf5-1.10.4-gcc-5.4.0-7zl2gou` on the CSD3 cluster). If there are multiple modules with similar names that only differ by their hash, you can can query the dependencies with the command `spack find -lvd <name>`.
 
-> **Warning**  See [this page](https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#gcc-on-macos) if you want to build on macOS using Homebrew GCC.
+!!! warning
+
+    See [this page](https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html#gcc-on-macos) if you want to build on macOS using Homebrew GCC.
+
 
 The following are required, but are likely to be loaded by default on most systems:
 
@@ -73,6 +78,17 @@ Next, clone the GRTeclyn repository
 ```bash
 git clone https://github.com/GRTLCollaboration/GRTeclyn.git
 ```
+
+!!! warning
+
+    If you have previously downloaded a version of GRTeclyn and the main branch was named `develop`, we have now renamed this to `main`. Follow these steps to rename your local branch:
+    ```
+    git branch -m develop main
+    git fetch origin
+    git branch -u origin/main main
+    git remote set-head origin -a
+    ```
+    
 
 **Note**
 We have assumed that you have cloned both of these repositories to the same directory so that the `amrex` and `GRTeclyn` directories share the same parent directory. This fact is used to locate AMReX when GRTeclyn builds its examples, and it is recommended as it makes it easier to be sure about the version you are using.
