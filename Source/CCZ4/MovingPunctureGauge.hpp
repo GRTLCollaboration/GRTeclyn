@@ -149,6 +149,11 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
         }
     }
 
+    /// Calculate the gauge RHS using the fully accumulated Gamma RHS.
+    /** All vacuum and matter contributions to rhs[c_Gamma1 + i] must be added
+     * before this function is called so that the B-field RHS uses the complete
+     * time derivative of the conformal connection functions.
+     */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     calculate_gauge_rhs(int ix, int iy, int iz,
                         const amrex::Array4<amrex::Real> &rhs,

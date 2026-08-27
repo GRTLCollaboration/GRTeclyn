@@ -35,6 +35,29 @@ class IntegratedMovingPunctureGauge
         m_params.fill_params();
     }
 
+    /// Store the initial integrated Gamma-driver RHS in B.
+    /** This makes the non-advective part of the initial shift RHS vanish. The
+     * B field is subsequently frozen by calculate_gauge_rhs(), preserving the
+     * subtraction throughout the evolution.
+     */
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    operator()(int ix, int iy, int iz,
+               const amrex::Array4<amrex::Real> &state) const
+    {
+        const amrex::CellData<amrex::Real> &state_cell_data =
+            state.cellData(ix, iy, iz);
+        const amrex::CellData<const amrex::Real> &const_state_cell_data =
+            state_cell_data;
+        const CCZ4Vars vars(const_state_cell_data);
+
+        FOR (i)
+        {
+            state_cell_data[c_B1 + i] =
+                m_params.shift_Gamma_coeff * vars.Gamma(i) -
+                m_params.eta * vars.shift(i);
+        }
+    }
+
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     calculate_gauge_rhs(int ix, int iy, int iz,
                         const amrex::Array4<amrex::Real> &rhs,

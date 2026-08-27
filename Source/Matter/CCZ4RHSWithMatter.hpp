@@ -42,7 +42,10 @@ class CCZ4RHSWithMatter : public CCZ4RHS<deriv_t>
     */
     CCZ4RHSWithMatter(amrex::Real a_dx);
 
-    //! Add the stress-energy tensor terms to the CCZ4 and gauge RHS.
+    //! Add stress-energy terms to the CCZ4 RHS, including the Gamma RHS.
+    /** Call this before a gauge update that derives the B-field RHS from the
+     * time derivative of the conformal connection functions.
+     */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
         const int ix, const int iy, const int iz,
         const amrex::Array4<amrex::Real>

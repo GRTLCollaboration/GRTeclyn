@@ -18,7 +18,7 @@
 #include "ConstraintsWithMatter.hpp"
 #include "DefaultPotential.hpp"
 #include "GRParmParse.hpp"
-#include "MovingPunctureGaugeWithMatter.hpp"
+#include "MovingPunctureGauge.hpp"
 #include "ScalarField.hpp"
 
 // AMReX headers
@@ -110,10 +110,7 @@ void run_bssn_matter_test()
 
         CCZ4RHSWithMatter<DefaultScalarField, FourthOrderDerivatives>
             current_ccz4_rhs{dx};
-        MovingPunctureGaugeWithMatter<FourthOrderDerivatives>
-            moving_puncture_gauge_with_matter(dx);
-        DefaultScalarField scalar_field;
-        FourthOrderDerivatives deriv(dx);
+        MovingPunctureGauge<FourthOrderDerivatives> moving_puncture_gauge(dx);
 
         // Set up the constraints
         constexpr int num_bssn_matter_vars = c_Pi + 1;
@@ -149,30 +146,15 @@ void run_bssn_matter_test()
                 current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
             });
-        amrex::ParallelFor(
-            out_mf,
-            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
-            {
-                const amrex::CellData<const amrex::Real> &state_cell_data =
-                    in_c_array[ibox].cellData(ix, iy, iz);
-                const CCZ4Vars vars(state_cell_data);
-                const Tensor::Rank2 h_UU =
-                    CCZ4Geometry::compute_inverse_metric(vars);
-                const einstein_sources_t source =
-                    scalar_field.compute_einstein_sources(
-                        ix, iy, iz, in_c_array[ibox], deriv, h_UU);
-
-                moving_puncture_gauge_with_matter.calculate_gauge_rhs(
-                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox], h_UU,
-                    source);
-            });
-
-        // calculate the matter contribution
+        // Calculate the matter contribution before the gauge update so that
+        // the B-field RHS uses the complete Gamma RHS.
         amrex::ParallelFor(
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
                 current_ccz4_rhs.add_emtensor_rhs(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+                moving_puncture_gauge.calculate_gauge_rhs(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
                 current_ccz4_rhs.add_matter_rhs(ix, iy, iz, out_mf_array[ibox],
                                                 in_c_array[ibox]);

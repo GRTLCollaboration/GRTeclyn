@@ -16,6 +16,7 @@
 // GRTeclyn headers
 #include "CCZ4RHS.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "IntegratedMovingPunctureGauge.hpp"
 
 // Old GRTeclyn headers for comparison
 #include "CCZ4RHS-fdf5a7a.hpp"
@@ -89,6 +90,34 @@ void run_ccz4_rhs_test()
 
         CCZ4RHS<FourthOrderDerivatives> current_ccz4_rhs{dx};
         MovingPunctureGauge<FourthOrderDerivatives> moving_puncture_gauge(dx);
+        IntegratedMovingPunctureGauge<FourthOrderDerivatives>
+            integrated_moving_puncture_gauge(dx);
+
+        const amrex::Box single_cell_box(amrex::IntVect(0, 0, 0),
+                                         amrex::IntVect(0, 0, 0));
+        amrex::FArrayBox gauge_state_fab{single_cell_box, NUM_CCZ4_VARS,
+                                         amrex::The_Managed_Arena()};
+        const auto &gauge_state_array = gauge_state_fab.array();
+        amrex::ParallelFor(
+            single_cell_box,
+            [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+            {
+                FOR (i)
+                {
+                    gauge_state_array(ix, iy, iz, c_shift1 + i) = 0.5 * (i + 1);
+                    gauge_state_array(ix, iy, iz, c_Gamma1 + i) = 2.0 * (i + 1);
+                }
+                integrated_moving_puncture_gauge(ix, iy, iz, gauge_state_array);
+            });
+        amrex::Gpu::streamSynchronize();
+
+        FOR (i)
+        {
+            const amrex::Real expected_B =
+                0.75 * 2.0 * (i + 1) - 1.82 * 0.5 * (i + 1);
+            CHECK(gauge_state_array(0, 0, 0, c_B1 + i) ==
+                  doctest::Approx(expected_B));
+        }
 
         Old::CCZ4RHS<Old::MovingPunctureGauge, Old::FourthOrderDerivatives>
             old_ccz4_rhs{old_ccz4_params, dx, sigma};
