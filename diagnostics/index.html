@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>TwoPunctures - GRTeclyn</title>
+    <title>Diagnostics - GRTeclyn</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
@@ -14,8 +14,8 @@
     
       <script>
         // Current page data
-        var mkdocs_page_name = "TwoPunctures";
-        var mkdocs_page_input_path = "two_punctures.md";
+        var mkdocs_page_name = "Diagnostics";
+        var mkdocs_page_input_path = "diagnostics.md";
         var mkdocs_page_url = null;
       </script>
     
@@ -80,14 +80,20 @@
                   </li>
               </ul>
               <p class="caption"><span class="caption-text">Developing code</span></p>
-              <ul>
+              <ul class="current">
                   <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Diagnostics</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#using-existing-diagnostics">Using existing diagnostics</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#adding-a-diagnostic">Adding a diagnostic</a>
+    </li>
+    </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
                   </li>
@@ -97,16 +103,10 @@
                   </li>
               </ul>
               <p class="caption"><span class="caption-text">Other features and tools</span></p>
-              <ul class="current">
+              <ul>
                   <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
                   </li>
-                  <li class="toctree-l1 current"><a class="reference internal current" href="#">TwoPunctures</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#build-instructions">Build instructions</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#parameters">Parameters</a>
-    </li>
-    </ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../two_punctures/">TwoPunctures</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
                   </li>
@@ -138,8 +138,8 @@
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-          <li class="breadcrumb-item">Other features and tools</li>
-      <li class="breadcrumb-item active">TwoPunctures</li>
+          <li class="breadcrumb-item">Developing code</li>
+      <li class="breadcrumb-item active">Diagnostics</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -148,60 +148,38 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="twopunctures-initial-data">TwoPunctures initial data</h1>
-<p>The code creates Bowen-York initial data for two puncture black holes using a single domain spectral method. The method is described in Marcus Ansorg, Bernd Brügmann, Wolfgang Tichy, "A single-domain spectral method for black hole puncture data" PRD 70, 064011 (2004) <a href="https://arxiv.org/abs/gr-qc/0404056">arXiv:gr-qc/0404056</a>.</p>
-<h2 id="build-instructions">Build instructions</h2>
-<p>To build the BinaryBH example with TwoPunctures support, you need to do the following:</p>
+                <h1 id="diagnostics">Diagnostics</h1>
+<p>Diagnostics are quantities calculated from the current state, rather than variables which need to be evolved. Examples include the Hamiltonian constraint, the energy density and the Weyl scalar <span class="arithmatex">\(\Psi_4\)</span>. AMReX calls these <em>derived variables</em>.</p>
+<p>GRTeclyn does not keep a separate diagnostic state on the grid. A diagnostic is registered during setup and calculated from the evolution state only when something requests it. For example, a diagnostic selected with <code>amr.derive_plot_vars</code> is calculated when a plot file is written. A derived variable may also be requested directly by an extraction routine. This avoids storing and updating values which may be needed only occasionally.</p>
+<h2 id="using-existing-diagnostics">Using existing diagnostics</h2>
+<p>Reusable diagnostics provide a <code>set_up()</code> function. Call this from the example level's <code>variableSetUp()</code> after <code>stateVariableSetUp()</code>. For example, the Scalar Field example registers the constraints and energy density with</p>
+<pre class="highlight"><code class="language-cpp">ScalarFieldConstraints::set_up(state_index);
+ScalarFieldEnergyDensity::set_up(state_index);</code></pre>
+<p>The names registered by these classes can then be added to <code>amr.derive_plot_vars</code> in the parameter file. Setting</p>
+<pre class="highlight"><code class="language-text">amr.derive_plot_vars = ALL</code></pre>
+<p>outputs every registered diagnostic, although selecting only the variables needed will save calculation and output time.</p>
+<h2 id="adding-a-diagnostic">Adding a diagnostic</h2>
+<p>The <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/KleinGordon/DerivedVariables.hpp">Klein Gordon derived variables</a> provide a compact example, while <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/CCZ4/Constraints.hpp"><code>Constraints</code></a> shows how a reusable diagnostic can be packaged as a class.</p>
+<p>To add your own diagnostic:</p>
 <ol>
-<li>Clone the TwoPunctures repo next to GRTeclyn.</li>
+<li>
+<p>Define the function which calculates it, for example <code>calc_energy_density</code>. Take a look at how this is done in <code>DerivedVariables.hpp</code> and <code>DerivedVariables.impl.hpp</code> in the Klein Gordon example. The function is given the current state and fills the new diagnostic variable.</p>
+</li>
+<li>
+<p>Add the diagnostic to AMReX's list of derived variables, <code>derive_lst</code>. This happens in the example level's <code>variableSetUp()</code> function. Give the diagnostic a name and pass in the calculation function from step 1. You must also tell AMReX which state variables the calculation needs; the existing examples show the usual setup.</p>
+</li>
+<li>
+<p>Select the diagnostic in <code>amr.derive_plot_vars</code>. When <code>writePlotFile()</code> is called, AMReX checks this list, calculates the selected diagnostics and writes them to the plot file. Diagnostics which have not been selected are not calculated.</p>
+</li>
 </ol>
-<p>By default, the build system will assume the TwoPunctures repository is cloned next to GRTeclyn i.e. <code>/path/to/GRTeclyn/../TwoPunctures</code> (like AMReX) but this can be overridden by setting the <code>TWOPUNCTURES_HOME</code> variable, either</p>
-<ul>
-<li>
-<p>on the command line during the build e.g.
-<pre class="highlight"><code>make -j 4 USE_TWOPUNCTURES=TRUE TWOPUNCTURES_HOME=/path/to/TwoPunctures</code></pre></p>
-</li>
-<li>
-<p>in the Make.local-pre or Make.local files located in amrex/Tools/GNUMake</p>
-</li>
-<li>
-<p>by setting it as an environment variable in your shell (also by adding it to your <code>.bashrc</code> file)
-<pre class="highlight"><code>export TWOPUNCTURES_HOME=/mypath/to/twopunctures</code></pre></p>
-</li>
-<li>
-<p>Make sure you have GSL installed/available in your environment (e.g. by loading a gsl module). If it's installed in a non-standard place or the module doesn't set <code>CPATH</code> and <code>LIBRARY_PATH</code> environment variables, you can set an environment variable <code>GSL_HOME</code> to its base installation directory.</p>
-</li>
-<li>
-<p>To build the BinaryBH GRTeclyn example with TwoPunctures initial data, set the makefile variable <code>USE_TWOPUNCTURES = TRUE</code>.</p>
-</li>
-</ul>
-<p><pre class="highlight"><code>cd /path/to/GRTeclyn/Examples/BinaryBH</code></pre>
-then
-<pre class="highlight"><code>make -j 4 USE_TWOPUNCTURES=TRUE</code></pre></p>
-<p>Note that TwoPunctures will be appended to the filename stem/build config, that is the executable will look something like <code>BinaryBH3d.gnu.MPI.TwoPunctures.ex</code>.</p>
-<h2 id="parameters">Parameters</h2>
-<p>We provide an example parameter file for TwoPunctures runs in the <code>BinaryBH</code> example folder.</p>
-<p>They are all scoped by the prefix <code>two_punctures</code>. They should be self explanatory and are mostly the same as in GRChombo and other TwoPunctures implementations. Commented out values have their default value assigned to them.</p>
-<p>See the <a href="../parameters/">Parameters guide</a> for more info.</p>
-<p>A few tips:</p>
-<ul>
-<li>
-<p>the offsets are by default in the x direction, which means for circular inspirals the main momenta should be in the y direction to keep them in the x-y plane. For head on mergers it is conventional to switch to a collision along the z axis (meaning that the weyl scalars only have m=0 components for our chosen tetrad).</p>
-</li>
-<li>
-<p>Since TwoPunctures does not support interpolation on the GPU, the interpolation of data onto the grid is done on the CPU into a MultiFab which has a host memory arena. The data is then copied asynchronously to the usual state MultiFab. In the case spectral interpolation is used (<code>two_punctures.use_spectral_interpolation = true</code>), the initial data interpolation is very slow and this is further exacerbated by the larger number of cells per MPI process one typically has when running on GPUs. It may take several hours. The easiest workaround is to compute the initial data in a CPU-only run with more MPI processes, write a checkpoint file and then restart on GPUs from that.</p>
-</li>
-</ul>
-<div class="admonition warning">
-<p class="admonition-title">The <code>swap_xz</code> convention</p>
-<p>This option is useful when doing head on mergers, as it makes sense for the merger axis to be aligned with the one used for the extraction of Weyl scalars (since then only <span class="arithmatex">\(m=0\)</span> modes are active). However, the convention here is a bit confusing. TwoPunctures always solves with the punctures on its internal x axis. Setting <code>two_punctures.swap_xz = true</code> exchanges the x and z axes during interpolation, so <code>offset_plus</code> and <code>offset_minus</code> describe physical z offsets instead of x offsets. This is an axis exchange, not a proper rotation, and the momentum and spin inputs use the internal TwoPunctures convention. In particular, with <code>swap_xz</code> enabled, a physical spin in the positive z direction is entered as a negative x component. Check vector components and signs carefully when enabling this option.</p>
-</div>
+<p>For a diagnostic that will be reused, follow the pattern used by <code>Constraints</code>, where the calculation and setup are grouped together in a class. Example-specific diagnostics can instead be registered directly in the example level, as in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/KleinGordon/KleinGordonLevel.cpp"><code>KleinGordonLevel::variableSetUp()</code></a>.</p>
+<p>No call needs to be added to the RHS calculation or every time step. Plot-file output requests the selected diagnostics automatically. The particle interpolator can also request a registered diagnostic for an extraction; see <a href="../extraction/">Extraction</a> for an example. In both cases it is calculated from the state at the time it is needed.</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../initial_data/" class="btn btn-neutral float-left" title="Initial data"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../particle_interpolator/" class="btn btn-neutral float-right" title="Particle interpolator">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../matter_classes/" class="btn btn-neutral float-left" title="Matter classes"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../coding_conventions/" class="btn btn-neutral float-right" title="Coding conventions">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -224,10 +202,10 @@ then
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../initial_data/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../matter_classes/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../particle_interpolator/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../coding_conventions/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

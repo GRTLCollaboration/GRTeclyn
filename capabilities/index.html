@@ -115,6 +115,10 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
@@ -176,7 +180,7 @@
 <h2 id="current-key-features-in-the-public-code">Current key features in the public code</h2>
 <h3 id="formulation-of-the-einstein-equations">Formulation of the Einstein equations</h3>
 <ul>
-<li>GRTeclyn uses the <a href="https://inspirehep.net/literature/913488">CCZ4</a> formulation with constraint damping to evolve the Einstein equations. </li>
+<li>GRTeclyn uses the <a href="https://inspirehep.net/literature/913488">CCZ4</a> formulation with optional constraint damping to evolve the Einstein equations.</li>
 <li>The implementation supports full 3+1D spacetimes with dynamic metrics and gauge evolution.</li>
 <li>The code is written modularly, with clearly separated evolution and diagnostic systems.</li>
 </ul>
@@ -188,13 +192,15 @@
 </ul>
 <h3 id="black-hole-spacetimes">Black hole spacetimes</h3>
 <ul>
-<li>Binary black hole (BBH) simulations are supported using Bowen–York initial data. </li>
-<li>The <strong>BinaryBH</strong> example is fully functional for boosted cases. Currently the code uses an approximate solution but we plan to integrate the TwoPunctures code shortly, which will allow fully general initial momenta and spins.</li>
+<li>Binary black hole (BBH) simulations are supported using Bowen–York initial data.</li>
+<li>The <strong>BinaryBH</strong> example is fully functional. The code uses an approximate solution for zero spin binaries, or the TwoPunctures code for fully general initial momenta and spins.</li>
 <li>Puncture positions are tracked and recorded throughout the simulation using particle methods.</li>
+<li>Weyl extraction and modes are calculated using particle methods.</li>
 </ul>
 <h3 id="scalar-fields-on-dynamical-backgrounds">Scalar fields on dynamical backgrounds</h3>
 <ul>
-<li>Oscillaton example under development but minimally coupled scalar field is working.</li>
+<li><strong>Oscillaton example</strong> - for a minimally coupled scalar field, can easily be adapted to general potential.</li>
+<li>AMR interpolation tools — the scalar field example provides a simple example of how we enable variable interpolation and post-processing, based on particle methods.</li>
 </ul>
 <h3 id="adaptive-mesh-refinement-amr">Adaptive Mesh Refinement (AMR)</h3>
 <ul>
@@ -203,8 +209,7 @@
 </ul>
 <h3 id="finite-differencing-scheme">Finite differencing scheme</h3>
 <ul>
-<li>The code supports 4th-order finite differencing in space and 4th-order Runge-Kutta in time.</li>
-<li>Support for higher-order stencils (6th order) is planned in future releases.</li>
+<li>The code supports 4th and 6th-order finite differencing in space and 4th-order Runge-Kutta in time.</li>
 </ul>
 <h3 id="checkpointing-and-restart">Checkpointing and restart</h3>
 <ul>
@@ -227,19 +232,16 @@
 <h2 id="features-under-development-coming-soon">Features under development (coming soon)</h2>
 <p>These features are implemented in working branches or are actively being ported from GRChombo. They may be available on request (at your own risk pending testing).</p>
 <ul>
-<li><strong>Gravitational wave extraction</strong> — Weyl scalar calculations for waveform analysis, and output of data for CCE extraction.</li>
 <li><strong>Apparent horizon finder</strong> — for locating black hole horizons in dynamical simulations.</li>
-<li><strong>Initial condition solver</strong> — a link to the GRTelcyn solver, to solve the Hamiltonian and Momentum constraints numerically for scalar or vacuum spacetimes. Integration of TwoPunctures as discussed above.</li>
-<li><strong>AMR interpolation tools</strong> — to enable conservative variable interpolation and post-processing, based on particle methods.</li>
+<li><strong>Initial condition solver</strong> — a link to the GRTeclyn solver GRTresna, to solve the Hamiltonian and Momentum constraints numerically for matter spacetimes.</li>
 <li><strong>ADM mass and momenta diagnostics</strong> — for computing global quantities.</li>
-<li><strong>Higher-order spatial stencils</strong> — planned support for 6th-order differencing.</li>
+<li><strong>AMR reductions</strong> - integration with AMReX methods for calculating integrals or max/min values across the adaptive mesh.</li>
 </ul>
 <hr />
 <h2 id="forthcoming-features">Forthcoming features</h2>
 <p>The following features have been developed internally or in GRChombo and are expected to be ported or reimplemented in GRTeclyn. If you're interested in working on one of these, feel free to contact us — we may be able to share existing code for inspiration or adaptation.</p>
 <ul>
 <li><strong>Fixed background metrics</strong> — support for scalar field evolution on Schwarzschild or Kerr backgrounds using analytic metrics - by adapting the existing <a href="https://github.com/GRTLCollaboration/GRDzhadzha">GRDzhaDzha</a> code to GRTeclyn.</li>
-<li><strong>Massive vector (Proca) fields</strong> — a matter class for evolving massive vector fields.</li>
 <li><strong>Cartoon formalism</strong> — support for dimensional reduction using symmetries (e.g., axisymmetry).</li>
 <li><strong>Other matter models</strong> — we will include perfect fluids and vector fields in future.</li>
 </ul>
@@ -274,6 +276,10 @@
 <td>✅ Ported</td>
 </tr>
 <tr>
+<td>TwoPunctures initial data</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
 <td>Diagnostic variables</td>
 <td>✅ Ported</td>
 </tr>
@@ -295,38 +301,46 @@
 </tr>
 <tr>
 <td>Particle-based diagnostics</td>
-<td>🔧 In progress</td>
+<td>✅ Ported</td>
 </tr>
 <tr>
-<td>Weyl scalar / CCE extraction</td>
-<td>🔧 In progress</td>
+<td>Weyl scalar</td>
+<td>✅ Ported</td>
+</tr>
+<tr>
+<td>6th-order finite differencing</td>
+<td>✅ Ported</td>
 </tr>
 <tr>
 <td>Apparent horizon finder</td>
 <td>🔧 In progress</td>
 </tr>
 <tr>
-<td>Initial condition solver</td>
+<td>Initial condition solver for matter</td>
 <td>🔧 In progress</td>
 </tr>
 <tr>
 <td>ADM quantities</td>
-<td>🔧 In progress</td>
-</tr>
-<tr>
-<td>6th-order finite differencing</td>
-<td>🔮 Planned</td>
-</tr>
-<tr>
-<td>Proca field matter</td>
-<td>🔮 Planned</td>
-</tr>
-<tr>
-<td>Perfect fluid matter</td>
 <td>🔮 Planned</td>
 </tr>
 <tr>
 <td>Cartoon formalism</td>
+<td>🔮 Planned</td>
+</tr>
+<tr>
+<td>CCE extraction</td>
+<td>🔮 Planned</td>
+</tr>
+<tr>
+<td>Fixed background metrics</td>
+<td>🔮 Planned</td>
+</tr>
+<tr>
+<td>Proca field matter and gauge fields</td>
+<td>🔮 Planned</td>
+</tr>
+<tr>
+<td>Perfect fluid matter</td>
 <td>🔮 Planned</td>
 </tr>
 </tbody>

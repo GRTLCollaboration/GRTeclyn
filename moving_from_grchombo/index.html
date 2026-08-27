@@ -83,7 +83,7 @@
               <ul class="current">
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Moving from GRChombo</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#why-port-to-grtelcyn">Why port to GRTelcyn?</a>
+    <li class="toctree-l2"><a class="reference internal" href="#why-port-to-grteclyn">Why port to GRTeclyn?</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#will-it-be-painful">Will it be painful?</a>
     </li>
@@ -92,6 +92,10 @@
     </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
                   </li>
@@ -148,10 +152,10 @@
               
                 <h1 id="moving-from-grchombo">Moving from GRChombo</h1>
 <p>This page is intended to help those coming from using the numerical relativity code <a href="https://github.com/GRTLCollaboration/GRChombo">GRChombo</a> that was the predecessor code to GRTeclyn. If you are new to GRChombo and GRTeclyn, you can skip it!</p>
-<h2 id="why-port-to-grtelcyn">Why port to GRTelcyn?</h2>
+<h2 id="why-port-to-grteclyn">Why port to GRTeclyn?</h2>
 <p>GRTeclyn is a new and improved version of the GRChombo code. It supports GPUs, meaning your code can run as much as 10-20x faster if you have access to these resources. Even if you only have access to CPUs, GRTeclyn should be faster to run and has a few useful improvements and new features. Most importantly, GRTeclyn is now the default code for our collaboration and so all new features and updates will be focused here.</p>
 <h2 id="will-it-be-painful">Will it be painful?</h2>
-<p>No - it might even be fun! Porting your code will help you to understand both codes better, and most of the changes are cosmetic rather than fundamental, since Chombo and AMReX share common ancestry in BoxLibs. You should find most of GRTelcyn looks pretty familiar. In this page we will provide some detailed tips to get you started, but the basic idea is: look at how the binary or scalar field examples have changed from GRChombo to GRTeclyn, and then copy the same approach for your own examples.</p>
+<p>No - it might even be fun! Porting your code will help you to understand both codes better, and most of the changes are cosmetic rather than fundamental, since Chombo and AMReX share common ancestry in BoxLibs. You should find most of GRTeclyn looks pretty familiar. In this page we will provide some detailed tips to get you started, but the basic idea is: look at how the binary or scalar field examples have changed from GRChombo to GRTeclyn, and then copy the same approach for your own examples.</p>
 <h2 id="key-changes">Key changes</h2>
 <ul>
 <li><strong>No data_t</strong></li>
@@ -161,6 +165,10 @@
 <li><strong>Accessing variables</strong></li>
 </ul>
 <p>We now load and store variables directly to the grid, rather than creating a local copy of the variables at each point and then using those (i.e. the thing that was usually called <code>vars</code>). There is therefore no <code>enum_mapping_function</code> nonsense. We still have a way to access the variables in a readable form, but it uses pointers to the grid values, and so is much more efficient. The new way means you have to do <code>vars.chi()</code> to get a scalar variable, <code>vars.shift(i)</code> to get the i-th component of a vector and <code>vars.h(i,j)</code> to get the i,j component of a tensor. If you take a look at the new <code>CCZ4RHS</code> class you will get the idea. Note the use of curved (not square) brackets for accessing components in a tensor. (This arises because these are now all AMReX arrays under the hood).</p>
+<ul>
+<li><strong>Diagnostics are calculated when needed</strong></li>
+</ul>
+<p>GRTeclyn no longer carries a separate diagnostic state alongside the evolution state. Diagnostics are registered as AMReX derived variables and calculated from the current evolution state only when they are requested for a plot file or extraction. See <a href="../diagnostics/"><strong>Diagnostics</strong></a> for how to register an existing diagnostic or implement your own.</p>
 <ul>
 <li><strong>Derivatives and symmetries</strong></li>
 </ul>

@@ -75,10 +75,6 @@
     <li class="toctree-l2"><a class="reference internal" href="#how-to-run-the-code">How to run the code</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#looking-at-the-outputs">Looking at the outputs</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#aside-how-to-add-a-derived-variable">(Aside) How to add a derived variable</a>
-    </li>
-        </ul>
     </li>
     </ul>
                   </li>
@@ -94,6 +90,10 @@
                   <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
                   </li>
@@ -174,7 +174,7 @@
 <ol>
 <li><code>git clone</code> GRTeclyn and AMReX as usual. Navigate to <code>Examples/KleinGordon</code>.</li>
 <li>Build using
-<pre class="highlight"><code class="language-bash">make -j 8 COMP=&lt;your favourite toolchain&gt; </code></pre>
+<pre class="highlight"><code class="language-bash">make -j 8 COMP=&lt;your favourite toolchain&gt;</code></pre>
 See the <a href="https://grtlcollaboration.github.io/GRTeclyn/example_configs/">example configs</a> for some common setups.</li>
 <li>
 <p>Take a look inside the parameter file, <code>params_test.txt</code>:
@@ -202,7 +202,7 @@ All Klein Gordon parameters are prefaced by <code>klein-gordon</code>:</p>
 <li><code>klein_gordon.model</code>: Choose from <code>Wave</code>, <code>SineGordon1D</code> or <code>SineGordon3D</code></li>
 <li><strong>(Sine Gordon models only)</strong> <code>klein_gordon.alpha</code>: The breather solutions oscillate and this controls the frequency of the oscillation. Must be less than 1!</li>
 <li><code>klein_gordon.initial_time</code>: This sets the initial state/phase of the solution.</li>
-<li><strong>(Wave models only)</strong> <code>klein_gordon.wave_vector</code>: The characteristic wave number, <span class="arithmatex">\(k_r\)</span>. The solution is in the form <span class="arithmatex">\(\cos(k_r r - \omega t)\)</span>. </li>
+<li><strong>(Wave models only)</strong> <code>klein_gordon.wave_vector</code>: The characteristic wave number, <span class="arithmatex">\(k_r\)</span>. The solution is in the form <span class="arithmatex">\(\cos(k_r r - \omega t)\)</span>.</li>
 <li><strong>(Wave models only)</strong> <code>klein_gordon.scalar_mass</code>: The potential is in the form <span class="arithmatex">\(m^2 \phi^2\)</span>, where <span class="arithmatex">\(m\)</span> is the mass of the scalar field.</li>
 </ul>
 </li>
@@ -210,7 +210,7 @@ All Klein Gordon parameters are prefaced by <code>klein-gordon</code>:</p>
 <p>Run the code using
 <pre class="highlight"><code class="language-bash">mpirun -np 2 ./KleinGordon3d.XXX.MPI.ex ./params_test.txt</code></pre>
 where the <code>XXX</code> represents the toolchain that you've chosen in Step 2.
-This example is very small, so 2 MPI ranks is more than sufficient. </p>
+This example is very small, so 2 MPI ranks is more than sufficient.</p>
 </li>
 </ol>
 <h2 id="looking-at-the-outputs">Looking at the outputs</h2>
@@ -225,17 +225,11 @@ This example is very small, so 2 MPI ranks is more than sufficient. </p>
 <li><code>Pi_analytic</code> - the analytic solution to the first derivative of the field value at each cell</li>
 <li><code>rho</code> - the value of the energy density at each cell.</li>
 </ul>
-<p>Set <code>amr.plot_vars = ALL</code> and <code>amr.derive_plot_vars = ALL</code> to print all the state (<code>phi</code>, <code>Pi</code>) and derived variables (<code>phi_analytic</code>, <code>Pi_analytic</code>, <code>rho</code>). </p>
+<p>Set <code>amr.plot_vars = ALL</code> and <code>amr.derive_plot_vars = ALL</code> to print all the state (<code>phi</code>, <code>Pi</code>) and derived variables (<code>phi_analytic</code>, <code>Pi_analytic</code>, <code>rho</code>).</p>
 <p>If you plot the outputs using AMReXplorer, you will get something like this:</p>
 <p><img alt="KleinGordonBlob" src="../img/KleinGordon.png" title="KleinGordonBlob" /></p>
 <p>You can then use the "Field" button to scroll through the different variables.</p>
-<h3 id="aside-how-to-add-a-derived-variable">(Aside) How to add a derived variable</h3>
-<p>Since the way GRTeclyn handles derived variables is quite different to GRChombo and the derived variables are quite straightforward in this example, this is a good place to start learning how to add your own derived quantities. </p>
-<ol>
-<li>Define their compute functions, e.g. <code>calc_energy_density</code>. Take a look at how this is done inside <code>DerivedVariables.hpp</code> and <code>DerivedVariables.impl.hpp</code>.</li>
-<li>Add the variable to the list of derived variables, <code>derive_lst</code>, managed by AMReX. This happens within the <code>KleinGordonLevel</code> class, inside the member function called <code>variableSetUp()</code>. Notice that the compute function defined in Step 1 is passed into <code>deriv_lst.add</code> and that the variables are named e.g. <code>rho</code>.</li>
-<li>When <code>writePlotFile</code> is called (at the AMReX level), it will cycle through the names of the variables in <code>derive_lst</code> and the ones that you have selected (using <code>amr.derive_plot_vars</code> in the parameter file) will be written to file. </li>
-</ol>
+<p>The analytic solution and energy density are examples of GRTeclyn diagnostics (called derived variables by AMReX). See <a href="../diagnostics/">Diagnostics</a> for details of how they are registered, calculated when needed and added to your own example.</p>
               
             </div>
           </div><footer>

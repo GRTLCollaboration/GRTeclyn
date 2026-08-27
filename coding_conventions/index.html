@@ -85,6 +85,10 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
+                  </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Coding conventions</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#using-clang-format">Using Clang Format</a>
@@ -164,21 +168,21 @@
 <p>We use <code>clang-format</code> to maintain our coding style, and it is enforced for any new pull requests to the <code>main</code> branch. However, even if you do not plan to contribute to the public code we recommend using it, as having a clear and consistently structured code helps avoid errors and makes your code more readable.</p>
 <p>Note that some of the following instructions will only work with newer versions of Python (e.g. v3.6+). If you are working on a cluster, the system Python version may be too old (As of January 2020, Python 2 is deprecated and should be avoided.) and you may need to load a newer version from a module.</p>
 <h3 id="getting-clang-format">Getting Clang Format</h3>
-<p>We recommend installing <code>clang-format</code> using the Python package manager <code>pip</code> (see <a href="https://packaging.python.org/tutorials/installing-packages/">here</a> if you don't have <code>pip</code> available). You should install the version that is current enforced by <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/.github/workflows/lint.yml">the GitHub action</a> that checks it (currently v19 at time of writing, NB: this is different to what GRChombo uses). This can be done with a command such as
+<p>We recommend installing <code>clang-format</code> using the Python package manager <code>pip</code> (see <a href="https://packaging.python.org/tutorials/installing-packages/">here</a> if you don't have <code>pip</code> available). You should install the version that is current enforced by <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.github/workflows/lint.yml">the GitHub action</a> that checks it (currently v19 at time of writing, NB: this is different to what GRChombo uses). This can be done with a command such as
 <pre class="highlight"><code class="language-bash">python3 -m pip install --user clang-format==19.1.7</code></pre>
 Note that the <code>--user</code> flag means that <code>clang-format</code> will be installed to your home directory (specifically <code>$HOME/.local/bin</code>) rather than a system directory but you can of course omit this flag and install to a system directory if you prefer and have superuser permissions. Make sure the directory in which it is installed is in your <code>PATH</code> environment variable so you can run the command <code>clang-format</code> without having to specify the full path. This can be done by adding the line
 <pre class="highlight"><code class="language-bash">export PATH=${HOME}/.local/bin:$PATH</code></pre>
 to your <code>~/.bashrc</code> file (assuming you are using BASH - the corresponding file for ZSH is <code>~/.zshrc</code>).</p>
 <p>Alternatively, you can install <code>clang-format</code> using your system's package manager (e.g. <code>apt</code> on Ubuntu/Debian) or Homebrew on macOS. However, this will probably install a different version to the one we check with which may result in slightly different formatting.</p>
 <h3 id="running-clang-format">Running Clang Format</h3>
-<p>Before committing any changes that you have made, you should run <code>clang-format</code> on all files by executing the <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/run_clang_format"><code>run_clang_format</code></a> script in the repository base directory.</p>
+<p>Before committing any changes that you have made, you should run <code>clang-format</code> on all files by executing the <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/run_clang_format"><code>run_clang_format</code></a> script in the repository base directory.</p>
 <p>Alternatively, you may be able to set up your text editor to automatically run <code>clang-format</code> when you save a file. There are guides for several editors such as
  * <a href="https://clang.llvm.org/docs/ClangFormat.html#vim-integration">Vim</a>
  * <a href="https://clang.llvm.org/docs/ClangFormat.html#emacs-integration">Emacs</a>
  * <a href="https://atom.io/packages/clang-format">Atom</a>
  * <a href="https://marketplace.visualstudio.com/items?itemName=xaver.clang-format">VS Code</a>
  * <a href="https://github.com/rosshemsley/SublimeClangFormat">Sublime</a></p>
-<p>Note that some of these guides may assume you have installed <code>clang-format</code> in a different way to that described above. If you set up your editor using one of these guides make sure they are enforcing the <code>-style=file</code> option as this will use <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/.clang-format">our style configuration</a> rather than a different one.</p>
+<p>Note that some of these guides may assume you have installed <code>clang-format</code> in a different way to that described above. If you set up your editor using one of these guides make sure they are enforcing the <code>-style=file</code> option as this will use <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.clang-format">our style configuration</a> rather than a different one.</p>
 <h3 id="setting-up-the-pre-commit-hook">Setting up the pre-commit hook</h3>
 <p>Since it is easy to forget to run <code>clang-format</code>, we have added a <a href="https://pre-commit.com/">pre-commit</a> hook to check the formatting before committing.</p>
 <p>To set up the pre-commit hook on your local clone of the repository, install the <code>pre-commit</code> python package using a command such as
@@ -285,7 +289,7 @@ editor you can change it using the command</p>
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../code_structure/" class="btn btn-neutral float-left" title="Code structure"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../diagnostics/" class="btn btn-neutral float-left" title="Diagnostics"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../pull_requests/" class="btn btn-neutral float-right" title="Pull requests">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
@@ -309,7 +313,7 @@ editor you can change it using the command</p>
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../code_structure/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../diagnostics/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
       <span><a href="../pull_requests/" style="color: #fcfcfc">Next &raquo;</a></span>

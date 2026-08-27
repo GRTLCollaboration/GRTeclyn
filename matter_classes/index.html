@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>TwoPunctures - GRTeclyn</title>
+    <title>Matter classes - GRTeclyn</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
@@ -14,8 +14,8 @@
     
       <script>
         // Current page data
-        var mkdocs_page_name = "TwoPunctures";
-        var mkdocs_page_input_path = "two_punctures.md";
+        var mkdocs_page_name = "Matter classes";
+        var mkdocs_page_input_path = "matter_classes.md";
         var mkdocs_page_url = null;
       </script>
     
@@ -80,12 +80,16 @@
                   </li>
               </ul>
               <p class="caption"><span class="caption-text">Developing code</span></p>
-              <ul>
+              <ul class="current">
                   <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Matter classes</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#adding-a-new-matter-type">Adding a new matter type</a>
+    </li>
+    </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
                   </li>
@@ -97,16 +101,10 @@
                   </li>
               </ul>
               <p class="caption"><span class="caption-text">Other features and tools</span></p>
-              <ul class="current">
+              <ul>
                   <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
                   </li>
-                  <li class="toctree-l1 current"><a class="reference internal current" href="#">TwoPunctures</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#build-instructions">Build instructions</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#parameters">Parameters</a>
-    </li>
-    </ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../two_punctures/">TwoPunctures</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
                   </li>
@@ -138,8 +136,8 @@
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-          <li class="breadcrumb-item">Other features and tools</li>
-      <li class="breadcrumb-item active">TwoPunctures</li>
+          <li class="breadcrumb-item">Developing code</li>
+      <li class="breadcrumb-item active">Matter classes</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -148,60 +146,53 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="twopunctures-initial-data">TwoPunctures initial data</h1>
-<p>The code creates Bowen-York initial data for two puncture black holes using a single domain spectral method. The method is described in Marcus Ansorg, Bernd Brügmann, Wolfgang Tichy, "A single-domain spectral method for black hole puncture data" PRD 70, 064011 (2004) <a href="https://arxiv.org/abs/gr-qc/0404056">arXiv:gr-qc/0404056</a>.</p>
-<h2 id="build-instructions">Build instructions</h2>
-<p>To build the BinaryBH example with TwoPunctures support, you need to do the following:</p>
+                <h1 id="matter-classes">Matter classes</h1>
+<p>GRTeclyn separates the evolution of the spacetime variables from the details of a particular matter model. The <code>CCZ4RHSWithMatter</code> class inherits the vacuum CCZ4 calculations from <code>CCZ4RHS</code>, then adds the matter sources to the spacetime equations and calculates the right hand side (RHS) for the matter variables themselves.</p>
+<p>The matter-aware RHS code is templated over the matter class and the derivative class. This means that the compiler creates a version of the RHS for the particular types that an example selects. There is no runtime lookup: inside the generic code, an object of type <code>matter_t</code> can be used as if its exact class had been written there directly.</p>
+<p>For example, if a template is declared schematically as</p>
+<pre class="highlight"><code class="language-cpp">template &lt;class matter_t, class deriv_t = FourthOrderDerivatives&gt;
+class MatterEvolution
+{
+    matter_t m_matter;
+    deriv_t m_deriv;
+};</code></pre>
+<p>then <code>matter_t</code> and <code>deriv_t</code> are placeholders. Supplying a scalar field class and <code>FourthOrderDerivatives</code> makes those the concrete member types. A default such as <code>FourthOrderDerivatives</code> means that the second type need only be supplied when a different derivative operator is wanted. Since the type is needed at compile time, template implementations generally live in header files; in GRTeclyn the longer definitions are often placed in an <code>.impl.hpp</code> file which is included at the end of the main <code>.hpp</code> file.</p>
+<p>The <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/Matter/ScalarField.hpp">ScalarField class</a> and its <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/Matter/ScalarField.impl.hpp">implementation</a> provide the main example to follow when adding a matter type.</p>
+<h2 id="adding-a-new-matter-type">Adding a new matter type</h2>
+<p>First decide which new variables need to be evolved. Add their indices, names, boundary parities and asymptotic values to the example's <code>StateVariables.hpp</code>. It is also useful to make a small variables class equivalent to <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/Matter/ScalarFieldVars.hpp"><code>ScalarFieldVars</code></a>. This gives readable accessors for the CCZ4 and matter variables at one grid cell.</p>
+<p>Next create header and implementation files equivalent to <code>ScalarField.hpp</code> and <code>ScalarField.impl.hpp</code>. The matter class should provide:</p>
+<ul>
+<li>
+<p>a <code>Vars</code> alias for its variables class;</p>
+</li>
+<li>
+<p>a default constructor which reads any runtime parameters needed by the matter model (this is required when the class is used by the <a href="../diagnostics/">diagnostic callbacks</a>);</p>
+</li>
+<li>
+<p><code>compute_emtensor(...)</code>, which returns an <code>emtensor_t</code> containing the physical energy density <span class="arithmatex">\(\rho\)</span>, momentum density <span class="arithmatex">\(j_i\)</span>, spatial stress <span class="arithmatex">\(S_{ij}\)</span> and its trace <span class="arithmatex">\(S\)</span>;</p>
+</li>
+<li>
+<p><code>compute_einstein_sources(...)</code>, which returns the corresponding <code>einstein_sources_t</code> used in the Einstein and gauge RHS equations; and</p>
+</li>
+<li>
+<p><code>add_matter_rhs(...)</code>, which adds the evolution equations for the matter variables to the RHS array.</p>
+</li>
+</ul>
+<p>The distinction between the two source functions is important. <code>compute_emtensor(...)</code> returns the 3+1 decomposition of the physical stress-energy tensor <span class="arithmatex">\(T_{ab}\)</span>. These are the quantities normally wanted for diagnostics, for example when outputting the energy density. <code>compute_einstein_sources(...)</code> returns the quantities that appear in the Einstein equations, including the gravitational coupling. For minimally coupled matter this will usually call <code>compute_emtensor(...)</code> and multiply each component by <span class="arithmatex">\(8\pi G\)</span>. Keeping the two functions separate prevents a diagnostic intended to output <span class="arithmatex">\(\rho\)</span> from accidentally outputting <span class="arithmatex">\(8\pi G\rho\)</span> instead.</p>
+<p>Finally, in the example level class:</p>
 <ol>
-<li>Clone the TwoPunctures repo next to GRTeclyn.</li>
+<li>Select the concrete matter type, as <code>ScalarFieldLevel</code> does with <code>ScalarField&lt;Potential&gt;</code>.</li>
+<li>Construct the matter-aware CCZ4 RHS with that matter type and the required derivative type.</li>
+<li>During <code>specificEvalRHS()</code>, call the inherited vacuum CCZ4 calculations, add the Einstein sources, add the matter RHS, and then apply dissipation. See <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/ScalarFieldLevel.cpp"><code>ScalarFieldLevel::specificEvalRHS()</code></a> for the order of these operations.</li>
+<li>Register any matter diagnostics, such as the energy density or constraints with matter, in <code>variableSetUp()</code>.</li>
 </ol>
-<p>By default, the build system will assume the TwoPunctures repository is cloned next to GRTeclyn i.e. <code>/path/to/GRTeclyn/../TwoPunctures</code> (like AMReX) but this can be overridden by setting the <code>TWOPUNCTURES_HOME</code> variable, either</p>
-<ul>
-<li>
-<p>on the command line during the build e.g.
-<pre class="highlight"><code>make -j 4 USE_TWOPUNCTURES=TRUE TWOPUNCTURES_HOME=/path/to/TwoPunctures</code></pre></p>
-</li>
-<li>
-<p>in the Make.local-pre or Make.local files located in amrex/Tools/GNUMake</p>
-</li>
-<li>
-<p>by setting it as an environment variable in your shell (also by adding it to your <code>.bashrc</code> file)
-<pre class="highlight"><code>export TWOPUNCTURES_HOME=/mypath/to/twopunctures</code></pre></p>
-</li>
-<li>
-<p>Make sure you have GSL installed/available in your environment (e.g. by loading a gsl module). If it's installed in a non-standard place or the module doesn't set <code>CPATH</code> and <code>LIBRARY_PATH</code> environment variables, you can set an environment variable <code>GSL_HOME</code> to its base installation directory.</p>
-</li>
-<li>
-<p>To build the BinaryBH GRTeclyn example with TwoPunctures initial data, set the makefile variable <code>USE_TWOPUNCTURES = TRUE</code>.</p>
-</li>
-</ul>
-<p><pre class="highlight"><code>cd /path/to/GRTeclyn/Examples/BinaryBH</code></pre>
-then
-<pre class="highlight"><code>make -j 4 USE_TWOPUNCTURES=TRUE</code></pre></p>
-<p>Note that TwoPunctures will be appended to the filename stem/build config, that is the executable will look something like <code>BinaryBH3d.gnu.MPI.TwoPunctures.ex</code>.</p>
-<h2 id="parameters">Parameters</h2>
-<p>We provide an example parameter file for TwoPunctures runs in the <code>BinaryBH</code> example folder.</p>
-<p>They are all scoped by the prefix <code>two_punctures</code>. They should be self explanatory and are mostly the same as in GRChombo and other TwoPunctures implementations. Commented out values have their default value assigned to them.</p>
-<p>See the <a href="../parameters/">Parameters guide</a> for more info.</p>
-<p>A few tips:</p>
-<ul>
-<li>
-<p>the offsets are by default in the x direction, which means for circular inspirals the main momenta should be in the y direction to keep them in the x-y plane. For head on mergers it is conventional to switch to a collision along the z axis (meaning that the weyl scalars only have m=0 components for our chosen tetrad).</p>
-</li>
-<li>
-<p>Since TwoPunctures does not support interpolation on the GPU, the interpolation of data onto the grid is done on the CPU into a MultiFab which has a host memory arena. The data is then copied asynchronously to the usual state MultiFab. In the case spectral interpolation is used (<code>two_punctures.use_spectral_interpolation = true</code>), the initial data interpolation is very slow and this is further exacerbated by the larger number of cells per MPI process one typically has when running on GPUs. It may take several hours. The easiest workaround is to compute the initial data in a CPU-only run with more MPI processes, write a checkpoint file and then restart on GPUs from that.</p>
-</li>
-</ul>
-<div class="admonition warning">
-<p class="admonition-title">The <code>swap_xz</code> convention</p>
-<p>This option is useful when doing head on mergers, as it makes sense for the merger axis to be aligned with the one used for the extraction of Weyl scalars (since then only <span class="arithmatex">\(m=0\)</span> modes are active). However, the convention here is a bit confusing. TwoPunctures always solves with the punctures on its internal x axis. Setting <code>two_punctures.swap_xz = true</code> exchanges the x and z axes during interpolation, so <code>offset_plus</code> and <code>offset_minus</code> describe physical z offsets instead of x offsets. This is an axis exchange, not a proper rotation, and the momentum and spin inputs use the internal TwoPunctures convention. In particular, with <code>swap_xz</code> enabled, a physical spin in the positive z direction is entered as a negative x component. Check vector components and signs carefully when enabling this option.</p>
-</div>
+<p>If the new model has a potential or another interchangeable piece of physics, that may itself be templated in the same way. The Scalar Field example keeps its model-specific potential in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/Potential.hpp"><code>Examples/ScalarField/Potential.hpp</code></a>, while the reusable scalar field evolution remains in <code>Source/Matter</code>.</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../initial_data/" class="btn btn-neutral float-left" title="Initial data"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../particle_interpolator/" class="btn btn-neutral float-right" title="Particle interpolator">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../code_structure/" class="btn btn-neutral float-left" title="Code structure"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../diagnostics/" class="btn btn-neutral float-right" title="Diagnostics">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -224,10 +215,10 @@ then
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../initial_data/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../code_structure/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../particle_interpolator/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../diagnostics/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

@@ -125,6 +125,10 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
@@ -396,7 +400,7 @@ Then every time you log back into Tursa, you can load the same environment using
 <h3 id="running-grteclyn">Running GRTeclyn</h3>
 <p>An example of a single GPU run:
 <pre class="highlight"><code>srun -A &lt;your project code&gt; -p gpu --qos=&lt;priority&gt; --nodes=1 --ntasks=1 --gres=gpu:1 --time=00:10:00 ./main3d.gnu.MPI.CUDA.ex params_test.txt</code></pre>
-where <code>&lt;your project code&gt;</code> is the name of your allocation and <code>&lt;priority&gt;</code> sets your priority level. Choose from <code>standard</code>, <code>dev</code>, <code>low</code>, or <code>high</code>. Read more about the possible options <a href="https://epcced.github.io/dirac-docs/tursa-user-guide/scheduler/">here</a></p>
+where <code>&lt;your project code&gt;</code> is the name of your allocation and <code>&lt;priority&gt;</code> sets your priority level. Choose from <code>standard</code>, <code>dev</code>, <code>low</code>, or <code>high</code>. Read more about the possible options <a href="https://epcced.github.io/dirac-docs/scheduler/">here</a>.</p>
 <p>NB: The <code>gpu</code> queue above is general. There are two types of A100s on Tursa, those with 40GB memory per card and those with 80GB memory per card. If you need a particular amount of memory, you can choose between them by setting either <code>-p gpu-a100-40</code> or <code>-p gpu-a100-80</code>. Using <code>-p gpu</code> will give you whichever is available first and so increases your chances of the job starting earlier.</p>
 <hr />
 <h2 id="swirles">Swirles</h2>

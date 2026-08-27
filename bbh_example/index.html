@@ -103,6 +103,10 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
@@ -160,7 +164,7 @@
 <p>The following gives some instructions on running the binary black hole example.</p>
 <p>This is the classic NR problem, but it is also quite an expensive example to run, so if you just want to try out running GRTeclyn on your laptop or a small cluster, we recommend you start with the <a href="../sf_example/"><strong>Scalar Field Example</strong></a> instead.</p>
 <h2 id="physical-scenario">Physical scenario</h2>
-<p>This page describes running the Binary BH example using the parameters found in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/develop/Examples/BinaryBH/params_profile.txt">this parameter file</a>.</p>
+<p>This page describes running the Binary BH example using the parameters found in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/BinaryBH/params_profile.txt">this parameter file</a>.</p>
 <p>The initial conditions consist of a superposition of two equal mass black holes, with initial momenta and positions chosen to give approximately 10 circular orbits before merger.</p>
 <p>Note that finding the right momenta for an initial circular trajectory is in general a hard problem in NR - simply setting the momentum to the Newtonian approximation will result in elliptic orbits even for well separated initial BHs. One must use the Post-Newtonian approximations, and then adjust the momentum manually over several iterations to achieve an initial eccentricity of less than 1%. We are grateful to Dr Sebastian Khan at Cardiff University for providing us with these initial data values.</p>
 <p>Note that this is a realistic example but not production quality for generating BBH waveforms (one should have a larger wave zone, and better resolution at the horizon). Production level parameters are provided in <code>params_production.txt</code>.</p>
