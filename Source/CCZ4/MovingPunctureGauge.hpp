@@ -42,10 +42,10 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
                                        //!  \beta^i =  F B^i\f$
         amrex::Real shift_advec_coeff; //!< Switches advection terms in the
                                        //! shift condition on/off
-        amrex::Real eta; //!< The eta in \f$\partial_t B^i = \partial_t \tilde
-                         //!\Gamma - \eta B^i\f$
-        amrex::Real fix_coeff{0.0};    //!< Coefficient for B-field RHS damping
-        amrex::Real fix_radius{500.0}; //!< Radial scale of the damping
+        amrex::Real eta; //!< The central eta in \f$\partial_t B^i = \partial_t
+                         //!\tilde\Gamma - \eta(r) B^i\f$
+        amrex::Real eta_cutoff_coeff{0.0}; //!< Enables the radial decay of eta
+        amrex::Real eta_cutoff_radius{500.0}; //!< Transition radius for eta(r)
         std::array<amrex::Real, AMREX_SPACEDIM> center{};
 
         static void check_params()
@@ -106,13 +106,14 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
                     "usually O(1/M_ADM) so typically O(1) in code units");
             }
 
-            bool enable_fixer = false;
-            gauge_pp.queryAdd("enable_fixer", enable_fixer);
-            amrex::Real fix_radius = 500.0;
-            gauge_pp.queryAdd("fix_radius", fix_radius);
-            if (fix_radius <= 0.0)
+            bool enable_eta_cutoff = false;
+            gauge_pp.queryAdd("enable_eta_cutoff", enable_eta_cutoff);
+            amrex::Real eta_cutoff_radius = 500.0;
+            gauge_pp.queryAdd("eta_cutoff_radius", eta_cutoff_radius);
+            if (eta_cutoff_radius <= 0.0)
             {
-                gauge_pp.error("fix_radius", "must be greater than zero");
+                gauge_pp.error("eta_cutoff_radius",
+                               "must be greater than zero");
             }
         }
 
@@ -128,10 +129,10 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
             gauge_pp.get("shift_advec_coeff", shift_advec_coeff);
             gauge_pp.get("eta", eta);
 
-            bool enable_fixer = false;
-            gauge_pp.query("enable_fixer", enable_fixer);
-            fix_coeff = static_cast<amrex::Real>(enable_fixer);
-            gauge_pp.query("fix_radius", fix_radius);
+            bool enable_eta_cutoff = false;
+            gauge_pp.query("enable_eta_cutoff", enable_eta_cutoff);
+            eta_cutoff_coeff = static_cast<amrex::Real>(enable_eta_cutoff);
+            gauge_pp.query("eta_cutoff_radius", eta_cutoff_radius);
         }
     };
 
@@ -145,34 +146,29 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
     {
         m_params.fill_params();
         GRParmParse geometry_pp("geometry");
-        geometry_pp.get("center", m_params.center);
+        geometry_pp.query("center", m_params.center);
     }
 
-    /// suppress the B-field RHS far away.
-    /** Multiplies each B-field RHS component by
-     * \f$c_f R^2/(r^2+R^2) + (1-c_f)\f$, where \f$c_f\f$ is the real-valued
-     * fixer coefficient, R is gauge.fix_radius, and r is measured from
-     * geometry.center. The coefficient is 1 when gauge.enable_fixer is true
-     * and 0 otherwise.
+    /// Return the spatially varying Gamma-driver damping parameter.
+    /** Calculates
+     * \f$\eta(r)=\eta_*[c_f R^2/(r^2+R^2)+(1-c_f)]\f$, where \f$\eta_*\f$ is
+     * gauge.eta, \f$R\f$ is gauge.eta_cutoff_radius, and \f$r\f$ is measured
+     * from geometry.center. The coefficient \f$c_f\f$ is 1 when
+     * gauge.enable_eta_cutoff is true and 0 otherwise.
      */
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    gaugefix(int ix, int iy, int iz,
-             const amrex::CellData<amrex::Real> &rhs_cell_data) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+    eta_at_position(int ix, int iy, int iz) const
     {
         const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx,
                                  m_params.center);
         const amrex::Real radius = coords.get_radius();
-        const amrex::Real fix_radius_squared =
-            m_params.fix_radius * m_params.fix_radius;
-        const amrex::Real fix_factor =
-            fix_radius_squared / (radius * radius + fix_radius_squared);
-        const amrex::Real f_of_r =
-            m_params.fix_coeff * fix_factor + (1.0 - m_params.fix_coeff);
-
-        FOR (i)
-        {
-            rhs_cell_data[c_B1 + i] *= f_of_r;
-        }
+        const amrex::Real eta_cutoff_radius_squared =
+            m_params.eta_cutoff_radius * m_params.eta_cutoff_radius;
+        const amrex::Real eta_cutoff_factor =
+            eta_cutoff_radius_squared /
+            (radius * radius + eta_cutoff_radius_squared);
+        return m_params.eta * (m_params.eta_cutoff_coeff * eta_cutoff_factor +
+                               (1.0 - m_params.eta_cutoff_coeff));
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
@@ -181,7 +177,7 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
     rhs_gauge(const amrex::CellData<amrex::Real> &rhs_cell_data,
               const CCZ4Vars &vars, const amrex::Real &advec_lapse,
               const Tensor::Rank1 &advec_shift, const Tensor::Rank1 &advec_B,
-              const Tensor::Rank1 &advec_Gamma) const
+              const Tensor::Rank1 &advec_Gamma, const amrex::Real &eta) const
     // NOLINTEND(bugprone-easily-swappable-parameters,
     // readability-convert-member-functions-to-static)
     {
@@ -198,15 +194,16 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
             rhs_cell_data[c_B1 + i] =
                 m_params.shift_advec_coeff * advec_B(i) -
                 m_params.shift_advec_coeff * advec_Gamma(i) +
-                rhs_cell_data[c_Gamma1 + i] - m_params.eta * vars.B(i);
+                rhs_cell_data[c_Gamma1 + i] - eta * vars.B(i);
         }
     }
 
     /// Calculate the gauge RHS using the fully accumulated Gamma RHS.
     /** All vacuum and matter contributions to rhs[c_Gamma1 + i] must be added
      * before this function is called so that the B-field RHS uses the complete
-     * time derivative of the conformal connection functions. The gauge fixer
-     * is applied to the resulting B-field RHS before this function returns.
+     * time derivative of the conformal connection functions. When enabled,
+     * the eta cutoff replaces eta by its local radial profile in the damping
+     * term only.
      */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     calculate_gauge_rhs(int ix, int iy, int iz,
@@ -236,8 +233,7 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
             m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
 
         rhs_gauge(rhs_cell_data, vars, advec_lapse, advec_shift, advec_B,
-                  advec_Gamma);
-        gaugefix(ix, iy, iz, rhs_cell_data);
+                  advec_Gamma, eta_at_position(ix, iy, iz));
     }
 };
 

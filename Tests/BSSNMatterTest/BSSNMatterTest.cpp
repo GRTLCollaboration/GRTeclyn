@@ -31,7 +31,6 @@
 #endif
 
 // System headers
-#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -101,9 +100,6 @@ void run_bssn_matter_test()
         pp.add("gauge.lapse_coeff", 2.0);
         pp.add("gauge.shift_advec_coeff", 0.0);
         pp.add("gauge.eta", 1.0);
-
-        std::array<amrex::Real, AMREX_SPACEDIM> center{};
-        pp.queryAdd("geometry.center", center);
 
         pp.add("evolution.sigma", 0.1);
         pp.add("ccz4.formulation", CCZ4RHS<>::USE_BSSN);
