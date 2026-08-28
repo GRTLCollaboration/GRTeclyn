@@ -8,6 +8,7 @@
 
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
+#include "GRParmParse.hpp"
 
 #include <AMReX_Array4.H>
 #include <AMReX_TagBox.H>
@@ -28,7 +29,7 @@ template <unsigned int num_punctures> class PunctureTagger
     amrex::Real m_fudge_factor{2.0};
 
   public:
-    static void check_params
+    static void check_params()
     {
         GRParmParse tagging_pp("tagging");
         amrex::Real level_separation{1.5};

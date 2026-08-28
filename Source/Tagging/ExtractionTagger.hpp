@@ -8,6 +8,7 @@
 
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
+#include "GRParmParse.hpp"
 #include "SphericalExtractionParameters.hpp"
 #include "Tensor.hpp"
 
@@ -28,7 +29,7 @@ class ExtractionTagger
     amrex::Real m_level_separation{1.5};
 
   public:
-    static void check_params
+    static void check_params()
     {
         GRParmParse tagging_pp("tagging");
         amrex::Real level_separation{1.5};
