@@ -24,8 +24,28 @@ template <unsigned int num_punctures> class PunctureTagger
         AMREX_SPACEDIM * num_punctures;
     std::array<amrex::Real, num_punctures> m_puncture_masses;
     std::array<amrex::Real, num_puncture_coords> m_puncture_coords;
+    amrex::Real m_level_separation{1.5};
+    amrex::Real m_fudge_factor{2.0};
 
   public:
+    static void check_params
+    {
+        GRParmParse tagging_pp("tagging");
+        amrex::Real level_separation{1.5};
+        tagging_pp.get("level_separation", level_separation);
+        amrex::Real fudge_factor{2.0};
+        tagging_pp.get("fudge_factor", fudge_factor);
+
+        if (level_separation < 1.2)
+        {
+            tagging_pp.error("level_separation",
+                             "levels must be more spaced out");
+        }
+        if (fudge_factor < 1.0)
+        {
+            tagging_pp.error("fudge_factor", "finest level must be bigger");
+        }
+    }
 
     // The constructor
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
@@ -36,7 +56,12 @@ template <unsigned int num_punctures> class PunctureTagger
         // NOLINTEND(bugprone-easily-swappable-parameters)
         : m_dx(a_dx), m_level(a_level), m_max_level(a_max_level),
           m_puncture_masses(a_puncture_masses),
-          m_puncture_coords(a_puncture_coords) {};
+          m_puncture_coords(a_puncture_coords)
+    {
+        GRParmParse tagging_pp("tagging");
+        tagging_pp.get("level_separation", m_level_separation);
+        tagging_pp.get("fudge_factor", m_fudge_factor);
+    };
 
     AMREX_GPU_DEVICE void
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
@@ -51,9 +76,10 @@ template <unsigned int num_punctures> class PunctureTagger
         // (just the top level would be ok, but doing two ensures
         // the top levels are well spaced)
 
-        // we want each level to be double the innermost one in size
+        // we want each level to be level_separation times the innermost one in
+        // size
         const int exponent       = std::min(m_max_level - m_level - 1, 1);
-        const amrex::Real factor = std::pow(2.0, exponent);
+        const amrex::Real factor = std::pow(m_level_separation, exponent);
 
         amrex::IntVect current_cell(AMREX_D_DECL(ix, iy, iz));
         // loop over puncture masses
@@ -69,9 +95,8 @@ template <unsigned int num_punctures> class PunctureTagger
                                      current_puncture_coords);
             const amrex::Real r = coords.get_radius();
             // decide whether to tag based on distance to horizon
-            // plus a fudge factor of 1.5
-            amrex::Real fudge_factor = 1.5;
-            if (r < fudge_factor * factor * m_puncture_masses[ipuncture])
+            // plus a fudge factor
+            if (r < m_fudge_factor * factor * m_puncture_masses[ipuncture])
             {
                 tags(current_cell) = amrex::TagBox::SET;
             }
