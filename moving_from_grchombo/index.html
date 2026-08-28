@@ -177,15 +177,15 @@
 <li><strong><code>Boxloops()</code> is now <code>ParallelFor</code></strong></li>
 </ul>
 <p>Previously when you wanted to iterate over the grid points on each level, you called <code>BoxLoops</code>. The equivalent in AMReX is <code>ParallelFor</code> and this is where the GPU magic happens. <code>Parallel4</code> runs the operations on each cell on the grid on GPUs simulataneously for each box. The function it calls is by default is no longer called <code>compute</code>, instead it is the<code>operator()</code> method of the class, so if we first declare the class
-<pre class="highlight"><code>TraceARemoval trace_A_removal;</code></pre>
+<pre class="highlight"><code>AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;</code></pre>
 We then access the function we want in the ParallelFor loop as
 <pre class="highlight"><code>    amrex::ParallelFor(state_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           trace_A_removal(ix, iy, iz, state_arrays[box_no]);
+                           algebraic_constraints_enforcer(ix, iy, iz, state_arrays[box_no]);
                        });</code></pre>
 where we are passing the cell indices, and the state array (the variables) in that box.
-Looking at the trace removal function in one of the examples will be the best way to see what is going on.</p>
+Looking at the enforcement of the algebraic constraints in one of the examples will be the best way to see what is going on.</p>
 <ul>
 <li><strong>Telling it what to run on GPUs</strong></li>
 </ul>
