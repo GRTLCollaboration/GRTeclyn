@@ -33,9 +33,9 @@ template <unsigned int num_punctures> class PunctureTagger
     {
         GRParmParse tagging_pp("tagging");
         amrex::Real level_separation{1.5};
-        tagging_pp.get("level_separation", level_separation);
+        tagging_pp.queryAdd("level_separation", level_separation);
         amrex::Real fudge_factor{2.0};
-        tagging_pp.get("fudge_factor", fudge_factor);
+        tagging_pp.queryAdd("fudge_factor", fudge_factor);
 
         if (level_separation < 1.2)
         {

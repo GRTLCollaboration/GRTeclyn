@@ -27,6 +27,11 @@ amr.max_grid_size = 16
 # Grid box side lengths must be divisible by this value
 amr.blocking_factor = 8
 
+# Keep the refinement geometry tested here independent of the application
+# defaults used by BinaryBH.
+tagging.level_separation = 2.0
+tagging.fudge_factor = 1.5
+
 #################################################
 # Boundary condition parameters
 

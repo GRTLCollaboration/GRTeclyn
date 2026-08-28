@@ -12,7 +12,9 @@
 // Problem specific includes:
 #include "BoostedBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
+#include "ExtractionTagger.hpp"
 #include "MovingPunctureGauge.hpp"
+#include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 #include "SphericalExtractionParameters.hpp"
 #ifdef USE_TWOPUNCTURES
@@ -31,6 +33,8 @@ class SimulationParameters
 
         CCZ4_params_t::check_params();
         MovingPunctureGauge::params_t::check_params();
+        ExtractionTagger::check_params();
+        PunctureTagger<2>::check_params();
         puncture_tracker_params_t::check_params();
 
 #ifndef USE_TWOPUNCTURES

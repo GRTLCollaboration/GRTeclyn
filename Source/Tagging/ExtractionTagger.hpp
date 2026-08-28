@@ -33,7 +33,7 @@ class ExtractionTagger
     {
         GRParmParse tagging_pp("tagging");
         amrex::Real level_separation{1.5};
-        tagging_pp.get("level_separation", level_separation);
+        tagging_pp.queryAdd("level_separation", level_separation);
 
         if (level_separation < 1.2)
         {
