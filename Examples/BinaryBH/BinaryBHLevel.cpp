@@ -4,6 +4,8 @@
  */
 
 #include "BinaryBHLevel.hpp"
+
+#include "AlgebraicConstraintsEnforcer.hpp"
 #include "BinaryBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiTagger.hpp"
@@ -13,7 +15,6 @@
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 // xxxxx #include "SixthOrderDerivatives.hpp"
-#include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
@@ -48,14 +49,14 @@ void BinaryBHLevel::specificAdvance()
     const auto &state_arrays   = state_new.arrays();
 
     // The classes to be used
-    TraceARemoval trace_A_removal;
+    AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     PositiveChiAndLapse positive_chi_lapse;
 
-    // Enforce the trace free A_ij condition and positive chi and lapse
+    // Enforce det(h)=1, the trace free A_ij condition and positive chi and lapse
     amrex::ParallelFor(state_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           trace_A_removal(ix, iy, iz, state_arrays[box_no]);
+                           algebraic_constraints_enforcer(ix, iy, iz, state_arrays[box_no]);
                            positive_chi_lapse(ix, iy, iz, state_arrays[box_no]);
                        });
 }
@@ -167,14 +168,14 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     const auto soln_ghosts        = a_soln.nGrowVect();
 
     // The classes to be used
-    TraceARemoval trace_A_removal;
+    AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     PositiveChiAndLapse positive_chi_lapse;
 
-    // Enforce positive chi and lapse and trace free A
+    // Enforce positive chi and lapse, det(h)=1 and trace free A
     amrex::ParallelFor(a_soln, soln_ghosts,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           trace_A_removal(ix, iy, iz, soln_arrays[box_no]);
+                           algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]);
                            positive_chi_lapse(ix, iy, iz, soln_arrays[box_no]);
                        });
 
@@ -236,18 +237,18 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     amrex::Gpu::streamSynchronize();
 }
 
-// enforce trace removal during RK4 substeps
+// enforce algebraic constraints during RK4 substeps
 void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 {
 
-    TraceARemoval trace_A_removal;
+    AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     const auto soln_ghosts = amrex::IntVect(0); // zero ghost cells
 
-    // Enforce the trace free A_ij condition
+    // Enforce the det(h)=1 and trace free A_ij conditions
     const auto &soln_arrays = a_soln.arrays();
     amrex::ParallelFor(a_soln, soln_ghosts,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       { trace_A_removal(ix, iy, iz, soln_arrays[box_no]); });
+                       { algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]); });
 
     amrex::Gpu::streamSynchronize();
 }

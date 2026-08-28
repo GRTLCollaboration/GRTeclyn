@@ -3,21 +3,21 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef TRACEAREMOVAL_HPP_
-#define TRACEAREMOVAL_HPP_
+#ifndef ALGEBRAICCONSTRAINTSENFORCER_HPP_
+#define ALGEBRAICCONSTRAINTSENFORCER_HPP_
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
-// This class enforces A to be trace-free
-class TraceARemoval
+// This class enforces det(h)=1 and A to be trace-free
+class AlgebraicConstraintsEnforcer
 {
   public:
 
     // Constructor
-    TraceARemoval() = default;
+    AlgebraicConstraintsEnforcer() = default;
 
     // Compute function
 
@@ -35,6 +35,16 @@ class TraceARemoval
         const CCZ4Vars vars(const_state_cell_data);
 
         using namespace CCZ4Geometry;
+	// Enforce the unit determinant constraint on the conformal metric.
+        const amrex::Real det_h = compute_metric_determinant(vars);
+        AMREX_ASSERT(det_h > 0.0);
+        const amrex::Real metric_factor =
+            std::pow(det_h, -1.0 / static_cast<double>(GR_SPACEDIM));
+        FOR2_SYM(i, j)
+        {
+            state_cell_data[sym_var_idx(c_h11, i, j)] *= metric_factor;
+        }
+        // Enforce A to be trace-free
         const auto trace_A = compute_trace_A(vars);
         const amrex::Real one_over_gr_spacedim =
             1. / ((amrex::Real)GR_SPACEDIM);
@@ -46,4 +56,4 @@ class TraceARemoval
     }
 };
 
-#endif /* TRACEAREMOVAL_HPP_ */
+#endif /* ALGEBRAICCONSTRAINTSENFORCER_HPP_ */
