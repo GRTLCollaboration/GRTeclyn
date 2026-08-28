@@ -16,6 +16,7 @@
 // GRTeclyn headers
 #include "CCZ4RHS.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GaugeFixer.hpp"
 #include "IntegratedMovingPunctureGauge.hpp"
 
 // Old GRTeclyn headers for comparison
@@ -25,6 +26,8 @@
 // AMReX headers
 #include "AMReX.H"
 #include "AMReX_FArrayBox.H"
+
+#include <array>
 
 void run_ccz4_rhs_test()
 {
@@ -70,6 +73,10 @@ void run_ccz4_rhs_test()
         pp.add("gauge.lapse_coeff", 2.0);
         pp.add("gauge.shift_advec_coeff", 0.0);
         pp.add("gauge.eta", 1.82);
+        pp.add("gauge.enable_fixer", true);
+
+        std::array<amrex::Real, AMREX_SPACEDIM> center{};
+        pp.queryAdd("geometry.center", center);
 
         pp.add("evolution.sigma", 0.3);
         pp.add("ccz4.formulation", CCZ4RHS<>::USE_CCZ4);
@@ -121,6 +128,7 @@ void run_ccz4_rhs_test()
 
         Old::CCZ4RHS<Old::MovingPunctureGauge, Old::FourthOrderDerivatives>
             old_ccz4_rhs{old_ccz4_params, dx, sigma};
+        const GaugeFixer old_gauge_fixer(dx, center);
 
         amrex::FArrayBox current_out_fab{box, NUM_CCZ4_VARS,
                                          amrex::The_Managed_Arena()};
@@ -139,6 +147,9 @@ void run_ccz4_rhs_test()
         amrex::ParallelFor(
             box, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
             { old_ccz4_rhs.compute(ix, iy, iz, old_out_array, in_c_array); });
+
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
+                           { old_gauge_fixer(ix, iy, iz, old_out_array); });
 
         // The RHS is split into three different kernels
 
