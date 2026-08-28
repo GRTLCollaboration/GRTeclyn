@@ -12,8 +12,7 @@
 #include "DimensionDefinitions.hpp"
 
 template <class matter_t, class deriv_t>
-CCZ4RHSWithMatter<matter_t, deriv_t>::CCZ4RHSWithMatter(
-    amrex::Real a_dx)
+CCZ4RHSWithMatter<matter_t, deriv_t>::CCZ4RHSWithMatter(amrex::Real a_dx)
     : CCZ4RHS<deriv_t>(a_dx, 0.0 /*No cosmological constant*/)
 {
 }

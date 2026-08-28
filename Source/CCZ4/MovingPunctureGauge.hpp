@@ -31,19 +31,20 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
     struct params_t
     {
         // lapse params:
-        amrex::Real lapse_advec_coeff; //!< Switches advection terms in
-                                       //! the lapse condition on/off
-        amrex::Real lapse_power; //!< The power p in \f$\partial_t \alpha = - c
-                                 //!\alpha^p(K-2\Theta)\f$
-        amrex::Real lapse_coeff; //!< The coefficient c in \f$\partial_t \alpha
-                                 //!= -c \alpha^p(K-2\Theta)\f$
+        amrex::Real lapse_advec_coeff{1.0}; //!< Switches advection terms in
+                                            //! the lapse condition on/off
+        amrex::Real lapse_power{
+            1.0}; //!< The power p in \f$\partial_t \alpha = - c
+                  //!\alpha^p(K-2\Theta)\f$
+        amrex::Real lapse_coeff{2.0}; //!< The coefficient c in \f$\partial_t
+                                      //!\alpha = -c \alpha^p(K-2\Theta)\f$
         // shift params:
-        amrex::Real shift_Gamma_coeff; //!< Gives the F in \f$\partial_t
-                                       //!  \beta^i =  F B^i\f$
-        amrex::Real shift_advec_coeff; //!< Switches advection terms in the
-                                       //! shift condition on/off
-        amrex::Real eta; //!< The central eta in \f$\partial_t B^i = \partial_t
-                         //!\tilde\Gamma - \eta(r) B^i\f$
+        amrex::Real shift_Gamma_coeff{0.75}; //!< Gives the F in \f$\partial_t
+                                             //!  \beta^i =  F B^i\f$
+        amrex::Real shift_advec_coeff{0.0}; //!< Switches advection terms in the
+                                            //! shift condition on/off
+        amrex::Real eta{1.0}; //!< The central eta in \f$\partial_t B^i =
+                              //!\partial_t \tilde\Gamma - \eta(r) B^i\f$
         amrex::Real eta_cutoff_coeff{0.0}; //!< Enables the radial decay of eta
         amrex::Real eta_cutoff_radius{500.0}; //!< Transition radius for eta(r)
         std::array<amrex::Real, AMREX_SPACEDIM> center{};
@@ -207,7 +208,7 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
         Tensor::Rank1 advec_Gamma =
             m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
 
-        amrex::Real eta_of_x;
+        amrex::Real eta_of_x{};
         compute_eta(eta_of_x, ix, iy, iz);
 
         rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec_lapse -
