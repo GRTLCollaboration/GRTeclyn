@@ -7,6 +7,7 @@
 #define SCALARFIELDLEVEL_HPP_
 
 #include "DefaultLevelFactory.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "GRAMRLevel.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
@@ -18,7 +19,8 @@ class ScalarFieldLevel : public GRAMRLevel
   public:
     using GRAMRLevel::GRAMRLevel;
 
-    using ScalarFieldWithPotential = ScalarField<Potential>;
+    template <class deriv_t = FourthOrderDerivatives>
+    using ScalarFieldWithPotential = ScalarField<Potential, deriv_t>;
 
     ScalarFieldAMR *get_scalar_field_amr_ptr();
 

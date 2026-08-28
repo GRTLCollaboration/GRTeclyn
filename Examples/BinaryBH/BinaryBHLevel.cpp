@@ -9,10 +9,11 @@
 #include "ChiTagger.hpp"
 #include "Constraints.hpp"
 #include "ExtractionTagger.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
-// xxxxx #include "SixthOrderDerivatives.hpp"
+#include "SixthOrderDerivatives.hpp"
 #include "TraceARemoval.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
@@ -158,8 +159,6 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const amrex::Real /*a_time*/)
 {
-    GRParmParse pp;
-
     BL_PROFILE("BinaryBHLevel::specificEvalRHS()");
     const auto &soln_arrays       = a_soln.arrays();
     const auto &const_soln_arrays = a_soln.const_arrays();
@@ -178,11 +177,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            positive_chi_lapse(ix, iy, iz, soln_arrays[box_no]);
                        });
 
-    // Calculate CCZ4 right hand side
-    int max_spatial_derivative_order{};
-    pp.get("evolution.spatial_derivative_order", max_spatial_derivative_order);
-
-    if (max_spatial_derivative_order == 4)
+    // Calculate CCZ4 right hand side using dynamic derivative order
+    if (m_max_spatial_derivative_order == 4)
     {
         CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> ccz4rhs(
             Geom().CellSize(0));
@@ -217,20 +213,44 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                           const_soln_arrays[box_no]);
             });
     }
-    else if (max_spatial_derivative_order == 6)
+    else if (m_max_spatial_derivative_order == 6)
     {
-        amrex::Abort("xxxxx max_spatial_derivative_order == 6 todo");
-#if 0
-        CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives>
-            ccz4rhs(Geom().CellSize(0));
-        amrex::ParallelFor(a_rhs,
-        [=] AMREX_GPU_DEVICE (int box_no, int ix, int iy, int iz)
-        {
-            amrex::CellData<amrex::Real const> state = const_soln_arrays[box_no].cellData(i,j,k);
-            amrex::CellData<amrex::Real> rhs = rhs_arrays[box_no].cellData(ix,iy,iz);
-            ccz4rhs.compute(rhs, state);
-        });
-#endif
+        CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives> ccz4rhs(
+            Geom().CellSize(0));
+
+        // NB: These are split up to avoid having to pre-compute all the
+        //  first and second derivatives in memory on the GPU at once.
+
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4rhs.compute_chi_and_h_ij(ix, iy, iz, rhs_arrays[box_no],
+                                             const_soln_arrays[box_no]);
+            });
+
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4rhs.compute_A_ij_and_Theta_and_Gamma(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
+            });
+
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                            const_soln_arrays[box_no]);
+
+                ccz4rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
+                                          const_soln_arrays[box_no]);
+            });
+    }
+    else
+    {
+        amrex::Abort("spatial_derivative_order must be 4 or 6");
     }
 
     amrex::Gpu::streamSynchronize();
@@ -257,9 +277,11 @@ void BinaryBHLevel::pre_tag_cells()
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto current_time    = get_state_data(state_index).curTime();
 
-    // Just fill 2 ghosts for chi to calculate second derivatives
-    const int nghost = 2;
+    // Fill ghosts for chi to calculate second derivatives
+    // 4th-order d2 requires 2 ghost cells, 6th-order d2 requires 3 ghost cells
+    const int nghost = (m_max_spatial_derivative_order == 6) ? 3 : 2;
     const int ncomp  = 1;
+
     FillPatch(*this, state_new, nghost, current_time, state_index, c_chi,
               ncomp);
 }
@@ -272,8 +294,6 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     const auto &tag_arrays         = a_tag_box_array.arrays();
     const auto &state_const_arrays = state_new.const_arrays();
-
-    ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
 
     GRParmParse pp;
     spherical_extraction_params_t extraction_params("weyl_extraction");
@@ -301,19 +321,50 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
         puncture_coords, {bh1_mass, bh2_mass});
 
-    amrex::ParallelFor(state_new, amrex::IntVect(0),
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           chi_tagger(ix, iy, iz, tag_arrays[box_no],
-                                      state_const_arrays[box_no]);
+    if (m_max_spatial_derivative_order == 4)
+    {
+        ChiTagger<FourthOrderDerivatives> chi_tagger(Geom().CellSize(0),
+                                                     a_regrid_threshold);
 
-                           extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
+        amrex::ParallelFor(
+            state_new, amrex::IntVect(0),
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                chi_tagger(ix, iy, iz, tag_arrays[box_no],
+                           state_const_arrays[box_no]);
 
-                           if (puncture_tracking_enabled)
-                           {
-                               puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
-                           }
-                       });
+                extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
+
+                if (puncture_tracking_enabled)
+                {
+                    puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
+                }
+            });
+    }
+    else if (m_max_spatial_derivative_order == 6)
+    {
+        ChiTagger<SixthOrderDerivatives> chi_tagger(Geom().CellSize(0),
+                                                    a_regrid_threshold);
+
+        amrex::ParallelFor(
+            state_new, amrex::IntVect(0),
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                chi_tagger(ix, iy, iz, tag_arrays[box_no],
+                           state_const_arrays[box_no]);
+
+                extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
+
+                if (puncture_tracking_enabled)
+                {
+                    puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
+                }
+            });
+    }
+    else
+    {
+        amrex::Abort("spatial_derivative_order must be 4 or 6");
+    }
 
     amrex::Gpu::streamSynchronize();
 }
