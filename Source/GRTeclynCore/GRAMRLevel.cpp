@@ -83,7 +83,7 @@ GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
     GRParmParse pp;
     pp.get("evolution.nan_check", nan_check);
     pp.query("evolution.spatial_derivative_order",
-             m_max_spatial_derivative_order);
+             m_evolution_spatial_derivative_order);
     m_boundaries.define(geom);
 }
 

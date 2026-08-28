@@ -17,11 +17,11 @@
 #include <AMReX_REAL.H>
 #include <AMReX_TagBox.H>
 
-template <class deriv_t = FourthOrderDerivatives> class ChiTagger
+class ChiTagger
 {
   protected:
     amrex::Real m_dx;
-    deriv_t m_deriv;
+    FourthOrderDerivatives m_deriv;
     amrex::Real m_threshold;
 
   public:

@@ -12,6 +12,7 @@
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 #include "ScalarFieldAMR.hpp"
+#include "SixthOrderDerivatives.hpp"
 
 /// Evolution level for a real scalar field minimally coupled to gravity.
 class ScalarFieldLevel : public GRAMRLevel

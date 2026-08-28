@@ -178,7 +178,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                        });
 
     // Calculate CCZ4 right hand side using dynamic derivative order
-    if (m_max_spatial_derivative_order == 4)
+    if (m_evolution_spatial_derivative_order == 4)
     {
         CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> ccz4rhs(
             Geom().CellSize(0));
@@ -213,7 +213,7 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                           const_soln_arrays[box_no]);
             });
     }
-    else if (m_max_spatial_derivative_order == 6)
+    else if (m_evolution_spatial_derivative_order == 6)
     {
         CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives> ccz4rhs(
             Geom().CellSize(0));
@@ -278,8 +278,8 @@ void BinaryBHLevel::pre_tag_cells()
     const auto current_time    = get_state_data(state_index).curTime();
 
     // Fill ghosts for chi to calculate second derivatives
-    // 4th-order d2 requires 2 ghost cells, 6th-order d2 requires 3 ghost cells
-    const int nghost = (m_max_spatial_derivative_order == 6) ? 3 : 2;
+    // 4th-order d2 requires 2 ghost cells
+    const int nghost = 2;
     const int ncomp  = 1;
 
     FillPatch(*this, state_new, nghost, current_time, state_index, c_chi,
@@ -294,6 +294,8 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     const auto &tag_arrays         = a_tag_box_array.arrays();
     const auto &state_const_arrays = state_new.const_arrays();
+
+    ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
 
     GRParmParse pp;
     spherical_extraction_params_t extraction_params("weyl_extraction");
@@ -321,50 +323,19 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
         puncture_coords, {bh1_mass, bh2_mass});
 
-    if (m_max_spatial_derivative_order == 4)
-    {
-        ChiTagger<FourthOrderDerivatives> chi_tagger(Geom().CellSize(0),
-                                                     a_regrid_threshold);
+    amrex::ParallelFor(state_new, amrex::IntVect(0),
+                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+                       {
+                           chi_tagger(ix, iy, iz, tag_arrays[box_no],
+                                      state_const_arrays[box_no]);
 
-        amrex::ParallelFor(
-            state_new, amrex::IntVect(0),
-            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-            {
-                chi_tagger(ix, iy, iz, tag_arrays[box_no],
-                           state_const_arrays[box_no]);
+                           extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
 
-                extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
-
-                if (puncture_tracking_enabled)
-                {
-                    puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
-                }
-            });
-    }
-    else if (m_max_spatial_derivative_order == 6)
-    {
-        ChiTagger<SixthOrderDerivatives> chi_tagger(Geom().CellSize(0),
-                                                    a_regrid_threshold);
-
-        amrex::ParallelFor(
-            state_new, amrex::IntVect(0),
-            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-            {
-                chi_tagger(ix, iy, iz, tag_arrays[box_no],
-                           state_const_arrays[box_no]);
-
-                extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
-
-                if (puncture_tracking_enabled)
-                {
-                    puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
-                }
-            });
-    }
-    else
-    {
-        amrex::Abort("spatial_derivative_order must be 4 or 6");
-    }
+                           if (puncture_tracking_enabled)
+                           {
+                               puncture_tagger(ix, iy, iz, tag_arrays[box_no]);
+                           }
+                       });
 
     amrex::Gpu::streamSynchronize();
 }

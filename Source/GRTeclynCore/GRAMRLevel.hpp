@@ -199,7 +199,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
   protected:
 
-    int m_max_spatial_derivative_order = 4; // default to 4th order
+    int m_evolution_spatial_derivative_order = 4; // default to 4th order
 };
 
 #endif /* GRAMRLEVEL_HPP_ */

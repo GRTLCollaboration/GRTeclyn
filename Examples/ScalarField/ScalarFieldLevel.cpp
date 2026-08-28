@@ -116,7 +116,7 @@ void ScalarFieldLevel::initData()
                            initial_data(ix, iy, iz, state_arrays[box_no]);
                        });
 
-    if (m_max_spatial_derivative_order == 4)
+    if (m_evolution_spatial_derivative_order == 4)
     {
         const GammaCalculator<FourthOrderDerivatives> gamma_calculator(
             Geom().CellSize(0));
@@ -124,7 +124,7 @@ void ScalarFieldLevel::initData()
             state_new, [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             { gamma_calculator(ix, iy, iz, state_arrays[box_no]); });
     }
-    else if (m_max_spatial_derivative_order == 6)
+    else if (m_evolution_spatial_derivative_order == 6)
     {
         const GammaCalculator<SixthOrderDerivatives> gamma_calculator(
             Geom().CellSize(0));
@@ -158,14 +158,14 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                                   soln_arrays[box_no]);
                        });
 
-    if (m_max_spatial_derivative_order != 4 &&
-        m_max_spatial_derivative_order != 6)
+    if (m_evolution_spatial_derivative_order != 4 &&
+        m_evolution_spatial_derivative_order != 6)
     {
         amrex::Abort("spatial_derivative_order must be 4 or 6");
     }
 
     // NOLINTBEGIN(bugprone-branch-clone)
-    if (m_max_spatial_derivative_order == 4)
+    if (m_evolution_spatial_derivative_order == 4)
     {
         const CCZ4RHSWithMatter<
             ScalarFieldWithPotential<FourthOrderDerivatives>,
@@ -204,7 +204,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                            const_soln_arrays[box_no]);
             });
     }
-    else if (m_max_spatial_derivative_order == 6)
+    else if (m_evolution_spatial_derivative_order == 6)
     {
         const CCZ4RHSWithMatter<ScalarFieldWithPotential<SixthOrderDerivatives>,
                                 MovingPunctureGaugeWithMatter,
