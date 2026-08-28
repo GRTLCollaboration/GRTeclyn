@@ -20,20 +20,13 @@
  * (see details in arXiv:gr-qc/0605030)
  **/
 template <class deriv_t = FourthOrderDerivatives>
-class IntegratedMovingPunctureGauge
+class IntegratedMovingPunctureGauge : public MovingPunctureGauge<deriv_t>
 {
   public:
-    using params_t = typename MovingPunctureGauge<deriv_t>::params_t;
+    using base_t   = MovingPunctureGauge<deriv_t>;
+    using params_t = typename base_t::params_t;
 
-  protected:
-    params_t m_params;
-    deriv_t m_deriv;
-
-  public:
-    IntegratedMovingPunctureGauge(double a_dx) : m_deriv(a_dx)
-    {
-        m_params.fill_params();
-    }
+    IntegratedMovingPunctureGauge(double a_dx) : base_t(a_dx) {}
 
     /// Store the initial integrated Gamma-driver RHS in B.
     /** This makes the non-advective part of the initial shift RHS vanish. The
@@ -50,11 +43,14 @@ class IntegratedMovingPunctureGauge
             state_cell_data;
         const CCZ4Vars vars(const_state_cell_data);
 
+        amrex::Real eta_of_x;
+        this->compute_eta(eta_of_x, ix, iy, iz);
+
         FOR (i)
         {
             state_cell_data[c_B1 + i] =
-                m_params.shift_Gamma_coeff * vars.Gamma(i) -
-                m_params.eta * vars.shift(i);
+                this->m_params.shift_Gamma_coeff * vars.Gamma(i) -
+                eta_of_x * vars.shift(i);
         }
     }
 
@@ -72,22 +68,26 @@ class IntegratedMovingPunctureGauge
         const Tensor::Rank1 shift_vector(
             {vars.shift(0), vars.shift(1), vars.shift(2)});
 
-        const amrex::Real advec_lapse =
-            m_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_lapse);
-        const Tensor::Rank1 advec_shift =
-            m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_shift1);
+        const amrex::Real advec_lapse = this->m_deriv.advec_scalar(
+            ix, iy, iz, state, shift_vector, c_lapse);
+        const Tensor::Rank1 advec_shift = this->m_deriv.advec_vector(
+            ix, iy, iz, state, shift_vector, c_shift1);
 
-        rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec_lapse -
-                                 m_params.lapse_coeff *
-                                     pow(vars.lapse(), m_params.lapse_power) *
-                                     (vars.K() - 2.0 * vars.Theta());
+        amrex::Real eta_of_x;
+        this->compute_eta(eta_of_x, ix, iy, iz);
+
+        rhs_cell_data[c_lapse] =
+            this->m_params.lapse_advec_coeff * advec_lapse -
+            this->m_params.lapse_coeff *
+                pow(vars.lapse(), this->m_params.lapse_power) *
+                (vars.K() - 2.0 * vars.Theta());
 
         FOR (i)
         {
             rhs_cell_data[c_shift1 + i] =
-                m_params.shift_advec_coeff * advec_shift(i) +
-                m_params.shift_Gamma_coeff * vars.Gamma(i) -
-                m_params.eta * vars.shift(i) - vars.B(i);
+                this->m_params.shift_advec_coeff * advec_shift(i) +
+                this->m_params.shift_Gamma_coeff * vars.Gamma(i) -
+                eta_of_x * vars.shift(i) - vars.B(i);
             rhs_cell_data[c_B1 + i] = 0.0;
         }
     }

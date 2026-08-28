@@ -145,8 +145,9 @@ void run_bssn_matter_test()
                 current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
             });
-        // Calculate the matter contribution before the gauge update so that
-        // the B-field RHS uses the complete Gamma RHS.
+        // Calculate the emtensor contribution before the gauge update so that
+        // the B-field RHS uses the complete Gamma RHS. But the  B-field RHS
+        // does not depend on matter_rhs.
         amrex::ParallelFor(
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)

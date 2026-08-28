@@ -133,6 +133,9 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
             gauge_pp.query("enable_eta_cutoff", enable_eta_cutoff);
             eta_cutoff_coeff = static_cast<amrex::Real>(enable_eta_cutoff);
             gauge_pp.query("eta_cutoff_radius", eta_cutoff_radius);
+
+            GRParmParse geometry_pp("geometry");
+            geometry_pp.query("center", center);
         }
     };
 
@@ -145,19 +148,17 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
     MovingPunctureGauge(double a_dx) : m_deriv(a_dx), m_dx(a_dx)
     {
         m_params.fill_params();
-        GRParmParse geometry_pp("geometry");
-        geometry_pp.query("center", m_params.center);
     }
 
-    /// Return the spatially varying Gamma-driver damping parameter.
+    /// Compute the spatially varying Gamma-driver damping parameter.
     /** Calculates
      * \f$\eta(r)=\eta_*[c_f R^2/(r^2+R^2)+(1-c_f)]\f$, where \f$\eta_*\f$ is
      * gauge.eta, \f$R\f$ is gauge.eta_cutoff_radius, and \f$r\f$ is measured
      * from geometry.center. The coefficient \f$c_f\f$ is 1 when
      * gauge.enable_eta_cutoff is true and 0 otherwise.
      */
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    eta_at_position(int ix, int iy, int iz) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute_eta(amrex::Real &eta_of_x, int ix, int iy, int iz) const
     {
         const Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx,
                                  m_params.center);
@@ -167,35 +168,9 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
         const amrex::Real eta_cutoff_factor =
             eta_cutoff_radius_squared /
             (radius * radius + eta_cutoff_radius_squared);
-        return m_params.eta * (m_params.eta_cutoff_coeff * eta_cutoff_factor +
-                               (1.0 - m_params.eta_cutoff_coeff));
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters,
-    // readability-convert-member-functions-to-static)
-    rhs_gauge(const amrex::CellData<amrex::Real> &rhs_cell_data,
-              const CCZ4Vars &vars, const amrex::Real &advec_lapse,
-              const Tensor::Rank1 &advec_shift, const Tensor::Rank1 &advec_B,
-              const Tensor::Rank1 &advec_Gamma, const amrex::Real &eta) const
-    // NOLINTEND(bugprone-easily-swappable-parameters,
-    // readability-convert-member-functions-to-static)
-    {
-        rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec_lapse -
-                                 m_params.lapse_coeff *
-                                     pow(vars.lapse(), m_params.lapse_power) *
-                                     (vars.K() - 2.0 * vars.Theta());
-
-        FOR (i)
-        {
-            rhs_cell_data[c_shift1 + i] =
-                m_params.shift_advec_coeff * advec_shift(i) +
-                m_params.shift_Gamma_coeff * vars.B(i);
-            rhs_cell_data[c_B1 + i] =
-                m_params.shift_advec_coeff * advec_B(i) -
-                m_params.shift_advec_coeff * advec_Gamma(i) +
-                rhs_cell_data[c_Gamma1 + i] - eta * vars.B(i);
-        }
+        eta_of_x =
+            m_params.eta * (m_params.eta_cutoff_coeff * eta_cutoff_factor +
+                            (1.0 - m_params.eta_cutoff_coeff));
     }
 
     /// Calculate the gauge RHS using the fully accumulated Gamma RHS.
@@ -232,8 +207,24 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
         Tensor::Rank1 advec_Gamma =
             m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
 
-        rhs_gauge(rhs_cell_data, vars, advec_lapse, advec_shift, advec_B,
-                  advec_Gamma, eta_at_position(ix, iy, iz));
+        amrex::Real eta_of_x;
+        compute_eta(eta_of_x, ix, iy, iz);
+
+        rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec_lapse -
+                                 m_params.lapse_coeff *
+                                     pow(vars.lapse(), m_params.lapse_power) *
+                                     (vars.K() - 2.0 * vars.Theta());
+
+        FOR (i)
+        {
+            rhs_cell_data[c_shift1 + i] =
+                m_params.shift_advec_coeff * advec_shift(i) +
+                m_params.shift_Gamma_coeff * vars.B(i);
+            rhs_cell_data[c_B1 + i] =
+                m_params.shift_advec_coeff * advec_B(i) -
+                m_params.shift_advec_coeff * advec_Gamma(i) +
+                rhs_cell_data[c_Gamma1 + i] - eta_of_x * vars.B(i);
+        }
     }
 };
 
