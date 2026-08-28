@@ -35,7 +35,7 @@ class AlgebraicConstraintsEnforcer
         const CCZ4Vars vars(const_state_cell_data);
 
         using namespace CCZ4Geometry;
-	// Enforce the unit determinant constraint on the conformal metric.
+        // Enforce the unit determinant constraint on the conformal metric.
         const amrex::Real det_h = compute_metric_determinant(vars);
         AMREX_ASSERT(det_h > 0.0);
         const amrex::Real metric_factor =

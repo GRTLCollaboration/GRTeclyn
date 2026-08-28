@@ -49,13 +49,13 @@ void ScalarFieldLevel::specificAdvance()
     const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     const PositiveChiAndLapse positive_chi_and_lapse;
 
-    amrex::ParallelFor(state_new,
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           algebraic_constraints_enforcer(ix, iy, iz, state_arrays[box_no]);
-                           positive_chi_and_lapse(ix, iy, iz,
-                                                  state_arrays[box_no]);
-                       });
+    amrex::ParallelFor(
+        state_new,
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        {
+            algebraic_constraints_enforcer(ix, iy, iz, state_arrays[box_no]);
+            positive_chi_and_lapse(ix, iy, iz, state_arrays[box_no]);
+        });
     amrex::Gpu::streamSynchronize();
 }
 
@@ -135,13 +135,13 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     const PositiveChiAndLapse positive_chi_and_lapse;
 
-    amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]);
-                           positive_chi_and_lapse(ix, iy, iz,
-                                                  soln_arrays[box_no]);
-                       });
+    amrex::ParallelFor(
+        a_soln, a_soln.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        {
+            algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]);
+            positive_chi_and_lapse(ix, iy, iz, soln_arrays[box_no]);
+        });
 
     GRParmParse evolution_pp("evolution");
     int max_spatial_derivative_order{};
@@ -199,9 +199,10 @@ void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
     const auto &soln_arrays = a_soln.arrays();
     const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
 
-    amrex::ParallelFor(a_soln, amrex::IntVect(0),
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       { algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]); });
+    amrex::ParallelFor(
+        a_soln, amrex::IntVect(0),
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        { algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]); });
     amrex::Gpu::streamSynchronize();
 }
 

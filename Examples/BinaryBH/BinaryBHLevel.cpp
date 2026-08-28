@@ -52,11 +52,13 @@ void BinaryBHLevel::specificAdvance()
     AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     PositiveChiAndLapse positive_chi_lapse;
 
-    // Enforce det(h)=1, the trace free A_ij condition and positive chi and lapse
+    // Enforce det(h)=1, the trace free A_ij condition and positive chi and
+    // lapse
     amrex::ParallelFor(state_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           algebraic_constraints_enforcer(ix, iy, iz, state_arrays[box_no]);
+                           algebraic_constraints_enforcer(ix, iy, iz,
+                                                          state_arrays[box_no]);
                            positive_chi_lapse(ix, iy, iz, state_arrays[box_no]);
                        });
 }
@@ -175,7 +177,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     amrex::ParallelFor(a_soln, soln_ghosts,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
-                           algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]);
+                           algebraic_constraints_enforcer(ix, iy, iz,
+                                                          soln_arrays[box_no]);
                            positive_chi_lapse(ix, iy, iz, soln_arrays[box_no]);
                        });
 
@@ -246,9 +249,10 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
 
     // Enforce the det(h)=1 and trace free A_ij conditions
     const auto &soln_arrays = a_soln.arrays();
-    amrex::ParallelFor(a_soln, soln_ghosts,
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       { algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]); });
+    amrex::ParallelFor(
+        a_soln, soln_ghosts,
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        { algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]); });
 
     amrex::Gpu::streamSynchronize();
 }
