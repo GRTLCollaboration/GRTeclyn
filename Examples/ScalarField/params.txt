@@ -5,7 +5,7 @@
 # Filesystem parameters
 # grteclyn.output_path = . # base path for all output
 
-# amr.verbose = 0
+amr.verbose = 1
 
 # Plotfiles default to <grteclyn.output_path>/plots and checkpoint files to
 # <grteclyn.output_path>/checkpoints

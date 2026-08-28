@@ -6,9 +6,9 @@ The same process is followed as for CPUs, with the following changes:
 
 ## You need to install the right GPU compiler
 
-One of the annoying things about GPUs is that there are 3 types related to the 3 vendors (Intel, AMD and Nvidia), and since they can't agree on things (thank you capitalism :pray:) you have to be able to understand the slightly different (but essentially the same) terminology and tools from all three. 
+One of the annoying things about GPUs is that there are 3 types related to the 3 vendors (Intel, AMD and Nvidia), and since they can't agree on things (thank you capitalism :pray:) you have to be able to understand the slightly different (but essentially the same) terminology and tools from all three.
 
-Fortunately (thank you AMReX and historic US government funding :pray:), AMReX takes care of all the pain of implementing the code so it works on all three architectures. But you still have to think about this when you compile and run on a particular one. You may need to ask a lot of questions to the system admin, and you will probably end up feeling confused and stupid. That's ok. It will be worth it when you see the speed up, and once you are set up things should run smoothly. 
+Fortunately (thank you AMReX and historic US government funding :pray:), AMReX takes care of all the pain of implementing the code so it works on all three architectures. But you still have to think about this when you compile and run on a particular one. You may need to ask a lot of questions to the system admin, and you will probably end up feeling confused and stupid. That's ok. It will be worth it when you see the speed up, and once you are set up things should run smoothly.
 
 For AMD GPUs, you need to be using the HIP compiler, for Intel it is SYCL and for Nvidia it is the more well known CUDA. You can think of them all as being like CUDA, but with a different name.
 
@@ -29,12 +29,10 @@ The good news about MPI is that if you really get stuck, it may be that you can 
 
 This is the easy bit! Update your `make.local-pre` to activate the appropriate options, with `USE_CUDA=TRUE` for Nvidia and `USE_HIP=TRUE` for AMD and `USE_SYCL` for Intel GPUs.
 
-Note that it can help to set `AMREX_USE_GPU=TRUE` (to make AMReX more "gpu aware") and you may also need to give it a specific flag for the architecture, which you can google for. For example, your `make.local-pre` may look something like:
+Note you will need to give it a specific flag for the architecture, which you can google for. For example, your `make.local-pre` may look something like:
 ```
-COMP = intel-gnu
-AMREX_USE_GPU=TRUE
-USE_HIP=TRUE         
-# for AMD MI300                                                 
+USE_HIP=TRUE
+# for AMD MI300
 AMREX_AMD_ARCH=gfx942
 # Optionally uncomment to turn off MPI
 # USE_MPI=FALSE
@@ -44,7 +42,7 @@ AMREX_AMD_ARCH=gfx942
 
 Slurm isn't really designed for GPUs so the way you select the options in your jobscript can be a bit strange. Again it is worth asking for advice from the system admins if the documentation doesn't cover it, or looking at our example jobscripts. A usual set up is that you want to ask for one node that controls a certain number of GPUs, usually something like 8. As mentioned above, you would ideally like exclusive use of these GPUs, but if you pick a smaller number than the total number the node has that won't always be guaranteed.
 
-The really important thing to understand is that how you are doing your parallelisation is very different now. GPUs are **huge and hungry** and they need to be fed a lot of points to process at the same time. So your grid is going to be divided up into a much smaller number of boxes, each with a lot of cells, and each big chunk will typically be given to a **single MPI process** running on a **single GPU**. This is why you can even use a single GPU to process the whole box in one go without using MPI at all. Make sure you have read [Performance optimisation](performance_optimisation.md) to understand how subdivision of the grid works, and consider whether you need to amend your params file to account for using GPUs (usually by increasing the max box size and blocking factor).  
+The really important thing to understand is that how you are doing your parallelisation is very different now. GPUs are **huge and hungry** and they need to be fed a lot of points to process at the same time. So your grid is going to be divided up into a much smaller number of boxes, each with a lot of cells, and each big chunk will typically be given to a **single MPI process** running on a **single GPU**. This is why you can even use a single GPU to process the whole box in one go without using MPI at all. Make sure you have read [Performance optimisation](performance_optimisation.md) to understand how subdivision of the grid works, and consider whether you need to amend your params file to account for using GPUs (usually by increasing the max box size and blocking factor).
 
 A typical command for running 8 MPI processes (which would be appropriate on a node that has 8 GPUs, and where you had 8 boxes to share out), is
 
@@ -52,7 +50,7 @@ A typical command for running 8 MPI processes (which would be appropriate on a n
 mpirun -n 8 --exclusive ./main3d.hip.MPI.HIP.ex params.txt
 ```
 
-Depending on the system you may also need to amend the `params.txt` file to specify the memory available to you and again make AMReX aware of the use of GPUs for how it uses MPI. e.g. for the MI300X I add: 
+Depending on the system you may also need to amend the `params.txt` file to specify the memory available to you and again make AMReX aware of the use of GPUs for how it uses MPI. e.g. for the MI300X I add:
 
 ```
 # 192GB is the size of 1 GPU MI300X (it seems to work better to ask for a slightly smaller amount)

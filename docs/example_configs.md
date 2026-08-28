@@ -120,8 +120,6 @@ module load hipcc/6.3amd openmpi/5.0.3
 
 In the `make.local-pre` file we have
 ```
-COMP = gnu
-AMREX_USE_GPU=TRUE
 USE_HIP=TRUE
 # for MI300
 AMREX_AMD_ARCH=gfx942
