@@ -26,16 +26,16 @@ class IntegratedMovingPunctureGauge : public MovingPunctureGauge<deriv_t>
     using base_t   = MovingPunctureGauge<deriv_t>;
     using params_t = typename base_t::params_t;
 
-    IntegratedMovingPunctureGauge(double a_dx) : base_t(a_dx) {}
+    IntegratedMovingPunctureGauge(amrex::Real a_dx) : base_t(a_dx) {}
 
     /// Store the initial integrated Gamma-driver RHS in B.
     /** This makes the non-advective part of the initial shift RHS vanish. The
-     * B field is subsequently frozen by calculate_gauge_rhs(), preserving the
+     * B field is subsequently frozen by calculate_rhs(), preserving the
      * subtraction throughout the evolution.
      */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(int ix, int iy, int iz,
-               const amrex::Array4<amrex::Real> &state) const
+    set_initial_B_to_Gamma(int ix, int iy, int iz,
+                           const amrex::Array4<amrex::Real> &state) const
     {
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
@@ -43,7 +43,7 @@ class IntegratedMovingPunctureGauge : public MovingPunctureGauge<deriv_t>
             state_cell_data;
         const CCZ4Vars vars(const_state_cell_data);
 
-        amrex::Real eta_of_x;
+        amrex::Real eta_of_x{};
         this->compute_eta(eta_of_x, ix, iy, iz);
 
         FOR (i)
@@ -55,9 +55,8 @@ class IntegratedMovingPunctureGauge : public MovingPunctureGauge<deriv_t>
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_gauge_rhs(int ix, int iy, int iz,
-                        const amrex::Array4<amrex::Real> &rhs,
-                        const amrex::Array4<const amrex::Real> &state) const
+    calculate_rhs(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
+                  const amrex::Array4<const amrex::Real> &state) const
     {
         const amrex::CellData<amrex::Real> &rhs_cell_data =
             rhs.cellData(ix, iy, iz);
@@ -73,7 +72,7 @@ class IntegratedMovingPunctureGauge : public MovingPunctureGauge<deriv_t>
         const Tensor::Rank1 advec_shift = this->m_deriv.advec_vector(
             ix, iy, iz, state, shift_vector, c_shift1);
 
-        amrex::Real eta_of_x;
+        amrex::Real eta_of_x{};
         this->compute_eta(eta_of_x, ix, iy, iz);
 
         rhs_cell_data[c_lapse] =

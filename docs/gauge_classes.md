@@ -83,14 +83,14 @@ $$
 
 in `vars.B`. This explains the `-vars.B(i)` term in the integrated shift equation.
 
-To initialise `vars.B`, `IntegratedMovingPunctureGauge` must be called after the conformal connection functions have been calculated. The Scalar Field example does this in `initData()` by calling `GammaCalculator` and then the gauge object's function-call operator:
+To initialise `vars.B`, `IntegratedMovingPunctureGauge::set_initial_B_to_Gamma()` must be called after the conformal connection functions have been calculated. The Scalar Field example does this in `initData()` after calling `GammaCalculator`:
 
 ```cpp
 GammaCalculator<> gamma_calculator(dx);
 IntegratedMovingPunctureGauge<FourthOrderDerivatives> gauge(dx);
 
 gamma_calculator(ix, iy, iz, state);
-gauge(ix, iy, iz, state);
+gauge.set_initial_B_to_Gamma(ix, iy, iz, state);
 ```
 
 `GammaCalculator` must run first so that the value of $\hat{\Gamma}^i(t_0)$ used in $B_0^i$ is consistent with the initial conformal metric. The gauge initialisation then evaluates $B_0^i=F\hat{\Gamma}^i(t_0)-\eta\beta^i(t_0)$ and stores it in `vars.B` before time evolution starts.
@@ -101,7 +101,7 @@ A vacuum example should calculate the right hand side in the following order:
 
 1. call `ccz4_rhs.compute_chi_and_h_ij(...)`;
 2. call `ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(...)`;
-3. call `gauge.calculate_gauge_rhs(...)`; and
+3. call `gauge.calculate_rhs(...)`; and
 4. call `ccz4_rhs.apply_dissipation(...)`.
 
 The first two calculations should remain in separate `ParallelFor` launches to control GPU register use. The gauge and dissipation calls may share a third launch. See [Performance optimisation](performance_optimisation.md) for more detail.

@@ -126,8 +126,8 @@ void ScalarFieldLevel::initData()
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
                 gamma_calculator(ix, iy, iz, state_arrays[box_no]);
-                integrated_moving_puncture_gauge(ix, iy, iz,
-                                                 state_arrays[box_no]);
+                integrated_moving_puncture_gauge.set_initial_B_to_Gamma(
+                    ix, iy, iz, state_arrays[box_no]);
             });
     }
     else if (m_evolution_spatial_derivative_order == 6)
@@ -141,8 +141,8 @@ void ScalarFieldLevel::initData()
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
                 gamma_calculator(ix, iy, iz, state_arrays[box_no]);
-                integrated_moving_puncture_gauge(ix, iy, iz,
-                                                 state_arrays[box_no]);
+                integrated_moving_puncture_gauge.set_initial_B_to_Gamma(
+                    ix, iy, iz, state_arrays[box_no]);
             });
     }
 
@@ -211,7 +211,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             {
                 ccz4_rhs.add_emtensor_rhs(ix, iy, iz, rhs_arrays[box_no],
                                           const_soln_arrays[box_no]);
-                integrated_moving_puncture_gauge.calculate_gauge_rhs(
+                integrated_moving_puncture_gauge.calculate_rhs(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
                 ccz4_rhs.add_matter_rhs(ix, iy, iz, rhs_arrays[box_no],
                                         const_soln_arrays[box_no]);
@@ -251,7 +251,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             {
                 ccz4_rhs.add_emtensor_rhs(ix, iy, iz, rhs_arrays[box_no],
                                           const_soln_arrays[box_no]);
-                integrated_moving_puncture_gauge.calculate_gauge_rhs(
+                integrated_moving_puncture_gauge.calculate_rhs(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
                 ccz4_rhs.add_matter_rhs(ix, iy, iz, rhs_arrays[box_no],
                                         const_soln_arrays[box_no]);

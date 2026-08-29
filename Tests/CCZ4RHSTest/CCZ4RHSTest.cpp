@@ -132,7 +132,7 @@ void run_ccz4_rhs_test()
         amrex::ParallelFor(box,
                            [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
-                               moving_puncture_gauge.calculate_gauge_rhs(
+                               moving_puncture_gauge.calculate_rhs(
                                    ix, iy, iz, current_out_array, in_c_array);
                                current_ccz4_rhs.apply_dissipation(
                                    ix, iy, iz, current_out_array, in_c_array);

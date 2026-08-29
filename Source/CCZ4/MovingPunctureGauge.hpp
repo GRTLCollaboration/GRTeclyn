@@ -11,6 +11,7 @@
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
+#include "SixthOrderDerivatives.hpp"
 #include <AMReX_Array.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>
@@ -146,7 +147,7 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
     amrex::Real m_dx;
 
   public:
-    MovingPunctureGauge(double a_dx) : m_deriv(a_dx), m_dx(a_dx)
+    MovingPunctureGauge(amrex::Real a_dx) : m_deriv(a_dx), m_dx(a_dx)
     {
         m_params.fill_params();
     }
@@ -182,9 +183,8 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
      * term only.
      */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_gauge_rhs(int ix, int iy, int iz,
-                        const amrex::Array4<amrex::Real> &rhs,
-                        const amrex::Array4<const amrex::Real> &state) const
+    calculate_rhs(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
+                  const amrex::Array4<const amrex::Real> &state) const
     {
         const amrex::CellData<amrex::Real> &rhs_cell_data =
             rhs.cellData(ix, iy, iz);

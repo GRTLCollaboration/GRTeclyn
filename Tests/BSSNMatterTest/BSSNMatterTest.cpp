@@ -154,7 +154,7 @@ void run_bssn_matter_test()
             {
                 current_ccz4_rhs.add_emtensor_rhs(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
-                moving_puncture_gauge.calculate_gauge_rhs(
+                moving_puncture_gauge.calculate_rhs(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
                 current_ccz4_rhs.add_matter_rhs(ix, iy, iz, out_mf_array[ibox],
                                                 in_c_array[ibox]);
