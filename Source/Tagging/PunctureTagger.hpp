@@ -50,7 +50,7 @@ template <unsigned int num_punctures> class PunctureTagger
         {
             puncture_tagging_pp.error(
                 "level_separation",
-                "levels are getting smaller on each level; increase this value")
+                "levels are getting smaller on each level; increase this value");
         }
         if (level_separation > 2.0)
         {

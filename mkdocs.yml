@@ -17,6 +17,7 @@ nav:
     - Parameters guide: parameters.md
     - Performance optimisation: performance_optimisation.md
     - Convergence testing: convergence_testing.md
+    - Tagging criteria: tagging.md
   - Developing code:
     - Moving from GRChombo: moving_from_grchombo.md
     - Code structure: code_structure.md
