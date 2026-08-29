@@ -10,6 +10,7 @@
 #include "BaseParameterChecker.hpp"
 #include "CCZ4RHS.hpp"
 #include "GRParmParse.hpp"
+#include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 #include "SphericalExtractionParameters.hpp"
 
@@ -28,6 +29,7 @@ class SimulationParameters
         spherical_extraction_params_t::check_params("test_extraction_lo");
         spherical_extraction_params_t::check_params("test_extraction_hi");
         CCZ4_params_t::check_params();
+        PunctureTagger<2>::check_params();
         puncture_tracker_params_t::check_params();
 
         GRParmParse test_pp("test");

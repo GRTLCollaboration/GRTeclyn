@@ -55,6 +55,10 @@ amr.max_level = 9 # there are max_level + 1 levels
 amr.regrid_int = -1 -1 1 -1 -1 -1 -1 -1 -1
 tagging.threshold = 0.02
 
+# extraction_tagging.level_separation = 1.5
+# puncture_tagging.level_separation = 1.5
+# puncture_tagging.finest_level_factor = 2.0
+
 # Maximum number of cells along each side of a grid box
 amr.max_grid_size = 32
 # Grid box side lengths must be divisible by this value
