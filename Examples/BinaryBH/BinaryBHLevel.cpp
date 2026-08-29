@@ -349,7 +349,7 @@ void BinaryBHLevel::specific_post_init()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_init()");
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled())
+    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         get_puncture_tracker().start_from_initial_punctures();
     }
@@ -359,7 +359,7 @@ void BinaryBHLevel::specific_post_restart()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_restart()");
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled())
+    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         std::string restart_checkpoint{};
         GRParmParse pp("amr");
@@ -371,7 +371,7 @@ void BinaryBHLevel::specific_post_restart()
 void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
                                            std::ostream &a_os)
 {
-    if (get_bhamr_ptr()->puncture_tracking_enabled())
+    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         get_puncture_tracker().write_plotfile(a_dir);
     }
@@ -380,7 +380,7 @@ void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
 void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
                                              std::ostream & /*a_os*/)
 {
-    if (get_bhamr_ptr()->puncture_tracking_enabled())
+    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         get_puncture_tracker().checkpoint(a_chk_dir);
     }
