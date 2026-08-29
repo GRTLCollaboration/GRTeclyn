@@ -196,6 +196,10 @@ class GRAMRLevel : public amrex::AmrLevel
   private:
 
     GRAMR *m_gramr_ptr = nullptr;
+
+  protected:
+
+    int m_evolution_spatial_derivative_order = 4; // default to 4th order
 };
 
 #endif /* GRAMRLEVEL_HPP_ */

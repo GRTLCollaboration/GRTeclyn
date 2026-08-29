@@ -5,26 +5,28 @@
 
 #include "ScalarFieldLevel.hpp"
 
+#include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHSWithMatter.hpp"
 #include "ConstraintsWithMatter.hpp"
 #include "EMTensor.hpp"
 #include "FixedGridsTagger.hpp"
+#include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
 #include "GammaCalculator.hpp"
 #include "LineExtraction.hpp"
 #include "MovingPunctureGaugeWithMatter.hpp"
 #include "OscillatonInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
+#include "SixthOrderDerivatives.hpp"
 #include "StateTypes.hpp"
-#include "TraceARemoval.hpp"
 
 #include <type_traits>
 
 using ScalarFieldEnergyDensity =
-    EMTensor<ScalarFieldLevel::ScalarFieldWithPotential,
+    EMTensor<ScalarFieldLevel::ScalarFieldWithPotential<>,
              EMTensorOptions::justEnergyDensity>;
 using ScalarFieldConstraints =
-    ConstraintsWithMatter<ScalarFieldLevel::ScalarFieldWithPotential>;
+    ConstraintsWithMatter<ScalarFieldLevel::ScalarFieldWithPotential<>>;
 
 ScalarFieldAMR *ScalarFieldLevel::get_scalar_field_amr_ptr()
 {
@@ -46,16 +48,16 @@ void ScalarFieldLevel::specificAdvance()
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
 
-    const TraceARemoval trace_A_removal;
+    const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     const PositiveChiAndLapse positive_chi_and_lapse;
 
-    amrex::ParallelFor(state_new,
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           trace_A_removal(ix, iy, iz, state_arrays[box_no]);
-                           positive_chi_and_lapse(ix, iy, iz,
-                                                  state_arrays[box_no]);
-                       });
+    amrex::ParallelFor(
+        state_new,
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        {
+            algebraic_constraints_enforcer(ix, iy, iz, state_arrays[box_no]);
+            positive_chi_and_lapse(ix, iy, iz, state_arrays[box_no]);
+        });
     amrex::Gpu::streamSynchronize();
 }
 
@@ -79,6 +81,7 @@ void ScalarFieldLevel::specificPostTimeStep()
                                                time, restart_time, first_step);
         const LineExtraction<1>::derived_vars_t rho_vars{
             ScalarFieldEnergyDensity::name, {"rho"}, {BCParity::even}};
+
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);
     }
@@ -113,10 +116,22 @@ void ScalarFieldLevel::initData()
                            initial_data(ix, iy, iz, state_arrays[box_no]);
                        });
 
-    const GammaCalculator<> gamma_calculator(Geom().CellSize(0));
-    amrex::ParallelFor(state_new,
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       { gamma_calculator(ix, iy, iz, state_arrays[box_no]); });
+    if (m_evolution_spatial_derivative_order == 4)
+    {
+        const GammaCalculator<FourthOrderDerivatives> gamma_calculator(
+            Geom().CellSize(0));
+        amrex::ParallelFor(
+            state_new, [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            { gamma_calculator(ix, iy, iz, state_arrays[box_no]); });
+    }
+    else if (m_evolution_spatial_derivative_order == 6)
+    {
+        const GammaCalculator<SixthOrderDerivatives> gamma_calculator(
+            Geom().CellSize(0));
+        amrex::ParallelFor(
+            state_new, [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            { gamma_calculator(ix, iy, iz, state_arrays[box_no]); });
+    }
 
     amrex::Gpu::streamSynchronize();
 }
@@ -132,62 +147,103 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     const auto &const_soln_arrays = a_soln.const_arrays();
     const auto &rhs_arrays        = a_rhs.arrays();
 
-    const TraceARemoval trace_A_removal;
+    const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     const PositiveChiAndLapse positive_chi_and_lapse;
 
-    amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           trace_A_removal(ix, iy, iz, soln_arrays[box_no]);
-                           positive_chi_and_lapse(ix, iy, iz,
-                                                  soln_arrays[box_no]);
-                       });
-
-    GRParmParse evolution_pp("evolution");
-    int max_spatial_derivative_order{};
-    evolution_pp.get("spatial_derivative_order", max_spatial_derivative_order);
-    if (max_spatial_derivative_order != 4)
-    {
-        amrex::Abort("ScalarField currently supports fourth-order spatial "
-                     "derivatives only");
-    }
-
-    const CCZ4RHSWithMatter<ScalarFieldWithPotential,
-                            MovingPunctureGaugeWithMatter,
-                            FourthOrderDerivatives>
-        ccz4_rhs(Geom().CellSize(0));
-
-    amrex::ParallelFor(a_rhs,
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           ccz4_rhs.compute_chi_and_h_ij(
-                               ix, iy, iz, rhs_arrays[box_no],
-                               const_soln_arrays[box_no]);
-                       });
-
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    amrex::ParallelFor(a_rhs,
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
-                               ix, iy, iz, rhs_arrays[box_no],
-                               const_soln_arrays[box_no]);
-                       });
-    // NOLINTEND(bugprone-easily-swappable-parameters)
-
     amrex::ParallelFor(
-        a_rhs,
+        a_soln, a_soln.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
         {
-            ccz4_rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                         const_soln_arrays[box_no]);
-            ccz4_rhs.add_emtensor_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                      const_soln_arrays[box_no]);
-            ccz4_rhs.add_matter_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                    const_soln_arrays[box_no]);
-            ccz4_rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
-                                       const_soln_arrays[box_no]);
+            algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]);
+            positive_chi_and_lapse(ix, iy, iz, soln_arrays[box_no]);
         });
+
+    if (m_evolution_spatial_derivative_order != 4 &&
+        m_evolution_spatial_derivative_order != 6)
+    {
+        amrex::Abort("spatial_derivative_order must be 4 or 6");
+    }
+
+    // NOLINTBEGIN(bugprone-branch-clone)
+    if (m_evolution_spatial_derivative_order == 4)
+    {
+        const CCZ4RHSWithMatter<
+            ScalarFieldWithPotential<FourthOrderDerivatives>,
+            MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
+            ccz4_rhs(Geom().CellSize(0));
+
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4_rhs.compute_chi_and_h_ij(ix, iy, iz, rhs_arrays[box_no],
+                                              const_soln_arrays[box_no]);
+            });
+
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
+            });
+        // NOLINTEND(bugprone-easily-swappable-parameters)
+
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4_rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                             const_soln_arrays[box_no]);
+                ccz4_rhs.add_emtensor_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                          const_soln_arrays[box_no]);
+                ccz4_rhs.add_matter_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                        const_soln_arrays[box_no]);
+                ccz4_rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
+                                           const_soln_arrays[box_no]);
+            });
+    }
+    else if (m_evolution_spatial_derivative_order == 6)
+    {
+        const CCZ4RHSWithMatter<ScalarFieldWithPotential<SixthOrderDerivatives>,
+                                MovingPunctureGaugeWithMatter,
+                                SixthOrderDerivatives>
+            ccz4_rhs(Geom().CellSize(0));
+
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4_rhs.compute_chi_and_h_ij(ix, iy, iz, rhs_arrays[box_no],
+                                              const_soln_arrays[box_no]);
+            });
+
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
+            });
+        // NOLINTEND(bugprone-easily-swappable-parameters)
+
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                ccz4_rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                             const_soln_arrays[box_no]);
+                ccz4_rhs.add_emtensor_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                          const_soln_arrays[box_no]);
+                ccz4_rhs.add_matter_rhs(ix, iy, iz, rhs_arrays[box_no],
+                                        const_soln_arrays[box_no]);
+                ccz4_rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
+                                           const_soln_arrays[box_no]);
+            });
+    }
+    // NOLINTEND(bugprone-branch-clone)
 
     amrex::Gpu::streamSynchronize();
 }
@@ -197,11 +253,12 @@ void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
     BL_PROFILE("ScalarFieldLevel::specificUpdateODE()");
 
     const auto &soln_arrays = a_soln.arrays();
-    const TraceARemoval trace_A_removal;
+    const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
 
-    amrex::ParallelFor(a_soln, amrex::IntVect(0),
-                       [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       { trace_A_removal(ix, iy, iz, soln_arrays[box_no]); });
+    amrex::ParallelFor(
+        a_soln, amrex::IntVect(0),
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+        { algebraic_constraints_enforcer(ix, iy, iz, soln_arrays[box_no]); });
     amrex::Gpu::streamSynchronize();
 }
 
@@ -211,6 +268,7 @@ void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     BL_PROFILE("ScalarFieldLevel::tag_cells()");
 
     const auto &tag_arrays = a_tag_box_array.arrays();
+
     const FixedGridsTagger tagger(Geom().CellSize(0), Level());
 
     amrex::ParallelFor(a_tag_box_array,
