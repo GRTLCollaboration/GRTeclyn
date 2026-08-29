@@ -120,8 +120,6 @@ module load hipcc/6.3amd openmpi/5.0.3
 
 In the `make.local-pre` file we have
 ```
-COMP = gnu
-AMREX_USE_GPU=TRUE
 USE_HIP=TRUE
 # for MI300
 AMREX_AMD_ARCH=gfx942
@@ -241,7 +239,7 @@ An example of the jobscript is
 ```
 #!/bin/bash
 #SBATCH --job-name=grteclyn
-#SBATCH --time=02:00:00
+#SBATCH --time=01:00:00
 #SBATCH --partition=mi355x
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8    # 1 MPI rank per GPU (Zenith has 8 GPUs per node)

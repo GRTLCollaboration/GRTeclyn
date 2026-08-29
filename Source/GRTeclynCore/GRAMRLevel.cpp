@@ -148,14 +148,17 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
                                 int ncycle)
 {
     BL_PROFILE("GRAMRLevel::advance()");
-    amrex::Real seconds_per_hour = 3600.;
-    amrex::Real evolution_speed = (time - get_gramr_ptr()->get_restart_time()) *
-                                  seconds_per_hour /
-                                  get_gramr_ptr()->get_walltime_since_start();
-    amrex::Print() << "[Level " << Level() << " step "
-                   << parent->levelSteps(Level()) + 1
-                   << "] average evolution speed = " << evolution_speed
-                   << " code units/h\n";
+    if (get_gramr_ptr()->Verbose() > 0)
+    {
+        amrex::Real seconds_per_hour = 3600.;
+        amrex::Real evolution_speed =
+            (time - get_gramr_ptr()->get_restart_time()) * seconds_per_hour /
+            get_gramr_ptr()->get_walltime_since_start();
+        amrex::Print() << "[Level " << Level() << " step "
+                       << parent->levelSteps(Level()) + 1
+                       << "] average evolution speed = " << evolution_speed
+                       << " code units/h\n";
+    }
 
     for (int k = 0; k < NUM_STATE_TYPE; k++)
     {
