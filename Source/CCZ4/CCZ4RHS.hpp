@@ -49,9 +49,7 @@ struct CCZ4_params_t
 /**
  * This compute class implements the CCZ4 right hand side equations.
  **/
-template <class gauge_t = MovingPunctureGauge,
-          class deriv_t = FourthOrderDerivatives>
-class CCZ4RHS
+template <class deriv_t = FourthOrderDerivatives> class CCZ4RHS
 {
   public:
     enum formulations : int
@@ -64,7 +62,6 @@ class CCZ4RHS
 
   protected:
     params_t m_params;   //!< CCZ4 parameters
-    gauge_t m_gauge;     //!< Class to compute gauge in rhs_equation
     amrex::Real m_sigma; //!< Coefficient for Kreiss-Oliger dissipation
     amrex::Real m_cosmological_constant;
     deriv_t m_deriv;
@@ -90,12 +87,6 @@ class CCZ4RHS
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void compute_A_ij_and_Theta_and_Gamma(
         int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
         const amrex::Array4<const amrex::Real> &state) const;
-
-    // Apply gauage (no derivatives needed here!)
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    calculate_gauge_rhs(int ix, int iy, int iz,
-                        const amrex::Array4<amrex::Real> &rhs,
-                        const amrex::Array4<const amrex::Real> &state) const;
 
     // Apply dissipation (split for matter classes)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void

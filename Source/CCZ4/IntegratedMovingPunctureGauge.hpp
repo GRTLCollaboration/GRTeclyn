@@ -19,74 +19,75 @@
  * and an Integrated version of the Gamma-driver shift condition
  * (see details in arXiv:gr-qc/0605030)
  **/
-class IntegratedMovingPunctureGauge
+template <class deriv_t = FourthOrderDerivatives>
+class IntegratedMovingPunctureGauge : public MovingPunctureGauge<deriv_t>
 {
   public:
-    using params_t = MovingPunctureGauge::params_t;
+    using base_t   = MovingPunctureGauge<deriv_t>;
+    using params_t = typename base_t::params_t;
 
-  protected:
-    params_t m_params;
+    IntegratedMovingPunctureGauge(amrex::Real a_dx) : base_t(a_dx) {}
 
-    /// Vars needed internally in 'compute'
-    template <class data_t> struct Vars
+    /// Store the initial integrated Gamma-driver RHS in B.
+    /** This makes the non-advective part of the initial shift RHS vanish. The
+     * B field is subsequently frozen by calculate_rhs(), preserving the
+     * subtraction throughout the evolution.
+     */
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    set_initial_B_to_Gamma(int ix, int iy, int iz,
+                           const amrex::Array4<amrex::Real> &state) const
     {
-        Tensor::Rank1 shift;
-        Tensor::Rank1 Gamma; //!< Conformal connection functions
+        const amrex::CellData<amrex::Real> &state_cell_data =
+            state.cellData(ix, iy, iz);
+        const amrex::CellData<const amrex::Real> &const_state_cell_data =
+            state_cell_data;
+        const CCZ4Vars vars(const_state_cell_data);
 
-        /// Defines the mapping between members of Vars and Chombo grid
-        /// variables (enum in User_Variables)
-        template <typename mapping_function_t>
-        AMREX_GPU_HOST_DEVICE void
-        enum_mapping(mapping_function_t mapping_function)
-        {
-            VarsTools::define_enum_mapping(
-                mapping_function, GRInterval<c_shift1, c_shift3>(), shift);
-            VarsTools::define_enum_mapping(
-                mapping_function, GRInterval<c_Gamma1, c_Gamma3>(), Gamma);
-        }
-    };
+        amrex::Real eta_of_x{};
+        this->compute_eta(eta_of_x, ix, iy, iz);
 
-  public:
-    IntegratedMovingPunctureGauge() { m_params.fill_params(); }
-
-    // set the initial B^i to the initial condition equivalent to:
-    // \partial_t shift - advec_coeff * advec.shift = 0
-    // Include in your Example in GRAMRLevel::initial_data as:
-    // fillAllGhosts();
-    // BoxLoops::loop(IntegratedMovingPunctureGauge(m_p.ccz4_params),
-    // m_state_new, m_state_new, EXCLUDE_GHOST_CELLS);
-    void compute(Cell<amrex::Real> current_cell) const
-    {
-        // TODO: Port this class
-        // We've just removed templating over data_t
-        const auto vars = current_cell.template load_vars<Vars>();
-
-        Tensor::Rank1 B; // NOLINT(readability-identifier-length)
         FOR (i)
         {
-            B(i) = m_params.shift_Gamma_coeff * vars.Gamma(i) -
-                   m_params.eta * vars.shift(i);
+            state_cell_data[c_B1 + i] =
+                this->m_params.shift_Gamma_coeff * vars.Gamma(i) -
+                eta_of_x * vars.shift(i);
         }
-
-        current_cell.store_vars(B, GRInterval<c_B1, c_B3>());
     }
 
-    template <template <class> class vars_t, class d2_vars_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    rhs_gauge(vars_t<amrex::Real> &rhs, const vars_t &vars<amrex::Real>,
-              const vars_t<Tensor::Rank1> &d1, const d2_vars_t &d2,
-              const vars_t<amrex::Real> &advec) const
+    calculate_rhs(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
+                  const amrex::Array4<const amrex::Real> &state) const
     {
-        rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
-                    m_params.lapse_coeff *
-                        pow(vars.lapse, m_params.lapse_power) *
-                        (vars.K - 2 * vars.Theta);
+        const amrex::CellData<amrex::Real> &rhs_cell_data =
+            rhs.cellData(ix, iy, iz);
+        const amrex::CellData<const amrex::Real> &state_cell_data =
+            state.cellData(ix, iy, iz);
+        const CCZ4Vars vars(state_cell_data);
+
+        const Tensor::Rank1 shift_vector(
+            {vars.shift(0), vars.shift(1), vars.shift(2)});
+
+        const amrex::Real advec_lapse = this->m_deriv.advec_scalar(
+            ix, iy, iz, state, shift_vector, c_lapse);
+        const Tensor::Rank1 advec_shift = this->m_deriv.advec_vector(
+            ix, iy, iz, state, shift_vector, c_shift1);
+
+        amrex::Real eta_of_x{};
+        this->compute_eta(eta_of_x, ix, iy, iz);
+
+        rhs_cell_data[c_lapse] =
+            this->m_params.lapse_advec_coeff * advec_lapse -
+            this->m_params.lapse_coeff *
+                pow(vars.lapse(), this->m_params.lapse_power) *
+                (vars.K() - 2.0 * vars.Theta());
+
         FOR (i)
         {
-            rhs.shift(i) = m_params.shift_advec_coeff * advec.shift(i) +
-                           m_params.shift_Gamma_coeff * vars.Gamma(i) -
-                           m_params.eta * vars.shift(i) - vars.B(i);
-            rhs.B(i) = 0.; // static, stays the same to save initial condition
+            rhs_cell_data[c_shift1 + i] =
+                this->m_params.shift_advec_coeff * advec_shift(i) +
+                this->m_params.shift_Gamma_coeff * vars.Gamma(i) -
+                eta_of_x * vars.shift(i) - vars.B(i);
+            rhs_cell_data[c_B1 + i] = 0.0;
         }
     }
 };

@@ -184,7 +184,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     // Calculate CCZ4 right hand side using dynamic derivative order
     if (m_evolution_spatial_derivative_order == 4)
     {
-        CCZ4RHS<MovingPunctureGauge, FourthOrderDerivatives> ccz4rhs(
+        CCZ4RHS<FourthOrderDerivatives> ccz4rhs(Geom().CellSize(0));
+        MovingPunctureGauge<FourthOrderDerivatives> moving_puncture_gauge(
             Geom().CellSize(0));
 
         // NB: These are split up to avoid having to pre-compute all the
@@ -210,8 +211,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                ccz4rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                            const_soln_arrays[box_no]);
+                moving_puncture_gauge.calculate_rhs(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
 
                 ccz4rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
                                           const_soln_arrays[box_no]);
@@ -219,7 +220,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     }
     else if (m_evolution_spatial_derivative_order == 6)
     {
-        CCZ4RHS<MovingPunctureGauge, SixthOrderDerivatives> ccz4rhs(
+        CCZ4RHS<SixthOrderDerivatives> ccz4rhs(Geom().CellSize(0));
+        MovingPunctureGauge<SixthOrderDerivatives> moving_puncture_gauge(
             Geom().CellSize(0));
 
         // NB: These are split up to avoid having to pre-compute all the
@@ -245,8 +247,8 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                ccz4rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                            const_soln_arrays[box_no]);
+                moving_puncture_gauge.calculate_rhs(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
 
                 ccz4rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
                                           const_soln_arrays[box_no]);

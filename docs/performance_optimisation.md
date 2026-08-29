@@ -46,7 +46,7 @@ This is why the `CCZ4RHS` calculation has been split up into three different par
 
 - one `ParallelFor` launch to calculate `chi` and `h_ij`
 - one `ParallelFor` launch to calculate `A_ij`, `Theta` and `Gamma_ij`
-- one `ParallelFor` launch for the gauge and dissipation
+- one `ParallelFor` launch for the separately constructed gauge and dissipation
 
 Take a look inside `BinaryBHLevel.cpp` in the `specificEvalRHS` member function as an example of how to do the splitting. 
 

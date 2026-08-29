@@ -10,7 +10,6 @@
 #include "CCZ4RHS.hpp"
 #include "CCZ4Vars.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "MovingPunctureGaugeWithMatter.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "TensorAlgebra.hpp"
 
@@ -26,13 +25,12 @@
    an example of a matter_t. \sa CCZ4RHS(), ScalarField()
 */
 
-template <class matter_t, class gauge_t = MovingPunctureGaugeWithMatter,
-          class deriv_t = FourthOrderDerivatives>
-class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
+template <class matter_t, class deriv_t = FourthOrderDerivatives>
+class CCZ4RHSWithMatter : public CCZ4RHS<deriv_t>
 {
   public:
     // Use this alias for the same template instantiation as this class
-    using CCZ4 = CCZ4RHS<gauge_t, deriv_t>;
+    using CCZ4 = CCZ4RHS<deriv_t>;
 
     using params_t = CCZ4_params_t;
 
@@ -44,7 +42,10 @@ class CCZ4RHSWithMatter : public CCZ4RHS<gauge_t, deriv_t>
     */
     CCZ4RHSWithMatter(amrex::Real a_dx);
 
-    //! Add the stress-energy tensor terms to the CCZ4 and gauge RHS.
+    //! Add stress-energy terms to the CCZ4 RHS, including the Gamma RHS.
+    /** Call this before a gauge update that derives the B-field RHS from the
+     * time derivative of the conformal connection functions.
+     */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_emtensor_rhs(
         const int ix, const int iy, const int iz,
         const amrex::Array4<amrex::Real>

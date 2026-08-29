@@ -18,6 +18,7 @@
 #include "ConstraintsWithMatter.hpp"
 #include "DefaultPotential.hpp"
 #include "GRParmParse.hpp"
+#include "MovingPunctureGauge.hpp"
 #include "ScalarField.hpp"
 
 // AMReX headers
@@ -30,7 +31,6 @@
 #endif
 
 // System headers
-#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -107,9 +107,9 @@ void run_bssn_matter_test()
         using DefaultScalarField =
             ScalarField<DefaultPotential, FourthOrderDerivatives>;
 
-        CCZ4RHSWithMatter<DefaultScalarField, MovingPunctureGaugeWithMatter,
-                          FourthOrderDerivatives>
+        CCZ4RHSWithMatter<DefaultScalarField, FourthOrderDerivatives>
             current_ccz4_rhs{dx};
+        MovingPunctureGauge<FourthOrderDerivatives> moving_puncture_gauge(dx);
 
         // Set up the constraints
         constexpr int num_bssn_matter_vars = c_Pi + 1;
@@ -145,20 +145,16 @@ void run_bssn_matter_test()
                 current_ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
             });
-        amrex::ParallelFor(
-            out_mf,
-            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
-            {
-                current_ccz4_rhs.calculate_gauge_rhs(
-                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
-            });
-
-        // calculate the matter contribution
+        // Calculate the emtensor contribution before the gauge update so that
+        // the B-field RHS uses the complete Gamma RHS. But the  B-field RHS
+        // does not depend on matter_rhs.
         amrex::ParallelFor(
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
                 current_ccz4_rhs.add_emtensor_rhs(
+                    ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
+                moving_puncture_gauge.calculate_rhs(
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
                 current_ccz4_rhs.add_matter_rhs(ix, iy, iz, out_mf_array[ibox],
                                                 in_c_array[ibox]);

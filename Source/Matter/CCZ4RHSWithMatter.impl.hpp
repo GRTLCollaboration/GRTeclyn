@@ -11,17 +11,16 @@
 #define CCZ4RHSWITHMATTER_IMPL_HPP_
 #include "DimensionDefinitions.hpp"
 
-template <class matter_t, class gauge_t, class deriv_t>
-CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::CCZ4RHSWithMatter(
-    amrex::Real a_dx)
-    : CCZ4RHS<gauge_t, deriv_t>(a_dx, 0.0 /*No cosmological constant*/)
+template <class matter_t, class deriv_t>
+CCZ4RHSWithMatter<matter_t, deriv_t>::CCZ4RHSWithMatter(amrex::Real a_dx)
+    : CCZ4RHS<deriv_t>(a_dx, 0.0 /*No cosmological constant*/)
 {
 }
 
 // Function to add in EM Tensor matter terms to CCZ4 rhs
-template <class matter_t, class gauge_t, class deriv_t>
+template <class matter_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
+CCZ4RHSWithMatter<matter_t, deriv_t>::add_emtensor_rhs(
     const int ix, const int iy, const int iz,
     const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<const amrex::Real> &state) const
@@ -73,23 +72,20 @@ CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_emtensor_rhs(
         }
         rhs_cell_data[c_Gamma1 + i] += matter_term_Gamma;
     }
-
-    // Add matter contribution to RHS of gauge evolution
-    this->m_gauge.rhs_gauge_add_matter_terms(rhs_cell_data, vars, h_UU, source);
 }
 
-template <class matter_t, class gauge_t, class deriv_t>
+template <class matter_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::add_matter_rhs(
+CCZ4RHSWithMatter<matter_t, deriv_t>::add_matter_rhs(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<const amrex::Real> &state) const
 {
     m_matter.add_matter_rhs(ix, iy, iz, rhs_state, state, this->m_deriv);
 }
 
-template <class matter_t, class gauge_t, class deriv_t>
+template <class matter_t, class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHSWithMatter<matter_t, gauge_t, deriv_t>::apply_dissipation(
+CCZ4RHSWithMatter<matter_t, deriv_t>::apply_dissipation(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs_state,
     const amrex::Array4<const amrex::Real> &state) const
 {

@@ -21,6 +21,7 @@ nav:
     - Moving from GRChombo: moving_from_grchombo.md
     - Code structure: code_structure.md
     - Matter classes: matter_classes.md
+    - Gauge Classes: gauge_classes.md
     - Diagnostics: diagnostics.md
     - Coding conventions: coding_conventions.md
     - Pull requests: pull_requests.md
