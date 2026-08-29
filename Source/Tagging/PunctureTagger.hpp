@@ -26,25 +26,32 @@ template <unsigned int num_punctures> class PunctureTagger
     std::array<amrex::Real, num_punctures> m_puncture_masses;
     std::array<amrex::Real, num_puncture_coords> m_puncture_coords;
     amrex::Real m_level_separation{1.5};
-    amrex::Real m_fudge_factor{2.0};
+    amrex::Real m_finest_level_factor{2.0};
 
   public:
     static void check_params()
     {
-        GRParmParse tagging_pp("tagging");
+        GRParmParse puncture_tagging_pp("puncture_tagging");
         amrex::Real level_separation{1.5};
-        tagging_pp.queryAdd("level_separation", level_separation);
-        amrex::Real fudge_factor{2.0};
-        tagging_pp.queryAdd("fudge_factor", fudge_factor);
+        puncture_tagging_pp.queryAdd("level_separation", level_separation);
+        amrex::Real finest_level_factor{2.0};
+        puncture_tagging_pp.queryAdd("finest_level_factor",
+                                     finest_level_factor);
 
         if (level_separation < 1.2)
         {
-            tagging_pp.error("level_separation",
-                             "levels must be more spaced out");
+            puncture_tagging_pp.warning("level_separation",
+                                        "levels must be more spaced out");
         }
-        if (fudge_factor < 1.0)
+        if (level_separation > 2.0)
         {
-            tagging_pp.error("fudge_factor", "finest level must be bigger");
+            puncture_tagging_pp.warning("level_separation",
+                                        "levels are too large");
+        }
+        if (finest_level_factor < 1.0)
+        {
+            puncture_tagging_pp.warning("finest_level_factor",
+                                        "finest level must be bigger");
         }
     }
 
@@ -59,9 +66,9 @@ template <unsigned int num_punctures> class PunctureTagger
           m_puncture_masses(a_puncture_masses),
           m_puncture_coords(a_puncture_coords)
     {
-        GRParmParse tagging_pp("tagging");
-        tagging_pp.get("level_separation", m_level_separation);
-        tagging_pp.get("fudge_factor", m_fudge_factor);
+        GRParmParse puncture_tagging_pp("puncture_tagging");
+        puncture_tagging_pp.get("level_separation", m_level_separation);
+        puncture_tagging_pp.get("finest_level_factor", m_finest_level_factor);
     };
 
     AMREX_GPU_DEVICE void
@@ -77,8 +84,8 @@ template <unsigned int num_punctures> class PunctureTagger
         // (just the top level would be ok, but doing two ensures
         // the top levels are well spaced)
 
-        // we want each level to be level_separation times the innermost one in
-        // size
+        // we want each level to be level_separation times the finer level
+        // above
         const int exponent       = std::min(m_max_level - m_level - 1, 1);
         const amrex::Real factor = std::pow(m_level_separation, exponent);
 
@@ -96,8 +103,9 @@ template <unsigned int num_punctures> class PunctureTagger
                                      current_puncture_coords);
             const amrex::Real r = coords.get_radius();
             // decide whether to tag based on distance to horizon
-            // plus a fudge factor
-            if (r < m_fudge_factor * factor * m_puncture_masses[ipuncture])
+            // plus an additional factor
+            if (r <
+                m_finest_level_factor * factor * m_puncture_masses[ipuncture])
             {
                 tags(current_cell) = amrex::TagBox::SET;
             }

@@ -30,6 +30,7 @@ Parameter names use dot-separated scopes. The main scopes include:
 | `evolution` | Time step, stopping conditions, derivative order, dissipation and runtime checks |
 | `ccz4` and `gauge` | Formulation and moving-puncture gauge parameters |
 | `tagging` | Refinement thresholds and tagging controls |
+| `puncture_tagging` and `extraction_tagging` | Separation and size of refinement levels |
 | `weyl_extraction` and `puncture_tracking` | Gravitational-wave extraction and black-hole tracking |
 | Example-specific scopes | For example `bh1` and `bh2` |
 

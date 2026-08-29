@@ -139,16 +139,16 @@ void PunctureTrackerLevel::check_puncture_tagging()
 
     std::array<amrex::Real, num_punctures> fake_masses{fake_bh1_mass,
                                                        fake_bh2_mass};
-    GRParmParse tagging_pp("tagging");
+    GRParmParse puncture_tagging_pp("puncture_tagging");
     amrex::Real level_separation{};
-    tagging_pp.get("level_separation", level_separation);
-    amrex::Real fudge_factor{};
-    tagging_pp.get("fudge_factor", fudge_factor);
+    puncture_tagging_pp.get("level_separation", level_separation);
+    amrex::Real finest_level_factor{};
+    puncture_tagging_pp.get("finest_level_factor", finest_level_factor);
 
     const int max_level        = get_gramr_ptr()->maxLevel();
     const amrex::Real exponent = std::min(max_level - Level(), 1);
     const amrex::Real factor =
-        fudge_factor * std::pow(level_separation, exponent);
+        finest_level_factor * std::pow(level_separation, exponent);
 
     const auto &puncture_coords = get_puncture_tracker().get_puncture_coords();
     const auto &state_new       = get_new_data(state_index);
