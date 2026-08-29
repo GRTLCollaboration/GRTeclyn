@@ -29,8 +29,8 @@ amr.blocking_factor = 8
 
 # Keep the refinement geometry tested here independent of the application
 # defaults used by BinaryBH.
-tagging.level_separation = 2.0
-tagging.fudge_factor = 1.5
+puncture_tagging.level_separation = 1.0
+puncture_tagging.finest_level_factor = 2.0
 
 #################################################
 # Boundary condition parameters

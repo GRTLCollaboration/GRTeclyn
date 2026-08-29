@@ -37,13 +37,18 @@ class ExtractionTagger
 
         if (level_separation < 1.0)
         {
-            extraction_tagging_pp.warning("level_separation",
-                                          "levels must be more spaced out");
+            extraction_tagging_pp.warning(
+                "level_separation",
+                "levels may be too close together, which results in boundary "
+                "error reflecting; either increase this value or set n_proper "
+                "to be larger");
         }
         if (level_separation > 2.0)
         {
-            extraction_tagging_pp.warning("level_separation",
-                                          "levels are too large");
+            extraction_tagging_pp.warning(
+                "level_separation",
+                "levels are more than doubling around punctures, which may "
+                "result in too much refinement");
         }
     }
 

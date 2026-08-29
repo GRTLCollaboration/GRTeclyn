@@ -146,7 +146,7 @@ void PunctureTrackerLevel::check_puncture_tagging()
     puncture_tagging_pp.get("finest_level_factor", finest_level_factor);
 
     const int max_level        = get_gramr_ptr()->maxLevel();
-    const amrex::Real exponent = std::min(max_level - Level(), 1);
+    const amrex::Real exponent = max_level - Level();
     const amrex::Real factor =
         finest_level_factor * std::pow(level_separation, exponent);
 

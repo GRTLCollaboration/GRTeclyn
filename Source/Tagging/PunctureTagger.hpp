@@ -40,18 +40,30 @@ template <unsigned int num_punctures> class PunctureTagger
 
         if (level_separation < 1.2)
         {
-            puncture_tagging_pp.warning("level_separation",
-                                        "levels must be more spaced out");
+            puncture_tagging_pp.warning(
+                "level_separation",
+                "levels may be too close together, which results in boundary "
+                "error reflecting; either increase this value or set n_proper "
+                "to be larger");
+        }
+        if (level_separation < 1.0)
+        {
+            puncture_tagging_pp.error(
+                "level_separation",
+                "levels are getting smaller on each level; increase this value")
         }
         if (level_separation > 2.0)
         {
-            puncture_tagging_pp.warning("level_separation",
-                                        "levels are too large");
+            puncture_tagging_pp.warning(
+                "level_separation",
+                "levels are more than doubling around punctures, which may "
+                "result in too much refinement");
         }
         if (finest_level_factor < 1.0)
         {
-            puncture_tagging_pp.warning("finest_level_factor",
-                                        "finest level must be bigger");
+            puncture_tagging_pp.error(
+                "finest_level_factor",
+                "finest level should be placed outside the BH horizon");
         }
     }
 
@@ -86,7 +98,7 @@ template <unsigned int num_punctures> class PunctureTagger
 
         // we want each level to be level_separation times the finer level
         // above
-        const int exponent       = std::min(m_max_level - m_level - 1, 1);
+        const int exponent       = m_max_level - m_level - 1;
         const amrex::Real factor = std::pow(m_level_separation, exponent);
 
         amrex::IntVect current_cell(AMREX_D_DECL(ix, iy, iz));
