@@ -14,10 +14,10 @@
 #include "GRInterval.hpp"
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-template <class gauge_t, class deriv_t>
-inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(amrex::Real a_dx,
-                                          amrex::Real a_cosmological_constant)
-    : m_gauge(), m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
+template <class deriv_t>
+inline CCZ4RHS<deriv_t>::CCZ4RHS(amrex::Real a_dx,
+                                 amrex::Real a_cosmological_constant)
+    : m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
     m_params.fill_params();
@@ -26,9 +26,8 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(amrex::Real a_dx,
     pp.get("evolution.sigma", m_sigma);
 }
 
-template <class gauge_t, class deriv_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
+template <class deriv_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<deriv_t>::compute_chi_and_h_ij(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
     const amrex::Array4<const amrex::Real> &state) const
 {
@@ -67,9 +66,9 @@ CCZ4RHS<gauge_t, deriv_t>::compute_chi_and_h_ij(
     }
 }
 
-template <class gauge_t, class deriv_t>
+template <class deriv_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
+CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
     const amrex::Array4<const amrex::Real> &state) const
 {
@@ -287,40 +286,8 @@ CCZ4RHS<gauge_t, deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     }
 }
 
-template <class gauge_t, class deriv_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHS<gauge_t, deriv_t>::calculate_gauge_rhs(
-    int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
-    const amrex::Array4<const amrex::Real> &state) const
-{
-    const amrex::CellData<amrex::Real> &rhs_cell_data =
-        rhs.cellData(ix, iy, iz);
-    const amrex::CellData<const amrex::Real> &state_cell_data =
-        state.cellData(ix, iy, iz);
-
-    CCZ4Vars vars(state_cell_data);
-
-    Tensor::Rank1 shift_vector({vars.shift(0), vars.shift(1), vars.shift(2)});
-
-    amrex::Real advec_lapse =
-        m_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_lapse);
-
-    Tensor::Rank1 advec_shift =
-        m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_shift1);
-
-    Tensor::Rank1 advec_B =
-        m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_B1);
-
-    Tensor::Rank1 advec_Gamma =
-        m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
-
-    m_gauge.rhs_gauge(rhs_cell_data, vars, advec_lapse, advec_shift, advec_B,
-                      advec_Gamma);
-}
-
-template <class gauge_t, class deriv_t>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-CCZ4RHS<gauge_t, deriv_t>::apply_dissipation(
+template <class deriv_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<deriv_t>::apply_dissipation(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
     const amrex::Array4<const amrex::Real> &state) const
 {

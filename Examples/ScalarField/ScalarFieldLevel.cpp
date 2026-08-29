@@ -11,10 +11,9 @@
 #include "EMTensor.hpp"
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "GRParmParse.hpp"
 #include "GammaCalculator.hpp"
+#include "IntegratedMovingPunctureGauge.hpp"
 #include "LineExtraction.hpp"
-#include "MovingPunctureGaugeWithMatter.hpp"
 #include "OscillatonInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
@@ -120,17 +119,31 @@ void ScalarFieldLevel::initData()
     {
         const GammaCalculator<FourthOrderDerivatives> gamma_calculator(
             Geom().CellSize(0));
+        const IntegratedMovingPunctureGauge<FourthOrderDerivatives>
+            integrated_moving_puncture_gauge(Geom().CellSize(0));
         amrex::ParallelFor(
-            state_new, [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-            { gamma_calculator(ix, iy, iz, state_arrays[box_no]); });
+            state_new,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                gamma_calculator(ix, iy, iz, state_arrays[box_no]);
+                integrated_moving_puncture_gauge.set_initial_B_to_Gamma(
+                    ix, iy, iz, state_arrays[box_no]);
+            });
     }
     else if (m_evolution_spatial_derivative_order == 6)
     {
         const GammaCalculator<SixthOrderDerivatives> gamma_calculator(
             Geom().CellSize(0));
+        const IntegratedMovingPunctureGauge<SixthOrderDerivatives>
+            integrated_moving_puncture_gauge(Geom().CellSize(0));
         amrex::ParallelFor(
-            state_new, [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-            { gamma_calculator(ix, iy, iz, state_arrays[box_no]); });
+            state_new,
+            [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
+            {
+                gamma_calculator(ix, iy, iz, state_arrays[box_no]);
+                integrated_moving_puncture_gauge.set_initial_B_to_Gamma(
+                    ix, iy, iz, state_arrays[box_no]);
+            });
     }
 
     amrex::Gpu::streamSynchronize();
@@ -169,8 +182,10 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     {
         const CCZ4RHSWithMatter<
             ScalarFieldWithPotential<FourthOrderDerivatives>,
-            MovingPunctureGaugeWithMatter, FourthOrderDerivatives>
+            FourthOrderDerivatives>
             ccz4_rhs(Geom().CellSize(0));
+        const IntegratedMovingPunctureGauge<FourthOrderDerivatives>
+            integrated_moving_puncture_gauge(Geom().CellSize(0));
 
         amrex::ParallelFor(
             a_rhs,
@@ -194,10 +209,10 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                ccz4_rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                             const_soln_arrays[box_no]);
                 ccz4_rhs.add_emtensor_rhs(ix, iy, iz, rhs_arrays[box_no],
                                           const_soln_arrays[box_no]);
+                integrated_moving_puncture_gauge.calculate_rhs(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
                 ccz4_rhs.add_matter_rhs(ix, iy, iz, rhs_arrays[box_no],
                                         const_soln_arrays[box_no]);
                 ccz4_rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],
@@ -207,9 +222,10 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     else if (m_evolution_spatial_derivative_order == 6)
     {
         const CCZ4RHSWithMatter<ScalarFieldWithPotential<SixthOrderDerivatives>,
-                                MovingPunctureGaugeWithMatter,
                                 SixthOrderDerivatives>
             ccz4_rhs(Geom().CellSize(0));
+        const IntegratedMovingPunctureGauge<SixthOrderDerivatives>
+            integrated_moving_puncture_gauge(Geom().CellSize(0));
 
         amrex::ParallelFor(
             a_rhs,
@@ -233,10 +249,10 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
             {
-                ccz4_rhs.calculate_gauge_rhs(ix, iy, iz, rhs_arrays[box_no],
-                                             const_soln_arrays[box_no]);
                 ccz4_rhs.add_emtensor_rhs(ix, iy, iz, rhs_arrays[box_no],
                                           const_soln_arrays[box_no]);
+                integrated_moving_puncture_gauge.calculate_rhs(
+                    ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
                 ccz4_rhs.add_matter_rhs(ix, iy, iz, rhs_arrays[box_no],
                                         const_soln_arrays[box_no]);
                 ccz4_rhs.apply_dissipation(ix, iy, iz, rhs_arrays[box_no],

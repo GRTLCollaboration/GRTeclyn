@@ -9,8 +9,8 @@
 #include "BaseParameterChecker.hpp"
 #include "CCZ4RHS.hpp"
 #include "FixedGridsTagger.hpp"
+#include "IntegratedMovingPunctureGauge.hpp"
 #include "LineExtractionParameters.hpp"
-#include "MovingPunctureGauge.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 
@@ -23,7 +23,8 @@ class SimulationParameters
     {
         BaseParameterChecker::check_params();
         CCZ4_params_t::check_params();
-        MovingPunctureGauge::params_t::check_params();
+        IntegratedMovingPunctureGauge<
+            FourthOrderDerivatives>::params_t::check_params();
         FixedGridsTagger::check_params();
 
         ScalarField<Potential>::params_t::check_params();
