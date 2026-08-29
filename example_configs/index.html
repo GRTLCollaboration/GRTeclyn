@@ -275,9 +275,7 @@ mpirun --map-by ppr:$mpi_tasks_per_node:node -np $SLURM_NTASKS $application $opt
 <p>The modules used
 <pre class="highlight"><code>module load hipcc/6.3amd openmpi/5.0.3</code></pre></p>
 <p>In the <code>make.local-pre</code> file we have
-<pre class="highlight"><code>COMP = gnu
-AMREX_USE_GPU=TRUE
-USE_HIP=TRUE
+<pre class="highlight"><code>USE_HIP=TRUE
 # for MI300
 AMREX_AMD_ARCH=gfx942
 # Option for MI200 - need to switch if using this
@@ -372,7 +370,7 @@ AMREX_AMD_ARCH=gfx950 # MI355X GPU arch</code></pre>
 An example of the jobscript is
 <pre class="highlight"><code>#!/bin/bash
 #SBATCH --job-name=grteclyn
-#SBATCH --time=02:00:00
+#SBATCH --time=01:00:00
 #SBATCH --partition=mi355x
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8    # 1 MPI rank per GPU (Zenith has 8 GPUs per node)
