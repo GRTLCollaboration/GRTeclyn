@@ -263,7 +263,7 @@ void BinaryBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
 }
 
 // enforce algebraic constraints during RK4 substeps
-void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
+void BinaryBHLevel::specific_update_ode(amrex::MultiFab &a_soln)
 {
 
     AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;

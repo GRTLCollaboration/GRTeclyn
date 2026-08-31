@@ -37,7 +37,7 @@ class BinaryBHLevel : public GRAmrLevel
                            const amrex::Real a_time) override;
 
     /// Things to do after dt*rhs has been added to the solution
-    void specificUpdateODE(amrex::MultiFab &a_soln) override;
+    void specific_update_ode(amrex::MultiFab &a_soln) override;
 
     // to do post each time step on every level
     void specific_post_timestep() override;

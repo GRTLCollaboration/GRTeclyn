@@ -264,9 +264,9 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
+void ScalarFieldLevel::specific_update_ode(amrex::MultiFab &a_soln)
 {
-    BL_PROFILE("ScalarFieldLevel::specificUpdateODE()");
+    BL_PROFILE("ScalarFieldLevel::specific_update_ode()");
 
     const auto &soln_arrays = a_soln.arrays();
     const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;

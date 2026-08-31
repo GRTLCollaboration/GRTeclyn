@@ -34,7 +34,7 @@ class ScalarFieldLevel : public GRAmrLevel
     void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
                            amrex::Real a_time) override;
 
-    void specificUpdateODE(amrex::MultiFab &a_soln) override;
+    void specific_update_ode(amrex::MultiFab &a_soln) override;
 
     void specific_post_timestep() override;
 

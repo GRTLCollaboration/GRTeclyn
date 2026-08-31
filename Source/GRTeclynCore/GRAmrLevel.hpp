@@ -147,7 +147,7 @@ class GRAmrLevel : public amrex::AmrLevel
                                    amrex::MultiFab &a_rhs,
                                    const amrex::Real a_time) = 0;
 
-    virtual void specificUpdateODE(amrex::MultiFab & /*a_soln*/) {}
+    virtual void specific_update_ode(amrex::MultiFab & /*a_soln*/) {}
 
     //! Problem specific post restart
     virtual void specific_post_restart() {}
