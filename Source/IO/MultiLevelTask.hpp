@@ -13,7 +13,7 @@
 
 //! This is just an interface for the AMR scheduler to call some GRAMRLevel (or
 //! any other Example specific level) function on every AMRLevel
-//! Satisfies syntax of Chombo's Scheduler such that it can be passed to GRAMR
+//! Satisfies syntax of Chombo's Scheduler such that it can be passed to GRAmr
 //! and be scheduled
 template <class level_t = GRAMRLevel>
 class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
@@ -65,7 +65,7 @@ class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
 //! This is just an interface for the AMR scheduler to call some level_t
 //! function on every AMRLevel
 //! This can either be called directly by calling execute, or passed to an AMR
-//! (as GRAMR) by doing gr_amr.schedule(me) (this version will make it be called
+//! (as GRAmr) by doing gr_amr.schedule(me) (this version will make it be called
 //! only after plot files are written, if that is ever an interest)
 template <class level_t = GRAMRLevel>
 class MultiLevelTaskPtr : public RefCountedPtr<Scheduler>

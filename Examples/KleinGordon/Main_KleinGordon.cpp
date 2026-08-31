@@ -38,7 +38,7 @@ int runGRTeclyn()
 
     DefaultLevelFactory<KleinGordonLevel> KleinGordon_level_bld;
 
-    GRAMR amr(&KleinGordon_level_bld);
+    GRAmr amr(&KleinGordon_level_bld);
 
     amr.init(0., stop_time);
 

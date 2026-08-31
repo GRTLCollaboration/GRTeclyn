@@ -8,8 +8,8 @@
 
 #include "DefaultLevelFactory.hpp"
 #include "FixedGridsTagger.hpp"
-#include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
+#include "GRAmr.hpp"
 #include "PolynomialDerivedQuantity.hpp"
 #include "StateTypes.hpp"
 

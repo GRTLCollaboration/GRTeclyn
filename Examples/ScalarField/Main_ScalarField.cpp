@@ -4,7 +4,7 @@
  */
 
 #include "DefaultLevelFactory.hpp"
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"

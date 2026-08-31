@@ -24,9 +24,9 @@
 
 // initialise everything and perform some sanity checks
 template <int num_components>
-void ParticleInterpolator<num_components>::setup(GRAMR *gramr_ptr)
+void ParticleInterpolator<num_components>::setup(GRAmr *gramr_ptr)
 {
-    // is GRAMR properly set?
+    // is GRAmr properly set?
     AMREX_ASSERT(gramr_ptr != nullptr);
     m_gramr_ptr = gramr_ptr;
     m_bc_params.fill_params();

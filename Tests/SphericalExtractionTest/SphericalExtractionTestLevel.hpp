@@ -8,8 +8,8 @@
 
 #include "DefaultLevelFactory.hpp"
 #include "FixedGridsTagger.hpp"
-#include "GRAMR.hpp"
 #include "GRAMRLevel.hpp"
+#include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 #include "SimulationParameters.hpp"
 #include "SphericalHarmonics.hpp"

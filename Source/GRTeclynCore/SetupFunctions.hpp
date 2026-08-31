@@ -11,7 +11,7 @@
 // xxxxx various setups
 #include "DerivativeSetup.hpp"
 #include "FilesystemTools.hpp"
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 #include "IntegrationMethodSetup.hpp"
 #include "SimulationParameters.hpp"

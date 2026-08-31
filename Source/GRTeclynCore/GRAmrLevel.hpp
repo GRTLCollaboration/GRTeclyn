@@ -8,7 +8,7 @@
 
 // Other includes
 #include "BoundaryConditions.hpp"
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 // xxxxx#include "InterpSource.hpp"
 #include "SimulationParameters.hpp"
 #include "StateVariables.hpp" // need NUM_VARS
@@ -40,7 +40,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
     ~GRAMRLevel() override;
 
-    GRAMR *get_gramr_ptr();
+    GRAmr *get_gramr_ptr();
 
     /**
      * \brief Compute the initial time step.
@@ -195,7 +195,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
   private:
 
-    GRAMR *m_gramr_ptr = nullptr;
+    GRAmr *m_gramr_ptr = nullptr;
 
   protected:
 

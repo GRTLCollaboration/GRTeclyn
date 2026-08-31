@@ -18,7 +18,7 @@
 
 // Base includes
 #include "DefaultLevelFactory.hpp"
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 
 // Problem specific includes
@@ -61,7 +61,7 @@ void run_spherical_extraction_test()
 
         DefaultLevelFactory<SphericalExtractionTestLevel>
             surface_extraction_test_level_fact;
-        GRAMR gr_amr(&surface_extraction_test_level_fact);
+        GRAmr gr_amr(&surface_extraction_test_level_fact);
 
         amrex::Real stop_time{};
         pp.get("evolution.stop_time", stop_time);

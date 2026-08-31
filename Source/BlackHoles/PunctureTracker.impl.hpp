@@ -102,7 +102,7 @@ void PunctureTracker<num_punctures>::configure()
 
 //! Set up puncture tracker
 template <unsigned int num_punctures>
-void PunctureTracker<num_punctures>::initialize(GRAMR *a_gr_amr)
+void PunctureTracker<num_punctures>::initialize(GRAmr *a_gr_amr)
 {
     AMREX_ASSERT(m_params.enabled);
     AMREX_ASSERT(a_gr_amr != nullptr);

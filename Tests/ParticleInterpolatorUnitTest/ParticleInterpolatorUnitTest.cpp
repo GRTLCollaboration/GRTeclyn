@@ -25,7 +25,7 @@
 
 // Base includes
 #include "DefaultLevelFactory.hpp"
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 
 // Problem specific includes
@@ -76,7 +76,7 @@ void run_particle_interpolator_test()
         // Set up the AMR object
         DefaultLevelFactory<ParticleInterpolatorLevel>
             interpolator_test_level_fact;
-        GRAMR gr_amr(&interpolator_test_level_fact);
+        GRAmr gr_amr(&interpolator_test_level_fact);
 
         amrex::Real stop_time{};
         pp.get("evolution.stop_time", stop_time);

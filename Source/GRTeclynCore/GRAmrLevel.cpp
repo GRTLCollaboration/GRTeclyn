@@ -89,7 +89,7 @@ GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
 
 GRAMRLevel::~GRAMRLevel() = default;
 
-GRAMR *GRAMRLevel::get_gramr_ptr()
+GRAmr *GRAMRLevel::get_gramr_ptr()
 {
     if (m_gramr_ptr == nullptr)
     {
@@ -97,7 +97,7 @@ GRAMR *GRAMRLevel::get_gramr_ptr()
         {
             amrex::Abort("AmrLevel::parent is null");
         }
-        m_gramr_ptr = dynamic_cast<GRAMR *>(parent);
+        m_gramr_ptr = dynamic_cast<GRAmr *>(parent);
     }
     return m_gramr_ptr;
 }
