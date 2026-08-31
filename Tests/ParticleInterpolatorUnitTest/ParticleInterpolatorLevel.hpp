@@ -6,7 +6,7 @@
 #ifndef PARTICLEINTERPOLATORLEVEL_HPP_
 #define PARTICLEINTERPOLATORLEVEL_HPP_
 
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "FixedGridsTagger.hpp"
 #include "GRAmr.hpp"
 #include "GRAmrLevel.hpp"
@@ -18,7 +18,7 @@
 class ParticleInterpolatorLevel : public GRAmrLevel
 {
   public:
-    friend class DefaultLevelFactory<ParticleInterpolatorLevel>;
+    friend class DefaultLevelBld<ParticleInterpolatorLevel>;
 
     // Inherit the contructors from GRAmrLevel
     using GRAmrLevel::GRAmrLevel;

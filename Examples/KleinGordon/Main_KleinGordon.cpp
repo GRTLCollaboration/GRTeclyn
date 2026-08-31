@@ -4,7 +4,7 @@
  */
 
 // Our includes
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"
@@ -36,7 +36,7 @@ int runGRTeclyn()
     amrex::Print() << "Now running " << model << " simulation"
                    << "\n";
 
-    DefaultLevelFactory<KleinGordonLevel> KleinGordon_level_bld;
+    DefaultLevelBld<KleinGordonLevel> KleinGordon_level_bld;
 
     GRAmr amr(&KleinGordon_level_bld);
 

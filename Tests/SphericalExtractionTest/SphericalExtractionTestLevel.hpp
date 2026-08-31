@@ -6,7 +6,7 @@
 #ifndef SPHERICALEXTRACTIONTESTLEVEL_HPP_
 #define SPHERICALEXTRACTIONTESTLEVEL_HPP_
 
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "FixedGridsTagger.hpp"
 #include "GRAmr.hpp"
 #include "GRAmrLevel.hpp"
@@ -19,7 +19,7 @@
 class SphericalExtractionTestLevel : public GRAmrLevel
 {
   public:
-    friend class DefaultLevelFactory<SphericalExtractionTestLevel>;
+    friend class DefaultLevelBld<SphericalExtractionTestLevel>;
 
     using GRAmrLevel::GRAmrLevel;
 

@@ -17,7 +17,7 @@
 #include <AMReX_Print.H>
 
 // Base includes
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 
@@ -59,7 +59,7 @@ void run_spherical_extraction_test()
         GRParmParse pp;
         SphericalExtractionTestLevel::variableSetUp();
 
-        DefaultLevelFactory<SphericalExtractionTestLevel>
+        DefaultLevelBld<SphericalExtractionTestLevel>
             surface_extraction_test_level_fact;
         GRAmr gr_amr(&surface_extraction_test_level_fact);
 

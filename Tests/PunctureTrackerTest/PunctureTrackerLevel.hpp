@@ -7,7 +7,7 @@
 #define PUNCTURETRACKERLEVEL_HPP_
 
 #include "BHAmr.hpp"
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "GRAmrLevel.hpp"
 
 class PunctureTrackerLevel : public GRAmrLevel

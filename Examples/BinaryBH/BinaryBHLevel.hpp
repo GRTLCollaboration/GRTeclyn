@@ -7,7 +7,7 @@
 #define BINARYBHLEVEL_HPP_
 
 #include "BHAmr.hpp"
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "GRAmrLevel.hpp"
 
 class BinaryBHLevel : public GRAmrLevel

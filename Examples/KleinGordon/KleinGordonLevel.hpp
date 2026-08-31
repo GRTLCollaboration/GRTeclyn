@@ -6,7 +6,7 @@
 #ifndef KLEINGORDONLEVEL_HPP_
 #define KLEINGORDONLEVEL_HPP_
 
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "DerivedVariables.hpp"
 #include "GRAmrLevel.hpp"
 #include "KleinGordonRHS.hpp"

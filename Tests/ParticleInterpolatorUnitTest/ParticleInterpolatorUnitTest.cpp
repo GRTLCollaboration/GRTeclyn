@@ -24,7 +24,7 @@
 #include "AMReX_IntVect.H"
 
 // Base includes
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 
@@ -74,8 +74,7 @@ void run_particle_interpolator_test()
         PolynomialDerivedQuantity::set_center(center);
 
         // Set up the AMR object
-        DefaultLevelFactory<ParticleInterpolatorLevel>
-            interpolator_test_level_fact;
+        DefaultLevelBld<ParticleInterpolatorLevel> interpolator_test_level_fact;
         GRAmr gr_amr(&interpolator_test_level_fact);
 
         amrex::Real stop_time{};

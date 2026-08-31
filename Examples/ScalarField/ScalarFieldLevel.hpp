@@ -6,7 +6,7 @@
 #ifndef SCALARFIELDLEVEL_HPP_
 #define SCALARFIELDLEVEL_HPP_
 
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GRAmrLevel.hpp"
 #include "Potential.hpp"

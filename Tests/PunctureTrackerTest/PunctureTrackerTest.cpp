@@ -12,7 +12,7 @@
 
 // GRTeclyn includes
 #include "BHAmr.hpp"
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
 
@@ -48,7 +48,7 @@ void run_puncture_tracker_test()
     {
         GRParmParse pp; // NOLINT(readability-identifier-length)
 
-        DefaultLevelFactory<PunctureTrackerLevel> level_factory;
+        DefaultLevelBld<PunctureTrackerLevel> level_factory;
 
         BHAmr<2> bh_amr(&level_factory);
         double stop_time{};
