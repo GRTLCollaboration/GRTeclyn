@@ -35,7 +35,7 @@ ScalarFieldAmr *ScalarFieldLevel::get_scalar_field_amr_ptr()
 void ScalarFieldLevel::variableSetUp()
 {
     BL_PROFILE("ScalarFieldLevel::variableSetUp()");
-    stateVariableSetUp();
+    state_variable_set_up();
     ScalarFieldConstraints::set_up(state_index);
     ScalarFieldEnergyDensity::set_up(state_index);
 }

@@ -25,7 +25,7 @@ class ParticleInterpolatorLevel : public GRAmrLevel
 
     static void variableSetUp()
     {
-        stateVariableSetUp();
+        state_variable_set_up();
         PolynomialDerivedQuantity::set_up(state_index);
     }
 

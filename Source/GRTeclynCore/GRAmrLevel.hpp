@@ -27,7 +27,7 @@ class GRAmrLevel : public amrex::AmrLevel
      * \brief Set up the state variables from StateVariables.hpp.
      * This should be called by the child's variableSetUp().
      */
-    static void stateVariableSetUp();
+    static void state_variable_set_up();
 
     static void variableCleanUp();
 

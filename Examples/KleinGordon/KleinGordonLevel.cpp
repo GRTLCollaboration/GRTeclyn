@@ -15,7 +15,7 @@ void KleinGordonLevel::variableSetUp()
     BL_PROFILE("KleinGordonLevel::variableSetUp()");
 
     // Set up the state variables
-    stateVariableSetUp();
+    state_variable_set_up();
 
     // The first two derived variables calculate the analytic solution
     //  for phi and Pi

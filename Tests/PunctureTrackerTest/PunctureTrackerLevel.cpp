@@ -22,7 +22,7 @@ PunctureTrackerLevel::get_puncture_tracker()
     return get_bhamr_ptr()->get_puncture_tracker();
 }
 
-void PunctureTrackerLevel::variableSetUp() { stateVariableSetUp(); }
+void PunctureTrackerLevel::variableSetUp() { state_variable_set_up(); }
 
 void PunctureTrackerLevel::initData()
 {

@@ -36,7 +36,7 @@ void BinaryBHLevel::variableSetUp()
     BL_PROFILE("BinaryBHLevel::variableSetUp()");
 
     // Set up the state variables
-    stateVariableSetUp();
+    state_variable_set_up();
 
     Constraints::set_up(state_index);
 

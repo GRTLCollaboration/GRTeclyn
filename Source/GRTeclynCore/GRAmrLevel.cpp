@@ -7,7 +7,7 @@
 #include "NullBCFill.hpp"
 #include "StateTypes.hpp"
 
-void GRAmrLevel::stateVariableSetUp()
+void GRAmrLevel::state_variable_set_up()
 {
     GRParmParse pp;
     int nghost{};

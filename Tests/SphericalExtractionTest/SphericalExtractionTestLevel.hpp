@@ -23,7 +23,7 @@ class SphericalExtractionTestLevel : public GRAmrLevel
 
     using GRAmrLevel::GRAmrLevel;
 
-    static void variableSetUp() { stateVariableSetUp(); }
+    static void variableSetUp() { state_variable_set_up(); }
 
     // save data in state vars
     void initData() override
