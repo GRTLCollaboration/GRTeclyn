@@ -20,7 +20,7 @@ class BinaryBHLevel : public GRAmrLevel
 
     static constexpr int num_punctures = 2;
 
-    BHAmr<num_punctures> *get_bhamr_ptr();
+    BHAmr<num_punctures> *get_bh_amr_ptr();
 
     /// Get a reference to the PunctureTracker object stored by BHAmr
     PunctureTracker<num_punctures> &get_puncture_tracker();

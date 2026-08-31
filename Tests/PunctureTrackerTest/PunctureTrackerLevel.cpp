@@ -11,7 +11,7 @@
 #include "doctest.h"
 
 BHAmr<PunctureTrackerLevel::num_punctures> *
-PunctureTrackerLevel::get_bhamr_ptr()
+PunctureTrackerLevel::get_bh_amr_ptr()
 {
     return dynamic_cast<BHAmr<num_punctures> *>(get_gr_amr_ptr());
 }
@@ -19,7 +19,7 @@ PunctureTrackerLevel::get_bhamr_ptr()
 PunctureTracker<PunctureTrackerLevel::num_punctures> &
 PunctureTrackerLevel::get_puncture_tracker()
 {
-    return get_bhamr_ptr()->get_puncture_tracker();
+    return get_bh_amr_ptr()->get_puncture_tracker();
 }
 
 void PunctureTrackerLevel::variableSetUp() { state_variable_set_up(); }

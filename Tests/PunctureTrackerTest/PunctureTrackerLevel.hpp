@@ -23,7 +23,7 @@ class PunctureTrackerLevel : public GRAmrLevel
         static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
     static constexpr amrex::Real shift_y_val = -1.0;
 
-    BHAmr<num_punctures> *get_bhamr_ptr();
+    BHAmr<num_punctures> *get_bh_amr_ptr();
 
     /// Get a reference to the PunctureTracker object stored by BHAmr
     PunctureTracker<num_punctures> &get_puncture_tracker();

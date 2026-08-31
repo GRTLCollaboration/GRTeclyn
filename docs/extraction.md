@@ -90,7 +90,7 @@ void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
         GRAmr::init(a_strt_time, a_stop_time);
 
         const auto &params = get_simulation_parameters();
-        m_weyl_interpolator.setup(this, params.boundary_params, true);
+        m_weyl_interpolator.setup(this);
     }
 ```
 
@@ -112,7 +112,7 @@ In our binary BH example, we can then switch on the extraction in `BinaryBHLevel
 
             WeylExtraction my_extraction(extraction_params, m_dt,
                                          m_time, first_step, restart_time);
-            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
+            my_extraction.execute_query(&get_bh_amr_ptr()->m_weyl_interpolator);
         }
     }
 ```
