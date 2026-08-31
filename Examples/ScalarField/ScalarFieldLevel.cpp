@@ -40,9 +40,9 @@ void ScalarFieldLevel::variableSetUp()
     ScalarFieldEnergyDensity::set_up(state_index);
 }
 
-void ScalarFieldLevel::specificAdvance()
+void ScalarFieldLevel::specific_advance()
 {
-    BL_PROFILE("ScalarFieldLevel::specificAdvance()");
+    BL_PROFILE("ScalarFieldLevel::specific_advance()");
 
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();

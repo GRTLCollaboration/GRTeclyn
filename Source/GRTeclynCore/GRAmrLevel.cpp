@@ -177,7 +177,7 @@ amrex::Real GRAmrLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
         },
         [&](int /*stage*/, amrex::MultiFab &soln) { specificUpdateODE(soln); });
 
-    specificAdvance();
+    specific_advance();
 
     return dt;
 }

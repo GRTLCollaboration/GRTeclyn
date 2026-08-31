@@ -138,7 +138,7 @@ class GRAmrLevel : public amrex::AmrLevel
     void checkPointPost(const std::string &a_dir, std::ostream &a_os) override;
 
     /// Virtual function for the problem specific parts of Advance
-    virtual void specificAdvance() {}
+    virtual void specific_advance() {}
 
     /// Virtual function for the problem specific parts of postTimeStep
     virtual void specific_post_timestep() {}

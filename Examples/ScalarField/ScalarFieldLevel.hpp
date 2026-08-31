@@ -27,7 +27,7 @@ class ScalarFieldLevel : public GRAmrLevel
 
     static void variableSetUp();
 
-    void specificAdvance() override;
+    void specific_advance() override;
 
     void initData() override;
 

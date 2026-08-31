@@ -44,7 +44,7 @@ void BinaryBHLevel::variableSetUp()
 }
 
 // Things to do during the advance step after RK4 steps
-void BinaryBHLevel::specificAdvance()
+void BinaryBHLevel::specific_advance()
 {
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
