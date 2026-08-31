@@ -12,8 +12,8 @@
 
 #include "BCParity.hpp"
 #include "BoundaryConditions.hpp"
-#include "GRAMR.hpp"
-#include "GRAMRLevel.hpp"
+#include "GRAmr.hpp"
+#include "GRAmrLevel.hpp"
 #include "InterpolationQueryParticle.hpp"
 #include "MPIContextParticle.hpp"
 
@@ -34,10 +34,10 @@ class ParticleInterpolator
     static_assert(num_components >= 1);
 
   private:
-    GRAMR *m_gramr_ptr{nullptr};
+    GRAmr *m_gr_amr_ptr{nullptr};
 
     bool m_initialized{
-        false}; // a guard to make sure we do not uninitialised GRAMR
+        false}; // a guard to make sure we do not uninitialised GRAmr
 
     // physical domain corners on level 0 for parity logic
     amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> m_prob_lo{};
@@ -133,7 +133,7 @@ class ParticleInterpolator
     ParticleInterpolator() = default; // default constructible
 
     // initialise everything and perform some sanity checks
-    void setup(GRAMR *gramr_ptr);
+    void setup(GRAmr *gramr_ptr);
 
     // allocate particles at the query points
     void populate_from_query(const InterpolationQueryParticle &query);

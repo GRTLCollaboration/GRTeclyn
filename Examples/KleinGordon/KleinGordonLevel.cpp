@@ -15,7 +15,7 @@ void KleinGordonLevel::variableSetUp()
     BL_PROFILE("KleinGordonLevel::variableSetUp()");
 
     // Set up the state variables
-    stateVariableSetUp();
+    state_variable_set_up();
 
     // The first two derived variables calculate the analytic solution
     //  for phi and Pi
@@ -42,14 +42,14 @@ void KleinGordonLevel::variableSetUp()
     pp.get("model", model);
 
     const int ncomp_rho{1}; // only one component associated with energy density
-    const int nghosts_rho{2};
+    const int num_ghosts_rho{2};
 
     if (model == "Wave")
     {
         derive_lst.add(
             "rho", amrex::IndexType::TheCellType(), ncomp_rho,
             calc_energy_density<Wave>, [=](const amrex::Box &box)
-            { return amrex::grow(box, nghosts_rho); },
+            { return amrex::grow(box, num_ghosts_rho); },
             &amrex::cell_quartic_interp);
     }
 
@@ -58,7 +58,7 @@ void KleinGordonLevel::variableSetUp()
         derive_lst.add(
             "rho", amrex::IndexType::TheCellType(), ncomp_rho,
             calc_energy_density<SineGordon>, [=](const amrex::Box &box)
-            { return amrex::grow(box, nghosts_rho); },
+            { return amrex::grow(box, num_ghosts_rho); },
             &amrex::cell_quartic_interp);
     }
 
@@ -106,11 +106,11 @@ void KleinGordonLevel::initData()
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
-                                       amrex::MultiFab &a_rhs,
-                                       const amrex::Real a_time)
+void KleinGordonLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+                                         amrex::MultiFab &a_rhs,
+                                         const amrex::Real a_time)
 {
-    BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
+    BL_PROFILE("KleinGordonLevel::specific_eval_rhs()");
 
     amrex::ParmParse pp("klein_gordon");
 

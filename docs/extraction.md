@@ -74,7 +74,7 @@ We then provide the instruction to the class on what to do, i.e. how we want to 
 
 In this section we will explain how to link your extraction method to your particlar example. We will use the BinaryBH as an example.
 
-As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the `ParticleInterpolator` only once. We therefore store it as part of the AMR object and set it up during AMR initialisation. For example, for black holes (BHs) we have `BHAMR` class. Hence, we directly add the interpolator as its public member:
+As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the `ParticleInterpolator` only once. We therefore store it as part of the AMR object and set it up during AMR initialisation. For example, for black holes (BHs) we have `BHAmr` class. Hence, we directly add the interpolator as its public member:
 
 ```cpp
 // example for interpolator object for Psi4 extraction
@@ -82,37 +82,37 @@ As already noted in the blue box at the beginning of this chapter, we should ide
     ParticleInterpolator<weyl_num_components> m_weyl_interpolator; // interpolator object
 ```
 
-and set up the interpolator in `BHAMR::init()`:
+and set up the interpolator in `BHAmr::init()`:
 
 ```cpp
 void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
     {
-        GRAMR::init(a_strt_time, a_stop_time);
+        GRAmr::init(a_strt_time, a_stop_time);
 
         const auto &params = get_simulation_parameters();
-        m_weyl_interpolator.setup(this, params.boundary_params, true);
+        m_weyl_interpolator.setup(this);
     }
 ```
 
-In our binary BH example, we can then switch on the extraction in `BinaryBHLevel::specificPostTimeStep` using:
+In our binary BH example, we can then switch on the extraction in `BinaryBHLevel::specific_post_timestep` using:
 
 ```cpp
 // Weyl extraction
-    if (simParams().activate_extraction)
+    if (extraction_params.enabled)
     {
-        int min_level = simParams().extraction_params.min_extraction_level();
+        int min_level = extraction_params.min_extraction_level();
         bool calculate_weyl = at_level_timestep_multiple(min_level);
 
         if (calculate_weyl && Level() == min_level)
         {
             amrex::Real m_time       = get_state_data(state_index).curTime();
-            amrex::Real m_dt         = get_gramr_ptr()->dtLevel(Level());
-            amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+            amrex::Real m_dt         = get_gr_amr_ptr()->dtLevel(Level());
+            amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
             bool first_step          = (m_time <= m_dt);
 
-            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
+            WeylExtraction my_extraction(extraction_params, m_dt,
                                          m_time, first_step, restart_time);
-            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
+            my_extraction.execute_query(&get_bh_amr_ptr()->m_weyl_interpolator);
         }
     }
 ```

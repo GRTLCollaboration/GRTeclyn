@@ -6,41 +6,41 @@
 #ifndef BINARYBHLEVEL_HPP_
 #define BINARYBHLEVEL_HPP_
 
-#include "BHAMR.hpp"
-#include "DefaultLevelFactory.hpp"
-#include "GRAMRLevel.hpp"
+#include "BHAmr.hpp"
+#include "DefaultLevelBld.hpp"
+#include "GRAmrLevel.hpp"
 
-class BinaryBHLevel : public GRAMRLevel
+class BinaryBHLevel : public GRAmrLevel
 {
   public:
     static void variableSetUp();
 
-    // Inherit the contructors from GRAMRLevel
-    using GRAMRLevel::GRAMRLevel;
+    // Inherit the contructors from GRAmrLevel
+    using GRAmrLevel::GRAmrLevel;
 
     static constexpr int num_punctures = 2;
 
-    BHAMR<num_punctures> *get_bhamr_ptr();
+    BHAmr<num_punctures> *get_bh_amr_ptr();
 
-    /// Get a reference to the PunctureTracker object stored by BHAMR
+    /// Get a reference to the PunctureTracker object stored by BHAmr
     PunctureTracker<num_punctures> &get_puncture_tracker();
 
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
-    void specificAdvance() override;
+    void specific_advance() override;
 
     /// Initial data calculation
     void initData() override;
 
     /// Calculation of the right hand side for the time stepping
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const amrex::Real a_time) override;
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override;
 
     /// Things to do after dt*rhs has been added to the solution
-    void specificUpdateODE(amrex::MultiFab &a_soln) override;
+    void specific_update_ode(amrex::MultiFab &a_soln) override;
 
     // to do post each time step on every level
-    void specificPostTimeStep() override;
+    void specific_post_timestep() override;
 
     /// Things to do before tagging cells for regridding
     void pre_tag_cells() final;

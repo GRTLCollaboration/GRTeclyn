@@ -8,7 +8,7 @@
 
 // Other includes
 #include "BoundaryConditions.hpp"
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 // xxxxx#include "InterpSource.hpp"
 #include "SimulationParameters.hpp"
 #include "StateVariables.hpp" // need NUM_VARS
@@ -20,27 +20,27 @@
 #include <sys/time.h>
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
-class GRAMRLevel : public amrex::AmrLevel
+class GRAmrLevel : public amrex::AmrLevel
 {
   public:
     /**
      * \brief Set up the state variables from StateVariables.hpp.
      * This should be called by the child's variableSetUp().
      */
-    static void stateVariableSetUp();
+    static void state_variable_set_up();
 
     static void variableCleanUp();
 
-    GRAMRLevel();
+    GRAmrLevel();
 
-    GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
+    GRAmrLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
                const amrex::BoxArray &box_array,
                const amrex::DistributionMapping &distribution_mapping,
                amrex::Real time);
 
-    ~GRAMRLevel() override;
+    ~GRAmrLevel() override;
 
-    GRAMR *get_gramr_ptr();
+    GRAmr *get_gr_amr_ptr();
 
     /**
      * \brief Compute the initial time step.
@@ -138,16 +138,16 @@ class GRAMRLevel : public amrex::AmrLevel
     void checkPointPost(const std::string &a_dir, std::ostream &a_os) override;
 
     /// Virtual function for the problem specific parts of Advance
-    virtual void specificAdvance() {}
+    virtual void specific_advance() {}
 
     /// Virtual function for the problem specific parts of postTimeStep
-    virtual void specificPostTimeStep() {}
+    virtual void specific_post_timestep() {}
 
-    virtual void specificEvalRHS(amrex::MultiFab &a_soln,
-                                 amrex::MultiFab &a_rhs,
-                                 const amrex::Real a_time) = 0;
+    virtual void specific_eval_rhs(amrex::MultiFab &a_soln,
+                                   amrex::MultiFab &a_rhs,
+                                   const amrex::Real a_time) = 0;
 
-    virtual void specificUpdateODE(amrex::MultiFab & /*a_soln*/) {}
+    virtual void specific_update_ode(amrex::MultiFab & /*a_soln*/) {}
 
     //! Problem specific post restart
     virtual void specific_post_restart() {}
@@ -195,7 +195,7 @@ class GRAMRLevel : public amrex::AmrLevel
 
   private:
 
-    GRAMR *m_gramr_ptr = nullptr;
+    GRAmr *m_gr_amr_ptr = nullptr;
 
   protected:
 

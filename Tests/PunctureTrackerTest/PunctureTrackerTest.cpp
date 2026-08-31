@@ -11,8 +11,8 @@
 #include "doctestCLIArgs.hpp"
 
 // GRTeclyn includes
-#include "BHAMR.hpp"
-#include "DefaultLevelFactory.hpp"
+#include "BHAmr.hpp"
+#include "DefaultLevelBld.hpp"
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
 
@@ -48,9 +48,9 @@ void run_puncture_tracker_test()
     {
         GRParmParse pp; // NOLINT(readability-identifier-length)
 
-        DefaultLevelFactory<PunctureTrackerLevel> level_factory;
+        DefaultLevelBld<PunctureTrackerLevel> level_factory;
 
-        BHAMR<2> bh_amr(&level_factory);
+        BHAmr<2> bh_amr(&level_factory);
         double stop_time{};
         pp.get("evolution.stop_time", stop_time);
         bh_amr.init(0., stop_time);

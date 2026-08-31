@@ -32,7 +32,7 @@ class WeylExtraction : public SphericalExtraction<2>
 
     amrex::Vector<BCParity> parities = {BCParity::even, BCParity::odd_xyz};
 
-    //! The old constructor which assumes it is called in specificPostTimeStep
+    //! The old constructor which assumes it is called in specific_post_timestep
     //! so the first time step is when m_time == m_dt
     WeylExtraction(const spherical_extraction_params_t &a_params,
                    amrex::Real a_dt, amrex::Real a_time,

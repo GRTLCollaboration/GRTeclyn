@@ -10,19 +10,19 @@
 // doctest header
 #include "doctest.h"
 
-BHAMR<PunctureTrackerLevel::num_punctures> *
-PunctureTrackerLevel::get_bhamr_ptr()
+BHAmr<PunctureTrackerLevel::num_punctures> *
+PunctureTrackerLevel::get_bh_amr_ptr()
 {
-    return dynamic_cast<BHAMR<num_punctures> *>(get_gramr_ptr());
+    return dynamic_cast<BHAmr<num_punctures> *>(get_gr_amr_ptr());
 }
 
 PunctureTracker<PunctureTrackerLevel::num_punctures> &
 PunctureTrackerLevel::get_puncture_tracker()
 {
-    return get_bhamr_ptr()->get_puncture_tracker();
+    return get_bh_amr_ptr()->get_puncture_tracker();
 }
 
-void PunctureTrackerLevel::variableSetUp() { stateVariableSetUp(); }
+void PunctureTrackerLevel::variableSetUp() { state_variable_set_up(); }
 
 void PunctureTrackerLevel::initData()
 {
@@ -57,9 +57,9 @@ void PunctureTrackerLevel::initData()
 
 // Calculate RHS during RK4 substeps
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void PunctureTrackerLevel::specificEvalRHS(amrex::MultiFab &a_soln,
-                                           amrex::MultiFab &a_rhs,
-                                           const amrex::Real /*a_time*/)
+void PunctureTrackerLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+                                             amrex::MultiFab &a_rhs,
+                                             const amrex::Real /*a_time*/)
 {
     // We don't need any evolution in this test.
     a_rhs.setVal(0.0);
@@ -85,7 +85,7 @@ void PunctureTrackerLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     test_pp.get("fake_bh2_mass", fake_bh2_mass);
 
     PunctureTagger<num_punctures> puncture_tagger(
-        Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
+        Geom().CellSize(0), Level(), get_gr_amr_ptr()->maxLevel(),
         puncture_coords, {fake_bh1_mass, fake_bh2_mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
@@ -113,12 +113,12 @@ void PunctureTrackerLevel::specific_post_regrid(int a_lbase, int a_new_finest)
 {
     // During initial data construction, we expect the finest level to increment
     // up to max_level so only do this for later steps
-    if (get_gramr_ptr()->cumTime() > 0.0)
+    if (get_gr_amr_ptr()->cumTime() > 0.0)
     {
         // Check the finest level is max_level
-        CHECK(a_new_finest == get_gramr_ptr()->maxLevel());
+        CHECK(a_new_finest == get_gr_amr_ptr()->maxLevel());
 
-        if (Level() > get_gramr_ptr()->maxLevel() - 2)
+        if (Level() > get_gr_amr_ptr()->maxLevel() - 2)
         {
             check_puncture_tagging();
         }
@@ -145,7 +145,7 @@ void PunctureTrackerLevel::check_puncture_tagging()
     amrex::Real finest_level_factor{};
     puncture_tagging_pp.get("finest_level_factor", finest_level_factor);
 
-    const int max_level        = get_gramr_ptr()->maxLevel();
+    const int max_level        = get_gr_amr_ptr()->maxLevel();
     const amrex::Real exponent = max_level - Level();
     const amrex::Real factor =
         finest_level_factor * std::pow(level_separation, exponent);
@@ -221,7 +221,7 @@ void PunctureTrackerLevel::specific_post_checkpoint(
     get_puncture_tracker().checkpoint(a_chk_dir);
 }
 
-void PunctureTrackerLevel::specificPostTimeStep()
+void PunctureTrackerLevel::specific_post_timestep()
 {
     GRParmParse puncture_tracking_pp("puncture_tracking");
     int puncture_tracking_level{};
@@ -231,7 +231,7 @@ void PunctureTrackerLevel::specificPostTimeStep()
     {
         bool write_punctures = false;
         amrex::Real cur_time = get_state_data(state_index).curTime();
-        amrex::Real dt       = get_gramr_ptr()->dtLevel(Level());
+        amrex::Real dt       = get_gr_amr_ptr()->dtLevel(Level());
         get_puncture_tracker().track(cur_time, dt, write_punctures);
 
         GRParmParse puncture_tracking_pp("puncture_tracking");

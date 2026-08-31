@@ -6,15 +6,15 @@
 #ifndef KLEINGORDONLEVEL_HPP_
 #define KLEINGORDONLEVEL_HPP_
 
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "DerivedVariables.hpp"
-#include "GRAMRLevel.hpp"
+#include "GRAmrLevel.hpp"
 #include "KleinGordonRHS.hpp"
 
-class KleinGordonLevel : public GRAMRLevel
+class KleinGordonLevel : public GRAmrLevel
 {
   public:
-    using GRAMRLevel::GRAMRLevel;
+    using GRAmrLevel::GRAmrLevel;
 
     //! Define data descriptors.
     static void variableSetUp();
@@ -25,14 +25,14 @@ class KleinGordonLevel : public GRAMRLevel
 
     //! Advance this level for one step
 
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const amrex::Real a_time) override;
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override;
 
     /// Things to do after dt*rhs has been added to the solution
-    void specificUpdateODE(amrex::MultiFab &a_soln) override {};
+    void specific_update_ode(amrex::MultiFab &a_soln) override {};
 
     // to do post each time step on every level
-    void specificPostTimeStep() override {};
+    void specific_post_timestep() override {};
 
     //! Error estimation for regridding.
     void tag_cells(amrex::TagBoxArray &tags,

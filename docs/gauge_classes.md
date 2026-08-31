@@ -114,4 +114,4 @@ For an evolution with matter, add the Einstein sources before calculating the ga
 4. add the matter RHS; and
 5. apply dissipation.
 
-See [`ScalarFieldLevel::specificEvalRHS()`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/ScalarFieldLevel.cpp) for an example of this ordering and [Matter classes](matter_classes.md) for guidance on adding a new matter type.
+See [`ScalarFieldLevel::specific_eval_rhs()`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/ScalarFieldLevel.cpp) for an example of this ordering and [Matter classes](matter_classes.md) for guidance on adding a new matter type.

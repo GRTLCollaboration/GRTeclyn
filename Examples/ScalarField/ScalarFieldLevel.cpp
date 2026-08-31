@@ -27,22 +27,22 @@ using ScalarFieldEnergyDensity =
 using ScalarFieldConstraints =
     ConstraintsWithMatter<ScalarFieldLevel::ScalarFieldWithPotential<>>;
 
-ScalarFieldAMR *ScalarFieldLevel::get_scalar_field_amr_ptr()
+ScalarFieldAmr *ScalarFieldLevel::get_scalar_field_amr_ptr()
 {
-    return dynamic_cast<ScalarFieldAMR *>(get_gramr_ptr());
+    return dynamic_cast<ScalarFieldAmr *>(get_gr_amr_ptr());
 }
 
 void ScalarFieldLevel::variableSetUp()
 {
     BL_PROFILE("ScalarFieldLevel::variableSetUp()");
-    stateVariableSetUp();
+    state_variable_set_up();
     ScalarFieldConstraints::set_up(state_index);
     ScalarFieldEnergyDensity::set_up(state_index);
 }
 
-void ScalarFieldLevel::specificAdvance()
+void ScalarFieldLevel::specific_advance()
 {
-    BL_PROFILE("ScalarFieldLevel::specificAdvance()");
+    BL_PROFILE("ScalarFieldLevel::specific_advance()");
 
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
@@ -60,15 +60,15 @@ void ScalarFieldLevel::specificAdvance()
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specificPostTimeStep()
+void ScalarFieldLevel::specific_post_timestep()
 {
-    BL_PROFILE("ScalarFieldLevel::specificPostTimeStep()");
+    BL_PROFILE("ScalarFieldLevel::specific_post_timestep()");
 
     if (Level() == 0)
     {
         const amrex::Real time         = get_state_data(state_index).curTime();
-        const amrex::Real dt           = get_gramr_ptr()->dtLevel(0);
-        const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+        const amrex::Real dt           = get_gr_amr_ptr()->dtLevel(0);
+        const amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
         const bool first_step          = (time <= dt);
 
         const LineExtraction<1> phi_extraction("phi_line_extraction", c_phi, dt,
@@ -90,7 +90,7 @@ void ScalarFieldLevel::initData()
 {
     BL_PROFILE("ScalarFieldLevel::initData()");
 
-    if (get_gramr_ptr()->Verbose() > 0)
+    if (get_gr_amr_ptr()->Verbose() > 0)
     {
         amrex::Print() << "ScalarFieldLevel::initData " << Level() << "\n";
     }
@@ -150,11 +150,11 @@ void ScalarFieldLevel::initData()
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
-                                       amrex::MultiFab &a_rhs,
-                                       const amrex::Real /*a_time*/)
+void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+                                         amrex::MultiFab &a_rhs,
+                                         const amrex::Real /*a_time*/)
 {
-    BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
+    BL_PROFILE("ScalarFieldLevel::specific_eval_rhs()");
 
     const auto &soln_arrays       = a_soln.arrays();
     const auto &const_soln_arrays = a_soln.const_arrays();
@@ -264,9 +264,9 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
+void ScalarFieldLevel::specific_update_ode(amrex::MultiFab &a_soln)
 {
-    BL_PROFILE("ScalarFieldLevel::specificUpdateODE()");
+    BL_PROFILE("ScalarFieldLevel::specific_update_ode()");
 
     const auto &soln_arrays = a_soln.arrays();
     const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;

@@ -4,8 +4,8 @@
  */
 
 // Our includes
-#include "BHAMR.hpp"
-#include "DefaultLevelFactory.hpp"
+#include "BHAmr.hpp"
+#include "DefaultLevelBld.hpp"
 #include "GRParmParse.hpp"
 #include "MultiLevelTask.hpp"
 #include "SetupFunctions.hpp"
@@ -31,9 +31,9 @@ int runGRTeclyn()
         return 0;
     }
 
-    DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
+    DefaultLevelBld<BinaryBHLevel> bh_level_bld;
 
-    BHAMR<BinaryBHLevel::num_punctures> bh_amr(&bh_level_bld);
+    BHAmr<BinaryBHLevel::num_punctures> bh_amr(&bh_level_bld);
 
     double stop_time{};
     pp.get("evolution.stop_time", stop_time);

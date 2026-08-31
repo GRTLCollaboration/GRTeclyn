@@ -6,7 +6,7 @@ GRTeclyn does not keep a separate diagnostic state on the grid. A diagnostic is 
 
 ## Using existing diagnostics
 
-Reusable diagnostics provide a `set_up()` function. Call this from the example level's `variableSetUp()` after `stateVariableSetUp()`. For example, the Scalar Field example registers the constraints and energy density with
+Reusable diagnostics provide a `set_up()` function. Call this from the example level's `variableSetUp()` after `state_variable_set_up()`. For example, the Scalar Field example registers the constraints and energy density with
 
 ```cpp
 ScalarFieldConstraints::set_up(state_index);

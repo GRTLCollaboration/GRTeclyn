@@ -9,7 +9,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Particles.H>
 
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 
 struct puncture_tracker_params_t
 {
@@ -48,7 +48,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 
     amrex::Array<amrex::ParticleReal, num_puncture_coords> m_puncture_coords{};
 
-    GRAMR *m_gr_amr{nullptr};
+    GRAmr *m_gr_amr{nullptr};
 
     bool m_initialized{false};
     bool m_puncture_coords_set{false};
@@ -65,7 +65,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 
     //! Initialize the tracker. Note that this does not set up the underlying
     //! ParticleContainer
-    void initialize(GRAMR *a_gr_amr);
+    void initialize(GRAmr *a_gr_amr);
 
     //! Whether puncture tracking is enabled
     [[nodiscard]] bool is_enabled() const { return m_params.enabled; }

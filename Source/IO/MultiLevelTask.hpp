@@ -6,16 +6,16 @@
 #ifndef MULTILEVELTASK_HPP_
 #define MULTILEVELTASK_HPP_
 
-#include "GRAMRLevel.hpp"
+#include "GRAmrLevel.hpp"
 #include <AMReX_Amr.H>
 
 #include <limits> // std::numeric_limits
 
-//! This is just an interface for the AMR scheduler to call some GRAMRLevel (or
+//! This is just an interface for the AMR scheduler to call some GRAmrLevel (or
 //! any other Example specific level) function on every AMRLevel
-//! Satisfies syntax of Chombo's Scheduler such that it can be passed to GRAMR
+//! Satisfies syntax of Chombo's Scheduler such that it can be passed to GRAmr
 //! and be scheduled
-template <class level_t = GRAMRLevel>
+template <class level_t = GRAmrLevel>
 class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
 {
 #if 0
@@ -36,7 +36,7 @@ class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
     }
 
     // required from Scheduler::PeriodicFunction
-    virtual void setUp(amrex::Amr &a_AMR, int a_interval = -1) override
+    virtual void setup(amrex::Amr &a_AMR, int a_interval = -1) override
     {
         m_amr_ptr = &a_AMR;
     }
@@ -48,7 +48,7 @@ class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
 
         // need to reverse this vector so that m_func is called in order of
         // finest level to coarsest. This is important for example for
-        // 'specificPostTimeStep', which is always run in reverse order of
+        // 'specific_post_timestep', which is always run in reverse order of
         // levels
         if (m_reverse_levels)
             std::reverse(std::begin(amr_level_ptrs), std::end(amr_level_ptrs));
@@ -65,9 +65,9 @@ class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
 //! This is just an interface for the AMR scheduler to call some level_t
 //! function on every AMRLevel
 //! This can either be called directly by calling execute, or passed to an AMR
-//! (as GRAMR) by doing gr_amr.schedule(me) (this version will make it be called
+//! (as GRAmr) by doing gr_amr.schedule(me) (this version will make it be called
 //! only after plot files are written, if that is ever an interest)
-template <class level_t = GRAMRLevel>
+template <class level_t = GRAmrLevel>
 class MultiLevelTaskPtr : public RefCountedPtr<Scheduler>
 {
     RefCountedPtr<MultiLevelTask<level_t>> m_ptr_to_func;
@@ -90,7 +90,7 @@ class MultiLevelTaskPtr : public RefCountedPtr<Scheduler>
     // run immediately!
     void execute(AMR &amr)
     {
-        m_ptr_to_func->setUp(amr);
+        m_ptr_to_func->setup(amr);
         (*m_ptr_to_func)();
     }
 };

@@ -24,21 +24,21 @@
 
 // initialise everything and perform some sanity checks
 template <int num_components>
-void ParticleInterpolator<num_components>::setup(GRAMR *gramr_ptr)
+void ParticleInterpolator<num_components>::setup(GRAmr *gramr_ptr)
 {
-    // is GRAMR properly set?
+    // is GRAmr properly set?
     AMREX_ASSERT(gramr_ptr != nullptr);
-    m_gramr_ptr = gramr_ptr;
+    m_gr_amr_ptr = gramr_ptr;
     m_bc_params.fill_params();
     GRParmParse particle_interpolator_pp("particle_interpolator");
     particle_interpolator_pp.get("verbosity", m_verbosity);
 
-    this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gramr_ptr->GetParGDB()));
+    this->Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr_ptr->GetParGDB()));
     m_initialized = true;
 
     // read in the physical bounds for reflective BC checks (it is sufficient to
     // do this on lev = 0)
-    const amrex::Geometry &geom0 = m_gramr_ptr->getLevel(0).Geom();
+    const amrex::Geometry &geom0 = m_gr_amr_ptr->getLevel(0).Geom();
     m_prob_lo = geom0.RoundOffLo(); // use rounded-off low boundary
     m_prob_hi = geom0.RoundOffHi(); // use rounded-off high boundary
 
@@ -344,12 +344,12 @@ void ParticleInterpolator<num_components>::interp(
     {
         const int ncomp = num_components;
 
-        for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
+        for (int lev = 0; lev <= m_gr_amr_ptr->finestLevel(); ++lev)
         {
             if (this->NumberOfParticlesAtLevel(lev) == 0)
                 continue;
 
-            amrex::AmrLevel &level = m_gramr_ptr->getLevel(lev);
+            amrex::AmrLevel &level = m_gr_amr_ptr->getLevel(lev);
             amrex::Real cur_time = level.get_state_data(state_index).curTime();
             const amrex::Geometry &geom = level.Geom();
             amrex::MultiFab &state      = level.get_new_data(state_index);
@@ -377,17 +377,17 @@ void ParticleInterpolator<num_components>::interp(
         // FillPatch automatically, so no need to worry about ghost cells for
         // derived vars.
         auto out_derived =
-            m_gramr_ptr->derive(name_derived, time_derived, s_num_ghosts);
+            m_gr_amr_ptr->derive(name_derived, time_derived, s_num_ghosts);
         amrex::Vector<amrex::MultiFab *> derived_mf_vect;
         // convert vector of unique_ptrs to one of raw pointers
         derived_mf_vect = amrex::GetVecOfPtrs(out_derived);
 
-        for (int lev = 0; lev <= m_gramr_ptr->finestLevel(); ++lev)
+        for (int lev = 0; lev <= m_gr_amr_ptr->finestLevel(); ++lev)
         {
             if (this->NumberOfParticlesAtLevel(lev) == 0)
                 continue;
 
-            auto &level      = m_gramr_ptr->getLevel(lev);
+            auto &level      = m_gr_amr_ptr->getLevel(lev);
             const auto &geom = level.Geom();
             auto &mf         = *derived_mf_vect[lev];
 
@@ -763,7 +763,7 @@ int ParticleInterpolator<num_components>::get_start_comp(
 template <int num_components>
 void ParticleInterpolator<num_components>::ensure_redistributed()
 {
-    const int nlev = m_gramr_ptr->finestLevel() + 1;
+    const int nlev = m_gr_amr_ptr->finestLevel() + 1;
 
     // m_last_redistribute_step is empty at the beginning, so resize
     // also if we add or drop a level, it will also need appropsiate resizing
@@ -779,7 +779,7 @@ void ParticleInterpolator<num_components>::ensure_redistributed()
     for (int lev = 0; lev < nlev; ++lev)
     {
         int last_regrid_step =
-            m_gramr_ptr->levelSteps(lev) - m_gramr_ptr->levelCount(lev);
+            m_gr_amr_ptr->levelSteps(lev) - m_gr_amr_ptr->levelCount(lev);
 
         if (last_regrid_step > m_last_redistribute_step[lev])
         {
@@ -804,7 +804,7 @@ void ParticleInterpolator<num_components>::ensure_redistributed()
         for (int lev = 0; lev < nlev; ++lev)
         {
             m_last_redistribute_step[lev] =
-                m_gramr_ptr->levelSteps(lev) - m_gramr_ptr->levelCount(lev);
+                m_gr_amr_ptr->levelSteps(lev) - m_gr_amr_ptr->levelCount(lev);
         }
 
         m_need_redistribute = false;

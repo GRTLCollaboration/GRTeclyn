@@ -3,17 +3,17 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#include "GRAMRLevel.hpp"
+#include "GRAmrLevel.hpp"
 #include "NullBCFill.hpp"
 #include "StateTypes.hpp"
 
-void GRAMRLevel::stateVariableSetUp()
+void GRAmrLevel::state_variable_set_up()
 {
     GRParmParse pp;
-    int nghost{};
-    pp.get("evolution.num_ghosts", nghost);
+    int num_ghosts{};
+    pp.get("evolution.num_ghosts", num_ghosts);
     desc_lst.addDescriptor(state_index, amrex::IndexType::TheCellType(),
-                           amrex::StateDescriptor::Point, nghost, NUM_VARS,
+                           amrex::StateDescriptor::Point, num_ghosts, NUM_VARS,
                            &amrex::cell_quartic_interp);
 
     BoundaryConditions boundary_conditions;
@@ -66,15 +66,15 @@ void GRAMRLevel::stateVariableSetUp()
                           boundary_function);
 }
 
-void GRAMRLevel::variableCleanUp()
+void GRAmrLevel::variableCleanUp()
 {
     desc_lst.clear();
     derive_lst.clear();
 }
 
-GRAMRLevel::GRAMRLevel() = default;
+GRAmrLevel::GRAmrLevel() = default;
 
-GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
+GRAmrLevel::GRAmrLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
                        const amrex::BoxArray &box_array,
                        const amrex::DistributionMapping &distribution_mapping,
                        amrex::Real time)
@@ -87,22 +87,22 @@ GRAMRLevel::GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
     m_boundaries.define(geom);
 }
 
-GRAMRLevel::~GRAMRLevel() = default;
+GRAmrLevel::~GRAmrLevel() = default;
 
-GRAMR *GRAMRLevel::get_gramr_ptr()
+GRAmr *GRAmrLevel::get_gr_amr_ptr()
 {
-    if (m_gramr_ptr == nullptr)
+    if (m_gr_amr_ptr == nullptr)
     {
         if (parent == nullptr)
         {
             amrex::Abort("AmrLevel::parent is null");
         }
-        m_gramr_ptr = dynamic_cast<GRAMR *>(parent);
+        m_gr_amr_ptr = dynamic_cast<GRAmr *>(parent);
     }
-    return m_gramr_ptr;
+    return m_gr_amr_ptr;
 }
 
-void GRAMRLevel::computeInitialDt(
+void GRAmrLevel::computeInitialDt(
     int finest_level, int /*sub_cycle*/, amrex::Vector<int> & /*n_cycle*/,
     const amrex::Vector<amrex::IntVect> & /*ref_ratio*/,
     amrex::Vector<amrex::Real> &dt_level, amrex::Real /*stop_time*/)
@@ -121,7 +121,7 @@ void GRAMRLevel::computeInitialDt(
 }
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-void GRAMRLevel::computeNewDt(
+void GRAmrLevel::computeNewDt(
     int finest_level, int /*sub_cycle*/, amrex::Vector<int> & /*n_cycle*/,
     const amrex::Vector<amrex::IntVect> & /*ref_ratio*/,
     amrex::Vector<amrex::Real> &dt_min, amrex::Vector<amrex::Real> &dt_level,
@@ -144,16 +144,16 @@ void GRAMRLevel::computeNewDt(
     }
 }
 
-amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
+amrex::Real GRAmrLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
                                 int ncycle)
 {
-    BL_PROFILE("GRAMRLevel::advance()");
-    if (get_gramr_ptr()->Verbose() > 0)
+    BL_PROFILE("GRAmrLevel::advance()");
+    if (get_gr_amr_ptr()->Verbose() > 0)
     {
         amrex::Real seconds_per_hour = 3600.;
         amrex::Real evolution_speed =
-            (time - get_gramr_ptr()->get_restart_time()) * seconds_per_hour /
-            get_gramr_ptr()->get_walltime_since_start();
+            (time - get_gr_amr_ptr()->get_restart_time()) * seconds_per_hour /
+            get_gr_amr_ptr()->get_walltime_since_start();
         amrex::Print() << "[Level " << Level() << " step "
                        << parent->levelSteps(Level()) + 1
                        << "] average evolution speed = " << evolution_speed
@@ -172,19 +172,20 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
             amrex::Real t, amrex::Real /*dtsub*/)
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-            specificEvalRHS(const_cast<amrex::MultiFab &>(soln), rhs, t);
+            specific_eval_rhs(const_cast<amrex::MultiFab &>(soln), rhs, t);
             m_boundaries.apply_sommerfeld_boundaries(rhs, soln);
         },
-        [&](int /*stage*/, amrex::MultiFab &soln) { specificUpdateODE(soln); });
+        [&](int /*stage*/, amrex::MultiFab &soln)
+        { specific_update_ode(soln); });
 
-    specificAdvance();
+    specific_advance();
 
     return dt;
 }
 
-void GRAMRLevel::post_timestep(int /*iteration*/)
+void GRAmrLevel::post_timestep(int /*iteration*/)
 {
-    BL_PROFILE("GRAMRLevel::post_timestep()");
+    BL_PROFILE("GRAmrLevel::post_timestep()");
     const int lev = Level();
     if (lev < parent->finestLevel())
     {
@@ -213,39 +214,39 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         if (state_new.contains_nan(0, state_new.nComp(), amrex::IntVect(0),
                                    true))
         {
-            amrex::Abort("NaN in GRAMRLevel::post_timestep");
+            amrex::Abort("NaN in GRAmrLevel::post_timestep");
         }
     }
 
-    specificPostTimeStep();
+    specific_post_timestep();
 }
 
-void GRAMRLevel::post_regrid(int a_lbase, int a_new_finest)
+void GRAmrLevel::post_regrid(int a_lbase, int a_new_finest)
 {
     specific_post_regrid(a_lbase, a_new_finest);
 }
 
-void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
+void GRAmrLevel::post_init(amrex::Real /*stop_time*/)
 {
     if (Level() == 0)
     {
-        get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
+        get_gr_amr_ptr()->set_restart_time(get_gr_amr_ptr()->cumTime());
     }
     specific_post_init();
 }
 
-void GRAMRLevel::post_restart()
+void GRAmrLevel::post_restart()
 {
     if (Level() == 0)
     {
-        get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
+        get_gr_amr_ptr()->set_restart_time(get_gr_amr_ptr()->cumTime());
     }
     specific_post_restart();
 }
 
-void GRAMRLevel::init(amrex::AmrLevel &old)
+void GRAmrLevel::init(amrex::AmrLevel &old)
 {
-    BL_PROFILE("GRAMRLevel::init()");
+    BL_PROFILE("GRAmrLevel::init()");
     amrex::Real dt_new    = parent->dtLevel(level);
     amrex::Real cur_time  = old.get_state_data(state_index).curTime();
     amrex::Real prev_time = old.get_state_data(state_index).prevTime();
@@ -256,9 +257,9 @@ void GRAMRLevel::init(amrex::AmrLevel &old)
     FillPatch(old, S_new, 0, cur_time, state_index, 0, S_new.nComp());
 }
 
-void GRAMRLevel::init()
+void GRAmrLevel::init()
 {
-    BL_PROFILE("GRAMRLevel::init()");
+    BL_PROFILE("GRAmrLevel::init()");
     amrex::Real dt = parent->dtLevel(level);
     const auto &coarse_state =
         parent->getLevel(level - 1).get_state_data(state_index);
@@ -273,12 +274,12 @@ void GRAMRLevel::init()
     FillCoarsePatch(S_new, 0, cur_time, state_index, 0, S_new.nComp());
 }
 
-void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
+void GRAmrLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
                           int /*a_clearval*/, int /*a_tagval*/,
                           amrex::Real /*a_time*/, int /*a_n_error_buf*/,
                           int /*a_ngrow*/)
 {
-    BL_PROFILE("GRAMRLevel::errorEst()");
+    BL_PROFILE("GRAmrLevel::errorEst()");
 
     pre_tag_cells();
 
@@ -290,41 +291,41 @@ void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
     tag_cells(a_tag_box_array, regrid_threshold);
 }
 
-void GRAMRLevel::writePlotFilePre(const std::string &a_dir, std::ostream &a_os)
+void GRAmrLevel::writePlotFilePre(const std::string &a_dir, std::ostream &a_os)
 {
     specific_pre_plotfile(a_dir, a_os);
 }
 
-void GRAMRLevel::writePlotFilePost(const std::string &a_dir, std::ostream &a_os)
+void GRAmrLevel::writePlotFilePost(const std::string &a_dir, std::ostream &a_os)
 {
     specific_post_plotfile(a_dir, a_os);
 }
 
-void GRAMRLevel::checkPointPre(const std::string &a_dir, std::ostream &a_os)
+void GRAmrLevel::checkPointPre(const std::string &a_dir, std::ostream &a_os)
 {
     specific_pre_checkpoint(a_dir, a_os);
 }
 
-void GRAMRLevel::checkPointPost(const std::string &a_dir, std::ostream &a_os)
+void GRAmrLevel::checkPointPost(const std::string &a_dir, std::ostream &a_os)
 {
     specific_post_checkpoint(a_dir, a_os);
 }
 
-bool GRAMRLevel::at_level_timestep_multiple(int a_level)
+bool GRAmrLevel::at_level_timestep_multiple(int a_level)
 {
     // handle both the case a_level < Level() and a_level >= Level()
     int coarser_level     = std::min(a_level, Level());
     int finer_level       = std::max(a_level, Level());
-    int finer_level_steps = get_gramr_ptr()->levelSteps(finer_level);
+    int finer_level_steps = get_gr_amr_ptr()->levelSteps(finer_level);
 
     // work out what the coarser level step number corresponds to on the finer
     // level
     int coarser_level_steps_at_finer_level =
-        get_gramr_ptr()->levelSteps(coarser_level);
+        get_gr_amr_ptr()->levelSteps(coarser_level);
 
     for (int ilev = coarser_level + 1; ilev <= finer_level; ++ilev)
     {
-        coarser_level_steps_at_finer_level *= get_gramr_ptr()->nCycle(ilev);
+        coarser_level_steps_at_finer_level *= get_gr_amr_ptr()->nCycle(ilev);
     }
     // finer_level_steps will be > coarser_level_steps
     return (finer_level_steps == coarser_level_steps_at_finer_level);

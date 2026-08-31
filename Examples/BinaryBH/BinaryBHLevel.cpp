@@ -20,15 +20,15 @@
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
 
-BHAMR<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
+BHAmr<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bh_amr_ptr()
 {
-    return dynamic_cast<BHAMR<num_punctures> *>(get_gramr_ptr());
+    return dynamic_cast<BHAmr<num_punctures> *>(get_gr_amr_ptr());
 }
 
 PunctureTracker<BinaryBHLevel::num_punctures> &
 BinaryBHLevel::get_puncture_tracker()
 {
-    return get_bhamr_ptr()->get_puncture_tracker();
+    return get_bh_amr_ptr()->get_puncture_tracker();
 }
 
 void BinaryBHLevel::variableSetUp()
@@ -36,7 +36,7 @@ void BinaryBHLevel::variableSetUp()
     BL_PROFILE("BinaryBHLevel::variableSetUp()");
 
     // Set up the state variables
-    stateVariableSetUp();
+    state_variable_set_up();
 
     Constraints::set_up(state_index);
 
@@ -44,7 +44,7 @@ void BinaryBHLevel::variableSetUp()
 }
 
 // Things to do during the advance step after RK4 steps
-void BinaryBHLevel::specificAdvance()
+void BinaryBHLevel::specific_advance()
 {
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
@@ -68,10 +68,10 @@ void BinaryBHLevel::specificAdvance()
 // is valid for small boosts
 void BinaryBHLevel::initData()
 {
-    BL_PROFILE("BinaryBHLevel::initialData");
-    if (get_gramr_ptr()->Verbose() > 0)
+    BL_PROFILE("BinaryBHLevel::initData");
+    if (get_gr_amr_ptr()->Verbose() > 0)
     {
-        amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
+        amrex::Print() << "BinaryBHLevel::initData " << Level() << "\n";
     }
 #ifdef USE_TWOPUNCTURES
     TwoPuncturesInitialData two_punctures_initial_data(Geom().CellSize(0));
@@ -135,7 +135,7 @@ void BinaryBHLevel::initData()
 #endif
     amrex::Gpu::streamSynchronize();
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
+    if (get_bh_amr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         // need to set the puncture coordinates as we use it for the puncture
         // tagging
@@ -158,11 +158,11 @@ void BinaryBHLevel::initData()
 
 // Calculate RHS during RK4 substeps
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
-                                    amrex::MultiFab &a_rhs,
-                                    const amrex::Real /*a_time*/)
+void BinaryBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+                                      amrex::MultiFab &a_rhs,
+                                      const amrex::Real /*a_time*/)
 {
-    BL_PROFILE("BinaryBHLevel::specificEvalRHS()");
+    BL_PROFILE("BinaryBHLevel::specific_eval_rhs()");
     const auto &soln_arrays       = a_soln.arrays();
     const auto &const_soln_arrays = a_soln.const_arrays();
     const auto &rhs_arrays        = a_rhs.arrays();
@@ -254,16 +254,12 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                                           const_soln_arrays[box_no]);
             });
     }
-    else
-    {
-        amrex::Abort("spatial_derivative_order must be 4 or 6");
-    }
 
     amrex::Gpu::streamSynchronize();
 }
 
 // enforce algebraic constraints during RK4 substeps
-void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
+void BinaryBHLevel::specific_update_ode(amrex::MultiFab &a_soln)
 {
 
     AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
@@ -286,11 +282,11 @@ void BinaryBHLevel::pre_tag_cells()
 
     // Fill ghosts for chi to calculate second derivatives
     // 4th-order d2 requires 2 ghost cells
-    const int nghost = 2;
-    const int ncomp  = 1;
+    const int num_ghosts = 2;
+    const int num_comps  = 1;
 
-    FillPatch(*this, state_new, nghost, current_time, state_index, c_chi,
-              ncomp);
+    FillPatch(*this, state_new, num_ghosts, current_time, state_index, c_chi,
+              num_comps);
 }
 
 void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
@@ -314,7 +310,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
     std::array<amrex::Real, num_puncture_coords> puncture_coords{};
     const bool puncture_tracking_enabled =
-        get_bhamr_ptr()->puncture_tracking_enabled();
+        get_bh_amr_ptr()->puncture_tracking_enabled();
 
     if (puncture_tracking_enabled)
     {
@@ -327,7 +323,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     pp.get("bh2.mass", bh2_mass);
 
     PunctureTagger<num_punctures> puncture_tagger(
-        Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
+        Geom().CellSize(0), Level(), get_gr_amr_ptr()->maxLevel(),
         puncture_coords, {bh1_mass, bh2_mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
@@ -351,7 +347,7 @@ void BinaryBHLevel::specific_post_init()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_init()");
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
+    if (get_bh_amr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         get_puncture_tracker().start_from_initial_punctures();
     }
@@ -361,7 +357,7 @@ void BinaryBHLevel::specific_post_restart()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_restart()");
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
+    if (get_bh_amr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         std::string restart_checkpoint{};
         GRParmParse pp("amr");
@@ -373,7 +369,7 @@ void BinaryBHLevel::specific_post_restart()
 void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
                                            std::ostream &a_os)
 {
-    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
+    if (get_bh_amr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         get_puncture_tracker().write_plotfile(a_dir);
     }
@@ -382,17 +378,17 @@ void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
 void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
                                              std::ostream & /*a_os*/)
 {
-    if (get_bhamr_ptr()->puncture_tracking_enabled() && Level() == 0)
+    if (get_bh_amr_ptr()->puncture_tracking_enabled() && Level() == 0)
     {
         get_puncture_tracker().checkpoint(a_chk_dir);
     }
 }
 
-void BinaryBHLevel::specificPostTimeStep()
+void BinaryBHLevel::specific_post_timestep()
 {
-    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
+    BL_PROFILE("BinaryBHLevel::specific_post_timestep");
 
-    if (get_bhamr_ptr()->puncture_tracking_enabled())
+    if (get_bh_amr_ptr()->puncture_tracking_enabled())
     {
         GRParmParse puncture_tracking_pp("puncture_tracking");
         int puncture_tracking_level{};
@@ -411,7 +407,7 @@ void BinaryBHLevel::specificPostTimeStep()
             bool write_punctures =
                 at_level_timestep_multiple(puncture_tracking_writeout_level);
             amrex::Real current_time = get_state_data(state_index).curTime();
-            amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
+            amrex::Real dt           = get_gr_amr_ptr()->dtLevel(Level());
             get_puncture_tracker().track(current_time, dt, write_punctures);
         }
     }
@@ -427,13 +423,13 @@ void BinaryBHLevel::specificPostTimeStep()
         if (calculate_weyl && Level() == min_level)
         {
             amrex::Real m_time       = get_state_data(state_index).curTime();
-            amrex::Real m_dt         = get_gramr_ptr()->dtLevel(Level());
-            amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+            amrex::Real m_dt         = get_gr_amr_ptr()->dtLevel(Level());
+            amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
             bool first_step          = (m_time <= m_dt);
 
             WeylExtraction my_extraction(extraction_params, m_dt, m_time,
                                          first_step, restart_time);
-            my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
+            my_extraction.execute_query(&get_bh_amr_ptr()->m_weyl_interpolator);
         }
     }
 }

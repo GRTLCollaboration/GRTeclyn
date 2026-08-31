@@ -6,17 +6,17 @@
 #ifndef BHAMR_HPP_
 #define BHAMR_HPP_
 
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 #include "ParticleInterpolator.hpp"
 #include "PunctureTracker.hpp"
 
 /// A child of Chombo's AMR class to interface with tools which require
-/// access to the whole AMR hierarchy, and those of GRAMR
+/// access to the whole AMR hierarchy, and those of GRAmr
 /**
- * This object inherits from GRAMR and adds tools required for BH spacetimes
+ * This object inherits from GRAmr and adds tools required for BH spacetimes
  */
 
-template <int num_punctures> class BHAMR : public GRAMR
+template <int num_punctures> class BHAmr : public GRAmr
 {
   private:
     PunctureTracker<num_punctures> m_puncture_tracker;
@@ -28,7 +28,7 @@ template <int num_punctures> class BHAMR : public GRAMR
     ParticleInterpolator<weyl_num_components>
         m_weyl_interpolator; // interpolator object
 
-    BHAMR(amrex::LevelBld *a_levelbld) : GRAMR(a_levelbld)
+    BHAmr(amrex::LevelBld *a_levelbld) : GRAmr(a_levelbld)
     {
         m_puncture_tracker.configure();
         if (m_puncture_tracker.is_enabled())
@@ -39,7 +39,7 @@ template <int num_punctures> class BHAMR : public GRAMR
 
     void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
     {
-        GRAMR::init(a_strt_time, a_stop_time);
+        GRAmr::init(a_strt_time, a_stop_time);
 
         m_weyl_interpolator.setup(this);
     }

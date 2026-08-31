@@ -6,37 +6,37 @@
 #ifndef PUNCTURETRACKERLEVEL_HPP_
 #define PUNCTURETRACKERLEVEL_HPP_
 
-#include "BHAMR.hpp"
-#include "DefaultLevelFactory.hpp"
-#include "GRAMRLevel.hpp"
+#include "BHAmr.hpp"
+#include "DefaultLevelBld.hpp"
+#include "GRAmrLevel.hpp"
 
-class PunctureTrackerLevel : public GRAMRLevel
+class PunctureTrackerLevel : public GRAmrLevel
 {
   public:
     static void variableSetUp();
 
-    // Inherit the contructors from GRAMRLevel
-    using GRAMRLevel::GRAMRLevel;
+    // Inherit the contructors from GRAmrLevel
+    using GRAmrLevel::GRAmrLevel;
 
     static constexpr int num_punctures = 2;
     static constexpr std::size_t num_puncture_coords =
         static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
     static constexpr amrex::Real shift_y_val = -1.0;
 
-    BHAMR<num_punctures> *get_bhamr_ptr();
+    BHAmr<num_punctures> *get_bh_amr_ptr();
 
-    /// Get a reference to the PunctureTracker object stored by BHAMR
+    /// Get a reference to the PunctureTracker object stored by BHAmr
     PunctureTracker<num_punctures> &get_puncture_tracker();
 
     /// Initial data calculation
     void initData() override;
 
     /// Calculation of the right hand side for the time stepping
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const amrex::Real a_time) override;
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override;
 
     // to do post each time step on every level
-    void specificPostTimeStep() override;
+    void specific_post_timestep() override;
 
     /// Tag cells for regridding
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,

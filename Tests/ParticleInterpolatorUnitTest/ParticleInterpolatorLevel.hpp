@@ -6,26 +6,26 @@
 #ifndef PARTICLEINTERPOLATORLEVEL_HPP_
 #define PARTICLEINTERPOLATORLEVEL_HPP_
 
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "FixedGridsTagger.hpp"
-#include "GRAMR.hpp"
-#include "GRAMRLevel.hpp"
+#include "GRAmr.hpp"
+#include "GRAmrLevel.hpp"
 #include "PolynomialDerivedQuantity.hpp"
 #include "StateTypes.hpp"
 
 // We basically need this to have a valid AMR hierarchy
 
-class ParticleInterpolatorLevel : public GRAMRLevel
+class ParticleInterpolatorLevel : public GRAmrLevel
 {
   public:
-    friend class DefaultLevelFactory<ParticleInterpolatorLevel>;
+    friend class DefaultLevelBld<ParticleInterpolatorLevel>;
 
-    // Inherit the contructors from GRAMRLevel
-    using GRAMRLevel::GRAMRLevel;
+    // Inherit the contructors from GRAmrLevel
+    using GRAmrLevel::GRAmrLevel;
 
     static void variableSetUp()
     {
-        stateVariableSetUp();
+        state_variable_set_up();
         PolynomialDerivedQuantity::set_up(state_index);
     }
 
@@ -62,8 +62,8 @@ class ParticleInterpolatorLevel : public GRAMRLevel
     }
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const amrex::Real a_time) override
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override
     {
     }
 

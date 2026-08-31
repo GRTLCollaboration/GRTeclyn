@@ -6,24 +6,24 @@
 #ifndef SPHERICALEXTRACTIONTESTLEVEL_HPP_
 #define SPHERICALEXTRACTIONTESTLEVEL_HPP_
 
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "FixedGridsTagger.hpp"
-#include "GRAMR.hpp"
-#include "GRAMRLevel.hpp"
+#include "GRAmr.hpp"
+#include "GRAmrLevel.hpp"
 #include "GRParmParse.hpp"
 #include "SimulationParameters.hpp"
 #include "SphericalHarmonics.hpp"
 #include "StateTypes.hpp"
 #include "StateVariables.hpp"
 
-class SphericalExtractionTestLevel : public GRAMRLevel
+class SphericalExtractionTestLevel : public GRAmrLevel
 {
   public:
-    friend class DefaultLevelFactory<SphericalExtractionTestLevel>;
+    friend class DefaultLevelBld<SphericalExtractionTestLevel>;
 
-    using GRAMRLevel::GRAMRLevel;
+    using GRAmrLevel::GRAmrLevel;
 
-    static void variableSetUp() { stateVariableSetUp(); }
+    static void variableSetUp() { state_variable_set_up(); }
 
     // save data in state vars
     void initData() override
@@ -73,8 +73,8 @@ class SphericalExtractionTestLevel : public GRAMRLevel
     }
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const amrex::Real a_time) override
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override
     {
     }
 

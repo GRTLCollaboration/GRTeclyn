@@ -23,17 +23,17 @@
  */
 
 // Forward declaration for get_gramrlevels function declarations
-class GRAMRLevel;
+class GRAmrLevel;
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
-class GRAMR : public amrex::Amr
+class GRAmr : public amrex::Amr
 {
-    friend class GRAMRLevel;
+    friend class GRAmrLevel;
 
   public:
 
-    GRAMR(amrex::LevelBld *a_levelbld);
-    ~GRAMR() override;
+    GRAmr(amrex::LevelBld *a_levelbld);
+    ~GRAmr() override;
 
     void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override;
 
