@@ -27,9 +27,9 @@ using ScalarFieldEnergyDensity =
 using ScalarFieldConstraints =
     ConstraintsWithMatter<ScalarFieldLevel::ScalarFieldWithPotential<>>;
 
-ScalarFieldAMR *ScalarFieldLevel::get_scalar_field_amr_ptr()
+ScalarFieldAmr *ScalarFieldLevel::get_scalar_field_amr_ptr()
 {
-    return dynamic_cast<ScalarFieldAMR *>(get_gramr_ptr());
+    return dynamic_cast<ScalarFieldAmr *>(get_gramr_ptr());
 }
 
 void ScalarFieldLevel::variableSetUp()

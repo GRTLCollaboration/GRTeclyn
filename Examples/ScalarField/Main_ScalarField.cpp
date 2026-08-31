@@ -9,7 +9,7 @@
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"
 
-#include "ScalarFieldAMR.hpp"
+#include "ScalarFieldAmr.hpp"
 #include "ScalarFieldLevel.hpp"
 
 int runGRTeclyn()
@@ -24,7 +24,7 @@ int runGRTeclyn()
     }
 
     DefaultLevelFactory<ScalarFieldLevel> scalar_field_level_bld;
-    ScalarFieldAMR gr_amr(&scalar_field_level_bld);
+    ScalarFieldAmr gr_amr(&scalar_field_level_bld);
 
     amrex::Real stop_time{};
     pp.get("evolution.stop_time", stop_time);

@@ -10,13 +10,13 @@
 #include "ParticleInterpolator.hpp"
 
 //! AMR hierarchy carrying the interpolators used for line extraction.
-class ScalarFieldAMR : public GRAmr
+class ScalarFieldAmr : public GRAmr
 {
   public:
     ParticleInterpolator<1> phi_interpolator;
     ParticleInterpolator<1> rho_interpolator;
 
-    explicit ScalarFieldAMR(amrex::LevelBld *a_level_bld) : GRAmr(a_level_bld)
+    explicit ScalarFieldAmr(amrex::LevelBld *a_level_bld) : GRAmr(a_level_bld)
     {
     }
 
