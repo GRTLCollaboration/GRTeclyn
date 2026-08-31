@@ -36,7 +36,7 @@ class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
     }
 
     // required from Scheduler::PeriodicFunction
-    virtual void setUp(amrex::Amr &a_AMR, int a_interval = -1) override
+    virtual void setup(amrex::Amr &a_AMR, int a_interval = -1) override
     {
         m_amr_ptr = &a_AMR;
     }
@@ -90,7 +90,7 @@ class MultiLevelTaskPtr : public RefCountedPtr<Scheduler>
     // run immediately!
     void execute(AMR &amr)
     {
-        m_ptr_to_func->setUp(amr);
+        m_ptr_to_func->setup(amr);
         (*m_ptr_to_func)();
     }
 };
