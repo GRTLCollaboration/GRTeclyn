@@ -510,8 +510,8 @@ class SixthOrderDerivatives : protected DerivativeBase
 
         FOR (idir)
         {
-            const auto stride  = strides[idir];
-            diss              -= sigma_coeff *
+            const auto stride = strides[idir];
+            diss -= sigma_coeff *
                     dissipation_term(get_var_ptr(ivar, state_ptr_xyz, strides),
                                      stride);
         }

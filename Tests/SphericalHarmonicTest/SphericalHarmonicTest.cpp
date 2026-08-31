@@ -73,7 +73,7 @@ void run_spherical_harmonic_test()
                 // and also the calculation of r in coords
                 amrex::Real harmonic = sqrt(5.0 / 16.0 / M_PI) * x *
                                        (2. * z * z - z * r - rr) * rr_inv / rho;
-                in_array(iv, c_phi) = harmonic * rr_inv;
+                in_array(iv, c_phi)  = harmonic * rr_inv;
 
                 amrex::CellData<amrex::Real> cell = out_array.cellData(i, j, k);
                 harmonic_test.compute(i, j, k, cell);
