@@ -89,7 +89,7 @@ GRAmrLevel::GRAmrLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
 
 GRAmrLevel::~GRAmrLevel() = default;
 
-GRAmr *GRAmrLevel::get_gramr_ptr()
+GRAmr *GRAmrLevel::get_gr_amr_ptr()
 {
     if (m_gramr_ptr == nullptr)
     {
@@ -148,12 +148,12 @@ amrex::Real GRAmrLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
                                 int ncycle)
 {
     BL_PROFILE("GRAmrLevel::advance()");
-    if (get_gramr_ptr()->Verbose() > 0)
+    if (get_gr_amr_ptr()->Verbose() > 0)
     {
         amrex::Real seconds_per_hour = 3600.;
         amrex::Real evolution_speed =
-            (time - get_gramr_ptr()->get_restart_time()) * seconds_per_hour /
-            get_gramr_ptr()->get_walltime_since_start();
+            (time - get_gr_amr_ptr()->get_restart_time()) * seconds_per_hour /
+            get_gr_amr_ptr()->get_walltime_since_start();
         amrex::Print() << "[Level " << Level() << " step "
                        << parent->levelSteps(Level()) + 1
                        << "] average evolution speed = " << evolution_speed
@@ -229,7 +229,7 @@ void GRAmrLevel::post_init(amrex::Real /*stop_time*/)
 {
     if (Level() == 0)
     {
-        get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
+        get_gr_amr_ptr()->set_restart_time(get_gr_amr_ptr()->cumTime());
     }
     specific_post_init();
 }
@@ -238,7 +238,7 @@ void GRAmrLevel::post_restart()
 {
     if (Level() == 0)
     {
-        get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
+        get_gr_amr_ptr()->set_restart_time(get_gr_amr_ptr()->cumTime());
     }
     specific_post_restart();
 }
@@ -315,16 +315,16 @@ bool GRAmrLevel::at_level_timestep_multiple(int a_level)
     // handle both the case a_level < Level() and a_level >= Level()
     int coarser_level     = std::min(a_level, Level());
     int finer_level       = std::max(a_level, Level());
-    int finer_level_steps = get_gramr_ptr()->levelSteps(finer_level);
+    int finer_level_steps = get_gr_amr_ptr()->levelSteps(finer_level);
 
     // work out what the coarser level step number corresponds to on the finer
     // level
     int coarser_level_steps_at_finer_level =
-        get_gramr_ptr()->levelSteps(coarser_level);
+        get_gr_amr_ptr()->levelSteps(coarser_level);
 
     for (int ilev = coarser_level + 1; ilev <= finer_level; ++ilev)
     {
-        coarser_level_steps_at_finer_level *= get_gramr_ptr()->nCycle(ilev);
+        coarser_level_steps_at_finer_level *= get_gr_amr_ptr()->nCycle(ilev);
     }
     // finer_level_steps will be > coarser_level_steps
     return (finer_level_steps == coarser_level_steps_at_finer_level);

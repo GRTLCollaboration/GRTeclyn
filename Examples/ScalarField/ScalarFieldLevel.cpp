@@ -29,7 +29,7 @@ using ScalarFieldConstraints =
 
 ScalarFieldAmr *ScalarFieldLevel::get_scalar_field_amr_ptr()
 {
-    return dynamic_cast<ScalarFieldAmr *>(get_gramr_ptr());
+    return dynamic_cast<ScalarFieldAmr *>(get_gr_amr_ptr());
 }
 
 void ScalarFieldLevel::variableSetUp()
@@ -67,8 +67,8 @@ void ScalarFieldLevel::specificPostTimeStep()
     if (Level() == 0)
     {
         const amrex::Real time         = get_state_data(state_index).curTime();
-        const amrex::Real dt           = get_gramr_ptr()->dtLevel(0);
-        const amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+        const amrex::Real dt           = get_gr_amr_ptr()->dtLevel(0);
+        const amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
         const bool first_step          = (time <= dt);
 
         const LineExtraction<1> phi_extraction("phi_line_extraction", c_phi, dt,
@@ -90,7 +90,7 @@ void ScalarFieldLevel::initData()
 {
     BL_PROFILE("ScalarFieldLevel::initData()");
 
-    if (get_gramr_ptr()->Verbose() > 0)
+    if (get_gr_amr_ptr()->Verbose() > 0)
     {
         amrex::Print() << "ScalarFieldLevel::initData " << Level() << "\n";
     }

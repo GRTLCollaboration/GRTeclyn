@@ -22,7 +22,7 @@
 
 BHAmr<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
 {
-    return dynamic_cast<BHAmr<num_punctures> *>(get_gramr_ptr());
+    return dynamic_cast<BHAmr<num_punctures> *>(get_gr_amr_ptr());
 }
 
 PunctureTracker<BinaryBHLevel::num_punctures> &
@@ -69,7 +69,7 @@ void BinaryBHLevel::specificAdvance()
 void BinaryBHLevel::initData()
 {
     BL_PROFILE("BinaryBHLevel::initialData");
-    if (get_gramr_ptr()->Verbose() > 0)
+    if (get_gr_amr_ptr()->Verbose() > 0)
     {
         amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
     }
@@ -327,7 +327,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     pp.get("bh2.mass", bh2_mass);
 
     PunctureTagger<num_punctures> puncture_tagger(
-        Geom().CellSize(0), Level(), get_gramr_ptr()->maxLevel(),
+        Geom().CellSize(0), Level(), get_gr_amr_ptr()->maxLevel(),
         puncture_coords, {bh1_mass, bh2_mass});
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
@@ -411,7 +411,7 @@ void BinaryBHLevel::specificPostTimeStep()
             bool write_punctures =
                 at_level_timestep_multiple(puncture_tracking_writeout_level);
             amrex::Real current_time = get_state_data(state_index).curTime();
-            amrex::Real dt           = get_gramr_ptr()->dtLevel(Level());
+            amrex::Real dt           = get_gr_amr_ptr()->dtLevel(Level());
             get_puncture_tracker().track(current_time, dt, write_punctures);
         }
     }
@@ -427,8 +427,8 @@ void BinaryBHLevel::specificPostTimeStep()
         if (calculate_weyl && Level() == min_level)
         {
             amrex::Real m_time       = get_state_data(state_index).curTime();
-            amrex::Real m_dt         = get_gramr_ptr()->dtLevel(Level());
-            amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
+            amrex::Real m_dt         = get_gr_amr_ptr()->dtLevel(Level());
+            amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
             bool first_step          = (m_time <= m_dt);
 
             WeylExtraction my_extraction(extraction_params, m_dt, m_time,

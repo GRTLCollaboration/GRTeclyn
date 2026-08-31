@@ -40,7 +40,7 @@ class GRAmrLevel : public amrex::AmrLevel
 
     ~GRAmrLevel() override;
 
-    GRAmr *get_gramr_ptr();
+    GRAmr *get_gr_amr_ptr();
 
     /**
      * \brief Compute the initial time step.
