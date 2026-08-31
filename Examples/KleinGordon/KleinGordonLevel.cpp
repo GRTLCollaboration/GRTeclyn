@@ -42,14 +42,14 @@ void KleinGordonLevel::variableSetUp()
     pp.get("model", model);
 
     const int ncomp_rho{1}; // only one component associated with energy density
-    const int nghosts_rho{2};
+    const int num_ghosts_rho{2};
 
     if (model == "Wave")
     {
         derive_lst.add(
             "rho", amrex::IndexType::TheCellType(), ncomp_rho,
             calc_energy_density<Wave>, [=](const amrex::Box &box)
-            { return amrex::grow(box, nghosts_rho); },
+            { return amrex::grow(box, num_ghosts_rho); },
             &amrex::cell_quartic_interp);
     }
 
@@ -58,7 +58,7 @@ void KleinGordonLevel::variableSetUp()
         derive_lst.add(
             "rho", amrex::IndexType::TheCellType(), ncomp_rho,
             calc_energy_density<SineGordon>, [=](const amrex::Box &box)
-            { return amrex::grow(box, nghosts_rho); },
+            { return amrex::grow(box, num_ghosts_rho); },
             &amrex::cell_quartic_interp);
     }
 

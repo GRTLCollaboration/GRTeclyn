@@ -10,10 +10,10 @@
 void GRAmrLevel::state_variable_set_up()
 {
     GRParmParse pp;
-    int nghost{};
-    pp.get("evolution.num_ghosts", nghost);
+    int num_ghosts{};
+    pp.get("evolution.num_ghosts", num_ghosts);
     desc_lst.addDescriptor(state_index, amrex::IndexType::TheCellType(),
-                           amrex::StateDescriptor::Point, nghost, NUM_VARS,
+                           amrex::StateDescriptor::Point, num_ghosts, NUM_VARS,
                            &amrex::cell_quartic_interp);
 
     BoundaryConditions boundary_conditions;

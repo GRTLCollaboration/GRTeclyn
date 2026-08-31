@@ -286,10 +286,10 @@ void BinaryBHLevel::pre_tag_cells()
 
     // Fill ghosts for chi to calculate second derivatives
     // 4th-order d2 requires 2 ghost cells
-    const int nghost = 2;
-    const int ncomp  = 1;
+    const int num_ghosts = 2;
+    const int ncomp      = 1;
 
-    FillPatch(*this, state_new, nghost, current_time, state_index, c_chi,
+    FillPatch(*this, state_new, num_ghosts, current_time, state_index, c_chi,
               ncomp);
 }
 
