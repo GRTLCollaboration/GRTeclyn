@@ -115,9 +115,9 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
         a_array(a_iv, c_A33) = chi * (K[2][2] - trK * g[2][2] / GR_SPACEDIM);
     }
 
-    a_array(a_iv, c_Theta) = 0.27579 + 0.25791 * x + 1.40488 * x * x +
-                             5.68276 * x * y * y * y + 3.04325 * y * z +
-                             1.81250 * z * z + 1.01832 * z * z * z * z;
+    a_array(a_iv, c_Theta)  = 0.27579 + 0.25791 * x + 1.40488 * x * x +
+                              5.68276 * x * y * y * y + 3.04325 * y * z +
+                              1.81250 * z * z + 1.01832 * z * z * z * z;
     a_array(a_iv, c_Gamma1) = -0.49482 + 0.89227 * x + 0.05571 * x * x -
                               5.38570 * x * y * y * y + 0.13979 * y * z -
                               0.68588 * z * z - 4.39964 * z * z * z * z;
@@ -128,9 +128,9 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
                               6.67657 * x * y * y * y - 3.44662 * y * z -
                               0.19655 * z * z + 2.97524 * z * z * z * z;
 
-    a_array(a_iv, c_lapse) = 0.73578 + 0.36898 * x + 0.64348 * x * x +
-                             9.33487 * x * y * y * y + 0.99469 * y * z +
-                             0.20515 * z * z + 8.88385 * z * z * z * z;
+    a_array(a_iv, c_lapse)  = 0.73578 + 0.36898 * x + 0.64348 * x * x +
+                              9.33487 * x * y * y * y + 0.99469 * y * z +
+                              0.20515 * z * z + 8.88385 * z * z * z * z;
     a_array(a_iv, c_shift1) = 0.00000 + 0.18795 * x - 0.52389 * x * x -
                               4.14079 * x * y * y * y + 0.73135 * y * z -
                               0.27057 * z * z + 3.24187 * z * z * z * z;
@@ -140,15 +140,15 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
     a_array(a_iv, c_shift3) = 0.00000 + 0.68835 * x - 0.52219 * x * x -
                               7.50449 * x * y * y * y - 2.35372 * y * z -
                               0.21476 * z * z + 4.36363 * z * z * z * z;
-    a_array(a_iv, c_B1) = -0.26928 + 0.35045 * x - 0.48884 * x * x +
-                          2.72465 * x * y * y * y - 2.59022 * y * z -
-                          0.27384 * z * z + 0.38748 * z * z * z * z;
-    a_array(a_iv, c_B2) = 0.40234 + 0.26741 * x + 1.94822 * x * x -
-                          0.78276 * x * y * y * y + 2.12346 * y * z +
-                          0.69086 * z * z - 4.47639 * z * z * z * z;
-    a_array(a_iv, c_B3) = 0.40313 + 0.00569 * x - 1.12452 * x * x -
-                          5.49255 * x * y * y * y - 2.21932 * y * z +
-                          0.49523 * z * z + 1.29460 * z * z * z * z;
+    a_array(a_iv, c_B1)     = -0.26928 + 0.35045 * x - 0.48884 * x * x +
+                              2.72465 * x * y * y * y - 2.59022 * y * z -
+                              0.27384 * z * z + 0.38748 * z * z * z * z;
+    a_array(a_iv, c_B2)     = 0.40234 + 0.26741 * x + 1.94822 * x * x -
+                              0.78276 * x * y * y * y + 2.12346 * y * z +
+                              0.69086 * z * z - 4.47639 * z * z * z * z;
+    a_array(a_iv, c_B3)     = 0.40313 + 0.00569 * x - 1.12452 * x * x -
+                              5.49255 * x * y * y * y - 2.21932 * y * z +
+                              0.49523 * z * z + 1.29460 * z * z * z * z;
     // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 }
 
@@ -167,6 +167,6 @@ random_matter_bssn_initial_data(const amrex::IntVect &a_iv,
     // Define the values for the scalar field and (negative) conjugate momentum
     a_array(a_iv, c_phi) = 0.21232 * sin(x * 2.1232 * 3.14) *
                            cos(y * 2.5123 * 3.15) * cos(z * 2.1232 * 3.14);
-    a_array(a_iv, c_Pi) = 0.4112 * sin(x * 4.123 * 3.14) *
-                          cos(y * 2.2312 * 3.15) * cos(z * 2.5123 * 3.14);
+    a_array(a_iv, c_Pi)  = 0.4112 * sin(x * 4.123 * 3.14) *
+                           cos(y * 2.2312 * 3.15) * cos(z * 2.5123 * 3.14);
 }

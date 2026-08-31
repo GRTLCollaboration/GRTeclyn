@@ -237,8 +237,8 @@ Weyl4::compute_Weyl4(const EBFields_t &ebfields, const CCZ4Vars &vars,
                                                tetrad.v(i) * tetrad.v(j)) -
                            2.0 * ebfields.B(i, j) * tetrad.w(i) * tetrad.v(j));
         out.Im   += 0.5 * (ebfields.B(i, j) * (-tetrad.w(i) * tetrad.w(j) +
-                                             tetrad.v(i) * tetrad.v(j)) -
-                         2.0 * ebfields.E(i, j) * tetrad.w(i) * tetrad.v(j));
+                                               tetrad.v(i) * tetrad.v(j)) -
+                           2.0 * ebfields.E(i, j) * tetrad.w(i) * tetrad.v(j));
     }
 
     return out;
