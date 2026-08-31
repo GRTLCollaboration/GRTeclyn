@@ -68,10 +68,10 @@ void BinaryBHLevel::specific_advance()
 // is valid for small boosts
 void BinaryBHLevel::initData()
 {
-    BL_PROFILE("BinaryBHLevel::initialData");
+    BL_PROFILE("BinaryBHLevel::initial_data");
     if (get_gr_amr_ptr()->Verbose() > 0)
     {
-        amrex::Print() << "BinaryBHLevel::initialData " << Level() << "\n";
+        amrex::Print() << "BinaryBHLevel::initial_data " << Level() << "\n";
     }
 #ifdef USE_TWOPUNCTURES
     TwoPuncturesInitialData two_punctures_initial_data(Geom().CellSize(0));
