@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef DEFAULTLEVELFACTORY_HPP_
-#define DEFAULTLEVELFACTORY_HPP_
+#ifndef DEFAULTLEVELBLD_HPP_
+#define DEFAULTLEVELBLD_HPP_
 
 #include <AMReX_LevelBld.H>
 
@@ -48,4 +48,4 @@ amrex::AmrLevel *DefaultLevelBld<level_t>::operator()(
                        time);
 }
 
-#endif /* DEFAULTLEVELFACTORY_HPP_ */
+#endif /* DEFAULTLEVELBLD_HPP_ */

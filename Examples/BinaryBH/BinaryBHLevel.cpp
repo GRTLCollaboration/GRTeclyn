@@ -254,10 +254,6 @@ void BinaryBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                           const_soln_arrays[box_no]);
             });
     }
-    else
-    {
-        amrex::Abort("spatial_derivative_order must be 4 or 6");
-    }
 
     amrex::Gpu::streamSynchronize();
 }
