@@ -6,7 +6,7 @@
 #ifndef BINARYBHLEVEL_HPP_
 #define BINARYBHLEVEL_HPP_
 
-#include "BHAMR.hpp"
+#include "BHAmr.hpp"
 #include "DefaultLevelFactory.hpp"
 #include "GRAmrLevel.hpp"
 
@@ -20,9 +20,9 @@ class BinaryBHLevel : public GRAmrLevel
 
     static constexpr int num_punctures = 2;
 
-    BHAMR<num_punctures> *get_bhamr_ptr();
+    BHAmr<num_punctures> *get_bhamr_ptr();
 
-    /// Get a reference to the PunctureTracker object stored by BHAMR
+    /// Get a reference to the PunctureTracker object stored by BHAmr
     PunctureTracker<num_punctures> &get_puncture_tracker();
 
     /// Things to do at every full timestep

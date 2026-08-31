@@ -16,7 +16,7 @@
  * This object inherits from GRAmr and adds tools required for BH spacetimes
  */
 
-template <int num_punctures> class BHAMR : public GRAmr
+template <int num_punctures> class BHAmr : public GRAmr
 {
   private:
     PunctureTracker<num_punctures> m_puncture_tracker;
@@ -28,7 +28,7 @@ template <int num_punctures> class BHAMR : public GRAmr
     ParticleInterpolator<weyl_num_components>
         m_weyl_interpolator; // interpolator object
 
-    BHAMR(amrex::LevelBld *a_levelbld) : GRAmr(a_levelbld)
+    BHAmr(amrex::LevelBld *a_levelbld) : GRAmr(a_levelbld)
     {
         m_puncture_tracker.configure();
         if (m_puncture_tracker.is_enabled())

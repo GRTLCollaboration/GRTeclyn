@@ -10,10 +10,10 @@
 // doctest header
 #include "doctest.h"
 
-BHAMR<PunctureTrackerLevel::num_punctures> *
+BHAmr<PunctureTrackerLevel::num_punctures> *
 PunctureTrackerLevel::get_bhamr_ptr()
 {
-    return dynamic_cast<BHAMR<num_punctures> *>(get_gramr_ptr());
+    return dynamic_cast<BHAmr<num_punctures> *>(get_gramr_ptr());
 }
 
 PunctureTracker<PunctureTrackerLevel::num_punctures> &

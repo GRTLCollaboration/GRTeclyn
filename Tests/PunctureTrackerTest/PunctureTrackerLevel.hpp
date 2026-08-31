@@ -6,7 +6,7 @@
 #ifndef PUNCTURETRACKERLEVEL_HPP_
 #define PUNCTURETRACKERLEVEL_HPP_
 
-#include "BHAMR.hpp"
+#include "BHAmr.hpp"
 #include "DefaultLevelFactory.hpp"
 #include "GRAmrLevel.hpp"
 
@@ -23,9 +23,9 @@ class PunctureTrackerLevel : public GRAmrLevel
         static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
     static constexpr amrex::Real shift_y_val = -1.0;
 
-    BHAMR<num_punctures> *get_bhamr_ptr();
+    BHAmr<num_punctures> *get_bhamr_ptr();
 
-    /// Get a reference to the PunctureTracker object stored by BHAMR
+    /// Get a reference to the PunctureTracker object stored by BHAmr
     PunctureTracker<num_punctures> &get_puncture_tracker();
 
     /// Initial data calculation

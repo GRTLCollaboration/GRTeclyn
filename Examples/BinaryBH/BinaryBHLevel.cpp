@@ -20,9 +20,9 @@
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
 
-BHAMR<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
+BHAmr<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bhamr_ptr()
 {
-    return dynamic_cast<BHAMR<num_punctures> *>(get_gramr_ptr());
+    return dynamic_cast<BHAmr<num_punctures> *>(get_gramr_ptr());
 }
 
 PunctureTracker<BinaryBHLevel::num_punctures> &
