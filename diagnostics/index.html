@@ -156,7 +156,7 @@
 <p>Diagnostics are quantities calculated from the current state, rather than variables which need to be evolved. Examples include the Hamiltonian constraint, the energy density and the Weyl scalar <span class="arithmatex">\(\Psi_4\)</span>. AMReX calls these <em>derived variables</em>.</p>
 <p>GRTeclyn does not keep a separate diagnostic state on the grid. A diagnostic is registered during setup and calculated from the evolution state only when something requests it. For example, a diagnostic selected with <code>amr.derive_plot_vars</code> is calculated when a plot file is written. A derived variable may also be requested directly by an extraction routine. This avoids storing and updating values which may be needed only occasionally.</p>
 <h2 id="using-existing-diagnostics">Using existing diagnostics</h2>
-<p>Reusable diagnostics provide a <code>set_up()</code> function. Call this from the example level's <code>variableSetUp()</code> after <code>stateVariableSetUp()</code>. For example, the Scalar Field example registers the constraints and energy density with</p>
+<p>Reusable diagnostics provide a <code>set_up()</code> function. Call this from the example level's <code>variableSetUp()</code> after <code>state_variable_set_up()</code>. For example, the Scalar Field example registers the constraints and energy density with</p>
 <pre class="highlight"><code class="language-cpp">ScalarFieldConstraints::set_up(state_index);
 ScalarFieldEnergyDensity::set_up(state_index);</code></pre>
 <p>The names registered by these classes can then be added to <code>amr.derive_plot_vars</code> in the parameter file. Setting</p>

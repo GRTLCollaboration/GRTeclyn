@@ -169,17 +169,17 @@
 <p><strong>Example-specific code</strong>, such as <code>BinaryBHLevel</code> or <code>ScalarFieldLevel</code>. This level sets the initial data, registers state variables and <a href="../diagnostics/">diagnostics</a>, reads example-specific parameters, selects the RHS calculations and specifies the tagging criterion. The files normally live in the corresponding folder under <code>Examples</code>.</p>
 </li>
 <li>
-<p><strong>GRTeclyn</strong>, which provides physics and infrastructure shared by several examples. The main classes are <code>GRAMR</code> and <code>GRAMRLevel</code>; most of the other code at this level lives under <code>Source</code>. It includes the CCZ4 equations, matter classes, finite derivatives, boundary conditions, parameter handling, interpolation and extraction.</p>
+<p><strong>GRTeclyn</strong>, which provides physics and infrastructure shared by several examples. The main classes are <code>GRAmr</code> and <code>GRAmrLevel</code>; most of the other code at this level lives under <code>Source</code>. It includes the CCZ4 equations, matter classes, finite derivatives, boundary conditions, parameter handling, interpolation and extraction.</p>
 </li>
 <li>
 <p><strong>AMReX</strong>, which controls the overall program flow for a block-structured AMR evolution. The important base classes are <code>amrex::Amr</code> and <code>amrex::AmrLevel</code>. AMReX constructs the grid hierarchy, regrids it, fills boundary and ghost cells, advances each level and writes plot files and checkpoints.</p>
 </li>
 </ol>
 <p>The inheritance chain for a typical level is therefore</p>
-<pre class="highlight"><code class="language-text">amrex::AmrLevel -&gt; GRAMRLevel -&gt; ScalarFieldLevel (or another example level)</code></pre>
+<pre class="highlight"><code class="language-text">amrex::AmrLevel -&gt; GRAmrLevel -&gt; ScalarFieldLevel (or another example level)</code></pre>
 <p>and for the object which manages the whole hierarchy it is</p>
-<pre class="highlight"><code class="language-text">amrex::Amr -&gt; GRAMR -&gt; an optional example-specific AMR class</code></pre>
-<p>For example, <code>ScalarFieldAMR</code> adds the particle interpolators used by the Scalar Field example, while <code>BHAMR</code> adds puncture tracking for the Binary Black Hole example. An example which needs no extra hierarchy-wide data can use <code>GRAMR</code> directly, as Klein Gordon does.</p>
+<pre class="highlight"><code class="language-text">amrex::Amr -&gt; GRAmr -&gt; an optional example-specific AMR class</code></pre>
+<p>For example, <code>ScalarFieldAmr</code> adds the particle interpolators used by the Scalar Field example, while <code>BHAmr</code> adds puncture tracking for the Binary Black Hole example. An example which needs no extra hierarchy-wide data can use <code>GRAmr</code> directly, as Klein Gordon does.</p>
 <h2 id="where-to-find-the-files">Where to find the files</h2>
 <p>The top-level folders divide the code by purpose:</p>
 <ul>
@@ -199,7 +199,7 @@
 <p>Code should normally be placed at the most general level at which it can be reused. Problem-specific initial data belongs in its example folder; for example, the oscillaton initial data is in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/OscillatonInitialData.hpp"><code>Examples/ScalarField/OscillatonInitialData.hpp</code></a>. General black hole initial data and puncture tracking live in <a href="https://github.com/GRTLCollaboration/GRTeclyn/tree/main/Source/BlackHoles"><code>Source/BlackHoles</code></a>, because several examples may use them. Reusable tagging criteria similarly live in <a href="https://github.com/GRTLCollaboration/GRTeclyn/tree/main/Source/Tagging"><code>Source/Tagging</code></a>.</p>
 <p>Header files commonly contain small or templated implementations. Where that would make a header unwieldy, GRTeclyn puts the definitions in a matching <code>.impl.hpp</code> file and includes it at the end of the main header. Ordinary non-templated functions may instead be defined in a <code>.cpp</code> file.</p>
 <h2 id="important-files-in-an-example">Important files in an example</h2>
-<p>The level class, such as <code>ScalarFieldLevel</code>, is the best place to start. It inherits <code>GRAMRLevel</code> and overrides hooks for the work specific to that example:</p>
+<p>The level class, such as <code>ScalarFieldLevel</code>, is the best place to start. It inherits <code>GRAmrLevel</code> and overrides hooks for the work specific to that example:</p>
 <ul>
 <li>
 <p><code>variableSetUp()</code> registers the evolved state and the available diagnostics;</p>
@@ -208,13 +208,13 @@
 <p><code>initData()</code> fills the initial state;</p>
 </li>
 <li>
-<p><code>specificEvalRHS()</code> calculates the RHS during each Runge-Kutta stage;</p>
+<p><code>specific_eval_rhs()</code> calculates the RHS during each Runge-Kutta stage;</p>
 </li>
 <li>
-<p><code>specificAdvance()</code> and <code>specificUpdateODE()</code> perform any extra work around an update;</p>
+<p><code>specific_advance()</code> and <code>specific_update_ode()</code> perform any extra work around an update;</p>
 </li>
 <li>
-<p><code>specificPostTimeStep()</code> performs work after a completed level time step; and</p>
+<p><code>specific_post_timestep()</code> performs work after a completed level time step; and</p>
 </li>
 <li>
 <p><code>tag_cells()</code> selects cells for refinement.</p>
@@ -222,14 +222,14 @@
 </ul>
 <p><code>StateVariables.hpp</code> defines the component indices, output names, boundary parities and asymptotic values for everything carried in the evolution state. <code>SimulationParameters.hpp</code> gathers the parameter checks needed by that example. The main file creates the level factory and AMR object, initializes the hierarchy and runs the coarse time-step loop.</p>
 <h2 id="hooks-and-virtual-functions">Hooks and virtual functions</h2>
-<p>Each part of the AMReX/GRTeclyn/example hierarchy has some awareness of the part above and below it. AMReX calls virtual functions on <code>GRAMRLevel</code>; the GRTeclyn implementation performs the common work and calls hooks such as <code>specificEvalRHS()</code> or <code>specificPostTimeStep()</code> which the example level overrides.</p>
-<p>The <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/GRTeclynCore/DefaultLevelFactory.hpp"><code>DefaultLevelFactory</code></a> tells AMReX which example level class to construct on every refinement level. This is another use of templating: <code>DefaultLevelFactory&lt;ScalarFieldLevel&gt;</code> creates <code>ScalarFieldLevel</code> objects, while the same factory code can be reused for other examples.</p>
-<p>If your question is "when and why is my code doing this step?", begin at the corresponding function in the example level, then follow the override into <code>GRAMRLevel</code> and finally into AMReX. The command <code>rg</code> (or <code>grep</code>) is your friend here.</p>
+<p>Each part of the AMReX/GRTeclyn/example hierarchy has some awareness of the part above and below it. AMReX calls virtual functions on <code>GRAmrLevel</code>; the GRTeclyn implementation performs the common work and calls hooks such as <code>specific_eval_rhs()</code> or <code>specific_post_timestep()</code> which the example level overrides.</p>
+<p>The <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/GRTeclynCore/DefaultLevelBld.hpp"><code>DefaultLevelBld</code></a> tells AMReX which example level class to construct on every refinement level. This is another use of templating: <code>DefaultLevelBld&lt;ScalarFieldLevel&gt;</code> creates <code>ScalarFieldLevel</code> objects, while the same factory code can be reused for other examples.</p>
+<p>If your question is "when and why is my code doing this step?", begin at the corresponding function in the example level, then follow the override into <code>GRAmrLevel</code> and finally into AMReX. The command <code>rg</code> (or <code>grep</code>) is your friend here.</p>
 <h2 id="a-note-on-amr-versus-amrlevel">A note on AMR versus AMRLevel</h2>
 <p>Here we describe a key point which most users fail to grasp initially, and even experienced users have been known to get wrong - the difference between AMR and AMRLevel. It is always worth some extra thinking time, and probably also some outputting to check what is going on matches what you meant to do. (Don't ever feel ashamed to add a line which prints "I am here doing X on level Y" to the code.)</p>
 <p>The AMR object controls the program flow for the entire hierarchy. It knows, for example, how many levels of refinement exist, the grid spacing and time step on each level, and when the levels need to be advanced or regridded.</p>
-<p>An AMRLevel object represents just one level of that hierarchy. If six refinement levels currently exist, there are six example-level objects, each with its own values of <code>Geom().CellSize()</code>, <code>Level()</code> and the state on that level. Instructions in a level class happen on each level in an order determined by the AMR object. A level can access its parent hierarchy through <code>get_gramr_ptr()</code> when wider coordination is needed.</p>
-<p>So, for example, if you write a command in <code>specificPostTimeStep()</code> which outputs <code>"hello world"</code>, you will get this output after every time step on every level. With a refinement ratio of two, during one level 0 time step, level 1 normally takes two steps, level 2 takes four, and so on. This will be a lot of output.</p>
+<p>An AMRLevel object represents just one level of that hierarchy. If six refinement levels currently exist, there are six example-level objects, each with its own values of <code>Geom().CellSize()</code>, <code>Level()</code> and the state on that level. Instructions in a level class happen on each level in an order determined by the AMR object. A level can access its parent hierarchy through <code>get_gr_amr_ptr()</code> when wider coordination is needed.</p>
+<p>So, for example, if you write a command in <code>specific_post_timestep()</code> which outputs <code>"hello world"</code>, you will get this output after every time step on every level. With a refinement ratio of two, during one level 0 time step, level 1 normally takes two steps, level 2 takes four, and so on. This will be a lot of output.</p>
 <p>If instead you want something to happen only once per coarse time step, it will usually be initiated by the level 0 object, so bracket it with <code>if (Level() == 0)</code>. Writing a global diagnostic or performing an extraction are common examples.</p>
 <p>Sometimes work must first be done on every level at a time shared with level 0, before level 0 combines or outputs the result. In that case, test whether the current time is a multiple of the level 0 time step and make sure all levels have current data before doing the level 0 operation. Calculating a diagnostic on every fine-level substep would not usually be wrong, but most of those results would never be output and the extra work can significantly slow the code.</p>
 <p>Getting this wrong can be a source of both poor performance and incorrect results, for example if the finest-level data has not been updated before a reduction or extraction. If you use the code a lot, at some point you will get it wrong, despite having now been warned about it. But at least it will make you feel less bad to know that others have done the same.</p>

@@ -207,35 +207,35 @@ this-&gt;add_derived_vars({0, 1}, parities, "Weyl4");</code></pre>
 </ul>
 <h3 id="linking-with-your-example-and-particleinterpolator">Linking with your example and <code>ParticleInterpolator</code></h3>
 <p>In this section we will explain how to link your extraction method to your particlar example. We will use the BinaryBH as an example.</p>
-<p>As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the <code>ParticleInterpolator</code> only once. We therefore store it as part of the AMR object and set it up during AMR initialisation. For example, for black holes (BHs) we have <code>BHAMR</code> class. Hence, we directly add the interpolator as its public member:</p>
+<p>As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the <code>ParticleInterpolator</code> only once. We therefore store it as part of the AMR object and set it up during AMR initialisation. For example, for black holes (BHs) we have <code>BHAmr</code> class. Hence, we directly add the interpolator as its public member:</p>
 <pre class="highlight"><code class="language-cpp">// example for interpolator object for Psi4 extraction
     static constexpr int weyl_num_components = 2;
     ParticleInterpolator&lt;weyl_num_components&gt; m_weyl_interpolator; // interpolator object</code></pre>
-<p>and set up the interpolator in <code>BHAMR::init()</code>:</p>
+<p>and set up the interpolator in <code>BHAmr::init()</code>:</p>
 <pre class="highlight"><code class="language-cpp">void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
     {
-        GRAMR::init(a_strt_time, a_stop_time);
+        GRAmr::init(a_strt_time, a_stop_time);
 
         const auto &amp;params = get_simulation_parameters();
-        m_weyl_interpolator.setup(this, params.boundary_params, true);
+        m_weyl_interpolator.setup(this);
     }</code></pre>
-<p>In our binary BH example, we can then switch on the extraction in <code>BinaryBHLevel::specificPostTimeStep</code> using:</p>
+<p>In our binary BH example, we can then switch on the extraction in <code>BinaryBHLevel::specific_post_timestep</code> using:</p>
 <pre class="highlight"><code class="language-cpp">// Weyl extraction
-    if (simParams().activate_extraction)
+    if (extraction_params.enabled)
     {
-        int min_level = simParams().extraction_params.min_extraction_level();
+        int min_level = extraction_params.min_extraction_level();
         bool calculate_weyl = at_level_timestep_multiple(min_level);
 
         if (calculate_weyl &amp;&amp; Level() == min_level)
         {
             amrex::Real m_time       = get_state_data(state_index).curTime();
-            amrex::Real m_dt         = get_gramr_ptr()-&gt;dtLevel(Level());
-            amrex::Real restart_time = get_gramr_ptr()-&gt;get_restart_time();
+            amrex::Real m_dt         = get_gr_amr_ptr()-&gt;dtLevel(Level());
+            amrex::Real restart_time = get_gr_amr_ptr()-&gt;get_restart_time();
             bool first_step          = (m_time &lt;= m_dt);
 
-            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
+            WeylExtraction my_extraction(extraction_params, m_dt,
                                          m_time, first_step, restart_time);
-            my_extraction.execute_query(&amp;get_bhamr_ptr()-&gt;m_weyl_interpolator);
+            my_extraction.execute_query(&amp;get_bh_amr_ptr()-&gt;m_weyl_interpolator);
         }
     }</code></pre>
 <div class="admonition note">

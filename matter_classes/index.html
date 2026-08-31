@@ -187,7 +187,7 @@ class MatterEvolution
 <ol>
 <li>Select the concrete matter type, as <code>ScalarFieldLevel</code> does with <code>ScalarField&lt;Potential&gt;</code>.</li>
 <li>Construct the matter-aware CCZ4 RHS with that matter type and the required derivative type.</li>
-<li>During <code>specificEvalRHS()</code>, call the inherited vacuum CCZ4 calculations, add the Einstein sources, add the matter RHS, and then apply dissipation. See <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/ScalarFieldLevel.cpp"><code>ScalarFieldLevel::specificEvalRHS()</code></a> for the order of these operations.</li>
+<li>During <code>specific_eval_rhs()</code>, call the inherited vacuum CCZ4 calculations, add the Einstein sources, add the matter RHS, and then apply dissipation. See <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/ScalarFieldLevel.cpp"><code>ScalarFieldLevel::specific_eval_rhs()</code></a> for the order of these operations.</li>
 <li>Register any matter diagnostics, such as the energy density or constraints with matter, in <code>variableSetUp()</code>.</li>
 </ol>
 <p>If the new model has a potential or another interchangeable piece of physics, that may itself be templated in the same way. The Scalar Field example keeps its model-specific potential in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/ScalarField/Potential.hpp"><code>Examples/ScalarField/Potential.hpp</code></a>, while the reusable scalar field evolution remains in <code>Source/Matter</code>.</p>
