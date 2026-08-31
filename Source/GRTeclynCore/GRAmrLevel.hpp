@@ -195,7 +195,7 @@ class GRAmrLevel : public amrex::AmrLevel
 
   private:
 
-    GRAmr *m_gramr_ptr = nullptr;
+    GRAmr *m_gr_amr_ptr = nullptr;
 
   protected:
 

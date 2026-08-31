@@ -91,15 +91,15 @@ GRAmrLevel::~GRAmrLevel() = default;
 
 GRAmr *GRAmrLevel::get_gr_amr_ptr()
 {
-    if (m_gramr_ptr == nullptr)
+    if (m_gr_amr_ptr == nullptr)
     {
         if (parent == nullptr)
         {
             amrex::Abort("AmrLevel::parent is null");
         }
-        m_gramr_ptr = dynamic_cast<GRAmr *>(parent);
+        m_gr_amr_ptr = dynamic_cast<GRAmr *>(parent);
     }
-    return m_gramr_ptr;
+    return m_gr_amr_ptr;
 }
 
 void GRAmrLevel::computeInitialDt(

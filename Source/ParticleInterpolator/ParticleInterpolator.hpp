@@ -34,7 +34,7 @@ class ParticleInterpolator
     static_assert(num_components >= 1);
 
   private:
-    GRAmr *m_gramr_ptr{nullptr};
+    GRAmr *m_gr_amr_ptr{nullptr};
 
     bool m_initialized{
         false}; // a guard to make sure we do not uninitialised GRAmr
