@@ -150,11 +150,11 @@ void ScalarFieldLevel::initData()
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
-                                       amrex::MultiFab &a_rhs,
-                                       const amrex::Real /*a_time*/)
+void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+                                         amrex::MultiFab &a_rhs,
+                                         const amrex::Real /*a_time*/)
 {
-    BL_PROFILE("ScalarFieldLevel::specificEvalRHS()");
+    BL_PROFILE("ScalarFieldLevel::specific_eval_rhs()");
 
     const auto &soln_arrays       = a_soln.arrays();
     const auto &const_soln_arrays = a_soln.const_arrays();

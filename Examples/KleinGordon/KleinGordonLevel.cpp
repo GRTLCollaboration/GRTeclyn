@@ -106,11 +106,11 @@ void KleinGordonLevel::initData()
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void KleinGordonLevel::specificEvalRHS(amrex::MultiFab &a_soln,
-                                       amrex::MultiFab &a_rhs,
-                                       const amrex::Real a_time)
+void KleinGordonLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+                                         amrex::MultiFab &a_rhs,
+                                         const amrex::Real a_time)
 {
-    BL_PROFILE("KleinGordonLevel::specificEvalRHS()");
+    BL_PROFILE("KleinGordonLevel::specific_eval_rhs()");
 
     amrex::ParmParse pp("klein_gordon");
 

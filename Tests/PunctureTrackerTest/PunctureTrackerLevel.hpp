@@ -32,8 +32,8 @@ class PunctureTrackerLevel : public GRAmrLevel
     void initData() override;
 
     /// Calculation of the right hand side for the time stepping
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const amrex::Real a_time) override;
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override;
 
     // to do post each time step on every level
     void specific_post_timestep() override;

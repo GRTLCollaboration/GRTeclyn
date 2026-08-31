@@ -62,8 +62,8 @@ class ParticleInterpolatorLevel : public GRAmrLevel
     }
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const amrex::Real a_time) override
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override
     {
     }
 

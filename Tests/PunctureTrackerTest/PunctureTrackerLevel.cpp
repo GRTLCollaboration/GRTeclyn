@@ -57,9 +57,9 @@ void PunctureTrackerLevel::initData()
 
 // Calculate RHS during RK4 substeps
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void PunctureTrackerLevel::specificEvalRHS(amrex::MultiFab &a_soln,
-                                           amrex::MultiFab &a_rhs,
-                                           const amrex::Real /*a_time*/)
+void PunctureTrackerLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+                                             amrex::MultiFab &a_rhs,
+                                             const amrex::Real /*a_time*/)
 {
     // We don't need any evolution in this test.
     a_rhs.setVal(0.0);

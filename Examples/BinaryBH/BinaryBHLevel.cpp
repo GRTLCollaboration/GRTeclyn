@@ -158,11 +158,11 @@ void BinaryBHLevel::initData()
 
 // Calculate RHS during RK4 substeps
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
-                                    amrex::MultiFab &a_rhs,
-                                    const amrex::Real /*a_time*/)
+void BinaryBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+                                      amrex::MultiFab &a_rhs,
+                                      const amrex::Real /*a_time*/)
 {
-    BL_PROFILE("BinaryBHLevel::specificEvalRHS()");
+    BL_PROFILE("BinaryBHLevel::specific_eval_rhs()");
     const auto &soln_arrays       = a_soln.arrays();
     const auto &const_soln_arrays = a_soln.const_arrays();
     const auto &rhs_arrays        = a_rhs.arrays();

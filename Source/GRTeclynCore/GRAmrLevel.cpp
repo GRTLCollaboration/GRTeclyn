@@ -172,7 +172,7 @@ amrex::Real GRAmrLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
             amrex::Real t, amrex::Real /*dtsub*/)
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-            specificEvalRHS(const_cast<amrex::MultiFab &>(soln), rhs, t);
+            specific_eval_rhs(const_cast<amrex::MultiFab &>(soln), rhs, t);
             m_boundaries.apply_sommerfeld_boundaries(rhs, soln);
         },
         [&](int /*stage*/, amrex::MultiFab &soln) { specificUpdateODE(soln); });

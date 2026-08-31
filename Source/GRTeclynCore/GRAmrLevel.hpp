@@ -143,9 +143,9 @@ class GRAmrLevel : public amrex::AmrLevel
     /// Virtual function for the problem specific parts of postTimeStep
     virtual void specific_post_timestep() {}
 
-    virtual void specificEvalRHS(amrex::MultiFab &a_soln,
-                                 amrex::MultiFab &a_rhs,
-                                 const amrex::Real a_time) = 0;
+    virtual void specific_eval_rhs(amrex::MultiFab &a_soln,
+                                   amrex::MultiFab &a_rhs,
+                                   const amrex::Real a_time) = 0;
 
     virtual void specificUpdateODE(amrex::MultiFab & /*a_soln*/) {}
 
