@@ -36,7 +36,7 @@ class ScalarFieldLevel : public GRAmrLevel
 
     void specificUpdateODE(amrex::MultiFab &a_soln) override;
 
-    void specificPostTimeStep() override;
+    void specific_post_timestep() override;
 
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;

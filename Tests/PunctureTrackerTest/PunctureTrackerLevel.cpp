@@ -221,7 +221,7 @@ void PunctureTrackerLevel::specific_post_checkpoint(
     get_puncture_tracker().checkpoint(a_chk_dir);
 }
 
-void PunctureTrackerLevel::specificPostTimeStep()
+void PunctureTrackerLevel::specific_post_timestep()
 {
     GRParmParse puncture_tracking_pp("puncture_tracking");
     int puncture_tracking_level{};

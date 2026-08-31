@@ -60,9 +60,9 @@ void ScalarFieldLevel::specificAdvance()
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specificPostTimeStep()
+void ScalarFieldLevel::specific_post_timestep()
 {
-    BL_PROFILE("ScalarFieldLevel::specificPostTimeStep()");
+    BL_PROFILE("ScalarFieldLevel::specific_post_timestep()");
 
     if (Level() == 0)
     {

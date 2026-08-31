@@ -36,7 +36,7 @@ class PunctureTrackerLevel : public GRAmrLevel
                          const amrex::Real a_time) override;
 
     // to do post each time step on every level
-    void specificPostTimeStep() override;
+    void specific_post_timestep() override;
 
     /// Tag cells for regridding
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,

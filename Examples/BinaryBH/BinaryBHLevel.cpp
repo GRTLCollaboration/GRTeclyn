@@ -388,9 +388,9 @@ void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
     }
 }
 
-void BinaryBHLevel::specificPostTimeStep()
+void BinaryBHLevel::specific_post_timestep()
 {
-    BL_PROFILE("BinaryBHLevel::specificPostTimeStep");
+    BL_PROFILE("BinaryBHLevel::specific_post_timestep");
 
     if (get_bhamr_ptr()->puncture_tracking_enabled())
     {

@@ -217,7 +217,7 @@ void GRAmrLevel::post_timestep(int /*iteration*/)
         }
     }
 
-    specificPostTimeStep();
+    specific_post_timestep();
 }
 
 void GRAmrLevel::post_regrid(int a_lbase, int a_new_finest)

@@ -48,7 +48,7 @@ class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
 
         // need to reverse this vector so that m_func is called in order of
         // finest level to coarsest. This is important for example for
-        // 'specificPostTimeStep', which is always run in reverse order of
+        // 'specific_post_timestep', which is always run in reverse order of
         // levels
         if (m_reverse_levels)
             std::reverse(std::begin(amr_level_ptrs), std::end(amr_level_ptrs));

@@ -32,7 +32,7 @@ class KleinGordonLevel : public GRAmrLevel
     void specificUpdateODE(amrex::MultiFab &a_soln) override {};
 
     // to do post each time step on every level
-    void specificPostTimeStep() override {};
+    void specific_post_timestep() override {};
 
     //! Error estimation for regridding.
     void tag_cells(amrex::TagBoxArray &tags,

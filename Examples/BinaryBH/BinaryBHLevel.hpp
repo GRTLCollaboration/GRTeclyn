@@ -40,7 +40,7 @@ class BinaryBHLevel : public GRAmrLevel
     void specificUpdateODE(amrex::MultiFab &a_soln) override;
 
     // to do post each time step on every level
-    void specificPostTimeStep() override;
+    void specific_post_timestep() override;
 
     /// Things to do before tagging cells for regridding
     void pre_tag_cells() final;

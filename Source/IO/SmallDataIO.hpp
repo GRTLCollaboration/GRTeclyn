@@ -110,7 +110,7 @@ class SmallDataIO
                 int a_filename_steps_width = s_default_filename_steps_width);
 
     //! Old constructor which assumes SmallDataIO is called in
-    //! specificPostTimeStep
+    //! specific_post_timestep
     SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
                 amrex::Real a_time, amrex::Real a_restart_time, Mode a_mode,
                 const std::string &a_file_extension = s_default_file_extension,
