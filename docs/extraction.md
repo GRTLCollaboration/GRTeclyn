@@ -94,13 +94,13 @@ void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
     }
 ```
 
-In our binary BH example, we can then switch on the extraction in `BinaryBHLevel::specificPostTimeStep` using:
+In our binary BH example, we can then switch on the extraction in `BinaryBHLevel::specific_post_timestep` using:
 
 ```cpp
 // Weyl extraction
-    if (simParams().activate_extraction)
+    if (extraction_params.enabled)
     {
-        int min_level = simParams().extraction_params.min_extraction_level();
+        int min_level = extraction_params.min_extraction_level();
         bool calculate_weyl = at_level_timestep_multiple(min_level);
 
         if (calculate_weyl && Level() == min_level)
@@ -110,7 +110,7 @@ In our binary BH example, we can then switch on the extraction in `BinaryBHLevel
             amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
             bool first_step          = (m_time <= m_dt);
 
-            WeylExtraction my_extraction(simParams().extraction_params, m_dt,
+            WeylExtraction my_extraction(extraction_params, m_dt,
                                          m_time, first_step, restart_time);
             my_extraction.execute_query(&get_bhamr_ptr()->m_weyl_interpolator);
         }

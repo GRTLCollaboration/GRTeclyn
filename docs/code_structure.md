@@ -54,11 +54,11 @@ The level class, such as `ScalarFieldLevel`, is the best place to start. It inhe
 
 - `initData()` fills the initial state;
 
-- `specificEvalRHS()` calculates the RHS during each Runge-Kutta stage;
+- `specific_eval_rhs()` calculates the RHS during each Runge-Kutta stage;
 
-- `specificAdvance()` and `specificUpdateODE()` perform any extra work around an update;
+- `specific_advance()` and `specific_update_ode()` perform any extra work around an update;
 
-- `specificPostTimeStep()` performs work after a completed level time step; and
+- `specific_post_timestep()` performs work after a completed level time step; and
 
 - `tag_cells()` selects cells for refinement.
 
@@ -66,7 +66,7 @@ The level class, such as `ScalarFieldLevel`, is the best place to start. It inhe
 
 ## Hooks and virtual functions
 
-Each part of the AMReX/GRTeclyn/example hierarchy has some awareness of the part above and below it. AMReX calls virtual functions on `GRAmrLevel`; the GRTeclyn implementation performs the common work and calls hooks such as `specificEvalRHS()` or `specificPostTimeStep()` which the example level overrides.
+Each part of the AMReX/GRTeclyn/example hierarchy has some awareness of the part above and below it. AMReX calls virtual functions on `GRAmrLevel`; the GRTeclyn implementation performs the common work and calls hooks such as `specific_eval_rhs()` or `specific_post_timestep()` which the example level overrides.
 
 The [`DefaultLevelBld`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/GRTeclynCore/DefaultLevelBld.hpp) tells AMReX which example level class to construct on every refinement level. This is another use of templating: `DefaultLevelBld<ScalarFieldLevel>` creates `ScalarFieldLevel` objects, while the same factory code can be reused for other examples.
 
@@ -80,7 +80,7 @@ The AMR object controls the program flow for the entire hierarchy. It knows, for
 
 An AMRLevel object represents just one level of that hierarchy. If six refinement levels currently exist, there are six example-level objects, each with its own values of `Geom().CellSize()`, `Level()` and the state on that level. Instructions in a level class happen on each level in an order determined by the AMR object. A level can access its parent hierarchy through `get_gr_amr_ptr()` when wider coordination is needed.
 
-So, for example, if you write a command in `specificPostTimeStep()` which outputs `"hello world"`, you will get this output after every time step on every level. With a refinement ratio of two, during one level 0 time step, level 1 normally takes two steps, level 2 takes four, and so on. This will be a lot of output.
+So, for example, if you write a command in `specific_post_timestep()` which outputs `"hello world"`, you will get this output after every time step on every level. With a refinement ratio of two, during one level 0 time step, level 1 normally takes two steps, level 2 takes four, and so on. This will be a lot of output.
 
 If instead you want something to happen only once per coarse time step, it will usually be initiated by the level 0 object, so bracket it with `if (Level() == 0)`. Writing a global diagnostic or performing an extraction are common examples.
 
