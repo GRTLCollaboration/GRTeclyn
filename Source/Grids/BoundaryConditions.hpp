@@ -22,7 +22,7 @@
 /// (usually) write their own conditions class which inherits from this one.
 /// Boundary handling combines AMReX ghost-cell filling with explicit RHS
 /// updates where required. FIRST_ORDER_EXTRAPOLATION_BC and REFLECTIVE_BC are
-/// translated into AMReX BCType values in GRAMRLevel::stateVariableSetUp(),
+/// translated into AMReX BCType values in GRAmrLevel::stateVariableSetUp(),
 /// then imposed by AMReX when FillPatch fills the physical ghost cells.
 class BoundaryConditions
 {

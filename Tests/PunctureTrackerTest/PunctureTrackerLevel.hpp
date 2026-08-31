@@ -8,15 +8,15 @@
 
 #include "BHAMR.hpp"
 #include "DefaultLevelFactory.hpp"
-#include "GRAMRLevel.hpp"
+#include "GRAmrLevel.hpp"
 
-class PunctureTrackerLevel : public GRAMRLevel
+class PunctureTrackerLevel : public GRAmrLevel
 {
   public:
     static void variableSetUp();
 
-    // Inherit the contructors from GRAMRLevel
-    using GRAMRLevel::GRAMRLevel;
+    // Inherit the contructors from GRAmrLevel
+    using GRAmrLevel::GRAmrLevel;
 
     static constexpr int num_punctures = 2;
     static constexpr std::size_t num_puncture_coords =

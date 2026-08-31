@@ -20,7 +20,7 @@
 #include <sys/time.h>
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
-class GRAMRLevel : public amrex::AmrLevel
+class GRAmrLevel : public amrex::AmrLevel
 {
   public:
     /**
@@ -31,14 +31,14 @@ class GRAMRLevel : public amrex::AmrLevel
 
     static void variableCleanUp();
 
-    GRAMRLevel();
+    GRAmrLevel();
 
-    GRAMRLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
+    GRAmrLevel(amrex::Amr &papa, int lev, const amrex::Geometry &geom,
                const amrex::BoxArray &box_array,
                const amrex::DistributionMapping &distribution_mapping,
                amrex::Real time);
 
-    ~GRAMRLevel() override;
+    ~GRAmrLevel() override;
 
     GRAmr *get_gramr_ptr();
 

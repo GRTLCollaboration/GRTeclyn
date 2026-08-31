@@ -8,20 +8,20 @@
 
 #include "DefaultLevelFactory.hpp"
 #include "FixedGridsTagger.hpp"
-#include "GRAMRLevel.hpp"
 #include "GRAmr.hpp"
+#include "GRAmrLevel.hpp"
 #include "PolynomialDerivedQuantity.hpp"
 #include "StateTypes.hpp"
 
 // We basically need this to have a valid AMR hierarchy
 
-class ParticleInterpolatorLevel : public GRAMRLevel
+class ParticleInterpolatorLevel : public GRAmrLevel
 {
   public:
     friend class DefaultLevelFactory<ParticleInterpolatorLevel>;
 
-    // Inherit the contructors from GRAMRLevel
-    using GRAMRLevel::GRAMRLevel;
+    // Inherit the contructors from GRAmrLevel
+    using GRAmrLevel::GRAmrLevel;
 
     static void variableSetUp()
     {

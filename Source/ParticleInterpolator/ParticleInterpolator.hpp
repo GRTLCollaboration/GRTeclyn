@@ -12,8 +12,8 @@
 
 #include "BCParity.hpp"
 #include "BoundaryConditions.hpp"
-#include "GRAMRLevel.hpp"
 #include "GRAmr.hpp"
+#include "GRAmrLevel.hpp"
 #include "InterpolationQueryParticle.hpp"
 #include "MPIContextParticle.hpp"
 

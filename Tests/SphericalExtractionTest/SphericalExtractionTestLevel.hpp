@@ -8,20 +8,20 @@
 
 #include "DefaultLevelFactory.hpp"
 #include "FixedGridsTagger.hpp"
-#include "GRAMRLevel.hpp"
 #include "GRAmr.hpp"
+#include "GRAmrLevel.hpp"
 #include "GRParmParse.hpp"
 #include "SimulationParameters.hpp"
 #include "SphericalHarmonics.hpp"
 #include "StateTypes.hpp"
 #include "StateVariables.hpp"
 
-class SphericalExtractionTestLevel : public GRAMRLevel
+class SphericalExtractionTestLevel : public GRAmrLevel
 {
   public:
     friend class DefaultLevelFactory<SphericalExtractionTestLevel>;
 
-    using GRAMRLevel::GRAMRLevel;
+    using GRAmrLevel::GRAmrLevel;
 
     static void variableSetUp() { stateVariableSetUp(); }
 

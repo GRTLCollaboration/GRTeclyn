@@ -6,16 +6,16 @@
 #ifndef MULTILEVELTASK_HPP_
 #define MULTILEVELTASK_HPP_
 
-#include "GRAMRLevel.hpp"
+#include "GRAmrLevel.hpp"
 #include <AMReX_Amr.H>
 
 #include <limits> // std::numeric_limits
 
-//! This is just an interface for the AMR scheduler to call some GRAMRLevel (or
+//! This is just an interface for the AMR scheduler to call some GRAmrLevel (or
 //! any other Example specific level) function on every AMRLevel
 //! Satisfies syntax of Chombo's Scheduler such that it can be passed to GRAmr
 //! and be scheduled
-template <class level_t = GRAMRLevel>
+template <class level_t = GRAmrLevel>
 class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
 {
 #if 0
@@ -67,7 +67,7 @@ class MultiLevelTask // xxxxx: public Scheduler::PeriodicFunction
 //! This can either be called directly by calling execute, or passed to an AMR
 //! (as GRAmr) by doing gr_amr.schedule(me) (this version will make it be called
 //! only after plot files are written, if that is ever an interest)
-template <class level_t = GRAMRLevel>
+template <class level_t = GRAmrLevel>
 class MultiLevelTaskPtr : public RefCountedPtr<Scheduler>
 {
     RefCountedPtr<MultiLevelTask<level_t>> m_ptr_to_func;

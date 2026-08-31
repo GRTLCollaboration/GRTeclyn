@@ -12,13 +12,13 @@
 
 #include "DimensionDefinitions.hpp"
 #include "FilesystemTools.hpp"
-#include "GRAMRLevel.hpp"
+#include "GRAmrLevel.hpp"
 #include "SmallDataIO.hpp" // for writing data
 #include "StateTypes.hpp"
 #include "StateVariables.hpp"
 
 // AMReX includes
-#include <AMReX_AmrLevel.H> // complete type needed during GRAMRLevel includes
+#include <AMReX_AmrLevel.H> // complete type needed during GRAmrLevel includes
 #include <AMReX_AmrParGDB.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_TracerParticle_mod_K.H> // for linear_interpolation

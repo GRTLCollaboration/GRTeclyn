@@ -23,12 +23,12 @@
  */
 
 // Forward declaration for get_gramrlevels function declarations
-class GRAMRLevel;
+class GRAmrLevel;
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class GRAmr : public amrex::Amr
 {
-    friend class GRAMRLevel;
+    friend class GRAmrLevel;
 
   public:
 

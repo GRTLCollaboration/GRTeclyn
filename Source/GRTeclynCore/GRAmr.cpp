@@ -4,7 +4,7 @@
  */
 
 #include "GRAmr.hpp"
-#include "GRAMRLevel.hpp"
+#include "GRAmrLevel.hpp"
 #include "SimulationParameters.hpp"
 
 GRAmr::GRAmr(amrex::LevelBld *a_levelbld) : amrex::Amr(a_levelbld) {}

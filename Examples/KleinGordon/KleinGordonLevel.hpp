@@ -8,13 +8,13 @@
 
 #include "DefaultLevelFactory.hpp"
 #include "DerivedVariables.hpp"
-#include "GRAMRLevel.hpp"
+#include "GRAmrLevel.hpp"
 #include "KleinGordonRHS.hpp"
 
-class KleinGordonLevel : public GRAMRLevel
+class KleinGordonLevel : public GRAmrLevel
 {
   public:
-    using GRAMRLevel::GRAMRLevel;
+    using GRAmrLevel::GRAmrLevel;
 
     //! Define data descriptors.
     static void variableSetUp();
