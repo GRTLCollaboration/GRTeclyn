@@ -188,12 +188,12 @@
               
                 <h1 id="example-configs-for-specific-hpc-systems">Example configs for specific HPC systems</h1>
 <p>In general you should start with an example hybrid MPI/OpenMP or GPU jobscript from your cluster documentation, and adapt it for your GRTeclyn run.</p>
-<p>However, some example jobs for systems we often use are collected here, along with the <code>make.local-pre</code> setup and some helpful tips - to be copied at your own risk!</p>
+<p>However, some example jobs for systems we often use are collected here, along with the <code>Make.local-pre</code> setup and some helpful tips - to be copied at your own risk!</p>
 <hr />
 <h2 id="mac-laptop">Mac laptop</h2>
 <p>This is really for only for debugging.</p>
 <p>Install command line tools on your Mac using the command <code>xcode-select --install</code> in the terminal.</p>
-<p>In the <code>make.local-pre</code> file:
+<p>In the <code>Make.local-pre</code> file:
 <pre class="highlight"><code>COMP = llvm
 USE_OMP = FALSE
 USE_MPI = FALSE</code></pre></p>
@@ -205,7 +205,7 @@ USE_MPI = FALSE</code></pre></p>
 Or you can also use the Intel modules for better performance:</p>
 <p><pre class="highlight"><code>module load intel_comp/2025.1.1 compiler-rt/latest tbb/latest  compiler/latest mpi/latest</code></pre>
 NB: You will need to set the option <code>--mpi=pmi2</code> in your Slurm script to launch Intel MPI correctly.</p>
-<p>In the <code>make.local-pre</code> file we have
+<p>In the <code>Make.local-pre</code> file we have
 <pre class="highlight"><code>COMP = gnu
 USE_OMP = TRUE
 
@@ -274,7 +274,7 @@ mpirun --map-by ppr:$mpi_tasks_per_node:node -np $SLURM_NTASKS $application $opt
 <h3 id="amd-mi300x-partition">AMD MI300X partition</h3>
 <p>The modules used
 <pre class="highlight"><code>module load hipcc/6.3amd openmpi/5.0.3</code></pre></p>
-<p>In the <code>make.local-pre</code> file we have
+<p>In the <code>Make.local-pre</code> file we have
 <pre class="highlight"><code>USE_HIP=TRUE
 # for MI300
 AMREX_AMD_ARCH=gfx942
@@ -304,7 +304,7 @@ mpirun -n ${SLURM_NTASKS} ${exec} ${args}</code></pre>
 module load PrgEnv-cray
 module load craype-accel-amd-gfx90a
 module load rocm</code></pre></p>
-<p>In the <code>make.local-pre</code> file we have
+<p>In the <code>Make.local-pre</code> file we have
 <pre class="highlight"><code>COMP=cray
 AMREX_USE_GPU=TRUE
 USE_HIP=TRUE

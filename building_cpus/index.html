@@ -162,11 +162,11 @@
 <pre class="highlight"><code>make -j 4 USE_OMP=TRUE</code></pre></p>
 <p>If want to consistently override these, it is best to create a <code>Make.local-pre</code> file at
 <pre class="highlight"><code>amrex/Tools/GNUMake/Make.local-pre</code></pre>
-which sets the build configuration variables as you wish. There is an example in <code>${AMREX_HOME}/Tools/GNUMake/Make.local.template</code>. You might want to change some of the following: </p>
+which sets the build configuration variables as you wish. There is an example in <code>${AMREX_HOME}/Tools/GNUMake/Make.local.template</code>. You might want to change some of the following:</p>
 <ul>
 <li>Set <code>USE_OMP = TRUE</code> to use OpenMP</li>
-<li>If you don't want to use the GNU compiler <code>g++</code> , change <code>COMP = gnu</code> to 
-  <code>COMP = intel-llvm</code> (for the Intel LLVM-based C++ compiler <code>icpx</code>) or 
+<li>If you don't want to use the GNU compiler <code>g++</code> , change <code>COMP = gnu</code> to
+  <code>COMP = intel-llvm</code> (for the Intel LLVM-based C++ compiler <code>icpx</code>) or
   <code>COMP = llvm</code> (for LLVM <code>clang++</code>).</li>
 <li>If you don't have an MPI implementation available, set <code>USE_MPI = FALSE</code>.</li>
 </ul>
@@ -192,7 +192,7 @@ to your <code>Make.local-pre</code> configuration file. This is particularly use
 <h2 id="running-the-code">Running the code</h2>
 <p>You can run the example by passing the parameter file as the first argument. For example, for launching with MPI, you might do something like</p>
 <pre class="highlight"><code class="language-bash">mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex params.txt</code></pre>
-<p>On a cluster you will probably need to submit a jobscript for the run. You should consult the system documentation, but some example jobscripts can be found in <a href="../example_configs/">Example configs for specific HPC systems</a> along with the <code>make.local-pre</code> files and module choices if relevant.</p>
+<p>On a cluster you will probably need to submit a jobscript for the run. You should consult the system documentation, but some example jobscripts can be found in <a href="../example_configs/">Example configs for specific HPC systems</a> along with the <code>Make.local-pre</code> files and module choices if relevant.</p>
               
             </div>
           </div><footer>
