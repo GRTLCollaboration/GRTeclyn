@@ -1,0 +1,31 @@
+AWK ?= awk
+
+STOIC_QUOTES_DIR := $(GRTECLYN_HOME)/Tools/StoicQuotes
+STOIC_QUOTES_FILE := $(STOIC_QUOTES_DIR)/StoicQuotes.txt
+STOIC_QUOTES_TOOL := $(STOIC_QUOTES_DIR)/stoic_quotes.awk
+STOIC_QUOTES_SOURCE := $(srcTempDir)/StoicQuotes.cpp
+
+INCLUDE_LOCATIONS += $(STOIC_QUOTES_DIR)
+VPATH_LOCATIONS += $(srcTempDir)
+CEXE_sources += StoicQuotes.cpp
+
+$(STOIC_QUOTES_SOURCE): $(STOIC_QUOTES_FILE) $(STOIC_QUOTES_TOOL)
+	@echo Generating StoicQuotes.cpp ...
+	@$(AWK) -v mode=generate -f $(STOIC_QUOTES_TOOL) $(STOIC_QUOTES_FILE) > $@.tmp && mv $@.tmp $@
+
+.DEFAULT_GOAL := all
+
+.PHONY: all
+
+# Use a sub-make so every completed build produces an appropriate quote.
+all:
+	@$(MAKE) --no-print-directory $(executable) && { \
+	  $(AWK) -v mode=random -v section=success -f $(STOIC_QUOTES_TOOL) \
+	    $(STOIC_QUOTES_FILE); \
+	} || { \
+	  build_status=$$?; \
+	  echo "GRTeclyn build failed."; \
+	  $(AWK) -v mode=random -v section=failure -f $(STOIC_QUOTES_TOOL) \
+	    $(STOIC_QUOTES_FILE) || true; \
+	  exit $$build_status; \
+	}

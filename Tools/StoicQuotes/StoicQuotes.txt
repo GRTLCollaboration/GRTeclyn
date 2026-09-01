@@ -1,0 +1,20 @@
+# Add one quote per line. Blank lines and lines beginning with # are ignored.
+
+[success]
+They who pursue pleasure most attain it the least; the pleasure of eating lies in having an appetite, not in being glutted
+Whoever wishes to be free, let him neither wish for anything nor flee from anything that depends on others, otherwise he must be a slave
+We believe these affairs of ours are great because we are small
+Each man is worth just as much as the things he cares about
+Liberty is having a mind superior to injury, a mind that makes itself the only source from which its pleasures spring
+
+[failure]
+Each man is as wretched as he has convinced himself he is
+Men are disturbed not by the things that happen but by their opinions about those things
+There is nothing either good or bad but thinking makes it so
+We can choose to have no opinion about a thing, and not to be troubled by it; for things themselves have no power of their own to affect our judgement
+No one can have whatever he wants. What he can do is not want what he doesn't have, and cheerfully enjoy what comes his way
+If we were to all to bring our misfortunes into a common store, so that each person should receive an equal share in the distribution, the majority would be glad to take up their own and depart
+No one becomes a laughingstock who laughs at themself
+Do I deserve these things that happen to me? If I deserve them, it is justice. If I don't deserve them, let the one who does the injustice blush
+Still you are indignant and complain, and you don't understand that in all the evils to which you refer, there is really only one - that you are indignant and complain
+

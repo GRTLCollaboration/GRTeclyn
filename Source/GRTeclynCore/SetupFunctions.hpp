@@ -15,6 +15,7 @@
 #include "GRParmParse.hpp"
 #include "IntegrationMethodSetup.hpp"
 #include "SimulationParameters.hpp"
+#include "StoicQuotes.hpp"
 
 #ifdef EQUATION_DEBUG_MODE
 #include "DebuggingTools.hpp"
@@ -53,6 +54,9 @@ void mainSetup(int argc, char *argv[]);
 
 /// This function calls all finalisations
 void mainFinalize();
+
+/// Print the job status followed by a randomly selected Stoic quote.
+void print_job_end_message(int status);
 
 void mainSetup(int argc, char *argv[])
 {
@@ -112,5 +116,20 @@ void mainSetup(int argc, char *argv[])
 }
 
 void mainFinalize() { amrex::Finalize(); }
+
+void print_job_end_message(int status)
+{
+    if (status == 0)
+    {
+        amrex::Print() << "GRTeclyn finished.\n";
+    }
+    else
+    {
+        amrex::Print() << "GRTeclyn failed with return code " << status << '\n';
+    }
+
+    amrex::Print() << "Stoic wisdom: " << StoicQuotes::random_quote(status == 0)
+                   << '\n';
+}
 
 #endif /* SETUP_FUNCTIONS_HPP_ */
