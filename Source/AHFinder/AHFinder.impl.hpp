@@ -325,7 +325,7 @@ double AHFinder<num_components>::inf_norm(std::vector<double> arr)
 }
 
 template <int num_components>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static amrex::GpuArray<amrex::Real, 3>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::GpuArray<amrex::Real, 3>
 AHFinder<num_components>::ring_gradient(const double *field_ptr, int north_idx,
                                         int south_idx, int east_idx,
                                         int west_idx, double d_theta,
