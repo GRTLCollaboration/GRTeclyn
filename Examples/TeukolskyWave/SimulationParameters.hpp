@@ -13,6 +13,10 @@
 #include "SphericalExtractionParameters.hpp"
 #include "TeukolskyWaveInitialData.hpp"
 
+#include <set>
+#include <utility>
+#include <string>
+
 class SimulationParameters
 {
   public:
@@ -35,7 +39,7 @@ class SimulationParameters
         std::string parity{"even"};
         tw_pp.queryAdd("magnetic", magnetic);
         tw_pp.queryAdd("parity", parity);
-        implemented_combinations = {
+        const std::set<std::pair<std::string, int>> implemented_combinations = {
             {"even", 0},
             {"even", 2},
             {"odd",  2}

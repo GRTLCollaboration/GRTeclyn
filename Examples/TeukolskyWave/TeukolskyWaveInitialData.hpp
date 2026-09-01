@@ -9,6 +9,7 @@
 #include "Coordinates.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
+#include "EppleyPacket.hpp"
 
 #include <AMReX_Array4.H>
 #include <AMReX_REAL.H>
@@ -23,13 +24,13 @@ class TeukolskyWaveInitialData
     struct params_t
     {
 
-        int magnetic{};       //!< magnetic quantum number
-        std::string parity{}; //!< parity of the packet. 0 for even, 1 for odd
-        amrex::Real sigma{};  //!< width of the packet
-        amrex::Real amplitude{};     //!< amplitude of the packet
-        amrex::Real radial_offset{}; // offset for radial coordinate to not
+        static int magnetic{};       //!< magnetic quantum number
+        static std::string parity{}; //!< parity of the packet. 0 for even, 1 for odd
+	static amrex::Real sigma{};  //!< width of the packet
+        static amrex::Real amplitude{};     //!< amplitude of the packet
+        static amrex::Real radial_offset{}; // offset for radial coordinate to not
                                      // center the wave on the center
-        amrex::Real regularize_r{};  // small regularization parameter for the
+        static amrex::Real regularize_r{};  // small regularization parameter for the
                                      // radial coordinate
         static void check_params()
         {
