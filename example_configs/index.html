@@ -370,14 +370,13 @@ AMREX_AMD_ARCH=gfx950 # MI355X GPU arch</code></pre>
 An example of the jobscript is
 <pre class="highlight"><code>#!/bin/bash
 #SBATCH --job-name=grteclyn
-#SBATCH --time=01:00:00
+#SBATCH --time=00:10:00
 #SBATCH --partition=mi355x
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=8    # 1 MPI rank per GPU (Zenith has 8 GPUs per node)
+#SBATCH --ntasks-per-node=1    # 1 MPI rank per GPU (Zenith has 8 GPUs per node)
 #SBATCH --cpus-per-task=16     # 128 cores total / 8 tasks = 16 cores per task
-#SBATCH --gres=gpu:8           # Request all 8 MI355X GPUs on the node
+#SBATCH --gres=gpu:1           # Request all 8 MI355X GPUs on the node
 #SBATCH --account=NAME-ZENITH-GPU
-#SBATCH --exclusive
 
 module purge
 module load rhel9/mi355x/base
