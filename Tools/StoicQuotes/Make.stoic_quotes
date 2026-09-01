@@ -9,7 +9,8 @@ INCLUDE_LOCATIONS += $(STOIC_QUOTES_DIR)
 VPATH_LOCATIONS += $(srcTempDir)
 CEXE_sources += StoicQuotes.cpp
 
-$(STOIC_QUOTES_SOURCE): $(STOIC_QUOTES_FILE) $(STOIC_QUOTES_TOOL)
+$(STOIC_QUOTES_SOURCE): $(STOIC_QUOTES_FILE) $(STOIC_QUOTES_TOOL) \
+                        | $(srcTempDir)/AMReX_Config.H
 	@echo Generating StoicQuotes.cpp ...
 	@$(AWK) -v mode=generate -f $(STOIC_QUOTES_TOOL) $(STOIC_QUOTES_FILE) > $@.tmp && mv $@.tmp $@
 
