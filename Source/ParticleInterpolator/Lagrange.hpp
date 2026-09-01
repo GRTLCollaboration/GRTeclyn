@@ -325,19 +325,12 @@ template <int N> class Lagrange
                 }
                 else if (deriv[dim] > 2)
                 {
-                    std::string msg =
-                        "Lagrange::compute_weights() Oi oi oi! "
-                        "You have requested a " +
-                        std::to_string(deriv[dim]) +
-                        std::string((deriv[dim] == 3) ? "rd" : "th") +
-                        "derivative in your ParticleInterpolator "
-                        "query."
-                        "the ParticleInterpolator only supports "
-                        "interpolation"
-                        "of component values and their first and "
-                        "second derivatives.";
-
-                    amrex::Abort(msg);
+                    amrex::Abort("Lagrange::interpolate() Oi oi oi! You have "
+                                 "requested a derivative of order > 2 in your "
+                                 "ParticleInterpolator query. The "
+                                 "ParticleInterpolator only supports "
+                                 "interpolation of component values and their "
+                                 "first and second derivatives.");
                 }
                 else
                 {

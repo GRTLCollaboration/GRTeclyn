@@ -14,6 +14,7 @@
 #include <AMReX_GpuContainers.H>
 #include <map>
 #include <set>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -94,6 +95,21 @@ class InterpolationQueryParticle
                          "for diagnostic variables!");
         }
 
+        for (int dim = 0; dim < AMREX_SPACEDIM; ++dim)
+        {
+            if (deriv[dim] > 2)
+            {
+                amrex::Abort(
+                    "InterpolationQueryParticle::addComp() Oi oi oi! You have "
+                    "requested a derivative of order " +
+                    std::to_string(deriv[dim]) + " in direction " +
+                    std::to_string(dim) +
+                    " in your ParticleInterpolator query. The "
+                    "ParticleInterpolator only supports interpolation of "
+                    "component values and their first and second derivatives.");
+            }
+        }
+
         auto result = m_comps.find(deriv);
         if (result == m_comps.end())
         {
@@ -124,6 +140,7 @@ class InterpolationQueryParticle
         return m_variable_type;
     }
 
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     [[nodiscard]] int numComps() const
     {
         int accum = 0;
