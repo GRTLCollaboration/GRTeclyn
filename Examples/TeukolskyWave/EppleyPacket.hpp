@@ -35,7 +35,7 @@ class EppleyPacket
             tw_pp.get("radial_offset", radial_offset);
             tw_pp.get("regularize_r", regularize_r);
         }
-    }
+    };
 
     params_t m_params;
 
@@ -44,7 +44,7 @@ class EppleyPacket
 
     EppleyPacket() { m_params.fill_params(); };
 
-    EppleyPacketMetricComponents
+    virtual EppleyPacketMetricComponents
     get_metric_components(amrex::Real x, amrex::Real y, amrex::Real z) const;
 };
 
@@ -53,7 +53,7 @@ struct EvenEppleyPacketCoefficients
     amrex::Real A, B, C;
 };
 //! Base class for the even parity Eppley packets
-class EvenEppleyPacket : EppleyPacket
+class EvenEppleyPacket : public EppleyPacket
 {
   public:
     EvenEppleyPacketCoefficients get_ABC(amrex::Real r) const;
@@ -66,7 +66,7 @@ struct OddEppleyPacketCoefficients
     amrex::Real K, L;
 };
 //! Base class for the odd parity Eppley packets
-class OddEppleyPacket : EppleyPacket
+class OddEppleyPacket : public EppleyPacket
 {
   public:
     OddEppleyPacketCoefficients get_KL(amrex::Real r) const;
