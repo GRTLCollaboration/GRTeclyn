@@ -82,8 +82,8 @@ class AHFinder : public ParticleInterpolator<num_components>
     // query's flat scratch-array size and the number of contiguous grid
     // comps FillPatch fetches, so a query's total (comp, derivative) entry
     // count can't exceed the simulation's total number of state variables.
-    InterpolationQueryParticle m_metric_query_state{};
-    InterpolationQueryParticle m_metric_query_deriv{};
+    InterpolationQueryParticle m_metric_query_state;
+    InterpolationQueryParticle m_metric_query_deriv;
 
     std::vector<double> m_theta_vals{};
 
