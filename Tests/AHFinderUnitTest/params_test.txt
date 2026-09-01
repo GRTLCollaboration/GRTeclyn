@@ -1,0 +1,65 @@
+#################################################
+# AHFinder unit test parameters
+
+amrex.verbose = 0
+amr.verbose = 0
+
+grteclyn.output_path = .
+# Number of level-0 time steps between checkpoint files; -1 disables output
+amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
+amr.plot_int = -1
+
+#################################################
+# Initial Data parameters (BinaryBH example, see Examples/BinaryBH)
+
+bh1.mass = 0.5
+bh2.mass = 0.5
+
+bh1.offset = -1.0 0.0 0.0
+bh2.offset =  1.0 0.0 0.0
+
+bh1.momentum = 0.0 0.0 0.0
+bh2.momentum = 0.0 0.0 0.0
+
+#################################################
+# Grid parameters
+
+amr.n_cell = 64 64 64
+geometry.prob_extent = 8.0 8.0 8.0
+
+# We only need the first timestep's data, so never regrid
+amr.max_level = 1
+amr.regrid_int = 0
+
+#################################################
+# Boundary condition parameters
+
+# Periodic directions: 0 = false, 1 = true
+geometry.is_periodic = 0 0 0
+# Options are currently FIRST_ORDER_EXTRAPOLATION_BC, SOMMERFELD_BC,
+# or REFLECTIVE_BC
+boundary.hi_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
+boundary.lo_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "REFLECTIVE_BC"
+
+boundary.nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+boundary.nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+
+#################################################
+# Evolution parameters
+
+evolution.max_steps = 1
+
+#################################################
+# AH finder pseudo-time integrator (AMReX TimeIntegrator)
+# type: ForwardEuler or RungeKutta
+integration.type = RungeKutta
+# Butcher tableau for RungeKutta (2=Trapezoid, 3=SSPRK3, 4=RK4); ignored for
+# ForwardEuler.
+integration.rk.type = 4
+
+#################################################
+# AH finder parameters
+
+test.num_particles = 64
+particle_interpolator.verbosity = false

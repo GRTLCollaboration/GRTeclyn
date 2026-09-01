@@ -33,9 +33,12 @@ class SimulationParameters
         PunctureTagger<2>::check_params();
         puncture_tracker_params_t::check_params();
 
-        // For the AHFinder test, which uses BinaryBH initial data
-        BoostedBHInitialData::params_t::check_params(1);
-        BoostedBHInitialData::params_t::check_params(2);
+        // Only for the tests that use BinaryBH initial data (e.g. AHFinder)
+        if (amrex::ParmParse("bh1").contains("mass"))
+        {
+            BoostedBHInitialData::params_t::check_params(1);
+            BoostedBHInitialData::params_t::check_params(2);
+        }
 
         GRParmParse test_pp("test");
 
@@ -47,6 +50,9 @@ class SimulationParameters
 
         int num_points = 2;
         test_pp.queryAdd("num_points", num_points);
+
+        int num_particles = 64;
+        test_pp.queryAdd("num_particles", num_particles);
 
         int es = 0;
         int el = 2;

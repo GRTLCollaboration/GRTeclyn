@@ -16,14 +16,15 @@
 #include "AMReX_IntVect.H"
 
 // Base includes
-#include "DefaultLevelFactory.hpp"
-#include "GRAMR.hpp"
-#include "GRAMRLevel.hpp"
+#include "DefaultLevelBld.hpp"
+#include "GRAmr.hpp"
+#include "GRAmrLevel.hpp"
 #include "GRParmParse.hpp"
 
 // Problem specific includes
 #include "AHFinder.hpp"
 #include "AHFinderLevel.hpp"
+#include "BoostedBHInitialData.hpp"
 #include "SimulationParameters.hpp"
 
 // Others
@@ -35,8 +36,7 @@ void run_ah_finder_unit_test()
     // second argument
     std::filesystem::path this_file(__FILE__);
     std::filesystem::path input_file =
-        this_file.parent_path() /
-        std::filesystem::path("AHFinderUnitTest.inputs");
+        this_file.parent_path() / std::filesystem::path("params_test.txt");
     char *input_file_c_str = strdup(input_file.c_str());
 
     auto new_args = doctest::cli_args;
@@ -46,22 +46,28 @@ void run_ah_finder_unit_test()
     char **new_argv = new_args.argv();
 
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
-    amrex::Initialize(new_argc, new_argv);
+    amrex::Initialize(
+        new_argc, new_argv,
+        std::function<void()>(SimulationParameters::check_params));
     {
         // Simulation parameters
         GRParmParse pp;
-        SimulationParameters sim_params(pp);
-        GRAMR::set_simulation_parameters(sim_params);
         AHFinderLevel::variableSetUp();
 
         // Set up the AMR object
-        DefaultLevelFactory<AHFinderLevel> ahfinder_test_level_fact;
-        GRAMR gr_amr(&ahfinder_test_level_fact);
-        gr_amr.init(0., sim_params.stop_time);
+        DefaultLevelBld<AHFinderLevel> ahfinder_test_level_fact;
+        GRAmr gr_amr(&ahfinder_test_level_fact);
+
+        amrex::Real stop_time{};
+        pp.get("evolution.stop_time", stop_time);
+        gr_amr.init(0., stop_time);
 
         // Read from params
-        const int num_particles = 64;
-        bool verbosity          = sim_params.verbosity;
+        int num_particles{};
+        pp.get("test.num_particles", num_particles);
+
+        bool verbosity{};
+        pp.get("particle_interpolator.verbosity", verbosity);
 
         // Number of processes and local processes
         const int nprocs = amrex::ParallelDescriptor::NProcs();
@@ -82,11 +88,13 @@ void run_ah_finder_unit_test()
         }
 
         // Search for the individual horizon around puncture A.
-        double guess_radius = 0.5 * sim_params.bh1_params.mass;
-        AHFinder<21> finder(num_particles, sim_params.bh1_params.center,
-                            guess_radius);
+        BoostedBHInitialData::params_t bh1_params(1);
+        bh1_params.fill_params();
 
-        finder.init(&gr_amr, sim_params.boundary_params, verbosity);
+        amrex::Real guess_radius = 0.5 * bh1_params.mass;
+        AHFinder<21> finder(num_particles, bh1_params.center, guess_radius);
+
+        finder.init(&gr_amr);
         finder.find();
     }
 

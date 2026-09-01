@@ -44,10 +44,6 @@ class ParticleInterpolator
     void check_domain(amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> &x,
                       int guard_cells = 0) const;
 
-    // A function to check whether the query point is inside the physical domain
-    void check_domain(amrex::GpuArray<double, AMREX_SPACEDIM> &x,
-                      int guard_cells = 0) const;
-
   private:
     bool m_initialized{
         false}; // a guard to make sure we do not uninitialised GRAmr
@@ -147,7 +143,7 @@ class ParticleInterpolator
 
     // Move the already-populated particles onto the (updated) coordinates
     // held by the current query.
-    void update_particle_positions();
+    void update_particle_positions(const InterpolationQueryParticle &query);
 
     // A helper function that does interpolation from grid onto particles
     void interpolate_to_particle(int lev, amrex::MultiFab &mfab,

@@ -232,13 +232,12 @@ void ParticleInterpolator<num_components>::populate_from_query(
 //
 // Every rank must hold the same query points in the same order
 template <int num_components>
-void ParticleInterpolator<num_components>::update_particle_positions()
+void ParticleInterpolator<num_components>::update_particle_positions(
+    const InterpolationQueryParticle &query)
 {
     AMREX_ASSERT(m_initialized);
-    AMREX_ALWAYS_ASSERT(m_query);
     AMREX_ALWAYS_ASSERT(m_particles_populated);
 
-    auto &query          = *m_query;
     const int num_points = static_cast<int>(query.m_num_points);
 
     const auto prob_lo    = m_prob_lo;
@@ -319,8 +318,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
     }
 
     // Gather comp map into managed arrays
-    const int num_derivs = static_cast<int>(
-        std::distance(query.compsBegin(), query.compsEnd()));
+    const int num_derivs =
+        static_cast<int>(std::distance(query.compsBegin(), query.compsEnd()));
 
     amrex::Gpu::ManagedVector<Derivative> derivs(num_derivs);
     amrex::Gpu::ManagedVector<int> comp_counts(num_derivs);

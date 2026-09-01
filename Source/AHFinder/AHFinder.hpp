@@ -50,7 +50,7 @@ class AHFinder : public ParticleInterpolator<num_components>
     std::vector<double> m_dir_z{};
 
     // State storing h and v values for all particles. Stored off particles
-    // since we need h from other particles to compute its derivative, and 
+    // since we need h from other particles to compute its derivative, and
     // this cannot be accessed from another particle if they are not on the
     // same tile
     AHState m_state{};
@@ -100,7 +100,8 @@ class AHFinder : public ParticleInterpolator<num_components>
     // RHS function to allow amrex time integrator to update h and v
     void compute_rhs(AHState &rhs, AHState &state, amrex::Real time);
 
-    // Update pseudo-timestep based on ratio of improvement of Theta between steps
+    // Update pseudo-timestep based on ratio of improvement of Theta between
+    // steps
     amrex::Real update_dt(amrex::Real dt, double theta_old, double theta_new,
                           const std::vector<double> &h) const;
 
@@ -132,8 +133,7 @@ class AHFinder : public ParticleInterpolator<num_components>
           m_dir_y(num_particles), m_dir_z(num_particles),
           m_state(std::vector<double>(num_particles),
                   std::vector<double>(num_particles)),
-          m_center(center),
-          m_guess_radius(guess_radius), m_dhdx(num_particles),
+          m_center(center), m_guess_radius(guess_radius), m_dhdx(num_particles),
           m_dhdy(num_particles), m_dhdz(num_particles), m_d2h_xx(num_particles),
           m_d2h_yy(num_particles), m_d2h_zz(num_particles),
           m_d2h_xy(num_particles), m_d2h_xz(num_particles),
@@ -142,8 +142,7 @@ class AHFinder : public ParticleInterpolator<num_components>
     {
     }
 
-    void init(GRAMR *gramr_ptr, const BoundaryConditions::params_t &a_bc_params,
-              bool a_verbosity);
+    void init(GRAmr *gramr_ptr);
 
     void find();
 };

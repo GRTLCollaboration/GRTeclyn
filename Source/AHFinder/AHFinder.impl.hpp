@@ -10,18 +10,17 @@
 #include <AMReX_Particles.H>
 
 #include "CCZ4StateVariables.hpp"
-#include "DefaultLevelFactory.hpp"
+#include "DefaultLevelBld.hpp"
 #include "Derivative.hpp"
-#include "GRAMR.hpp"
+#include "GRAmr.hpp"
 #include "ParticleInterpolator.hpp"
+#include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include <filesystem>
 #include <fstream>
 
 template <int num_components>
-void AHFinder<num_components>::init(
-    GRAMR *gramr_ptr, const BoundaryConditions::params_t &a_bc_params,
-    bool a_verbosity)
+void AHFinder<num_components>::init(GRAmr *gramr_ptr)
 {
     m_tol    = 1e-4;
     m_c      = 1.0;
@@ -37,10 +36,10 @@ void AHFinder<num_components>::init(
     this->setup_metric_query();
 
     // Set up interpolator
-    this->setup(gramr_ptr, a_bc_params, a_verbosity);
+    this->setup(gramr_ptr);
 
     // Populate so we can access the particle data
-    this->populate_from_query();
+    this->populate_from_query(query);
 
     // Initialise h, v and dt values for particles
     this->init_particle_vals();
@@ -51,12 +50,10 @@ template <int num_components> void AHFinder<num_components>::find()
     // Create amrex time integrator
     // Allows for different (explicit) time stepping methods
     m_integrator = std::make_unique<amrex::TimeIntegrator<AHState>>(m_state);
-    m_integrator->set_rhs(
-        [this](AHState &rhs, AHState &state, amrex::Real time)
-        { this->compute_rhs(rhs, state, time); });
+    m_integrator->set_rhs([this](AHState &rhs, AHState &state, amrex::Real time)
+                          { this->compute_rhs(rhs, state, time); });
 
     int n_iter = 0;
-
 
     this->set_particle_positions(m_state.h);
     compute_theta(m_state.h);
@@ -126,7 +123,6 @@ template <int num_components> void AHFinder<num_components>::find()
     theta_log.close();
     dt_log.close();
 
-
     amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "
                       << theta_old << " in " << n_iter << " iterations\n";
 }
@@ -173,8 +169,6 @@ void AHFinder<num_components>::generate_spherical_query()
     query.setCoords(0, interp_coords_x.data())
         .setCoords(1, interp_coords_y.data())
         .setCoords(2, interp_coords_z.data());
-
-    this->m_query = &query;
 }
 
 template <int num_components>
@@ -248,14 +242,13 @@ void AHFinder<num_components>::set_particle_positions(
         interp_coords_y[id] = m_center[1] + r * m_dir_y[id];
         interp_coords_z[id] = m_center[2] + r * m_dir_z[id];
 
-        amrex::GpuArray<double, AMREX_SPACEDIM> coords = {
+        amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> coords = {
             interp_coords_x[id], interp_coords_y[id], interp_coords_z[id]};
         this->check_domain(coords);
     }
 
     // Push positions to particles
-    this->m_query = &query;
-    this->update_particle_positions();
+    this->update_particle_positions(query);
 }
 
 template <int num_components>
@@ -279,9 +272,10 @@ void AHFinder<num_components>::compute_rhs(AHState &rhs, AHState &state,
 }
 
 template <int num_components>
-amrex::Real AHFinder<num_components>::update_dt(
-    amrex::Real dt, double theta_old, double theta_new,
-    const std::vector<double> &h) const
+amrex::Real
+AHFinder<num_components>::update_dt(amrex::Real dt, double theta_old,
+                                    double theta_new,
+                                    const std::vector<double> &h) const
 {
     // Update dt based on ratio of improvement of theta
     double cfl_factor = 7.0;
@@ -467,7 +461,7 @@ void AHFinder<num_components>::setup_metric_query()
                                  VariableType::state);
     FOR2_SYM(i, j)
     {
-        int comp = VAR_IDX(c_h11, i, j);
+        int comp = sym_var_idx(c_h11, i, j);
         m_metric_query_state.addComp(comp, m_metric_state[comp].data(),
                                      VariableType::state);
     }
@@ -475,7 +469,7 @@ void AHFinder<num_components>::setup_metric_query()
                                  VariableType::state);
     FOR2_SYM(i, j)
     {
-        int comp = VAR_IDX(c_A11, i, j);
+        int comp = sym_var_idx(c_A11, i, j);
         m_metric_query_state.addComp(comp, m_metric_state[comp].data(),
                                      VariableType::state);
     }
@@ -491,7 +485,7 @@ void AHFinder<num_components>::setup_metric_query()
                                  Derivative::dz);
     FOR2_SYM(i, j)
     {
-        int comp = VAR_IDX(c_h11, i, j);
+        int comp = sym_var_idx(c_h11, i, j);
         m_metric_query_deriv.addComp(comp, m_metric_dx[comp].data(),
                                      VariableType::state, BCParity::undefined,
                                      Derivative::dx);
@@ -510,12 +504,9 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
 
     h_derivs(h);
     h_hessian(h);
-    
-    this->m_query = &m_metric_query_state;
-    this->interp(m_metric_query_state);
-    this->m_query = &m_metric_query_deriv;
-    this->interp(m_metric_query_deriv);
-    this->m_query = &query;
+
+    this->interp(m_metric_query_state, false);
+    this->interp(m_metric_query_deriv, false);
 
     amrex::GpuArray<const double *, 14> state_ptr;
     for (int c = 0; c < 14; ++c)
@@ -562,90 +553,89 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
         // Physical metric and extrinsic curvature from CCZ4
         // variables: gamma_ij = h_ij/chi,
         // K_ij = (A_ij + (1/3) h_ij K)/chi.
-        Tensor<2, amrex::Real> gamma_LL;
-        Tensor<2, amrex::Real> K_LL;
+        Tensor::Rank2 gamma_LL;
+        Tensor::Rank2 K_LL;
         FOR (i, j)
         {
-            int h_comp     = VAR_IDX(c_h11, i, j);
-            int A_comp     = VAR_IDX(c_A11, i, j);
+            int h_comp     = sym_var_idx(c_h11, i, j);
+            int A_comp     = sym_var_idx(c_A11, i, j);
             double h_ij    = state_ptr[h_comp][ip];
             double A_ij    = state_ptr[A_comp][ip];
-            gamma_LL[i][j] = h_ij / chi;
-            K_LL[i][j]     = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
+            gamma_LL(i, j) = h_ij / chi;
+            K_LL(i, j)     = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
         }
-        Tensor<2, amrex::Real> gamma_UU = compute_inverse_sym(gamma_LL);
+        Tensor::Rank2 gamma_UU = compute_inverse(gamma_LL);
 
         // d_k(gamma_ij) from d1(chi), d1(h_ij) (product rule on
         // gamma_ij = h_ij/chi).
-        Tensor<1, amrex::Real> d1_chi;
+        Tensor::Rank1 d1_chi;
         FOR (k)
         {
-            d1_chi[k] = d1_metric_ptr[k][c_chi][ip];
+            d1_chi(k) = d1_metric_ptr[k][c_chi][ip];
         }
 
-        Tensor<3, amrex::Real> d1_gamma_LL; // [k][i][j] = d_k gamma_ij
+        Tensor::Rank3 d1_gamma_LL; // (k, i, j) = d_k gamma_ij
         FOR (k, i, j)
         {
-            int h_comp     = VAR_IDX(c_h11, i, j);
+            int h_comp     = sym_var_idx(c_h11, i, j);
             double d1h_kij = d1_metric_ptr[k][h_comp][ip];
-            d1_gamma_LL[k][i][j] =
-                d1h_kij / chi - gamma_LL[i][j] * d1_chi[k] / chi;
+            d1_gamma_LL(k, i, j) =
+                d1h_kij / chi - gamma_LL(i, j) * d1_chi(k) / chi;
         }
 
         // d_k(gamma^ij) = -gamma^im gamma^jn d_k(gamma_mn).
-        Tensor<3, amrex::Real> d1_gamma_UU;
+        Tensor::Rank3 d1_gamma_UU;
         FOR (k, i, j)
         {
-            d1_gamma_UU[k][i][j] = 0.0;
+            d1_gamma_UU(k, i, j) = 0.0;
             FOR (m, n)
             {
-                d1_gamma_UU[k][i][j] -=
-                    gamma_UU[i][m] * gamma_UU[j][n] * d1_gamma_LL[k][m][n];
+                d1_gamma_UU(k, i, j) -=
+                    gamma_UU(i, m) * gamma_UU(j, n) * d1_gamma_LL(k, m, n);
             }
         }
 
         // V^j = sum_k d_k(gamma^kj) (divergence of the inverse
         // metric).
-        Tensor<1, amrex::Real> V_U;
+        Tensor::Rank1 V_U;
         FOR (j)
         {
-            V_U[j] = 0.0;
+            V_U(j) = 0.0;
             FOR (k)
             {
-                V_U[j] += d1_gamma_UU[k][k][j];
+                V_U(j) += d1_gamma_UU(k, k, j);
             }
         }
 
         // Level-set gradient F_i = n_i - (grad h)_i, with
         // n_i = (x_i - center_i)/r the flat radial covector
-        Tensor<1, amrex::Real> n_L;
+        Tensor::Rank1 n_L;
         FOR (i)
         {
-            n_L[i] = (pos_ptr[i][ip] - center[i]) / r;
+            n_L(i) = (pos_ptr[i][ip] - center[i]) / r;
         }
-        Tensor<1, amrex::Real> grad_h_L = {dhdx_ptr[ip], dhdy_ptr[ip],
-                                           dhdz_ptr[ip]};
-        Tensor<1, amrex::Real> F_L;
+        Tensor::Rank1 grad_h_L = {dhdx_ptr[ip], dhdy_ptr[ip], dhdz_ptr[ip]};
+        Tensor::Rank1 F_L;
         FOR (i)
         {
-            F_L[i] = n_L[i] - grad_h_L[i];
+            F_L(i) = n_L(i) - grad_h_L(i);
         }
 
         // Hess(F) = Hess(r) - Hess(h), with
         // Hess(r)_ij = (delta_ij - n_i n_j)/r (flat identity).
-        Tensor<2, amrex::Real> hess_h_LL;
-        hess_h_LL[0][0] = d2h_xx_ptr[ip];
-        hess_h_LL[1][1] = d2h_yy_ptr[ip];
-        hess_h_LL[2][2] = d2h_zz_ptr[ip];
-        hess_h_LL[0][1] = hess_h_LL[1][0] = d2h_xy_ptr[ip];
-        hess_h_LL[0][2] = hess_h_LL[2][0] = d2h_xz_ptr[ip];
-        hess_h_LL[1][2] = hess_h_LL[2][1] = d2h_yz_ptr[ip];
+        Tensor::Rank2 hess_h_LL;
+        hess_h_LL(0, 0) = d2h_xx_ptr[ip];
+        hess_h_LL(1, 1) = d2h_yy_ptr[ip];
+        hess_h_LL(2, 2) = d2h_zz_ptr[ip];
+        hess_h_LL(0, 1) = hess_h_LL(1, 0) = d2h_xy_ptr[ip];
+        hess_h_LL(0, 2) = hess_h_LL(2, 0) = d2h_xz_ptr[ip];
+        hess_h_LL(1, 2) = hess_h_LL(2, 1) = d2h_yz_ptr[ip];
 
-        Tensor<2, amrex::Real> hess_F_LL;
+        Tensor::Rank2 hess_F_LL;
         FOR (i, j)
         {
-            hess_F_LL[i][j] =
-                (delta(i, j) - n_L[i] * n_L[j]) / r - hess_h_LL[i][j];
+            hess_F_LL(i, j) =
+                (delta(i, j) - n_L(i) * n_L(j)) / r - hess_h_LL(i, j);
         }
 
         // lambda = sqrt(gamma^ij F_i F_j); s_i = F_i/lambda;
@@ -653,41 +643,41 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
         amrex::Real lambda_sq = compute_dot_product(F_L, F_L, gamma_UU);
         amrex::Real lambda    = std::sqrt(lambda_sq);
 
-        Tensor<1, amrex::Real> s_L;
+        Tensor::Rank1 s_L;
         FOR (i)
         {
-            s_L[i] = F_L[i] / lambda;
+            s_L(i) = F_L(i) / lambda;
         }
-        Tensor<1, amrex::Real> s_U = raise_all(s_L, gamma_UU);
+        Tensor::Rank1 s_U = raise_all(s_L, gamma_UU);
 
         // d_k(lambda), from differentiating
         // lambda^2 = gamma^mn F_m F_n.
-        Tensor<1, amrex::Real> d_lambda;
+        Tensor::Rank1 d_lambda;
         FOR (k)
         {
             amrex::Real term1 = 0.0;
             FOR (m, n)
             {
-                term1 += d1_gamma_UU[k][m][n] * F_L[m] * F_L[n];
+                term1 += d1_gamma_UU(k, m, n) * F_L(m) * F_L(n);
             }
             amrex::Real term2 = 0.0;
             FOR (m, n)
             {
-                term2 += gamma_UU[m][n] * hess_F_LL[m][k] * F_L[n];
+                term2 += gamma_UU(m, n) * hess_F_LL(m, k) * F_L(n);
             }
-            d_lambda[k] = (term1 + 2.0 * term2) / (2.0 * lambda);
+            d_lambda(k) = (term1 + 2.0 * term2) / (2.0 * lambda);
         }
 
         // d_i(ln sqrt(gamma)) = (1/2) gamma^jk d_i(gamma_jk)
         // (Jacobi's formula).
-        Tensor<1, amrex::Real> d_ln_sqrt_gamma;
+        Tensor::Rank1 d_ln_sqrt_gamma;
         FOR (k)
         {
-            d_ln_sqrt_gamma[k] = 0.0;
+            d_ln_sqrt_gamma(k) = 0.0;
             FOR (i, j)
             {
-                d_ln_sqrt_gamma[k] +=
-                    0.5 * gamma_UU[i][j] * d1_gamma_LL[k][i][j];
+                d_ln_sqrt_gamma(k) +=
+                    0.5 * gamma_UU(i, j) * d1_gamma_LL(k, i, j);
             }
         }
 
@@ -704,7 +694,7 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
         amrex::Real s_K_s = 0.0;
         FOR (i, j)
         {
-            s_K_s += s_U[i] * s_U[j] * K_LL[i][j];
+            s_K_s += s_U(i) * s_U(j) * K_LL(i, j);
         }
 
         // Theta = D_i s^i - K + s^i s^j K_ij

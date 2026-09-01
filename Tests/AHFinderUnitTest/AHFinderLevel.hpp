@@ -7,31 +7,30 @@
 #define AHFINDERLEVEL_HPP_
 
 #include "BinaryBHInitialData.hpp"
-#include "DefaultLevelFactory.hpp"
-#include "GRAMR.hpp"
-#include "GRAMRLevel.hpp"
+#include "DefaultLevelBld.hpp"
+#include "GRAmr.hpp"
+#include "GRAmrLevel.hpp"
 
 // We basically need this to have a valid AMR hierarchy. Initial data is the
 // BinaryBH example's puncture data -- we only need the first timestep (no
-// evolution), so this level does not implement specificEvalRHS or tagging
+// evolution), so this level does not implement specific_eval_rhs or tagging
 // beyond a no-op.
 
-class AHFinderLevel : public GRAMRLevel
+class AHFinderLevel : public GRAmrLevel
 {
   public:
-    friend class DefaultLevelFactory<AHFinderLevel>;
+    friend class DefaultLevelBld<AHFinderLevel>;
 
-    // Inherit the contructors from GRAMRLevel
-    using GRAMRLevel::GRAMRLevel;
+    // Inherit the contructors from GRAmrLevel
+    using GRAmrLevel::GRAmrLevel;
 
-    static void variableSetUp() { stateVariableSetUp(); }
+    static void variableSetUp() { state_variable_set_up(); }
 
     // BinaryBH puncture initial data
-    void initData()
+    void initData() override
     {
-        double dx = Geom().CellSize(0);
-        BinaryBHInitialData binary_initial_data(simParams().bh1_params,
-                                                simParams().bh2_params, dx);
+        amrex::Real dx = Geom().CellSize(0);
+        BinaryBHInitialData binary_initial_data(dx);
 
         static_assert(std::is_trivially_copyable_v<BinaryBHInitialData>,
                       "BinaryBHInitialData needs to be device copyable");
@@ -53,8 +52,9 @@ class AHFinderLevel : public GRAMRLevel
         amrex::Gpu::streamSynchronize();
     }
 
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const double a_time)
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override
     {
     }
 
