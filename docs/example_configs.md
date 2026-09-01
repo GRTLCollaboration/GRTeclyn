@@ -2,7 +2,7 @@
 
 In general you should start with an example hybrid MPI/OpenMP or GPU jobscript from your cluster documentation, and adapt it for your GRTeclyn run.
 
-However, some example jobs for systems we often use are collected here, along with the `make.local-pre` setup and some helpful tips - to be copied at your own risk!
+However, some example jobs for systems we often use are collected here, along with the `Make.local-pre` setup and some helpful tips - to be copied at your own risk!
 
 ---
 
@@ -12,7 +12,7 @@ This is really for only for debugging.
 
 Install command line tools on your Mac using the command `xcode-select --install` in the terminal.
 
-In the `make.local-pre` file:
+In the `Make.local-pre` file:
 ```
 COMP = llvm
 USE_OMP = FALSE
@@ -36,7 +36,7 @@ module load intel_comp/2025.1.1 compiler-rt/latest tbb/latest  compiler/latest m
 ```
 NB: You will need to set the option `--mpi=pmi2` in your Slurm script to launch Intel MPI correctly.
 
-In the `make.local-pre` file we have
+In the `Make.local-pre` file we have
 ```
 COMP = gnu
 USE_OMP = TRUE
@@ -118,7 +118,7 @@ The modules used
 module load hipcc/6.3amd openmpi/5.0.3
 ```
 
-In the `make.local-pre` file we have
+In the `Make.local-pre` file we have
 ```
 USE_HIP=TRUE
 # for MI300
@@ -160,7 +160,7 @@ module load craype-accel-amd-gfx90a
 module load rocm
 ```
 
-In the `make.local-pre` file we have
+In the `Make.local-pre` file we have
 ```
 COMP=cray
 AMREX_USE_GPU=TRUE

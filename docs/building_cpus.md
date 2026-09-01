@@ -20,11 +20,11 @@ If want to consistently override these, it is best to create a `Make.local-pre` 
 ```
 amrex/Tools/GNUMake/Make.local-pre
 ```
-which sets the build configuration variables as you wish. There is an example in `${AMREX_HOME}/Tools/GNUMake/Make.local.template`. You might want to change some of the following: 
+which sets the build configuration variables as you wish. There is an example in `${AMREX_HOME}/Tools/GNUMake/Make.local.template`. You might want to change some of the following:
 
 * Set `USE_OMP = TRUE` to use OpenMP
-* If you don't want to use the GNU compiler `g++` , change `COMP = gnu` to 
-  `COMP = intel-llvm` (for the Intel LLVM-based C++ compiler `icpx`) or 
+* If you don't want to use the GNU compiler `g++` , change `COMP = gnu` to
+  `COMP = intel-llvm` (for the Intel LLVM-based C++ compiler `icpx`) or
   `COMP = llvm` (for LLVM `clang++`).
 * If you don't have an MPI implementation available, set `USE_MPI = FALSE`.
 
@@ -65,4 +65,4 @@ You can run the example by passing the parameter file as the first argument. For
 mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex params.txt
 ```
 
-On a cluster you will probably need to submit a jobscript for the run. You should consult the system documentation, but some example jobscripts can be found in [Example configs for specific HPC systems](example_configs.md) along with the `make.local-pre` files and module choices if relevant.
+On a cluster you will probably need to submit a jobscript for the run. You should consult the system documentation, but some example jobscripts can be found in [Example configs for specific HPC systems](example_configs.md) along with the `Make.local-pre` files and module choices if relevant.

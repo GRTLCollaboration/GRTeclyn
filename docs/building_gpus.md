@@ -27,16 +27,21 @@ The good news about MPI is that if you really get stuck, it may be that you can 
 
 ## You need to tell AMReX to compile with GPU offload support
 
-This is the easy bit! Update your `make.local-pre` to activate the appropriate options, with `USE_CUDA=TRUE` for Nvidia and `USE_HIP=TRUE` for AMD and `USE_SYCL` for Intel GPUs. Note that this usually sets the other options by default, but sometimes you may need to override them.
+This is the easy bit! Update your `Make.local-pre` to activate the appropriate options, with `USE_CUDA=TRUE` for Nvidia, `USE_HIP=TRUE` for AMD or `USE_SYCL` for Intel GPUs. Note that this usually sets the other options by default, but sometimes you may need to override them.
 Our [Example configs for specific HPC systems](example_configs.md) are a good place to look for inspiration.
 
-You will also probably need to give it a specific flag for the GPU architecture, which you can google for (or hopefully find in the system docs). For example, your `make.local-pre` may look something like:
+You will also probably need to give it a specific flag for the GPU architecture, which you can google for (or hopefully find in the system docs). For example, your `Make.local-pre` may look something like:
 ```
 USE_HIP=TRUE
 # for AMD MI300
 AMREX_AMD_ARCH=gfx942
 # Optionally uncomment to turn off MPI
 # USE_MPI=FALSE
+```
+
+Once you have created this file, you can then build in the usual way:
+```
+make -j 4
 ```
 
 ## You need to run it differently in the jobscript
