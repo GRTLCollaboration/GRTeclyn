@@ -89,7 +89,6 @@ class PolynomialDerivedQuantity
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE
     void
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     compute(int i, int j, int k, const amrex::Array4<amrex::Real> &a_array,
             const amrex::Array4<amrex::Real const> &state,
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &plo,
