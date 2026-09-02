@@ -16,6 +16,16 @@ function cpp_escape(value)
     return value
 }
 
+function repeat_character(character, count, result, character_index)
+{
+    result = ""
+    for (character_index = 0; character_index < count; ++character_index)
+    {
+        result = result character
+    }
+    return result
+}
+
 function report_error(message)
 {
     print FILENAME ":" FNR ": " message > "/dev/stderr"
@@ -76,7 +86,11 @@ END {
     {
         srand()
         quote_index = 1 + int(rand() * quote_count[section])
-        print "Stoic wisdom: " quotes[section, quote_index]
+        message = " Stoic wisdom: " quotes[section, quote_index] " "
+        border = repeat_character("-", length(message))
+        print "+" border "+"
+        print "|" message "|"
+        print "+" border "+"
         exit
     }
 

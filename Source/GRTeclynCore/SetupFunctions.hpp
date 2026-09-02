@@ -15,7 +15,9 @@
 #include "GRParmParse.hpp"
 #include "IntegrationMethodSetup.hpp"
 #include "SimulationParameters.hpp"
+#ifdef USE_STOIC_QUOTES
 #include "StoicQuotes.hpp"
+#endif
 
 #ifdef EQUATION_DEBUG_MODE
 #include "DebuggingTools.hpp"
@@ -27,6 +29,9 @@
 
 #include <fstream>
 #include <iostream>
+#ifdef USE_STOIC_QUOTES
+#include <string>
+#endif
 
 #ifndef GRTECLYN_VERSION
 #define GRTECLYN_VERSION "unknown"
@@ -128,8 +133,17 @@ void print_job_end_message(int status)
         amrex::Print() << "GRTeclyn failed with return code " << status << '\n';
     }
 
-    amrex::Print() << "Stoic wisdom: " << StoicQuotes::random_quote(status == 0)
-                   << '\n';
+#ifdef USE_STOIC_QUOTES
+    {
+        const std::string message =
+            " Stoic wisdom: " +
+            std::string(StoicQuotes::random_quote(status == 0)) + " ";
+        const std::string border(message.size(), '-');
+        amrex::Print() << '+' << border << "+\n"
+                       << '|' << message << "|\n"
+                       << '+' << border << "+\n";
+    }
+#endif
 }
 
 #endif /* SETUP_FUNCTIONS_HPP_ */
