@@ -48,17 +48,17 @@ weyl_extraction.num_points_phi = 48
 weyl_extraction.num_points_theta = 32
 weyl_extraction.num_modes = 5
 weyl_extraction.modes = 2 0 \
-			2 1 \
-			2 2 \
-			2 -1 \
-			2 -2 \
+                        2 1 \
+                        2 2 \
+                        2 -1 \
+                        2 -2 \
 
 #################################################
 # Grid parameters
 
 # This octant domain corresponds to a 192^3 full domain of side length 128.
 # The even parity metrics with m=0, m=2 can be run in an octant grid.
-# The odd parity metric with m=2 needs a quadrant grid, with reflection 
+# The odd parity metric with m=2 needs a quadrant grid, with reflection
 # around the xy-plane turned off.
 amr.n_cell = 192 192 192
 geometry.prob_extent = 128 128 128
