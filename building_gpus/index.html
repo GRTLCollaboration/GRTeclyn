@@ -160,16 +160,27 @@
 <h2 id="you-need-to-install-the-right-gpu-compiler">You need to install the right GPU compiler</h2>
 <p>One of the annoying things about GPUs is that there are 3 types related to the 3 vendors (Intel, AMD and Nvidia), and since they can't agree on things (thank you capitalism <img alt="🙏" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f64f.svg" title=":pray:" />) you have to be able to understand the slightly different (but essentially the same) terminology and tools from all three.</p>
 <p>Fortunately (thank you AMReX and historic US government funding <img alt="🙏" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f64f.svg" title=":pray:" />), AMReX takes care of all the pain of implementing the code so it works on all three architectures. But you still have to think about this when you compile and run on a particular one. You may need to ask a lot of questions to the system admin, and you will probably end up feeling confused and stupid. That's ok. It will be worth it when you see the speed up, and once you are set up things should run smoothly.</p>
-<p>For AMD GPUs, you need to be using the HIP compiler, for Intel it is SYCL and for Nvidia it is the more well known CUDA. You can think of them all as being like CUDA, but with a different name.</p>
+<p>For:</p>
+<ul>
+<li>AMD GPUs: you need to use the HIP backend</li>
+<li>Intel GPUs: you need to use SYCL backend</li>
+<li>Nvidia GPUs: you need to use the CUDA backend</li>
+</ul>
+<p>You can think of them all as being like CUDA, but with a different name.</p>
 <p>If you are on a login node, this will be a CPU node, but you may be able to module load the GPU compiler, e.g. on cosma8 you do
 <pre class="highlight"><code>module load hipcc/6.3amd</code></pre>
-If you are ssh-ing directly into the GPU node the compiler may be installed already by default, or you module load it as above. (TIP: You can always try to compile and see if it complains about not having the compiler.)</p>
+If you are ssh-ing directly into the GPU node the compiler may be installed already by default, or you module load it as above. (TIP: You can always try to compile and see if it complains about not having the compiler.). For some computing clusters, it may be recommended to compile the code on the same GPU infrastructure that you intend on running on to prevent downstream issues. You may need to check with your system admins if this is required or not.</p>
 <p>If you want to run with MPI over multiple GPUs, you will also need an MPI distribution, but note that this <strong>needs to have been built with support for the GPUs you are using</strong>, and often that won't be the case. You may need to ask the system admins for guidance. On Cosma8 they have an openmpi module with specific support, so you can just do:
 <pre class="highlight"><code>module load openmpi/5.0.3</code></pre></p>
 <p>The good news about MPI is that if you really get stuck, it may be that you can just run on a single GPU, and don't need to use MPI. Incredibly, the BBH example runs on a single GPU really well. The problem with doing this is that usually the GPU node has multiple GPUs, and they are rarely set up for each one to support exclusive use. So you may find yourself sharing the memory of the GPU you are using with other users, which will utterly tank your performance. Therefore although in principle running on a single GPU without MPI is fine, in practise you may encounter problems until systems are configured better.</p>
 <h2 id="you-need-to-tell-amrex-to-compile-with-gpu-offload-support">You need to tell AMReX to compile with GPU offload support</h2>
-<p>This is the easy bit! Update your <code>Make.local-pre</code> to activate the appropriate options, with <code>USE_CUDA=TRUE</code> for Nvidia, <code>USE_HIP=TRUE</code> for AMD or <code>USE_SYCL</code> for Intel GPUs. Note that this usually sets the other options by default, but sometimes you may need to override them.
-Our <a href="../example_configs/">Example configs for specific HPC systems</a> are a good place to look for inspiration.</p>
+<p>This is the easy bit! Update your <code>Make.local-pre</code> to activate the appropriate options for the infrastructure you are using. For:</p>
+<ul>
+<li>AMD GPUs: set <code>USE_HIP=TRUE</code></li>
+<li>Intel GPUs: set <code>USE_SYCL=TRUE</code></li>
+<li>Nvidia GPUs: set <code>USE_CUDA=TRUE</code></li>
+</ul>
+<p>These options usually set a default compiler (<code>COMP</code>) which should work most of the time and there should rarely be a need to override this. Our <a href="../example_configs/">Example configs for specific HPC systems</a> are a good place to look for inspiration.</p>
 <p>You will also probably need to give it a specific flag for the GPU architecture, which you can google for (or hopefully find in the system docs). For example, your <code>Make.local-pre</code> may look something like:
 <pre class="highlight"><code>USE_HIP=TRUE
 # for AMD MI300
