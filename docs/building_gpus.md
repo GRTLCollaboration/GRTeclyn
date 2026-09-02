@@ -33,7 +33,7 @@ The good news about MPI is that if you really get stuck, it may be that you can 
 
 ## You need to tell AMReX to compile with GPU offload support
 
-This is the easy bit! Update your `Make.local-pre` to activate the appropriate optionsfor the infrastructure you are using. For:
+This is the easy bit! Update your `Make.local-pre` to activate the appropriate options for the infrastructure you are using. For:
 
 * AMD GPUs: set `USE_HIP=TRUE`
 * Intel GPUs: set `USE_SYCL=TRUE`
