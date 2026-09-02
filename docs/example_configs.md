@@ -2,7 +2,7 @@
 
 In general you should start with an example hybrid MPI/OpenMP or GPU jobscript from your cluster documentation, and adapt it for your GRTeclyn run.
 
-However, some example jobs for systems we often use are collected here, along with the `make.local-pre` setup and some helpful tips - to be copied at your own risk!
+However, some example jobs for systems we often use are collected here, along with the `Make.local-pre` setup and some helpful tips - to be copied at your own risk!
 
 ---
 
@@ -12,7 +12,7 @@ This is really for only for debugging.
 
 Install command line tools on your Mac using the command `xcode-select --install` in the terminal.
 
-In the `make.local-pre` file:
+In the `Make.local-pre` file:
 ```
 COMP = llvm
 USE_OMP = FALSE
@@ -36,7 +36,7 @@ module load intel_comp/2025.1.1 compiler-rt/latest tbb/latest  compiler/latest m
 ```
 NB: You will need to set the option `--mpi=pmi2` in your Slurm script to launch Intel MPI correctly.
 
-In the `make.local-pre` file we have
+In the `Make.local-pre` file we have
 ```
 COMP = gnu
 USE_OMP = TRUE
@@ -118,7 +118,7 @@ The modules used
 module load hipcc/6.3amd openmpi/5.0.3
 ```
 
-In the `make.local-pre` file we have
+In the `Make.local-pre` file we have
 ```
 USE_HIP=TRUE
 # for MI300
@@ -160,7 +160,7 @@ module load craype-accel-amd-gfx90a
 module load rocm
 ```
 
-In the `make.local-pre` file we have
+In the `Make.local-pre` file we have
 ```
 COMP=cray
 AMREX_USE_GPU=TRUE
@@ -239,14 +239,13 @@ An example of the jobscript is
 ```
 #!/bin/bash
 #SBATCH --job-name=grteclyn
-#SBATCH --time=01:00:00
+#SBATCH --time=00:10:00
 #SBATCH --partition=mi355x
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=8    # 1 MPI rank per GPU (Zenith has 8 GPUs per node)
+#SBATCH --ntasks-per-node=1    # 1 MPI rank per GPU (Zenith has 8 GPUs per node)
 #SBATCH --cpus-per-task=16     # 128 cores total / 8 tasks = 16 cores per task
-#SBATCH --gres=gpu:8           # Request all 8 MI355X GPUs on the node
+#SBATCH --gres=gpu:1           # Request all 8 MI355X GPUs on the node
 #SBATCH --account=NAME-ZENITH-GPU
-#SBATCH --exclusive
 
 module purge
 module load rhel9/mi355x/base
