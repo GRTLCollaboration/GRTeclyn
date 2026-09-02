@@ -17,7 +17,7 @@
 set -euo pipefail
 
 cd ${HOME}/${CI_PROJECT_DIR}/Tests
-make run ${BUILD_CONFIG}
+srun ./Tests3d.gnu.DEBUG.MPI.CUDA.ex -dt-d=yes
 
 cd ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
 srun ./BinaryBH3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt amr.plot_file=${OUTPUT_DIR}/BinaryBH_
