@@ -11,6 +11,7 @@
 #include "DerivativeBase.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
+#include <AMReX_Array4.H>
 #include <AMReX_REAL.H>
 #include <array>
 
@@ -338,7 +339,7 @@ class FourthOrderDerivatives : protected DerivativeBase
              weight_0 * in_ptr[idx + stride]) *
             m_one_over_dx;
 
-        return (shift_positive) ? upwind : downwind;
+        return shift_positive ? upwind : downwind;
     }
 
   public:
@@ -467,8 +468,8 @@ class FourthOrderDerivatives : protected DerivativeBase
 
         FOR (idir)
         {
-            const auto stride  = strides[idir];
-            diss              += sigma_coeff *
+            const auto stride = strides[idir];
+            diss += sigma_coeff *
                     dissipation_term(get_var_ptr(ivar, state_ptr_xyz, strides),
                                      stride);
         }
