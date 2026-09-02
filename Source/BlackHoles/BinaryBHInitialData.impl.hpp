@@ -49,8 +49,7 @@ BinaryBHInitialData::compute_A(amrex::Real chi, Coordinates coords) const
 
 AMREX_FORCE_INLINE
 AMREX_GPU_DEVICE // or AMREX_GPU_HOST_DEVICE depending on what's needed
-    void
-    BinaryBHInitialData::operator()(
+    void BinaryBHInitialData::operator()(
         int ix, int iy, int iz, const amrex::Array4<amrex::Real> &state) const
 {
 
