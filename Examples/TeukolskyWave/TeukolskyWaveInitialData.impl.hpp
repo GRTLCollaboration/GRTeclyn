@@ -78,7 +78,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void TeukolskyWaveInitialData::operator()(
     state_cell_data[c_chi]   = chi;
     state_cell_data[c_lapse] = 1.;
 
-    // STILL NEED TO CHECK THIS
     // Gamma is set later by the GammaCalculator, since the metric is not
     // conformally flat. TeukolskyWaveLevel zero-initializes every state
     // component before calling this operator, so K, A_ij, Theta, shift and B
