@@ -11,6 +11,7 @@
 #include "DerivativeBase.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
+#include <AMReX_Array4.H>
 #include <AMReX_REAL.H>
 #include <array>
 
@@ -375,7 +376,7 @@ class SixthOrderDerivatives : protected DerivativeBase
              weight_0 * in_ptr[idx + 2 * stride]) *
             m_one_over_dx;
 
-        return (shift_positive) ? upwind : downwind;
+        return shift_positive ? upwind : downwind;
     }
 
   public:

@@ -13,6 +13,7 @@
 
 namespace
 {
+// NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const std::map<std::string, int> boundary_conditions_by_name = {
     {"UNSET_BC",                     BoundaryConditions::UNSET_BC     },
     {"FIRST_ORDER_EXTRAPOLATION_BC",
