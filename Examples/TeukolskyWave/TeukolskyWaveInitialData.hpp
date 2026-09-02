@@ -28,8 +28,26 @@ class TeukolskyWaveInitialData
     {
         static void check_params()
         {
-            // These are parameters specfic to the Teukolsky wave example
+            // Check that the particular choice of parity and M is implemented
             GRParmParse tw_pp("teukolsky_wave");
+
+            int magnetic{0};
+            std::string parity{"even"};
+            tw_pp.queryAdd("magnetic", magnetic);
+            tw_pp.queryAdd("parity", parity);
+            const std::set<std::pair<std::string, int>> implemented_combinations = {
+                {"even", 0},
+                {"even", 2},
+                {"odd",  2}
+            };
+            if (implemented_combinations.find({parity, magnetic}) ==
+                implemented_combinations.end())
+            {
+                amrex::Abort("Combination of magnetic/parity not implemented."
+                             "Must be (even, 0), (even, 2) or (odd, 2).");
+            }
+		
+	    // These are parameters for the seed function
             amrex::Real sigma{};
             tw_pp.queryAdd("sigma", sigma);
             if (sigma <= 0.0)
