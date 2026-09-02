@@ -256,8 +256,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
     }
 
     // Gather comp map into managed arrays
-    const int num_derivs = static_cast<int>(
-        std::distance(query.compsBegin(), query.compsEnd()));
+    const int num_derivs =
+        static_cast<int>(std::distance(query.compsBegin(), query.compsEnd()));
 
     amrex::Gpu::ManagedVector<Derivative> derivs(num_derivs);
     amrex::Gpu::ManagedVector<int> comp_counts(num_derivs);
