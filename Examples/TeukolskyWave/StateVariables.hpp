@@ -20,6 +20,7 @@ enum
 
 namespace StateVariables
 {
+// NOLINTNEXTLINE(cert-err58-cpp, bugprone-throwing-static-initialization)
 static const amrex::Vector<std::string> names = CCZ4StateVariables::names;
 
 static const std::array<BCParity, NUM_VARS> parities =

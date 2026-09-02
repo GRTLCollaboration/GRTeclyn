@@ -35,19 +35,19 @@ class TeukolskyWaveInitialData
             std::string parity{"even"};
             tw_pp.queryAdd("magnetic", magnetic);
             tw_pp.queryAdd("parity", parity);
-            const std::set<std::pair<std::string, int>> implemented_combinations = {
-                {"even", 0},
-                {"even", 2},
-                {"odd",  2}
+            const std::set<std::pair<std::string, int>>
+                implemented_combinations = {
+                    {"even", 0},
+                    {"even", 2},
+                    {"odd",  2}
             };
-            if (implemented_combinations.find({parity, magnetic}) ==
-                implemented_combinations.end())
+            if (!implemented_combinations.contains({parity, magnetic}))
             {
                 amrex::Abort("Combination of magnetic/parity not implemented."
                              "Must be (even, 0), (even, 2) or (odd, 2).");
             }
-		
-	    // These are parameters for the seed function
+
+            // These are parameters for the seed function
             amrex::Real sigma{};
             tw_pp.queryAdd("sigma", sigma);
             if (sigma <= 0.0)
