@@ -22,9 +22,9 @@ pout.*
 *.out
 *.dat
 *.old.*
-*.h5
 Weyl_integral*
 *ExtractionOut_*
+parameters_and_version.txt
 
 # Job schedulers
 jobscript*
