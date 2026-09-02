@@ -47,7 +47,7 @@ class SimulationParameters
         if (implemented_combinations.find({parity, magnetic}) ==
             implemented_combinations.end())
         {
-            amrex::Abort("Combination of magnetic/parity not implemented." +
+            amrex::Abort("Combination of magnetic/parity not implemented."
                          "Must be (even, 0), (even, 2) or (odd, 2).");
         }
         else
