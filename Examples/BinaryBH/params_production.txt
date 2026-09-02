@@ -157,14 +157,14 @@ evolution.sigma = 1.0
 
 # weyl_extraction.center = 1792 1792 0 # defaults to geometry.center in all cases
 weyl_extraction.enabled = true
-weyl_extraction.num_radii = 1
+weyl_extraction.num_radii = 4
 weyl_extraction.radii = 100.0 150.0 225.0 337.5
 weyl_extraction.levels = 6 5 4 3
 weyl_extraction.num_points_phi = 66
 weyl_extraction.num_points_theta = 67
 weyl_extraction.num_modes = 12
-weyl_extraction.modes = 2 0  2 1  2 2
-                        3 0  3 1  3 2  3 3
+weyl_extraction.modes = 2 0  2 1  2 2 \
+                        3 0  3 1  3 2  3 3 \
                         4 0  4 1  4 2  4 3  4 4
 
 #################################################
