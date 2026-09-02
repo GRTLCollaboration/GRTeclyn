@@ -3,8 +3,10 @@
 
 #include <AMReX_Array.H>
 #include <AMReX_ParIter.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Particles.H>
 #include <AMReX_TimeIntegrator.H>
+#include <algorithm>
 #include <array>
 #include <memory>
 
@@ -16,6 +18,8 @@ class AHFinder : public ParticleInterpolator<num_components>
 {
   private:
     int m_num_particles;
+    int m_n_local;
+    int m_start;
 
     // Ring (latitude x longitude) decomposition of the particles,
     // computed from m_num_particles. m_n_theta * m_n_phi == m_num_particles.
@@ -34,10 +38,6 @@ class AHFinder : public ParticleInterpolator<num_components>
     amrex::Real m_dt_shrink;
     amrex::Real m_dt_grow;
     amrex::Real m_theta_floor;
-
-    // Carries the particles' Cartesian coordinates for the one-time initial
-    // seeding in populate_from_query(); not used for interpolation itself.
-    InterpolationQueryParticle query;
 
     // Coords for particleinterpolator query
     std::vector<double> interp_coords_x{};
@@ -87,6 +87,24 @@ class AHFinder : public ParticleInterpolator<num_components>
 
     std::vector<double> m_theta_vals{};
 
+    static int local_count(int num_particles)
+    {
+        const int nprocs = amrex::ParallelDescriptor::NProcs();
+        const int myproc = amrex::ParallelDescriptor::MyProc();
+
+        return num_particles / nprocs +
+               (myproc < num_particles % nprocs ? 1 : 0);
+    }
+
+    static int local_start(int num_particles)
+    {
+        const int nprocs = amrex::ParallelDescriptor::NProcs();
+        const int myproc = amrex::ParallelDescriptor::MyProc();
+
+        return myproc * (num_particles / nprocs) +
+               std::min(myproc, num_particles % nprocs);
+    }
+
     void generate_spherical_query();
 
     // Returns the indices of the 4 neighbours of particle j on the ring
@@ -127,18 +145,18 @@ class AHFinder : public ParticleInterpolator<num_components>
 
     AHFinder(int num_particles, std::array<double, AMREX_SPACEDIM> &center,
              double guess_radius = 1.0)
-        : m_num_particles(num_particles), query(num_particles),
-          interp_coords_x(num_particles), interp_coords_y(num_particles),
-          interp_coords_z(num_particles), m_dir_x(num_particles),
-          m_dir_y(num_particles), m_dir_z(num_particles),
-          m_state(std::vector<double>(num_particles),
-                  std::vector<double>(num_particles)),
+        : m_num_particles(num_particles), m_n_local(local_count(num_particles)),
+          m_start(local_start(num_particles)), interp_coords_x(num_particles),
+          interp_coords_y(num_particles), interp_coords_z(num_particles),
+          m_dir_x(num_particles), m_dir_y(num_particles),
+          m_dir_z(num_particles), m_state(std::vector<double>(num_particles),
+                                          std::vector<double>(num_particles)),
           m_center(center), m_guess_radius(guess_radius), m_dhdx(num_particles),
           m_dhdy(num_particles), m_dhdz(num_particles), m_d2h_xx(num_particles),
           m_d2h_yy(num_particles), m_d2h_zz(num_particles),
           m_d2h_xy(num_particles), m_d2h_xz(num_particles),
-          m_d2h_yz(num_particles), m_metric_query_state(num_particles),
-          m_metric_query_deriv(num_particles), m_theta_vals(num_particles)
+          m_d2h_yz(num_particles), m_metric_query_state(m_n_local),
+          m_metric_query_deriv(m_n_local), m_theta_vals(num_particles)
     {
     }
 

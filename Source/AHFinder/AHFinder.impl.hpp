@@ -38,9 +38,6 @@ void AHFinder<num_components>::init(GRAmr *gramr_ptr)
     // Set up interpolator
     this->setup(gramr_ptr);
 
-    // Populate so we can access the particle data
-    this->populate_from_query(query);
-
     // Initialise h, v and dt values for particles
     this->init_particle_vals();
 }
@@ -63,20 +60,31 @@ template <int num_components> void AHFinder<num_components>::find()
     // Global pseudo-timeste
     amrex::Real dt = 1e-2;
 
+    const bool io_proc = amrex::ParallelDescriptor::IOProcessor();
+
     // Temp logging
-    amrex::AllPrint() << "\n AHFinder expansion Theta inf "
-                         "norm = "
-                      << theta_old << "\n";
+    amrex::Print() << "\n AHFinder expansion Theta inf "
+                      "norm = "
+                   << theta_old << "\n";
 
-    std::ofstream theta_log("theta_vs_iter.csv");
-    theta_log << n_iter << "," << theta_old << std::endl;
+    std::ofstream theta_log;
+    std::ofstream dt_log;
 
-    std::ofstream dt_log("dt_vs_iter.csv");
-    dt_log << n_iter << "," << dt << std::endl;
+    if (io_proc)
+    {
+        theta_log.open("theta_vs_iter.csv");
+        dt_log.open("dt_vs_iter.csv");
+        std::filesystem::create_directory("particles");
 
-    std::filesystem::create_directory("particles");
+        theta_log << n_iter << "," << theta_old << std::endl;
+        dt_log << n_iter << "," << dt << std::endl;
+    }
+
     auto write_particles = [&](int iter)
     {
+        if (!io_proc)
+            return;
+
         std::ofstream pfile("particles/particles_" + std::to_string(iter) +
                             ".csv");
         pfile << "x,y,z\n";
@@ -101,11 +109,11 @@ template <int num_components> void AHFinder<num_components>::find()
 
         double theta_new = inf_norm(m_theta_vals);
 
-        amrex::AllPrint() << "\n theta_old = " << theta_old << "\n";
+        amrex::Print() << "\n theta_old = " << theta_old << "\n";
 
-        amrex::AllPrint() << "\n theta_new = " << theta_new << "\n";
+        amrex::Print() << "\n theta_new = " << theta_new << "\n";
 
-        amrex::AllPrint() << "-------------------------\n";
+        amrex::Print() << "-------------------------\n";
 
         // Adapt the global timestep for the next step.
         dt = update_dt(dt, theta_old, theta_new, m_state.h);
@@ -115,16 +123,22 @@ template <int num_components> void AHFinder<num_components>::find()
 
         n_iter++;
 
-        theta_log << n_iter << "," << theta_old << std::endl;
-        dt_log << n_iter << "," << dt << std::endl;
+        if (io_proc)
+        {
+            theta_log << n_iter << "," << theta_old << std::endl;
+            dt_log << n_iter << "," << dt << std::endl;
+        }
         write_particles(n_iter);
     }
 
-    theta_log.close();
-    dt_log.close();
+    if (io_proc)
+    {
+        theta_log.close();
+        dt_log.close();
+    }
 
-    amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "
-                      << theta_old << " in " << n_iter << " iterations\n";
+    amrex::Print() << "\n AHFinder converged with inf norm of theta = "
+                   << theta_old << " in " << n_iter << " iterations\n";
 }
 
 template <int num_components>
@@ -165,10 +179,6 @@ void AHFinder<num_components>::generate_spherical_query()
             interp_coords_z[idx] = m_center[2] + m_guess_radius * m_dir_z[idx];
         }
     }
-
-    query.setCoords(0, interp_coords_x.data())
-        .setCoords(1, interp_coords_y.data())
-        .setCoords(2, interp_coords_z.data());
 }
 
 template <int num_components>
@@ -246,9 +256,6 @@ void AHFinder<num_components>::set_particle_positions(
             interp_coords_x[id], interp_coords_y[id], interp_coords_z[id]};
         this->check_domain(coords);
     }
-
-    // Push positions to particles
-    this->update_particle_positions(query);
 }
 
 template <int num_components>
@@ -449,50 +456,50 @@ void AHFinder<num_components>::setup_metric_query()
     for (auto &v : m_metric_dz)
         v.resize(m_num_particles);
 
-    m_metric_query_state.setCoords(0, interp_coords_x.data())
-        .setCoords(1, interp_coords_y.data())
-        .setCoords(2, interp_coords_z.data());
-    m_metric_query_deriv.setCoords(0, interp_coords_x.data())
-        .setCoords(1, interp_coords_y.data())
-        .setCoords(2, interp_coords_z.data());
+    m_metric_query_state.setCoords(0, interp_coords_x.data() + m_start)
+        .setCoords(1, interp_coords_y.data() + m_start)
+        .setCoords(2, interp_coords_z.data() + m_start);
+    m_metric_query_deriv.setCoords(0, interp_coords_x.data() + m_start)
+        .setCoords(1, interp_coords_y.data() + m_start)
+        .setCoords(2, interp_coords_z.data() + m_start);
 
     // chi, h_ij, K, A_ij (values only).
-    m_metric_query_state.addComp(c_chi, m_metric_state[c_chi].data(),
+    m_metric_query_state.addComp(c_chi, m_metric_state[c_chi].data() + m_start,
                                  VariableType::state);
     FOR2_SYM(i, j)
     {
         int comp = sym_var_idx(c_h11, i, j);
-        m_metric_query_state.addComp(comp, m_metric_state[comp].data(),
-                                     VariableType::state);
+        m_metric_query_state.addComp(
+            comp, m_metric_state[comp].data() + m_start, VariableType::state);
     }
-    m_metric_query_state.addComp(c_K, m_metric_state[c_K].data(),
+    m_metric_query_state.addComp(c_K, m_metric_state[c_K].data() + m_start,
                                  VariableType::state);
     FOR2_SYM(i, j)
     {
         int comp = sym_var_idx(c_A11, i, j);
-        m_metric_query_state.addComp(comp, m_metric_state[comp].data(),
-                                     VariableType::state);
+        m_metric_query_state.addComp(
+            comp, m_metric_state[comp].data() + m_start, VariableType::state);
     }
 
-    m_metric_query_deriv.addComp(c_chi, m_metric_dx[c_chi].data(),
+    m_metric_query_deriv.addComp(c_chi, m_metric_dx[c_chi].data() + m_start,
                                  VariableType::state, BCParity::undefined,
                                  Derivative::dx);
-    m_metric_query_deriv.addComp(c_chi, m_metric_dy[c_chi].data(),
+    m_metric_query_deriv.addComp(c_chi, m_metric_dy[c_chi].data() + m_start,
                                  VariableType::state, BCParity::undefined,
                                  Derivative::dy);
-    m_metric_query_deriv.addComp(c_chi, m_metric_dz[c_chi].data(),
+    m_metric_query_deriv.addComp(c_chi, m_metric_dz[c_chi].data() + m_start,
                                  VariableType::state, BCParity::undefined,
                                  Derivative::dz);
     FOR2_SYM(i, j)
     {
         int comp = sym_var_idx(c_h11, i, j);
-        m_metric_query_deriv.addComp(comp, m_metric_dx[comp].data(),
+        m_metric_query_deriv.addComp(comp, m_metric_dx[comp].data() + m_start,
                                      VariableType::state, BCParity::undefined,
                                      Derivative::dx);
-        m_metric_query_deriv.addComp(comp, m_metric_dy[comp].data(),
+        m_metric_query_deriv.addComp(comp, m_metric_dy[comp].data() + m_start,
                                      VariableType::state, BCParity::undefined,
                                      Derivative::dy);
-        m_metric_query_deriv.addComp(comp, m_metric_dz[comp].data(),
+        m_metric_query_deriv.addComp(comp, m_metric_dz[comp].data() + m_start,
                                      VariableType::state, BCParity::undefined,
                                      Derivative::dz);
     }
@@ -505,7 +512,9 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
     h_derivs(h);
     h_hessian(h);
 
-    this->interp(m_metric_query_state, false);
+    m_theta_vals.assign(m_num_particles, 0.0);
+
+    this->interp(m_metric_query_state, true);
     this->interp(m_metric_query_deriv, false);
 
     amrex::GpuArray<const double *, 14> state_ptr;
@@ -542,7 +551,7 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
     const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> center = {
         m_center[0], m_center[1], m_center[2]};
 
-    for (int ip = 0; ip < m_num_particles; ++ip)
+    for (int ip = m_start; ip < m_start + m_n_local; ++ip)
     {
         using namespace TensorAlgebra;
 
@@ -700,6 +709,9 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
         // Theta = D_i s^i - K + s^i s^j K_ij
         theta_ptr[ip] = div_s + s_dot_dlnsqrtgamma - K + s_K_s;
     }
+
+    amrex::ParallelDescriptor::ReduceRealSum(m_theta_vals.data(),
+                                             m_num_particles);
 }
 
 #endif /* AHFINDER_IMPL_HPP_ */

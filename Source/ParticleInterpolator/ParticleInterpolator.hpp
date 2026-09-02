@@ -141,10 +141,6 @@ class ParticleInterpolator
     // allocate particles at the query points
     void populate_from_query(const InterpolationQueryParticle &query);
 
-    // Move the already-populated particles onto the (updated) coordinates
-    // held by the current query.
-    void update_particle_positions(const InterpolationQueryParticle &query);
-
     // A helper function that does interpolation from grid onto particles
     void interpolate_to_particle(int lev, amrex::MultiFab &mfab,
                                  const amrex::Geometry &geom,
