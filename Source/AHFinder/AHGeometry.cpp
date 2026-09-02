@@ -149,7 +149,7 @@ QAB AHGeometry::q_ab(int i, int j) const
     QAB qLL;
     qLL(0, 0) = TensorAlgebra::compute_dot_product(e_th, e_th, gamma);
     qLL(0, 1) = TensorAlgebra::compute_dot_product(e_th, e_ph, gamma);
-    qLL(1, 0) = q(0, 1);
+    qLL(1, 0) = qLL(0, 1);
     qLL(1, 1) = TensorAlgebra::compute_dot_product(e_ph, e_ph, gamma);
 
     return qLL;
@@ -159,9 +159,9 @@ QAB AHGeometry::q_ab(int i, int j) const
 // root_q is the square root of det q_ab
 amrex::Real AHGeometry::root_det_q(int i, int j) const
 {
-    const QAB q = q_ab(i, j);
+    const QAB qLL = q_ab(i, j);
 
-    const amrex::Real det_q = q(0, 0) * q(1, 1) - q(0, 1) * q(1, 0);
+    const amrex::Real det_q = qLL(0, 0) * qLL(1, 1) - qLL(0, 1) * qLL(1, 0);
 
     return std::sqrt(det_q);
 }
