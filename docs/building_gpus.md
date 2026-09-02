@@ -10,13 +10,19 @@ One of the annoying things about GPUs is that there are 3 types related to the 3
 
 Fortunately (thank you AMReX and historic US government funding :pray:), AMReX takes care of all the pain of implementing the code so it works on all three architectures. But you still have to think about this when you compile and run on a particular one. You may need to ask a lot of questions to the system admin, and you will probably end up feeling confused and stupid. That's ok. It will be worth it when you see the speed up, and once you are set up things should run smoothly.
 
-For AMD GPUs, you need to be using the HIP compiler, for Intel it is SYCL and for Nvidia it is the more well known CUDA. You can think of them all as being like CUDA, but with a different name.
+For:
+
+* AMD GPUs: you need to use the HIP backend
+* Intel GPUs: you need to use SYCL backend
+* Nvidia GPUs: you need to use the CUDA backend
+
+You can think of them all as being like CUDA, but with a different name.
 
 If you are on a login node, this will be a CPU node, but you may be able to module load the GPU compiler, e.g. on cosma8 you do
 ```
 module load hipcc/6.3amd
 ```
-If you are ssh-ing directly into the GPU node the compiler may be installed already by default, or you module load it as above. (TIP: You can always try to compile and see if it complains about not having the compiler.)
+If you are ssh-ing directly into the GPU node the compiler may be installed already by default, or you module load it as above. (TIP: You can always try to compile and see if it complains about not having the compiler.). For some computing clusters, it may be recommended to compile the code on the same GPU infrastructure that you intend on running on to prevent downstream issues. You may need to check with your system admins if this is required or not.
 
 If you want to run with MPI over multiple GPUs, you will also need an MPI distribution, but note that this **needs to have been built with support for the GPUs you are using**, and often that won't be the case. You may need to ask the system admins for guidance. On Cosma8 they have an openmpi module with specific support, so you can just do:
 ```
@@ -27,8 +33,13 @@ The good news about MPI is that if you really get stuck, it may be that you can 
 
 ## You need to tell AMReX to compile with GPU offload support
 
-This is the easy bit! Update your `Make.local-pre` to activate the appropriate options, with `USE_CUDA=TRUE` for Nvidia, `USE_HIP=TRUE` for AMD or `USE_SYCL` for Intel GPUs. Note that this usually sets the other options by default, but sometimes you may need to override them.
-Our [Example configs for specific HPC systems](example_configs.md) are a good place to look for inspiration.
+This is the easy bit! Update your `Make.local-pre` to activate the appropriate options for the infrastructure you are using. For:
+
+* AMD GPUs: set `USE_HIP=TRUE`
+* Intel GPUs: set `USE_SYCL=TRUE`
+* Nvidia GPUs: set `USE_CUDA=TRUE`
+
+These options usually set a default compiler (`COMP`) which should work most of the time and there should rarely be a need to override this. Our [Example configs for specific HPC systems](example_configs.md) are a good place to look for inspiration.
 
 You will also probably need to give it a specific flag for the GPU architecture, which you can google for (or hopefully find in the system docs). For example, your `Make.local-pre` may look something like:
 ```
