@@ -16,7 +16,7 @@
 #include "IntegrationMethodSetup.hpp"
 #include "SimulationParameters.hpp"
 #ifdef USE_STOIC_QUOTES
-#include "StoicQuotes.hpp"
+#include "StoicSignalHandling.hpp"
 #endif
 
 #ifdef EQUATION_DEBUG_MODE
@@ -29,9 +29,6 @@
 
 #include <fstream>
 #include <iostream>
-#ifdef USE_STOIC_QUOTES
-#include <string>
-#endif
 
 #ifndef GRTECLYN_VERSION
 #define GRTECLYN_VERSION "unknown"
@@ -69,6 +66,10 @@ void mainSetup(int argc, char *argv[])
     // NOLINTNEXTLINE(bugprone-casting-through-void)
     amrex::Initialize(
         argc, argv, std::function<void()>(SimulationParameters::check_params));
+
+#ifdef USE_STOIC_QUOTES
+    StoicSignalHandling::install();
+#endif
 
     if (amrex::ParallelDescriptor::IOProcessor())
     {
@@ -134,15 +135,7 @@ void print_job_end_message(int status)
     }
 
 #ifdef USE_STOIC_QUOTES
-    {
-        const std::string message =
-            " Stoic wisdom: " +
-            std::string(StoicQuotes::random_quote(status == 0)) + " ";
-        const std::string border(message.size(), '-');
-        amrex::Print() << '+' << border << "+\n"
-                       << '|' << message << "|\n"
-                       << '+' << border << "+\n";
-    }
+    amrex::Print() << StoicSignalHandling::boxed_quote(status == 0);
 #endif
 }
 
