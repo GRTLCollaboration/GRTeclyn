@@ -20,6 +20,11 @@
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
 
+TeukolskyWaveAmr *TeukolskyWaveLevel::get_tw_amr_ptr()
+{
+    return dynamic_cast<TeukolskyWaveAmr *>(get_gr_amr_ptr());
+}
+
 void TeukolskyWaveLevel::variableSetUp()
 {
     BL_PROFILE("TeukolskyWaveLevel::variableSetUp()");
@@ -69,7 +74,7 @@ void TeukolskyWaveLevel::specific_post_timestep()
 
             WeylExtraction my_extraction(extraction_params, m_dt, m_time,
                                          first_step, restart_time);
-            my_extraction.execute_query(&get_gr_amr_ptr()->m_weyl_interpolator);
+            my_extraction.execute_query(&get_tw_amr_ptr()->m_weyl_interpolator);
         }
     }
 }
@@ -93,7 +98,7 @@ void TeukolskyWaveLevel::initData()
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
 
-    const TeukolskyWaveInitialData initial_data(Geom().CellSize(0));
+    TeukolskyWaveInitialData initial_data(Geom().CellSize(0));
     initial_data.initialize_eppley_packet(magnetic, parity);
 
     static_assert(std::is_trivially_copyable_v<TeukolskyWaveInitialData>,

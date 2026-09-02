@@ -4,11 +4,11 @@
  */
 
 #include "DefaultLevelBld.hpp"
-#include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"
 
+#include "TeukolskyWaveAmr.hpp"
 #include "TeukolskyWaveLevel.hpp"
 
 int runGRTeclyn()
@@ -23,7 +23,7 @@ int runGRTeclyn()
     }
 
     DefaultLevelBld<TeukolskyWaveLevel> teukolsky_wave_level_bld;
-    GRAmr gr_amr(&teukolsky_wave_level_bld);
+    TeukolskyWaveAmr gr_amr(&teukolsky_wave_level_bld);
     amrex::Real stop_time{};
     pp.get("evolution.stop_time", stop_time);
     int max_steps{};

@@ -10,12 +10,18 @@
 #include "FourthOrderDerivatives.hpp"
 #include "GRAmrLevel.hpp"
 #include "SixthOrderDerivatives.hpp"
+#include "TeukolskyWaveAmr.hpp"
 
 /// Evolution level for a teukolsky wave.
 class TeukolskyWaveLevel : public GRAmrLevel
 {
   public:
     using GRAmrLevel::GRAmrLevel;
+
+    /// GRAmrLevel only knows about the base GRAmr; the Weyl4 extraction
+    /// interpolator lives on the TeukolskyWaveAmr subclass constructed in
+    /// Main_TeukolskyWave.cpp, so we need to cast back down to it.
+    TeukolskyWaveAmr *get_tw_amr_ptr();
 
     static void variableSetUp();
 
