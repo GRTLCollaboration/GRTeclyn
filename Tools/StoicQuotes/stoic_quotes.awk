@@ -9,13 +9,6 @@ function trim(value)
     return value
 }
 
-function cpp_escape(value)
-{
-    gsub(/\\/, "\\\\", value)
-    gsub(/"/, "\\\"", value)
-    return value
-}
-
 function repeat_character(character, count, result, character_index)
 {
     result = ""
@@ -26,6 +19,43 @@ function repeat_character(character, count, result, character_index)
     return result
 }
 
+function print_box(quote, content_width, message, border, remaining,
+                   split_index, box_line)
+{
+    content_width = 76
+    message = "Stoic wisdom: " quote
+    border = repeat_character("-", content_width + 2)
+
+    print "+" border "+"
+    remaining = message
+    while (length(remaining) > content_width)
+    {
+        split_index = content_width + 1
+        while (split_index > 1 && substr(remaining, split_index, 1) != " ")
+        {
+            --split_index
+        }
+
+        if (split_index == 1)
+        {
+            box_line = substr(remaining, 1, content_width)
+            remaining = substr(remaining, content_width + 1)
+        }
+        else
+        {
+            box_line = substr(remaining, 1, split_index - 1)
+            remaining = trim(substr(remaining, split_index + 1))
+        }
+
+        print "| " box_line \
+              repeat_character(" ", content_width - length(box_line)) " |"
+    }
+
+    print "| " remaining \
+          repeat_character(" ", content_width - length(remaining)) " |"
+    print "+" border "+"
+}
+
 function report_error(message)
 {
     print FILENAME ":" FNR ": " message > "/dev/stderr"
@@ -33,10 +63,11 @@ function report_error(message)
 }
 
 BEGIN {
-    if (mode != "generate" && mode != "random")
+    if (section != "success" && section != "failure")
     {
-        print "stoic_quotes.awk: mode must be generate or random" > "/dev/stderr"
-        exit 1
+        print "stoic_quotes.awk: section must be success or failure" \
+              > "/dev/stderr"
+        invalid = 1
     }
 }
 
@@ -82,65 +113,7 @@ END {
         exit 1
     }
 
-    if (mode == "random")
-    {
-        srand()
-        quote_index = 1 + int(rand() * quote_count[section])
-        message = " Stoic wisdom: " quotes[section, quote_index] " "
-        border = repeat_character("-", length(message))
-        print "+" border "+"
-        print "|" message "|"
-        print "+" border "+"
-        exit
-    }
-
-    print "// Generated from StoicQuotes.txt. Do not edit directly."
-    print "#include \"StoicQuotes.hpp\""
-    print ""
-    print "#include <array>"
-    print "#include <cstddef>"
-    print "#include <random>"
-    print "#include <string_view>"
-    print ""
-    print "namespace StoicQuotes"
-    print "{"
-    print "namespace"
-    print "{"
-
-    section_names[1] = "success"
-    section_names[2] = "failure"
-    for (section_index = 1; section_index <= 2; ++section_index)
-    {
-        current_section = section_names[section_index]
-        print "inline constexpr std::array " current_section " = {"
-        for (quote_index = 1;
-             quote_index <= quote_count[current_section]; ++quote_index)
-        {
-            suffix = quote_index < quote_count[current_section] ? "," : "};"
-            print "    std::string_view{\"" \
-                  cpp_escape(quotes[current_section, quote_index]) "\"}" suffix
-        }
-        print ""
-    }
-
-    print "} // namespace"
-    print ""
-    print "std::string_view random_quote(bool succeeded)"
-    print "{"
-    print "    static std::mt19937 generator("
-    print "        static_cast<std::mt19937::result_type>(std::random_device{}()));"
-    print ""
-    print "    if (succeeded)"
-    print "    {"
-    print "        std::uniform_int_distribution<std::size_t> distribution("
-    print "            0, success.size() - 1);"
-    print "        return success[distribution(generator)];"
-    print "    }"
-    print ""
-    print "    std::uniform_int_distribution<std::size_t> distribution("
-    print "        0, failure.size() - 1);"
-    print "    return failure[distribution(generator)];"
-    print "}"
-    print ""
-    print "} // namespace StoicQuotes"
+    srand()
+    quote_index = 1 + int(rand() * quote_count[section])
+    print_box(quotes[section, quote_index])
 }

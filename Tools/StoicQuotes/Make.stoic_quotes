@@ -5,17 +5,6 @@ ifeq ($(USE_STOIC_QUOTES),TRUE)
 STOIC_QUOTES_DIR := $(GRTECLYN_HOME)/Tools/StoicQuotes
 STOIC_QUOTES_FILE := $(STOIC_QUOTES_DIR)/StoicQuotes.txt
 STOIC_QUOTES_TOOL := $(STOIC_QUOTES_DIR)/stoic_quotes.awk
-STOIC_QUOTES_SOURCE := $(srcTempDir)/StoicQuotes.cpp
-
-CPPFLAGS += -DUSE_STOIC_QUOTES
-INCLUDE_LOCATIONS += $(STOIC_QUOTES_DIR)
-VPATH_LOCATIONS += $(srcTempDir)
-CEXE_sources += StoicQuotes.cpp
-
-$(STOIC_QUOTES_SOURCE): $(STOIC_QUOTES_FILE) $(STOIC_QUOTES_TOOL) \
-                        | $(srcTempDir)/AMReX_Config.H
-	@echo Generating StoicQuotes.cpp ...
-	@$(AWK) -v mode=generate -f $(STOIC_QUOTES_TOOL) $(STOIC_QUOTES_FILE) > $@.tmp && mv $@.tmp $@
 
 .DEFAULT_GOAL := all
 
@@ -23,15 +12,16 @@ $(STOIC_QUOTES_SOURCE): $(STOIC_QUOTES_FILE) $(STOIC_QUOTES_TOOL) \
 
 # Use a sub-make so every completed build produces an appropriate quote.
 all:
-	@$(MAKE) --no-print-directory $(executable) && { \
-	  $(AWK) -v mode=random -v section=success -f $(STOIC_QUOTES_TOOL) \
-	    $(STOIC_QUOTES_FILE); \
-	} || { \
+	@$(MAKE) --no-print-directory $(executable); \
 	  build_status=$$?; \
-	  echo "GRTeclyn build failed."; \
-	  $(AWK) -v mode=random -v section=failure -f $(STOIC_QUOTES_TOOL) \
+	  if [ $$build_status -eq 0 ]; then \
+	    quote_section=success; \
+	  else \
+	    echo "GRTeclyn build failed."; \
+	    quote_section=failure; \
+	  fi; \
+	  $(AWK) -v section=$$quote_section -f $(STOIC_QUOTES_TOOL) \
 	    $(STOIC_QUOTES_FILE) || true; \
-	  exit $$build_status; \
-	}
+	  exit $$build_status
 
 endif

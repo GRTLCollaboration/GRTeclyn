@@ -65,7 +65,14 @@ int main(int argc, char *argv[])
 
     const int status = runGRTeclyn();
 
-    print_job_end_message(status);
+    if (status == 0)
+    {
+        amrex::Print() << "GRTeclyn finished.\n";
+    }
+    else
+    {
+        amrex::Print() << "GRTeclyn failed with return code " << status << "\n";
+    }
 
     mainFinalize();
     return status;
