@@ -21,7 +21,6 @@ AMREX_FORCE_INLINE
 TeukolskyWaveInitialData::TeukolskyWaveInitialData(amrex::Real a_dx)
     : m_dx(a_dx)
 {
-    m_params.fill_params();
     // Initialize the center of the geometry for the wave
     GRParmParse geometry_pp("geometry");
     geometry_pp.get("center", m_center);
@@ -30,19 +29,17 @@ TeukolskyWaveInitialData::TeukolskyWaveInitialData(amrex::Real a_dx)
 void TeukolskyWaveInitialData::initialize_eppley_packet(int magnetic,
                                                         std::string parity)
 {
-    m_params.magnetic = magnetic;
-    m_params.parity   = parity;
     if (parity == "even" && magnetic == 0)
     {
-        m_eppley_packet = EvenEppleyPacketM0();
+        m_eppley_packet = EppleyPacket(EppleyPacketType::even_m0);
     }
     else if (parity == "even" && magnetic == 2)
     {
-        m_eppley_packet = EvenEppleyPacketM2();
+        m_eppley_packet = EppleyPacket(EppleyPacketType::even_m2);
     }
     else if (parity == "odd" && magnetic == 2)
     {
-        m_eppley_packet = OddEppleyPacketM2();
+        m_eppley_packet = EppleyPacket(EppleyPacketType::odd_m2);
     }
     else
     {
@@ -81,16 +78,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void TeukolskyWaveInitialData::operator()(
     state_cell_data[c_chi]   = chi;
     state_cell_data[c_lapse] = 1.;
 
-    // BELOW ????
-    // // This will need to be set by the GammaCalculator, since the metric
-    // // is not conformally flat, but we will zero it here for now.
-    // FOR (i)
-    // {
-    //     state_cell_data[c_Gamma1 + i] = 0.0_rt;
-    // }
-
-    // TeukolskyWaveLevel zero-initializes every state component before calling
-    // this operator, so K, A_ij, Theta, shift and B remain zero here.
+    // STILL NEED TO CHECK THIS
+    // Gamma is set later by the GammaCalculator, since the metric is not
+    // conformally flat. TeukolskyWaveLevel zero-initializes every state
+    // component before calling this operator, so K, A_ij, Theta, shift and B
+    // remain zero here.
 }
 
 #endif /* TeukolskyWaveInitialData_IMPL_HPP_ */

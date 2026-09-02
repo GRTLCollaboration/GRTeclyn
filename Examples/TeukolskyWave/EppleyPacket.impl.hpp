@@ -12,13 +12,10 @@
 
 #include "EppleyPacket.hpp"
 #include <AMReX_REAL.H>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <string>
 
 // F function and its derivatives where x = r \pm t
-EppleyPacketDerivs EppleyPacket::get_F_derivs(amrex::Real x) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketDerivs
+EppleyPacket::get_F_derivs(amrex::Real x) const
 {
     amrex::Real A = this->m_params.amplitude, sigma = this->m_params.sigma,
                 r0 = this->m_params.radial_offset;
@@ -74,7 +71,8 @@ EppleyPacketDerivs EppleyPacket::get_F_derivs(amrex::Real x) const
 
 // Auxiliary functions. In the end we want the superposition, so these are also
 // implemented as get_X_tot
-EvenEppleyPacketCoefficients EvenEppleyPacket::get_ABC(amrex::Real r) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE EvenEppleyPacketCoefficients
+EppleyPacket::get_ABC(amrex::Real r) const
 {
     amrex::Real x_out               = -r;
     amrex::Real x_in                = r;
@@ -109,7 +107,8 @@ EvenEppleyPacketCoefficients EvenEppleyPacket::get_ABC(amrex::Real r) const
                                         C_out - C_in};
 }
 
-OddEppleyPacketCoefficients OddEppleyPacket::get_KL(amrex::Real r) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE OddEppleyPacketCoefficients
+EppleyPacket::get_KL(amrex::Real r) const
 {
     amrex::Real x_out               = -r;
     amrex::Real x_in                = r;
@@ -135,11 +134,27 @@ OddEppleyPacketCoefficients OddEppleyPacket::get_KL(amrex::Real r) const
     return OddEppleyPacketCoefficients{K_out - K_in, L_out - L_in};
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+EppleyPacket::get_metric_components(amrex::Real x, amrex::Real y,
+                                    amrex::Real z) const
+{
+    if (m_type == EppleyPacketType::even_m0)
+    {
+        return get_metric_components_even_m0(x, y, z);
+    }
+    if (m_type == EppleyPacketType::even_m2)
+    {
+        return get_metric_components_even_m2(x, y, z);
+    }
+    // m_type == EppleyPacketType::odd_m2
+    return get_metric_components_odd_m2(x, y, z);
+}
+
 // ------------- m = 0 EppleyPacket -----------------
 
-EppleyPacketMetricComponents
-EvenEppleyPacketM0::get_metric_components(amrex::Real x, amrex::Real y,
-                                          amrex::Real z) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+EppleyPacket::get_metric_components_even_m0(amrex::Real x, amrex::Real y,
+                                            amrex::Real z) const
 {
     amrex::Real r = sqrt(x * x + y * y + z * z);
     // regularize at the origin
@@ -180,9 +195,9 @@ EvenEppleyPacketM0::get_metric_components(amrex::Real x, amrex::Real y,
 
 // ------------- m = 2 EppleyPacket -----------------
 
-EppleyPacketMetricComponents
-EvenEppleyPacketM2::get_metric_components(amrex::Real x, amrex::Real y,
-                                          amrex::Real z) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+EppleyPacket::get_metric_components_even_m2(amrex::Real x, amrex::Real y,
+                                            amrex::Real z) const
 {
     amrex::Real r = sqrt(x * x + y * y + z * z);
     // regularize at the origin
@@ -230,9 +245,9 @@ EvenEppleyPacketM2::get_metric_components(amrex::Real x, amrex::Real y,
 
 // -------------- m = 2 Odd parity EppleyPacket -----------------
 
-EppleyPacketMetricComponents
-OddEppleyPacketM2::get_metric_components(amrex::Real x, amrex::Real y,
-                                         amrex::Real z) const
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+EppleyPacket::get_metric_components_odd_m2(amrex::Real x, amrex::Real y,
+                                           amrex::Real z) const
 {
     amrex::Real r = sqrt(x * x + y * y + z * z);
     // regularize at the origin

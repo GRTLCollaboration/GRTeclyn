@@ -17,10 +17,6 @@ class TeukolskyWaveLevel : public GRAmrLevel
   public:
     using GRAmrLevel::GRAmrLevel;
 
-    template <class deriv_t = FourthOrderDerivatives>
-
-    GRAmr *get_gr_amr_ptr();
-
     static void variableSetUp();
 
     void specific_advance() override;
