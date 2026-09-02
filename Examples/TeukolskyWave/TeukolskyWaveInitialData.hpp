@@ -8,6 +8,7 @@
 
 #include "Coordinates.hpp"
 #include "EppleyPacket.hpp"
+#include "GRParmParse.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
@@ -16,6 +17,9 @@
 
 #include <array>
 #include <cstddef>
+#include <set>
+#include <string>
+#include <utility>
 
 // See the docs for further details on these initial conditions
 class TeukolskyWaveInitialData
@@ -44,7 +48,7 @@ class TeukolskyWaveInitialData
             if (!implemented_combinations.contains({parity, magnetic}))
             {
                 amrex::Abort("Combination of magnetic/parity not implemented."
-                             "Must be (even, 0), (even, 2) or (odd, 2).");
+                             " Must be (even, 0), (even, 2) or (odd, 2).");
             }
 
             // These are parameters for the seed function

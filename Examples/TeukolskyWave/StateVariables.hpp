@@ -13,8 +13,7 @@
 /// This enum gives the index of every variable stored in the grid
 enum
 {
-    // Note that it is important that the first enum value is set to 1 more than
-    // the last CCZ4 var enum
+    // This example does not add extra state variables beyond CCZ4.
     NUM_VARS = NUM_CCZ4_VARS,
 };
 

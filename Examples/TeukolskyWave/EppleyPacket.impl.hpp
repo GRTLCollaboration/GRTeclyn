@@ -21,9 +21,11 @@ EppleyPacket::get_F_derivs(amrex::Real x) const
                 r0 = this->m_params.radial_offset;
 
     // --- paste generated temporaries here ---
-    amrex::Real exp_plus  = exp(-pow(x + r0, 2) / pow(sigma, 2));
-    amrex::Real exp_minus = exp(-pow(x - r0, 2) / pow(sigma, 2));
     amrex::Real sigma2    = sigma * sigma;
+    amrex::Real xp        = x + r0;
+    amrex::Real xm        = x - r0;
+    amrex::Real exp_plus  = exp(-(xp * xp) / sigma2);
+    amrex::Real exp_minus = exp(-(xm * xm) / sigma2);
     amrex::Real sigma4    = sigma2 * sigma2;
     amrex::Real sigma6    = sigma4 * sigma2;
     amrex::Real sigma8    = sigma4 * sigma4;
