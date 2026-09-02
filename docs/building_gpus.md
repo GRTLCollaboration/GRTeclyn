@@ -39,8 +39,7 @@ This is the easy bit! Update your `Make.local-pre` to activate the appropriate o
 * Intel GPUs: set `USE_SYCL=TRUE`
 * Nvidia GPUs: set `USE_CUDA=TRUE`
 
-Note that this usually sets the other options by default, but sometimes you may need to override them.
-Our [Example configs for specific HPC systems](example_configs.md) are a good place to look for inspiration.
+These options usually set a default compiler (`COMP`) which should work most of the time and there should rarely be a need to override this. Our [Example configs for specific HPC systems](example_configs.md) are a good place to look for inspiration.
 
 You will also probably need to give it a specific flag for the GPU architecture, which you can google for (or hopefully find in the system docs). For example, your `Make.local-pre` may look something like:
 ```
