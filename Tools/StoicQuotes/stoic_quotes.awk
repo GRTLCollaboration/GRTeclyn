@@ -23,7 +23,7 @@ function print_box(quote, content_width, message, border, remaining,
                    split_index, box_line)
 {
     content_width = 76
-    message = "Stoic wisdom: " quote
+    message = "Stoic quote: " quote
     border = repeat_character("-", content_width + 2)
 
     print "+" border "+"
