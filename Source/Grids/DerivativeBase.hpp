@@ -9,7 +9,9 @@
 #include "DimensionDefinitions.hpp"
 
 #include <AMReX_REAL.H>
+#include <cstddef>
 #include "AMReX_Array.H"
+#include "AMReX_Array4.H"
 
 class DerivativeBase
 {
@@ -28,7 +30,7 @@ class DerivativeBase
     get_var_ptr(const int ivar, const amrex::Real *state_ptr_xyz,
                 const amrex::GpuArray<int, AMREX_SPACEDIM + 1> strides) noexcept
     {
-        return state_ptr_xyz + ivar * strides[3];
+        return state_ptr_xyz + static_cast<std::ptrdiff_t>(ivar) * strides[3];
     }
 
     [[nodiscard]] AMREX_GPU_DEVICE
