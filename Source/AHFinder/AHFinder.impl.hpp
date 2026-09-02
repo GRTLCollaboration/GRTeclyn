@@ -137,8 +137,18 @@ template <int num_components> void AHFinder<num_components>::find()
         dt_log.close();
     }
 
-    amrex::Print() << "\n AHFinder converged with inf norm of theta = "
-                   << theta_old << " in " << n_iter << " iterations\n";
+    amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "
+                      << theta_old << " in " << n_iter << " iterations\n";
+
+    // Point AHGeometry at the converged surface data and report its area
+    // and irreducible mass (Christodoulou formula: M = sqrt(A / 16 pi)).
+    m_geometry.refresh(m_n_rings, m_ring_size, &m_state.h, &m_gamma_LL);
+
+    const amrex::Real area = m_geometry.area();
+    amrex::AllPrint() << " AHFinder surface area = " << area << "\n";
+
+    const amrex::Real mass = std::sqrt(area / (16.0 * M_PI));
+    amrex::AllPrint() << " AHFinder irreducible mass = " << mass << "\n";
 }
 
 template <int num_components>
@@ -561,19 +571,19 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
 
         // Physical metric and extrinsic curvature from CCZ4
         // variables: gamma_ij = h_ij/chi,
-        // K_ij = (A_ij + (1/3) h_ij K)/chi.
-        Tensor::Rank2 gamma_LL;
+        // K_ij = (A_ij + (1/3) h_ij K)/chi. gamma_ij is written directly
+        // into the persistent m_gamma_LL[ip], shared with AHGeometry.
         Tensor::Rank2 K_LL;
         FOR (i, j)
         {
-            int h_comp     = sym_var_idx(c_h11, i, j);
-            int A_comp     = sym_var_idx(c_A11, i, j);
-            double h_ij    = state_ptr[h_comp][ip];
-            double A_ij    = state_ptr[A_comp][ip];
-            gamma_LL(i, j) = h_ij / chi;
-            K_LL(i, j)     = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
+            int h_comp           = sym_var_idx(c_h11, i, j);
+            int A_comp           = sym_var_idx(c_A11, i, j);
+            double h_ij          = state_ptr[h_comp][ip];
+            double A_ij          = state_ptr[A_comp][ip];
+            m_gamma_LL[ip](i, j) = h_ij / chi;
+            K_LL(i, j)           = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
         }
-        Tensor::Rank2 gamma_UU = compute_inverse(gamma_LL);
+        Tensor::Rank2 gamma_UU = compute_inverse(m_gamma_LL[ip]);
 
         // d_k(gamma_ij) from d1(chi), d1(h_ij) (product rule on
         // gamma_ij = h_ij/chi).
@@ -589,7 +599,7 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
             int h_comp     = sym_var_idx(c_h11, i, j);
             double d1h_kij = d1_metric_ptr[k][h_comp][ip];
             d1_gamma_LL(k, i, j) =
-                d1h_kij / chi - gamma_LL(i, j) * d1_chi(k) / chi;
+                d1h_kij / chi - m_gamma_LL[ip](i, j) * d1_chi(k) / chi;
         }
 
         // d_k(gamma^ij) = -gamma^im gamma^jn d_k(gamma_mn).

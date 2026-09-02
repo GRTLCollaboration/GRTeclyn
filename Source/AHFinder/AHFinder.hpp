@@ -11,7 +11,9 @@
 #include <memory>
 
 #include "AHFinderState.hpp"
+#include "AHGeometry.hpp"
 #include "ParticleInterpolator.hpp"
+#include "Tensor.hpp"
 
 template <int num_components>
 class AHFinder : public ParticleInterpolator<num_components>
@@ -54,6 +56,17 @@ class AHFinder : public ParticleInterpolator<num_components>
     // this cannot be accessed from another particle if they are not on the
     // same tile
     AHState m_state{};
+
+    // Computes geometric diagnostics (e.g. area) of the surface. Pointed
+    // at this AHFinder's persistent per-particle arrays via
+    // m_geometry.refresh(); see AHGeometry.hpp for when to call it.
+    AHGeometry m_geometry{};
+
+    // Physical 3-metric gamma_ij at each particle (flat-indexed as
+    // i * m_ring_size + j), computed each step in compute_theta().
+    // AHGeometry is given a pointer to this via m_geometry.refresh(),
+    // so it always reads the latest values without a separate copy.
+    std::vector<Tensor::Rank2> m_gamma_LL{};
 
     // AMReX time integrator for evolution of h and v.
     std::unique_ptr<amrex::TimeIntegrator<AHState>> m_integrator;
@@ -146,12 +159,13 @@ class AHFinder : public ParticleInterpolator<num_components>
     AHFinder(int num_particles, std::array<double, AMREX_SPACEDIM> &center,
              double guess_radius = 1.0)
         : m_num_particles(num_particles), m_n_local(local_count(num_particles)),
-          m_start(local_start(num_particles)), interp_coords_x(num_particles),
-          interp_coords_y(num_particles), interp_coords_z(num_particles),
-          m_dir_x(num_particles), m_dir_y(num_particles),
+          m_start(local_start(num_particles)), interp_coords_x(num_particles), 
+          interp_coords_y(num_particles), interp_coords_z(num_particles), 
+          m_dir_x(num_particles), m_dir_y(num_particles), 
           m_dir_z(num_particles), m_state(std::vector<double>(num_particles),
-                                          std::vector<double>(num_particles)),
-          m_center(center), m_guess_radius(guess_radius), m_dhdx(num_particles),
+                  std::vector<double>(num_particles)),
+          m_gamma_LL(num_particles), m_center(center),
+          m_guess_radius(guess_radius), m_dhdx(num_particles),
           m_dhdy(num_particles), m_dhdz(num_particles), m_d2h_xx(num_particles),
           m_d2h_yy(num_particles), m_d2h_zz(num_particles),
           m_d2h_xy(num_particles), m_d2h_xz(num_particles),
