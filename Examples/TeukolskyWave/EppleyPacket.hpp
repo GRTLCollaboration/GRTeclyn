@@ -1,21 +1,48 @@
 #ifndef EPPLEYPACKET_HPP_
 #define EPPLEYPACKET_HPP_
 
-#include "cmath"
-#include <AMReX_REAL.H>
-#include <vector>
+#include "GRParmParse.hpp"
 
+#include <AMReX_REAL.H>
+#include <cmath>
+
+//! Metric coefficients used in an even parity Teukolsky wave
+struct EvenEppleyPacketCoefficients
+{
+    amrex::Real A, B, C;
+};
+
+//! Metric coefficients used in an odd parity Teukolsky wave
+struct OddEppleyPacketCoefficients
+{
+    amrex::Real K, L;
+};
+
+//! Derivatives of the seed function F that are used in the metric coefficients
+//! of a Teukolsky wave
 struct EppleyPacketDerivs
 {
     amrex::Real F0, F1, F2, F3, F4;
 };
 
+//! Struct to wrap the metric components of the Eppley packet
 struct EppleyPacketMetricComponents
 {
     amrex::Real gxx, gxy, gxz, gyy, gyz, gzz;
 };
 
-//! Base EppleyPacket class
+//! Which (parity, magnetic quantum number) combination a packet represents
+enum class EppleyPacketType
+{
+    even_m0,
+    even_m2,
+    odd_m2
+};
+
+//! Superposition of an ingoing and outgoing Teukolsky wave.
+//! This is captured by value into GPU device lambdas (via
+//! TeukolskyWaveInitialData), so it must stay trivially copyable: the choice
+//! of (parity, magnetic number) is a plain enum tag.
 class EppleyPacket
 {
   public:
@@ -24,7 +51,7 @@ class EppleyPacket
         amrex::Real sigma{};         //!< width of the packet
         amrex::Real amplitude{};     //!< amplitude of the packet
         amrex::Real radial_offset{}; // offset for radial coordinate to not
-                                     // center the wave on the center
+                                     // center the wave at the origin
         amrex::Real regularize_r{};  // small regularization parameter for the
                                      // radial coordinate
         void fill_params()
@@ -38,74 +65,43 @@ class EppleyPacket
     };
 
     params_t m_params;
+    EppleyPacketType m_type{EppleyPacketType::even_m0};
+
+    EppleyPacket() { m_params.fill_params(); }
+
+    explicit EppleyPacket(EppleyPacketType a_type) : m_type(a_type)
+    {
+        m_params.fill_params();
+    }
 
     //! F function and its first four derivatives, where x = r \pm t
-    EppleyPacketDerivs get_F_derivs(amrex::Real x) const;
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketDerivs
+    get_F_derivs(amrex::Real x) const;
 
-    EppleyPacket() { m_params.fill_params(); };
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EvenEppleyPacketCoefficients
+    get_ABC(amrex::Real r) const;
 
-    virtual EppleyPacketMetricComponents
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE OddEppleyPacketCoefficients
+    get_KL(amrex::Real r) const;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
     get_metric_components(amrex::Real x, amrex::Real y, amrex::Real z) const;
-};
 
-struct EvenEppleyPacketCoefficients
-{
-    amrex::Real A, B, C;
-};
-//! Base class for the even parity Eppley packets
-class EvenEppleyPacket : public EppleyPacket
-{
-  public:
-    EvenEppleyPacketCoefficients get_ABC(amrex::Real r) const;
+  private:
+    //! m = 0 even parity case
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+    get_metric_components_even_m0(amrex::Real x, amrex::Real y,
+                                  amrex::Real z) const;
 
-    EvenEppleyPacket() : EppleyPacket() {};
-};
+    //! m = 2 even parity case
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+    get_metric_components_even_m2(amrex::Real x, amrex::Real y,
+                                  amrex::Real z) const;
 
-struct OddEppleyPacketCoefficients
-{
-    amrex::Real K, L;
-};
-//! Base class for the odd parity Eppley packets
-class OddEppleyPacket : public EppleyPacket
-{
-  public:
-    OddEppleyPacketCoefficients get_KL(amrex::Real r) const;
-
-    OddEppleyPacket() : EppleyPacket() {};
-};
-
-//! Specific Eppley Packet classes
-//! m = 0 and m = 2 are the only ones implemented so far for the even parity
-//! case
-class EvenEppleyPacketM0 : public EvenEppleyPacket
-{
-  public:
-    EvenEppleyPacketM0() : EvenEppleyPacket() {}
-
-    EppleyPacketMetricComponents
-    get_metric_components(amrex::Real x, amrex::Real y,
-                          amrex::Real z) const override;
-};
-
-class EvenEppleyPacketM2 : public EvenEppleyPacket
-{
-  public:
-    EvenEppleyPacketM2() : EvenEppleyPacket() {}
-
-    EppleyPacketMetricComponents
-    get_metric_components(amrex::Real x, amrex::Real y,
-                          amrex::Real z) const override;
-};
-
-//! m = 2 class for the odd parity case
-class OddEppleyPacketM2 : public OddEppleyPacket
-{
-  public:
-    OddEppleyPacketM2() : OddEppleyPacket() {}
-
-    EppleyPacketMetricComponents
-    get_metric_components(amrex::Real x, amrex::Real y,
-                          amrex::Real z) const override;
+    //! m = 2 odd parity case
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+    get_metric_components_odd_m2(amrex::Real x, amrex::Real y,
+                                 amrex::Real z) const;
 };
 
 #include "EppleyPacket.impl.hpp"

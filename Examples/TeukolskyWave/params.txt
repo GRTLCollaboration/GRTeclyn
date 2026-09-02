@@ -19,7 +19,7 @@ amr.verbose = 1
 # Number of level-0 time steps between plot files; -1 disables output
 amr.plot_int = 50
 
-amr.plot_vars = chi lapse phi Pi
+amr.plot_vars = chi lapse Weyl4_Re Weyl4_Im
 amr.derive_plot_vars = constraints
 
 #################################################
@@ -32,6 +32,19 @@ teukolsky_wave.sigma = 10.
 teukolsky_wave.amplitude = 5.
 teukolsky_wave.radial_offset = 50.
 teukolsky_wave.regularize_r = 1.
+
+#################################################
+# Weyl extraction parameters
+# specific_post_timestep() reads "enabled" and "center" unconditionally, so
+# both must always be set even if extraction itself is switched off.
+
+weyl_extraction.enabled = false
+weyl_extraction.center = 0 0 0
+# weyl_extraction.num_radii = 1
+# weyl_extraction.radii = 80.0
+# weyl_extraction.levels = 0
+# weyl_extraction.num_points_phi = 160
+# weyl_extraction.num_points_theta = 81
 
 #################################################
 # Grid parameters

@@ -18,12 +18,7 @@
 #include "StateTypes.hpp"
 #include "TeukolskyWaveInitialData.hpp"
 #include "Weyl4.hpp"
-
-GRAmr *TeukolskyWaveLevel::get_gr_amr_ptr()
-{
-    // I am not sure whether I need to dynamic cast the base class here?
-    return GRAmrLevel::get_gr_amr_ptr();
-}
+#include "WeylExtraction.hpp"
 
 void TeukolskyWaveLevel::variableSetUp()
 {
