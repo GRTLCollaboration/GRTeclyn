@@ -32,7 +32,7 @@ class SimulationParameters
 
         spherical_extraction_params_t::check_params("weyl_extraction");
 
-	TeukolskyWaveInitialData::params_t::check_params();
+        TeukolskyWaveInitialData::params_t::check_params();
     }
 };
 

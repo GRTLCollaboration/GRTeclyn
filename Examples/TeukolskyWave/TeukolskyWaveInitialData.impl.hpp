@@ -68,7 +68,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void TeukolskyWaveInitialData::operator()(
     amrex::Real det_g = g[0][0] * (g[1][1] * g[2][2] - g[1][2] * g[2][1]) -
                         g[0][1] * (g[1][0] * g[2][2] - g[1][2] * g[2][0]) +
                         g[0][2] * (g[1][0] * g[2][1] - g[1][1] * g[2][0]);
-    amrex::Real chi = pow(det_g, -1. / 3.);
+    amrex::Real chi   = pow(det_g, -1. / 3.);
 
     FOR2_SYM(i, j)
     {
