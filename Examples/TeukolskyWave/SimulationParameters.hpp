@@ -32,28 +32,7 @@ class SimulationParameters
 
         spherical_extraction_params_t::check_params("weyl_extraction");
 
-        // Check the Teukolsky wave specific parameters
-        GRParmParse tw_pp("teukolsky_wave");
-
-        int magnetic{0};
-        std::string parity{"even"};
-        tw_pp.queryAdd("magnetic", magnetic);
-        tw_pp.queryAdd("parity", parity);
-        const std::set<std::pair<std::string, int>> implemented_combinations = {
-            {"even", 0},
-            {"even", 2},
-            {"odd",  2}
-        };
-        if (implemented_combinations.find({parity, magnetic}) ==
-            implemented_combinations.end())
-        {
-            amrex::Abort("Combination of magnetic/parity not implemented."
-                         "Must be (even, 0), (even, 2) or (odd, 2).");
-        }
-        else
-        {
-            TeukolskyWaveInitialData::params_t::check_params();
-        }
+	TeukolskyWaveInitialData::params_t::check_params();
     }
 };
 

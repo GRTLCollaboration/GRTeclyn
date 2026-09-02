@@ -75,31 +75,31 @@ class EppleyPacket
     }
 
     //! F function and its first four derivatives, where x = r \pm t
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketDerivs
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketDerivs
     get_F_derivs(amrex::Real x) const;
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EvenEppleyPacketCoefficients
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EvenEppleyPacketCoefficients
     get_ABC(amrex::Real r) const;
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE OddEppleyPacketCoefficients
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE OddEppleyPacketCoefficients
     get_KL(amrex::Real r) const;
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
     get_metric_components(amrex::Real x, amrex::Real y, amrex::Real z) const;
 
   private:
     //! m = 0 even parity case
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
     get_metric_components_even_m0(amrex::Real x, amrex::Real y,
                                   amrex::Real z) const;
 
     //! m = 2 even parity case
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
     get_metric_components_even_m2(amrex::Real x, amrex::Real y,
                                   amrex::Real z) const;
 
     //! m = 2 odd parity case
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketMetricComponents
     get_metric_components_odd_m2(amrex::Real x, amrex::Real y,
                                  amrex::Real z) const;
 };
