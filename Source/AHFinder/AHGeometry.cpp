@@ -31,7 +31,10 @@ std::array<int, 4> AHGeometry::neighbours(int i, int j) const
 {
     const int opposite_point = i * m_num_phi + (j + m_num_phi / 2) % m_num_phi;
 
-    int north, south, east, west;
+    int north=0; 
+    int south=0; 
+    int east=0; 
+    int west=0;
 
     if (i > 0)
         north = (i - 1) * m_num_phi + j;
@@ -94,15 +97,15 @@ Tensor::Rank1 AHGeometry::e_theta(int i, int j) const
     const amrex::Real sin_theta = std::sin(theta);
 
     // e_theta^i = d(x^i)/dtheta
-    Tensor::Rank1 e;
-    e(0) = m_df_dtheta[ij] * cos_phi * sin_theta
+    Tensor::Rank1 dx_dth;
+    dx_dth(0) = m_df_dtheta[ij] * cos_phi * sin_theta
          + (*m_f)[ij] * cos_phi * cos_theta;
-    e(1) = m_df_dtheta[ij] * sin_phi * sin_theta
+    dx_dth(1) = m_df_dtheta[ij] * sin_phi * sin_theta
          + (*m_f)[ij] * sin_phi * cos_theta;
-    e(2) = m_df_dtheta[ij] * cos_theta
+    dx_dth(2) = m_df_dtheta[ij] * cos_theta
          - (*m_f)[ij] * sin_theta;
 
-    return e;
+    return dx_dth;
 }
 
 // d x^i/d phi = e_phi^i
@@ -120,14 +123,14 @@ Tensor::Rank1 AHGeometry::e_phi(int i, int j) const
     const amrex::Real sin_theta = std::sin(theta);
 
     // e_phi^i = d(x^i)/dphi
-    Tensor::Rank1 e;
-    e(0) = m_df_dphi[ij] * cos_phi * sin_theta
+    Tensor::Rank1 dx_dph;
+    dx_dph(0) = m_df_dphi[ij] * cos_phi * sin_theta
          - (*m_f)[ij] * sin_phi * sin_theta;
-    e(1) = m_df_dphi[ij] * sin_phi * sin_theta
+    dx_dph(1) = m_df_dphi[ij] * sin_phi * sin_theta
          + (*m_f)[ij] * cos_phi * sin_theta;
-    e(2) = m_df_dphi[ij] * cos_theta;
+    dx_dph(2) = m_df_dphi[ij] * cos_theta;
 
-    return e;
+    return dx_dph;
 }
 
 // q_ab is the 2x2 metric adapted to the surface
@@ -143,13 +146,13 @@ QAB AHGeometry::q_ab(int i, int j) const
     const Tensor::Rank1 e_ph = e_phi(i, j);
 
     // q_ab = gamma_ij e_a^i e_b^j
-    QAB q;
-    q(0, 0) = TensorAlgebra::compute_dot_product(e_th, e_th, gamma);
-    q(0, 1) = TensorAlgebra::compute_dot_product(e_th, e_ph, gamma);
-    q(1, 0) = q(0, 1);
-    q(1, 1) = TensorAlgebra::compute_dot_product(e_ph, e_ph, gamma);
+    QAB qLL;
+    qLL(0, 0) = TensorAlgebra::compute_dot_product(e_th, e_th, gamma);
+    qLL(0, 1) = TensorAlgebra::compute_dot_product(e_th, e_ph, gamma);
+    qLL(1, 0) = q(0, 1);
+    qLL(1, 1) = TensorAlgebra::compute_dot_product(e_ph, e_ph, gamma);
 
-    return q;
+    return qLL;
 }
 
 // area scale factor of surface
