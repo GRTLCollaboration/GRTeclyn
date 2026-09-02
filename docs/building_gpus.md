@@ -12,9 +12,9 @@ Fortunately (thank you AMReX and historic US government funding :pray:), AMReX t
 
 For:
 
-* AMD GPUs: you need to be using the HIP compiler
-* Intel GPUs: you need to use SYCL compiler
-* Nvidia GPUs: you need to use the CUDA compiler
+* AMD GPUs: you need to use the HIP backend
+* Intel GPUs: you need to use SYCL backend
+* Nvidia GPUs: you need to use the CUDA backend
 
 You can think of them all as being like CUDA, but with a different name.
 
