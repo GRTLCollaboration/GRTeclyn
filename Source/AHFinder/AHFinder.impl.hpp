@@ -128,8 +128,7 @@ template <int num_components> void AHFinder<num_components>::find()
 
     // Point AHGeometry at the converged surface data and report its area
     // and irreducible mass (Christodoulou formula: M = sqrt(A / 16 pi)).
-    m_geometry.refresh(m_n_rings, m_ring_size, &m_state.h, &m_gamma_LL, &m_dhdx,
-                       &m_dhdy, &m_dhdz);
+    m_geometry.refresh(m_n_rings, m_ring_size, &m_state.h, &m_gamma_LL);
 
     const amrex::Real area = m_geometry.area();
     amrex::AllPrint() << " AHFinder surface area = " << area << "\n";

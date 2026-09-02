@@ -10,18 +10,12 @@
 #include <cmath>
 
 void AHGeometry::refresh(int num_theta, int num_phi, const std::vector<double> *f,
-                         const std::vector<Tensor::Rank2> *gamma_LL,
-                         const std::vector<double> *dhdx,
-                         const std::vector<double> *dhdy,
-                         const std::vector<double> *dhdz)
+                         const std::vector<Tensor::Rank2> *gamma_LL)
 {
     m_num_theta = num_theta;
     m_num_phi   = num_phi;
     m_f         = f;
     m_gamma_LL  = gamma_LL;
-    m_dhdx      = dhdx;
-    m_dhdy      = dhdy;
-    m_dhdz      = dhdz;
 
     const amrex::Real d_theta = M_PI / m_num_theta;
     const amrex::Real d_phi   = 2.0 * M_PI / m_num_phi;
@@ -30,11 +24,41 @@ void AHGeometry::refresh(int num_theta, int num_phi, const std::vector<double> *
     set_f_gradients();
 }
 
+
+// used for finite difference derivatives on the surface
+// assigns 'off the grid' points for derivatives at the edge
+std::array<int, 4> AHGeometry::neighbours(int i, int j) const
+{
+    const int opposite_point = i * m_num_phi + (j + m_num_phi / 2) % m_num_phi;
+
+    int north, south, east, west;
+
+    if (i > 0)
+        north = (i - 1) * m_num_phi + j;
+    else
+        north = opposite_point;
+
+    if (i < m_num_theta - 1)
+        south = (i + 1) * m_num_phi + j;
+    else
+        south = opposite_point;
+
+    east = i * m_num_phi + (j + 1) % m_num_phi;
+    west = i * m_num_phi + (j - 1 + m_num_phi) % m_num_phi;
+
+    return {north, south, east, west};
+}
+
+// f(theta, phi) is already a scalar field native to the ring grid
+// df/dtheta, df/dphi directly calcaulted
 void AHGeometry::set_f_gradients()
 {
     const int num_particles = m_num_theta * m_num_phi;
     m_df_dtheta.resize(num_particles);
     m_df_dphi.resize(num_particles);
+
+    const amrex::Real d_theta = M_PI / m_num_theta;
+    const amrex::Real d_phi   = 2.0 * M_PI / m_num_phi;
 
     for (int i = 0; i < m_num_theta; ++i)
     {
@@ -42,30 +66,21 @@ void AHGeometry::set_f_gradients()
         {
             const int ij = i * m_num_phi + j;
 
-            const amrex::Real theta = (i + 0.5) * M_PI / m_num_theta;
-            const amrex::Real phi   = j * 2.0 * M_PI / m_num_phi;
+            const std::array<int, 4> nb = neighbours(i, j);
+            const int north = nb[0];
+            const int south = nb[1];
+            const int east  = nb[2];
+            const int west  = nb[3];
 
-            const amrex::Real cos_theta = std::cos(theta);
-            const amrex::Real sin_theta = std::sin(theta);
-            const amrex::Real cos_phi   = std::cos(phi);
-            const amrex::Real sin_phi   = std::sin(phi);
-
-            const amrex::Real dhdx = (*m_dhdx)[ij];
-            const amrex::Real dhdy = (*m_dhdy)[ij];
-            const amrex::Real dhdz = (*m_dhdz)[ij];
-
-            const amrex::Real f = (*m_f)[ij];
-
-            // Project the Cartesian gradient of h onto the theta/phi
-            // unit directions (inverse of ring_gradient's Jacobian).
-            m_df_dtheta[ij] = f * (cos_theta * cos_phi * dhdx +
-                                   cos_theta * sin_phi * dhdy -
-                                   sin_theta * dhdz);
-            m_df_dphi[ij]   = f * sin_theta * (-sin_phi * dhdx + cos_phi * dhdy);
+            m_df_dtheta[ij] = ((*m_f)[south] - (*m_f)[north]) / (2.0 * d_theta);
+            m_df_dphi[ij]   = ((*m_f)[east] - (*m_f)[west]) / (2.0 * d_phi);
         }
     }
 }
 
+
+// d x^i/d theta = e_theta^i
+// where x^i are cartesian coordiantes of the surface
 Tensor::Rank1 AHGeometry::e_theta(int i, int j) const
 {
     const int ij = i * m_num_phi + j;
@@ -90,6 +105,8 @@ Tensor::Rank1 AHGeometry::e_theta(int i, int j) const
     return e;
 }
 
+// d x^i/d phi = e_phi^i
+// where x^i are cartesian coordiantes of the surface
 Tensor::Rank1 AHGeometry::e_phi(int i, int j) const
 {
     const int ij = i * m_num_phi + j;
@@ -113,6 +130,9 @@ Tensor::Rank1 AHGeometry::e_phi(int i, int j) const
     return e;
 }
 
+// q_ab is the 2x2 metric adapted to the surface
+// calculated from the pullback onto the surface of the 3 metric
+// the indices ab are [theta,phi]
 QAB AHGeometry::q_ab(int i, int j) const
 {
     const int ij = i * m_num_phi + j;
@@ -132,6 +152,8 @@ QAB AHGeometry::q_ab(int i, int j) const
     return q;
 }
 
+// area scale factor of surface
+// root_q is the square root of det q_ab
 amrex::Real AHGeometry::root_det_q(int i, int j) const
 {
     const QAB q = q_ab(i, j);
@@ -141,6 +163,9 @@ amrex::Real AHGeometry::root_det_q(int i, int j) const
     return std::sqrt(det_q);
 }
 
+
+// integrtes : Area = integral dA
+// dA = root_q * dtheta * dphi
 amrex::Real AHGeometry::area() const
 {
     amrex::Real total = 0.0;
