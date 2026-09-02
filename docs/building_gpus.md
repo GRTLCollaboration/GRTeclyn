@@ -22,7 +22,7 @@ If you are on a login node, this will be a CPU node, but you may be able to modu
 ```
 module load hipcc/6.3amd
 ```
-If you are ssh-ing directly into the GPU node the compiler may be installed already by default, or you module load it as above. (TIP: You can always try to compile and see if it complains about not having the compiler.). It is generally recommended to compile the code on the same GPU infrasture that you intend on running on to prevent downstream issues.
+If you are ssh-ing directly into the GPU node the compiler may be installed already by default, or you module load it as above. (TIP: You can always try to compile and see if it complains about not having the compiler.). For some computing clusters, it may be recommended to compile the code on the same GPU infrasture that you intend on running on to prevent downstream issues. You may need to check with your system admins if this is required or not.
 
 If you want to run with MPI over multiple GPUs, you will also need an MPI distribution, but note that this **needs to have been built with support for the GPUs you are using**, and often that won't be the case. You may need to ask the system admins for guidance. On Cosma8 they have an openmpi module with specific support, so you can just do:
 ```
