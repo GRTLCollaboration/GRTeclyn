@@ -69,6 +69,24 @@ jobs:
 
     - name: Generate compilation database for headers
       run: |
+        # compiledb drops the compiler executable from the commands it
+        # captures, so clang-tidy would consume the first flag (e.g.
+        # -std=c++20) as the compiler name and ignore it. Restore a
+        # compiler so that the flags are not lost.
+        python3 - <<'EOF'
+        import json
+        import os
+
+        path = os.environ["COMPILATION_DATABASE"]
+        with open(path) as f:
+            db = json.load(f)
+        for entry in db:
+            args = entry.get("arguments")
+            if args and args[0].startswith("-"):
+                args.insert(0, "clang++")
+        with open(path, "w") as f:
+            json.dump(db, f, indent=1)
+        EOF
         compdb -p ${{ github.workspace }}/GRTeclyn list > compile_commands_with_headers.json
         mv compile_commands_with_headers.json ${{ env.COMPILATION_DATABASE }}
 
