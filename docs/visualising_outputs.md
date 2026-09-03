@@ -231,6 +231,16 @@ A useful tutorial on running VisIt in parallel in client server mode, where one 
 
 VisIt has a GUI interface, so it is (sort of) intuitive. Opening a file should allow you to view the series of hdf5 outputs as a time series, without having to select any special options.
 
+!!! note "Opening a plotfile series"
+
+    If you want to look at the series, rather than individual plot files, then you need to create a time series manually. For example, from the `Examples/BinaryBH` directory, create a VisIt database file (assuming you used the default plotfile names) with
+
+    ```bash
+    ls -1v plots/plt*/Header | tee movie.visit
+    ```
+
+    Open `movie.visit` in VisIt to load the plotfiles in numerical order as a time series.
+
 The most useful plots for our data are Pseudocolour plots, using the Operators->Slice operators to view a slice (adjust the intercept to the centre of the grid) and Operators->Elevate to make the plot 3D, but the things you can do with VisIt are pretty limitless.
 
 There are [VisIt tutorials](https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/tutorials/index.html) which will help you to discover the available functionality.
