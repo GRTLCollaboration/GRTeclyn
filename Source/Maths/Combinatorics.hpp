@@ -9,12 +9,14 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 
+using namespace amrex::literals;
+
 namespace Combinatorics
 {
 // Calculate factorials
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real factorial(int n)
 {
-    amrex::Real out = 1.0;
+    amrex::Real out = 1.0_rt;
     for (int i = 1; i <= n; i++)
     {
         out *= i;

@@ -12,6 +12,8 @@
 #include "GRInterval.hpp"
 #include <array>
 
+using namespace amrex::literals;
+
 //!  Calculates the Hamiltonian and Momentum constraints with matter fields
 /*!
      The class calculates the Hamiltonian and Momentum constraints at each point

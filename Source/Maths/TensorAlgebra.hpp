@@ -17,6 +17,8 @@
 // System includes
 #include <array>
 
+using namespace amrex::literals;
+
 struct chris_t
 {
     Tensor::Rank3 ULL{};
@@ -59,7 +61,7 @@ compute_determinant(const Tensor::Rank2 &matrix)
 compute_inverse_sym(const Tensor::Sym12Rank2 &matrix)
 {
     amrex::Real deth         = compute_determinant_sym(matrix);
-    amrex::Real deth_inverse = 1. / deth;
+    amrex::Real deth_inverse = 1._rt / deth;
     Tensor::Sym12Rank2 h_UU{};
     h_UU(0, 0) = (matrix(1, 1) * matrix(2, 2) - matrix(1, 2) * matrix(1, 2)) *
                  deth_inverse;
@@ -83,7 +85,7 @@ compute_inverse_sym(const Tensor::Sym12Rank2 &matrix)
 compute_inverse(const Tensor::Rank2 &matrix)
 {
     amrex::Real deth         = compute_determinant(matrix);
-    amrex::Real deth_inverse = 1. / deth;
+    amrex::Real deth_inverse = 1._rt / deth;
     Tensor::Rank2 h_UU{};
     h_UU(0, 0) = (matrix(1, 1) * matrix(2, 2) - matrix(1, 2) * matrix(2, 1)) *
                  deth_inverse;
@@ -112,7 +114,7 @@ compute_inverse(const Tensor::Rank2 &matrix)
 compute_trace(const Tensor::Rank2 &tensor_LL,
               const Tensor::Rank2 &inverse_metric)
 {
-    amrex::Real trace = 0.;
+    amrex::Real trace = 0._rt;
     FOR (i, j)
     {
         trace += inverse_metric(i, j) * tensor_LL(i, j);
@@ -124,7 +126,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace(const Tensor::Rank2 &tensor_LL,
               const Tensor::Sym12Rank2 &sym_inverse_metric)
 {
-    amrex::Real trace = 0.;
+    amrex::Real trace = 0._rt;
     FOR (i, j)
     {
         trace += sym_inverse_metric(i, j) * tensor_LL(i, j);
@@ -136,7 +138,7 @@ compute_trace(const Tensor::Rank2 &tensor_LL,
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace(const Tensor::Rank2 &tensor_UL)
 {
-    amrex::Real trace = 0.;
+    amrex::Real trace = 0._rt;
     FOR (i)
         trace += tensor_UL(i, i);
     return trace;
@@ -147,7 +149,7 @@ compute_trace(const Tensor::Rank2 &tensor_UL)
 compute_dot_product(const Tensor::Rank1 &vector_U,
                     const Tensor::Rank1 &covector_L)
 {
-    amrex::Real dot_product = 0.;
+    amrex::Real dot_product = 0._rt;
     FOR (i)
         dot_product += vector_U(i) * covector_L(i);
     return dot_product;
@@ -160,7 +162,7 @@ compute_dot_product(const Tensor::Rank1 &covector1_L,
                     const Tensor::Rank1 &covector2_L,
                     const Tensor::Rank2 &inverse_metric)
 {
-    amrex::Real dot_product = 0.;
+    amrex::Real dot_product = 0._rt;
     FOR (m, n)
     {
         dot_product += inverse_metric(m, n) * covector1_L(m) * covector2_L(n);
@@ -175,7 +177,7 @@ compute_dot_product(const Tensor::Rank1 &covector1_L,
                     const Tensor::Rank1 &covector2_L,
                     const Tensor::Sym12Rank2 &inverse_metric_sym)
 {
-    amrex::Real dot_product = 0.;
+    amrex::Real dot_product = 0._rt;
     FOR (m, n)
     {
         dot_product +=
@@ -200,7 +202,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 
 {
     auto trace                       = compute_trace(tensor_LL, inverse_metric);
-    amrex::Real one_over_gr_spacedim = 1. / ((amrex::Real)GR_SPACEDIM);
+    amrex::Real one_over_gr_spacedim = 1._rt / ((amrex::Real)GR_SPACEDIM);
     FOR (i, j)
     {
         tensor_LL(i, j) -= one_over_gr_spacedim * metric(i, j) * trace;
@@ -219,7 +221,7 @@ make_symmetric(Tensor::GeneralRank<2, size, size> &tensor_LL)
     {
         for (int j = 0; j < i; ++j)
         {
-            tensor_LL(i, j) = 0.5 * (tensor_LL(i, j) + tensor_LL(j, i));
+            tensor_LL(i, j) = 0.5_rt * (tensor_LL(i, j) + tensor_LL(j, i));
             tensor_LL(j, i) = tensor_LL(i, j);
         }
     }
@@ -233,7 +235,7 @@ raise_all(const Tensor::Rank1 &tensor_L, const Tensor::Rank2 &inverse_metric)
 
     FOR (i)
     {
-        tensor_U(i) = 0.;
+        tensor_U(i) = 0._rt;
     }
 
     FOR (i, j)
@@ -251,7 +253,7 @@ raise_all(const Tensor::Rank2 &tensor_LL, const Tensor::Rank2 &inverse_metric)
 
     FOR (i, j)
     {
-        tensor_UU(i, j) = 0.;
+        tensor_UU(i, j) = 0._rt;
     }
 
     FOR (i, j, k, l)
@@ -293,14 +295,14 @@ constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
 
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank3 epsilon()
 {
-    Tensor::Rank3 epsilon(0.);
+    Tensor::Rank3 epsilon(0._rt);
 
-    epsilon(0, 1, 2) = 1.0;
-    epsilon(1, 2, 0) = 1.0;
-    epsilon(2, 0, 1) = 1.0;
-    epsilon(0, 2, 1) = -1.0;
-    epsilon(2, 1, 0) = -1.0;
-    epsilon(1, 0, 2) = -1.0;
+    epsilon(0, 1, 2) = 1.0_rt;
+    epsilon(1, 2, 0) = 1.0_rt;
+    epsilon(2, 0, 1) = 1.0_rt;
+    epsilon(0, 2, 1) = -1.0_rt;
+    epsilon(2, 1, 0) = -1.0_rt;
+    epsilon(1, 0, 2) = -1.0_rt;
 
     return epsilon;
 }
@@ -309,36 +311,36 @@ constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::SpacetimeRank4
 epsilon4D()
 {
-    Tensor::SpacetimeRank4 epsilon4D(0.);
+    Tensor::SpacetimeRank4 epsilon4D(0._rt);
 
     // Fortran order!
-    epsilon4D(0, 1, 2, 3) = 1.0;
-    epsilon4D(0, 1, 3, 2) = -1.0;
-    epsilon4D(0, 3, 1, 2) = 1.0;
-    epsilon4D(0, 3, 2, 1) = -1.0;
-    epsilon4D(0, 2, 1, 3) = -1.0;
-    epsilon4D(0, 2, 3, 1) = 1.0;
+    epsilon4D(0, 1, 2, 3) = 1.0_rt;
+    epsilon4D(0, 1, 3, 2) = -1.0_rt;
+    epsilon4D(0, 3, 1, 2) = 1.0_rt;
+    epsilon4D(0, 3, 2, 1) = -1.0_rt;
+    epsilon4D(0, 2, 1, 3) = -1.0_rt;
+    epsilon4D(0, 2, 3, 1) = 1.0_rt;
 
-    epsilon4D(1, 0, 2, 3) = -1.0;
-    epsilon4D(1, 2, 0, 3) = 1.0;
-    epsilon4D(1, 2, 3, 0) = -1.0;
-    epsilon4D(1, 3, 2, 0) = 1.0;
-    epsilon4D(1, 3, 0, 2) = -1.0;
-    epsilon4D(1, 0, 3, 2) = 1.0;
+    epsilon4D(1, 0, 2, 3) = -1.0_rt;
+    epsilon4D(1, 2, 0, 3) = 1.0_rt;
+    epsilon4D(1, 2, 3, 0) = -1.0_rt;
+    epsilon4D(1, 3, 2, 0) = 1.0_rt;
+    epsilon4D(1, 3, 0, 2) = -1.0_rt;
+    epsilon4D(1, 0, 3, 2) = 1.0_rt;
 
-    epsilon4D(2, 0, 1, 3) = 1.0;
-    epsilon4D(2, 0, 3, 1) = -1.0;
-    epsilon4D(2, 3, 0, 1) = 1.0;
-    epsilon4D(2, 3, 1, 0) = -1.0;
-    epsilon4D(2, 1, 3, 0) = 1.0;
-    epsilon4D(2, 1, 0, 3) = -1.0;
+    epsilon4D(2, 0, 1, 3) = 1.0_rt;
+    epsilon4D(2, 0, 3, 1) = -1.0_rt;
+    epsilon4D(2, 3, 0, 1) = 1.0_rt;
+    epsilon4D(2, 3, 1, 0) = -1.0_rt;
+    epsilon4D(2, 1, 3, 0) = 1.0_rt;
+    epsilon4D(2, 1, 0, 3) = -1.0_rt;
 
-    epsilon4D(3, 0, 1, 2) = -1.0;
-    epsilon4D(3, 1, 0, 2) = 1.0;
-    epsilon4D(3, 1, 2, 0) = -1.0;
-    epsilon4D(3, 2, 1, 0) = 1.0;
-    epsilon4D(3, 2, 0, 1) = -1.0;
-    epsilon4D(3, 0, 2, 1) = 1.0;
+    epsilon4D(3, 0, 1, 2) = -1.0_rt;
+    epsilon4D(3, 1, 0, 2) = 1.0_rt;
+    epsilon4D(3, 1, 2, 0) = -1.0_rt;
+    epsilon4D(3, 2, 1, 0) = 1.0_rt;
+    epsilon4D(3, 2, 0, 1) = -1.0_rt;
+    epsilon4D(3, 0, 2, 1) = 1.0_rt;
 
     return epsilon4D;
 }
@@ -354,7 +356,7 @@ compute_christoffel(const Tensor::Rank3 &d1_metric, const Tensor::Rank2 &h_UU)
 
     FOR (i, j, k)
     {
-        out.LLL(i, j, k) = 0.5 * (d1_metric(j, i, k) + d1_metric(k, i, j) -
+        out.LLL(i, j, k) = 0.5_rt * (d1_metric(j, i, k) + d1_metric(k, i, j) -
                                   d1_metric(j, k, i));
     }
     FOR (i, j, k)

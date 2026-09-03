@@ -12,6 +12,8 @@
 #include "FourthOrderDerivatives.hpp"
 #include "TensorAlgebra.hpp"
 
+using namespace amrex::literals;
+
 //! A structure for the decomposed elements of the Energy Momentum Tensor in
 //! 3+1D
 struct emtensor_t
@@ -56,7 +58,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 compute_inverse_metric(const CCZ4Vars &vars)
 {
     amrex::Real det_h         = compute_metric_determinant(vars);
-    amrex::Real det_h_inverse = 1. / det_h;
+    amrex::Real det_h_inverse = 1._rt / det_h;
     Tensor::Rank2 h_UU{};
 
     h_UU(0, 0) = (vars.h(1, 1) * vars.h(2, 2) - vars.h(1, 2) * vars.h(2, 1)) *
@@ -84,7 +86,7 @@ compute_A_UU(const CCZ4Vars &vars, const Tensor::Rank2 &inverse_metric)
     Tensor::Rank2 A_UU{};
     FOR (i, j)
     {
-        A_UU(i, j) = 0.0;
+        A_UU(i, j) = 0.0_rt;
         FOR (k, l)
         {
             A_UU(i, j) +=
@@ -98,7 +100,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace_A(const CCZ4Vars &vars)
 {
     Tensor::Rank2 inverse_metric = compute_inverse_metric(vars);
-    amrex::Real trace_A          = 0.0;
+    amrex::Real trace_A          = 0.0_rt;
     FOR (i, j)
     {
         trace_A += inverse_metric(i, j) * vars.A(i, j);
@@ -110,7 +112,7 @@ compute_trace_A(const CCZ4Vars &vars)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_Aij_squared(const CCZ4Vars &vars, const Tensor::Rank2 &inverse_metric)
 {
-    amrex::Real Aij_squared = 0.0;
+    amrex::Real Aij_squared = 0.0_rt;
     FOR (i, j, k, l)
     {
         Aij_squared += inverse_metric(i, k) * inverse_metric(j, l) *
@@ -123,7 +125,7 @@ compute_Aij_squared(const CCZ4Vars &vars, const Tensor::Rank2 &inverse_metric)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_Aij_squared_with_A_UU(const CCZ4Vars &vars, const Tensor::Rank2 &A_UU)
 {
-    amrex::Real Aij_squared = 0.0;
+    amrex::Real Aij_squared = 0.0_rt;
     FOR (i, j)
     {
         Aij_squared += A_UU(i, j) * vars.A(i, j);
@@ -143,7 +145,7 @@ compute_christoffel(const Tensor::Sym12Rank3 &d1_h, const Tensor::Rank2 &h_UU)
     FOR (i, j, k)
     {
         out.LLL(i, j, k) =
-            0.5 * (d1_h(j, i, k) + d1_h(k, i, j) - d1_h(j, k, i));
+            0.5_rt * (d1_h(j, i, k) + d1_h(k, i, j) - d1_h(j, k, i));
     }
 
     FOR (i, j, k)
@@ -181,12 +183,12 @@ compute_phys_chris(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
     {
         chris_phys(i, j, k) =
             chris_ULL(i, j, k) -
-            0.5 / vars.chi() *
+            0.5_rt / vars.chi() *
                 (delta(i, k) * d1_chi(j) + delta(i, j) * d1_chi(k));
         FOR (m)
         {
             chris_phys(i, j, k) +=
-                0.5 / vars.chi() * vars.h(j, k) * h_UU(i, m) * d1_chi(m);
+                0.5_rt / vars.chi() * vars.h(j, k) * h_UU(i, m) * d1_chi(m);
         }
     }
     return chris_phys;
@@ -195,7 +197,7 @@ compute_phys_chris(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_divshift(Tensor::Rank2 &d1_shift)
 {
-    amrex::Real divshift = 0.;
+    amrex::Real divshift = 0._rt;
     FOR (i)
         divshift += d1_shift(i, i);
     return divshift;
@@ -208,7 +210,7 @@ make_trace_free(Tensor::Rank2 &tensor_LL, const CCZ4Vars vars,
                 const Tensor::Rank2 &inverse_metric)
 {
     auto trace = TensorAlgebra::compute_trace(tensor_LL, inverse_metric);
-    amrex::Real one_over_gr_spacedim = 1. / ((amrex::Real)GR_SPACEDIM);
+    amrex::Real one_over_gr_spacedim = 1._rt / ((amrex::Real)GR_SPACEDIM);
     FOR (i, j)
     {
         tensor_LL(i, j) -= one_over_gr_spacedim * vars.h(i, j) * trace;
@@ -219,7 +221,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_z_terms(const int i, const int j, const Tensor::Rank1 &Z_over_chi,
                 const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi)
 {
-    amrex::Real out = 0.;
+    amrex::Real out = 0._rt;
     FOR (k)
     {
         out += Z_over_chi(k) *
@@ -246,15 +248,15 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
         // We call this ricci_hat rather than ricci_tilde as we have
         // replaced what should be \tilde{Gamma} with \hat{Gamma} in
         // order to avoid adding terms that cancel later on
-        ricci_hat += 0.5 * (vars.h(k, i) * d1_Gamma(k, j) +
+        ricci_hat += 0.5_rt * (vars.h(k, i) * d1_Gamma(k, j) +
                             vars.h(k, j) * d1_Gamma(k, i));
-        ricci_hat += 0.5 * vars.Gamma(k) * d1_h(i, j, k);
+        ricci_hat += 0.5_rt * vars.Gamma(k) * d1_h(i, j, k);
 
         FOR (l)
         {
-            amrex::Real chris_LLU_jkl = 0.0;
-            amrex::Real chris_LLU_ikl = 0.0;
-            amrex::Real chris_LLU_kjl = 0.0;
+            amrex::Real chris_LLU_jkl = 0.0_rt;
+            amrex::Real chris_LLU_ikl = 0.0_rt;
+            amrex::Real chris_LLU_kjl = 0.0_rt;
 
             FOR (m)
             {
@@ -268,7 +270,7 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
                 chris_LLU_kjl += h_UU(l, m) * chris.LLL(k, j, m);
             }
 
-            ricci_hat += -0.5 * h_UU(k, l) * d2_h(i, j, k, l) +
+            ricci_hat += -0.5_rt * h_UU(k, l) * d2_h(i, j, k, l) +
                          chris.ULL(k, l, i) * chris_LLU_jkl +
                          chris.ULL(k, l, j) * chris_LLU_ikl +
                          chris.ULL(k, i, l) * chris_LLU_kjl;
@@ -298,8 +300,8 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
         }
     }
 
-    amrex::Real boxtildechi   = 0.;
-    amrex::Real dchi_dot_dchi = 0.;
+    amrex::Real boxtildechi   = 0._rt;
+    amrex::Real dchi_dot_dchi = 0._rt;
     FOR (i, j)
     {
         boxtildechi   += covdtilde2chi(i, j) * h_UU(i, j);
@@ -313,7 +315,7 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
             compute_ricci_hat(i, j, vars, d1_Gamma, d1_h, d2_h, h_UU, chris);
 
         amrex::Real ricci_chi =
-            0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi(i, j) +
+            0.5_rt * ((GR_SPACEDIM - 2) * covdtilde2chi(i, j) +
                    vars.h(i, j) * boxtildechi -
                    ((GR_SPACEDIM - 2) * d1_chi(i) * d1_chi(j) +
                     GR_SPACEDIM * vars.h(i, j) * dchi_dot_dchi) /
@@ -341,11 +343,11 @@ compute_d1_chris_contracted(const Tensor::Rank2 &h_UU,
 
     FOR (i, j)
     {
-        d1_chris_contracted(i, j) = 0.;
+        d1_chris_contracted(i, j) = 0._rt;
 
         FOR (m, n, p)
         {
-            amrex::Real d1_terms = 0.0;
+            amrex::Real d1_terms = 0.0_rt;
             FOR (q, r)
             {
                 d1_terms += -h_UU(q, r) * (d1_h(n, q, j) * d1_h(m, p, r) +
@@ -372,7 +374,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
 
     FOR (i)
     {
-        zero_Z(i) = 0.;
+        zero_Z(i) = 0._rt;
     }
 
     auto ricci = compute_ricci_Z(vars, d1_chi, d1_Gamma, d1_h, d2_h, d2_chi,
@@ -384,7 +386,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
     Tensor::Rank1 Z_over_chi{};
     FOR (i)
     {
-        Z_over_chi(i) = 0.5 * (vars.Gamma(i) - chris.contracted(i));
+        Z_over_chi(i) = 0.5_rt * (vars.Gamma(i) - chris.contracted(i));
     }
     FOR (i, j)
     {
@@ -392,13 +394,13 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
         {
             // This corrects for the \hat{Gamma}s in ricci_hat
             ricci.LL(i, j) +=
-                (1. - 0.5 * dZ_coeff) * 0.5 *
+                (1._rt - 0.5_rt * dZ_coeff) * 0.5_rt *
                 (vars.h(m, i) * (d1_chris_contracted(m, j) - d1_Gamma(m, j)) +
                  vars.h(m, j) * (d1_chris_contracted(m, i) - d1_Gamma(m, i)) +
                  (chris.contracted(m) - vars.Gamma(m)) * d1_h(i, j, m));
         }
         amrex::Real z_terms  = compute_z_terms(i, j, Z_over_chi, vars, d1_chi);
-        ricci.LL(i, j)      += 0.5 * dZ_coeff * z_terms / vars.chi();
+        ricci.LL(i, j)      += 0.5_rt * dZ_coeff * z_terms / vars.chi();
     }
     ricci.scalar = vars.chi() * TensorAlgebra::compute_trace(ricci.LL, h_UU);
     return ricci;
@@ -413,7 +415,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci(
     const Tensor::Rank2 &h_UU, const chris_t &chris)
 {
     return compute_ricci_Z_general(vars, d1_chi, d1_Gamma, d1_h, d2_chi, d2_h,
-                                   h_UU, chris, 0.0);
+                                   h_UU, chris, 0.0_rt);
 }
 
 } // namespace CCZ4Geometry

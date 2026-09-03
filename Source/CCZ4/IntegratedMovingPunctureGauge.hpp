@@ -10,6 +10,8 @@
 #include "DimensionDefinitions.hpp"
 #include "MovingPunctureGauge.hpp"
 
+using namespace amrex::literals;
+
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute
 /// class
 /**
@@ -78,8 +80,8 @@ class IntegratedMovingPunctureGauge : public MovingPunctureGauge<deriv_t>
         rhs_cell_data[c_lapse] =
             this->m_params.lapse_advec_coeff * advec_lapse -
             this->m_params.lapse_coeff *
-                pow(vars.lapse(), this->m_params.lapse_power) *
-                (vars.K() - 2.0 * vars.Theta());
+                std::pow(vars.lapse(), this->m_params.lapse_power) *
+                (vars.K() - 2.0_rt * vars.Theta());
 
         FOR (i)
         {
@@ -87,7 +89,7 @@ class IntegratedMovingPunctureGauge : public MovingPunctureGauge<deriv_t>
                 this->m_params.shift_advec_coeff * advec_shift(i) +
                 this->m_params.shift_Gamma_coeff * vars.Gamma(i) -
                 eta_of_x * vars.shift(i) - vars.B(i);
-            rhs_cell_data[c_B1 + i] = 0.0;
+            rhs_cell_data[c_B1 + i] = 0.0_rt;
         }
     }
 };

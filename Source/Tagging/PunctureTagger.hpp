@@ -13,6 +13,8 @@
 #include <AMReX_Array4.H>
 #include <AMReX_TagBox.H>
 
+using namespace amrex::literals;
+
 //! This class tags cells near the punctures so that the BH apparent horizons
 //! are covered
 template <unsigned int num_punctures> class PunctureTagger
@@ -25,20 +27,20 @@ template <unsigned int num_punctures> class PunctureTagger
         AMREX_SPACEDIM * num_punctures;
     std::array<amrex::Real, num_punctures> m_puncture_masses;
     std::array<amrex::Real, num_puncture_coords> m_puncture_coords;
-    amrex::Real m_level_separation{1.5};
-    amrex::Real m_finest_level_factor{2.0};
+    amrex::Real m_level_separation{1.5_rt};
+    amrex::Real m_finest_level_factor{2.0_rt};
 
   public:
     static void check_params()
     {
         GRParmParse puncture_tagging_pp("puncture_tagging");
-        amrex::Real level_separation{1.5};
+        amrex::Real level_separation{1.5_rt};
         puncture_tagging_pp.queryAdd("level_separation", level_separation);
-        amrex::Real finest_level_factor{2.0};
+        amrex::Real finest_level_factor{2.0_rt};
         puncture_tagging_pp.queryAdd("finest_level_factor",
                                      finest_level_factor);
 
-        if (level_separation < 1.2)
+        if (level_separation < 1.2_rt)
         {
             puncture_tagging_pp.warning(
                 "level_separation",
@@ -46,20 +48,20 @@ template <unsigned int num_punctures> class PunctureTagger
                 "error reflecting; either increase this value or set n_proper "
                 "to be larger");
         }
-        if (level_separation < 1.0)
+        if (level_separation < 1.0_rt)
         {
             puncture_tagging_pp.error("level_separation",
                                       "levels are getting smaller on each "
                                       "level; increase this value");
         }
-        if (level_separation > 2.0)
+        if (level_separation > 2.0_rt)
         {
             puncture_tagging_pp.warning(
                 "level_separation",
                 "levels are more than doubling around punctures, which may "
                 "result in too much refinement");
         }
-        if (finest_level_factor < 1.0)
+        if (finest_level_factor < 1.0_rt)
         {
             puncture_tagging_pp.error(
                 "finest_level_factor",
