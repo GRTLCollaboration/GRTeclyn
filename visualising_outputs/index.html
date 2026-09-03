@@ -364,6 +364,12 @@ will plot the values of <code>chi</code> from the regression test output from th
 <p>A useful tutorial on running VisIt in parallel in client server mode, where one needs to submit a batch job to reserve the compute nodes, can be found <a href="https://www.youtube.com/watch?v=IPekLxRJxJ0">here</a>. (Note that for this you need to download a version which includes parallel VisIt - ie redhat not ubuntu).</p>
 <h3 id="making-a-plot">Making a plot</h3>
 <p>VisIt has a GUI interface, so it is (sort of) intuitive. Opening a file should allow you to view the series of hdf5 outputs as a time series, without having to select any special options.</p>
+<div class="admonition note">
+<p class="admonition-title">Opening a plotfile series</p>
+<p>If you want to look at the series, rather than individual plot files, then you need to create a time series manually. For example, from the <code>Examples/BinaryBH</code> directory, create a VisIt database file (assuming you used the default plotfile names) with</p>
+<pre class="highlight"><code class="language-bash">ls -1v plots/plt*/Header | tee movie.visit</code></pre>
+<p>Open <code>movie.visit</code> in VisIt to load the plotfiles in numerical order as a time series.</p>
+</div>
 <p>The most useful plots for our data are Pseudocolour plots, using the Operators-&gt;Slice operators to view a slice (adjust the intercept to the centre of the grid) and Operators-&gt;Elevate to make the plot 3D, but the things you can do with VisIt are pretty limitless.</p>
 <p>There are <a href="https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/tutorials/index.html">VisIt tutorials</a> which will help you to discover the available functionality.</p>
 <p>See our (still relevant!) tips for making good visualisations in the <a href="https://github.com/GRTLCollaboration/GRChombo/wiki/Visualisation-tips">GRChombo wiki</a>. Feel free to add to them!</p>
