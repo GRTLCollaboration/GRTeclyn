@@ -26,6 +26,9 @@ Weyl_integral*
 *ExtractionOut_*
 parameters_and_version.txt
 
+# Test output
+*.h5
+
 # Job schedulers
 jobscript*
 *.pbs
