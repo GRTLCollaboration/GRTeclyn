@@ -36,7 +36,7 @@ struct surface_extraction_params_t
                                   extraction_levels.end()));
     }
 
-    void fill_params() {}
+    virtual void fill_params() {}
 };
 
 #endif /* SURFACEEXTRACTIONPARAMETERS_HPP_ */

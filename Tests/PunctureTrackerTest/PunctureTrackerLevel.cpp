@@ -46,7 +46,8 @@ void PunctureTrackerLevel::initData()
         // need to set the puncture coordinates as we use it for the puncture
         // tagging
         GRParmParse puncture_tracking_pp("puncture_tracking");
-        std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_puncture_coords;
+        std::array<amrex::ParticleReal, AMREX_SPACEDIM * 2UL>
+            initial_puncture_coords{};
         puncture_tracking_pp.get("initial_coords", initial_puncture_coords);
 
         get_puncture_tracker().set_puncture_coords(initial_puncture_coords);
@@ -235,7 +236,7 @@ void PunctureTrackerLevel::specific_post_timestep()
         get_puncture_tracker().track(cur_time, dt, write_punctures);
 
         GRParmParse puncture_tracking_pp("puncture_tracking");
-        std::array<amrex::Real, AMREX_SPACEDIM * 2UL> correct_puncture_coords;
+        std::array<amrex::Real, AMREX_SPACEDIM * 2UL> correct_puncture_coords{};
         puncture_tracking_pp.get("initial_coords", correct_puncture_coords);
 
         for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
@@ -245,7 +246,7 @@ void PunctureTrackerLevel::specific_post_timestep()
         }
         auto puncture_coords = get_puncture_tracker().get_puncture_coords();
         constexpr int cout_precision = 16;
-        for (int icoord = 0; icoord < num_puncture_coords; ++icoord)
+        for (unsigned int icoord = 0; icoord < num_puncture_coords; ++icoord)
         {
             INFO("puncture_coords["
                  << icoord << "] = " << std::setprecision(cout_precision)

@@ -604,13 +604,13 @@ class TwoPuncturesInitialData
                              amrex::Real &out_Theta,
                              Tensor::Rank1 &out_Z3) const
     {
-        amrex::Real coords_array[AMREX_SPACEDIM];
-        coords_array[0] = coords.x;
-        coords_array[1] = coords.y;
-        coords_array[2] = coords.z;
+        double coords_array[AMREX_SPACEDIM];
+        coords_array[0] = static_cast<double>(coords.x);
+        coords_array[1] = static_cast<double>(coords.y);
+        coords_array[2] = static_cast<double>(coords.z);
 
         using namespace TP::Z4VectorShortcuts;
-        amrex::Real TP_state[Qlen];
+        double TP_state[Qlen];
         s_two_punctures.Interpolate(coords_array, TP_state);
 
         // metric

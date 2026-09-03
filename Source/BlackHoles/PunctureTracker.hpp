@@ -122,7 +122,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 
     //! SmallDataIO requires a std::vector to write the coords
     [[nodiscard]]
-    std::vector<amrex::Real> get_puncture_vector() const;
+    std::vector<amrex::ParticleReal> get_puncture_vector() const;
 };
 
 #include "PunctureTracker.impl.hpp"

@@ -21,15 +21,15 @@ class SphericalExtraction
 {
   public:
     using Base   = SurfaceExtraction<SphericalGeometry, num_components>;
-    using vars_t = typename Base::vars_t;
+    using vars_t = Base::vars_t;
     using mode_integrals_t = std::pair<std::vector<amrex::ParticleReal>,
                                        std::vector<amrex::ParticleReal>>;
     using params_t         = spherical_extraction_params_t;
 
   protected:
-    std::array<amrex::ParticleReal, AMREX_SPACEDIM> m_center;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center{};
     int m_num_modes;
-    std::vector<std::pair<int, int>> m_modes{};
+    std::vector<std::pair<int, int>> m_modes;
 
   public:
     SphericalExtraction(const params_t &a_params, amrex::Real a_dt,

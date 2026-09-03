@@ -124,7 +124,7 @@ BoostedBHInitialData::center_dist(Coordinates a_coords) const
                               std::pow(a_coords.y - m_params.center[1], 2) +
                               std::pow(a_coords.z - m_params.center[2], 2));
 
-    return std::max(r, 1e-6);
+    return std::max(r, 1e-6_rt);
 }
 
 [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real
