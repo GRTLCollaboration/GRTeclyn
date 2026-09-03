@@ -233,7 +233,7 @@ void AHFinder<num_components>::init_particle_vals()
                       std::pow(interp_coords_y[id] - m_center[1], 2) +
                       std::pow(interp_coords_z[id] - m_center[2], 2));
 
-        // Since h = v - eta * h, start velocity at eta * h so we don't
+        // Since dh/dt = v - eta * h, start velocity at eta * h so we don't
         // immediately collapse inwards
         m_state.v[id] = m_eta * m_state.h[id];
     }
