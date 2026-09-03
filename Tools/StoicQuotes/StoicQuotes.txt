@@ -1,0 +1,28 @@
+# Add one quote per line. Blank lines and lines beginning with # are ignored.
+
+[success]
+They who pursue pleasure most attain it the least; the pleasure of eating lies in having an appetite, not in being glutted -- Cicero
+Whoever wishes to be free, let him neither wish for anything nor flee from anything that depends on others, otherwise he must be a slave -- Epictetus
+We believe these affairs of ours are great because we are small -- Seneca
+Each man is worth just as much as the things he cares about -- Marcus Aurelius
+Liberty is having a mind superior to injury, a mind that makes itself the only source from which its pleasures spring -- Seneca
+I judge you unfortunate because you have never been unfortunate: You have passed through life without an antagonist; no one will know what you can do, not even you yourself -- Seneca
+Without an adversary, virtue shrivels. We see how great and powerful it really is, only when it shows by endurance what it is capable of -- Seneca
+Such is the madness of ambition that you will feel you have come in last if anyone is ahead of you -- Seneca
+Don't be elated by a superiority that belongs to another. If the horse in its elation were to say "I am beautiful", one could endure it. But when you in your elation say "I have a beautiful horse," be aware that you are elated by the good of the horse. What then is yours? -- Epictetus
+Those who are without skill and sense as to how they should live are elated by good fortune and depressed by adversity -- Plutarch
+An untroubled life, in which fortune makes no inroads, he calls "a dead sea". To have nothing to stir you and rouse you to action, no attack by which to try the strength of your spirit, merely to lie in unshaken idleness - this is not to be tranquil; it is to be stranded in a windless calm -- Seneca
+
+[failure]
+Each man is as wretched as he has convinced himself he is -- Seneca
+Men are disturbed not by the things that happen but by their opinions about those things -- Epictetus
+There is nothing either good or bad but thinking makes it so -- Hamlet
+We can choose to have no opinion about a thing, and not to be troubled by it; for things themselves have no power of their own to affect our judgement -- Marcus Aurelius
+No one can have whatever he wants. What he can do is not want what he doesn't have, and cheerfully enjoy what comes his way -- Seneca
+If we were to all to bring our misfortunes into a common store, so that each person should receive an equal share in the distribution, the majority would be glad to take up their own and depart -- Plutarch
+No one becomes a laughingstock who laughs at themself -- Seneca
+Do I deserve these things that happen to me? If I deserve them, it is justice. If I don't deserve them, let the one who does the injustice blush -- Seneca
+Still you are indignant and complain, and you don't understand that in all the evils to which you refer, there is really only one - that you are indignant and complain -- Seneca
+The impediment to action becomes part of the action; the obstacle in our way becomes the way forward -- Marcus Aurelius
+Men of sense draw from the most unfavourable circumstances something that suits them and is useful -- Plutarch
+Whatever happens to you, remember to turn to yourself and ask what power you have for dealing with it -- Epictetus

@@ -1,0 +1,27 @@
+AWK ?= awk
+
+ifeq ($(USE_STOIC_QUOTES),TRUE)
+
+STOIC_QUOTES_DIR := $(GRTECLYN_HOME)/Tools/StoicQuotes
+STOIC_QUOTES_FILE := $(STOIC_QUOTES_DIR)/StoicQuotes.txt
+STOIC_QUOTES_TOOL := $(STOIC_QUOTES_DIR)/stoic_quotes.awk
+
+.DEFAULT_GOAL := all
+
+.PHONY: all
+
+# Use a sub-make so every completed build produces an appropriate quote.
+all:
+	@$(MAKE) --no-print-directory $(executable); \
+	  build_status=$$?; \
+	  if [ $$build_status -eq 0 ]; then \
+	    quote_section=success; \
+	  else \
+	    echo "GRTeclyn build failed."; \
+	    quote_section=failure; \
+	  fi; \
+	  $(AWK) -v section=$$quote_section -f $(STOIC_QUOTES_TOOL) \
+	    $(STOIC_QUOTES_FILE) || true; \
+	  exit $$build_status
+
+endif

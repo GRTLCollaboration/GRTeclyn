@@ -66,3 +66,7 @@ mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex params.txt
 ```
 
 On a cluster you will probably need to submit a jobscript for the run. You should consult the system documentation, but some example jobscripts can be found in [Example configs for specific HPC systems](example_configs.md) along with the `Make.local-pre` files and module choices if relevant.
+
+!!! note "Stoic build quotes"
+
+    After each build, GRTeclyn prints a random Stoic quote for either success or failure. Add quotes to `Tools/StoicQuotes/StoicQuotes.txt`, or set `USE_STOIC_QUOTES=FALSE` on the command line or in `Make.local-pre` to disable them.
