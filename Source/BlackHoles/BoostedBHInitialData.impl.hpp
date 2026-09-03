@@ -107,7 +107,7 @@ BoostedBHInitialData::Aij(Coordinates a_coords) const
     FOR (i, j)
     {
         const amrex::Real delta = (i == j) ? 1 : 0;
-        out(i, j)               = 1.5 *
+        out(i, j) = 1.5 *
                     (m_params.momentum[i] * l(j) + m_params.momentum[j] * l(i) -
                      (delta - l(i) * l(j)) * l_dot_p) /
                     (r * r);

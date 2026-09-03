@@ -13,6 +13,7 @@
 
 namespace
 {
+// NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const std::map<std::string, int> boundary_conditions_by_name = {
     {"UNSET_BC",                     BoundaryConditions::UNSET_BC     },
     {"FIRST_ORDER_EXTRAPOLATION_BC",
@@ -331,7 +332,7 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                             {
                                 iv_offset1[idir2] += +1;
                                 iv_offset2[idir2] += -1;
-                                d1                 = (0.5 / dx) *
+                                d1 = (0.5 / dx) *
                                      (sol(iv_offset1, n) - sol(iv_offset2, n));
                             }
                             // for each direction add dphidx * x^i
