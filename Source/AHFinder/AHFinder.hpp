@@ -59,6 +59,13 @@ class AHFinder : public ParticleInterpolator<num_components>
     // it always reads the latest values without a separate copy.
     std::vector<Tensor::Rank2> m_gamma_LL{};
 
+    // Physical extrinsic curvature K_ij and its trace K at each particle
+    // (same indexing as m_gamma_LL), computed each step in
+    // compute_theta(). AHGeometry is given pointers to these in init()
+    // too, alongside gamma_LL.
+    std::vector<Tensor::Rank2> m_K_LL{};
+    std::vector<double> m_K{};
+
     // AMReX time integrator for evolution of h and v.
     std::unique_ptr<amrex::TimeIntegrator<AHState>> m_integrator;
 
@@ -128,7 +135,8 @@ class AHFinder : public ParticleInterpolator<num_components>
           m_state(std::vector<double>(num_particles),
                   std::vector<double>(num_particles)),
           m_geometry(num_particles, center, guess_radius),
-          m_gamma_LL(num_particles), m_metric_query_state(m_n_local),
+          m_gamma_LL(num_particles), m_K_LL(num_particles), m_K(num_particles),
+          m_metric_query_state(m_n_local),
           m_metric_query_deriv(m_n_local), m_theta_vals(num_particles)
     {
     }

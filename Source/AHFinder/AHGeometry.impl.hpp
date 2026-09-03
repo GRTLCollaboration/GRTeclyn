@@ -252,10 +252,62 @@ inline double AHGeometry::min_ring_spacing(const std::vector<double> &h) const
 
 inline void
 AHGeometry::set_surface_data(const std::vector<double> *h,
-                             const std::vector<Tensor::Rank2> *gamma_LL)
+                             const std::vector<Tensor::Rank2> *gamma_LL,
+                             const std::vector<Tensor::Rank2> *K_LL,
+                             const std::vector<double> *K)
 {
     m_h        = h;
     m_gamma_LL = gamma_LL;
+    m_K_LL     = K_LL;
+    m_K        = K;
+}
+
+inline Tensor::Rank1 AHGeometry::s_L(int idx) const
+{
+    const Tensor::Rank1 n_L      = direction(idx);
+    const Tensor::Rank1 grad_h_L = grad_h(idx);
+
+    Tensor::Rank1 F_L;
+    FOR (i)
+    {
+        F_L(i) = n_L(i) - grad_h_L(i);
+    }
+
+    const Tensor::Rank2 gamma_UU =
+        TensorAlgebra::compute_inverse((*m_gamma_LL)[idx]);
+    const amrex::Real lambda =
+        std::sqrt(TensorAlgebra::compute_dot_product(F_L, F_L, gamma_UU));
+
+    Tensor::Rank1 sL;
+    FOR (i)
+    {
+        sL(i) = F_L(i) / lambda;
+    }
+
+    return sL;
+}
+
+inline Tensor::Rank1 AHGeometry::s_U(int idx) const
+{
+    const Tensor::Rank2 gamma_UU =
+        TensorAlgebra::compute_inverse((*m_gamma_LL)[idx]);
+
+    return TensorAlgebra::raise_all(s_L(idx), gamma_UU);
+}
+
+inline Tensor::Rank2 AHGeometry::pi_LL(int idx) const
+{
+    const Tensor::Rank2 &K_LL_idx     = (*m_K_LL)[idx];
+    const Tensor::Rank2 &gamma_LL_idx = (*m_gamma_LL)[idx];
+    const amrex::Real K_idx           = (*m_K)[idx];
+
+    Tensor::Rank2 pi;
+    FOR (i, j)
+    {
+        pi(i, j) = K_LL_idx(i, j) - K_idx * gamma_LL_idx(i, j);
+    }
+
+    return pi;
 }
 
 // h(theta, phi) is already a scalar field native to the ring grid
@@ -380,6 +432,55 @@ inline amrex::Real AHGeometry::area()
     }
 
     return total * d_theta() * d_phi();
+}
+
+// P_k = (1/8pi) * integral pi_kj s^j dA, for each Cartesian direction k
+inline Tensor::Rank1 AHGeometry::momentum()
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_h != nullptr && m_gamma_LL != nullptr && m_K_LL != nullptr &&
+            m_K != nullptr,
+        "AHGeometry::momentum() called before set_surface_data()");
+
+    // Refresh dh/dtheta, dh/dphi from the currently bound h so the tangent
+    // vectors used by q_ab() below can't be built from a stale surface
+    set_h_gradients();
+
+    Tensor::Rank1 total;
+    FOR (k)
+    {
+        total(k) = 0.0;
+    }
+
+    for (int i = 0; i < m_n_rings; ++i)
+    {
+        for (int j = 0; j < m_ring_size; ++j)
+        {
+            const int idx = i * m_ring_size + j;
+
+            const Tensor::Rank2 pi   = pi_LL(idx);
+            const Tensor::Rank1 sU   = s_U(idx);
+            const amrex::Real root_q = root_det_q(i, j);
+
+            FOR (k)
+            {
+                amrex::Real pi_k_dot_s = 0.0;
+                FOR (l)
+                {
+                    pi_k_dot_s += pi(k, l) * sU(l);
+                }
+                total(k) += pi_k_dot_s * root_q;
+            }
+        }
+    }
+
+    // the 1/8 pi here is from the komar integral for momentum
+    FOR (k)
+    {
+        total(k) *= d_theta() * d_phi() / (8.0 * M_PI);
+    }
+
+    return total;
 }
 
 #endif /* AHGEOMETRY_IMPL_HPP_ */
