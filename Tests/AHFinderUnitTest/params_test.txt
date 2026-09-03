@@ -63,3 +63,17 @@ integration.rk.type = 4
 
 test.num_particles = 64
 particle_interpolator.verbosity = false
+
+# The surface radius h is evolved as a damped wave,
+#   h_dot = v - eta * h,  v_dot = -c^2 * Theta,
+# until the inf-norm of the expansion Theta falls below the tolerance.
+
+# Damping coefficient
+ah_finder.eta = 3.0
+# Wave speed
+ah_finder.c = 1.0
+# Convergence threshold on the inf-norm of Theta
+ah_finder.tolerance = 1e-4
+# Target growth factor of the adaptive pseudo-timestep: dt is scaled each step
+# by r * theta_old / theta_new
+ah_finder.r = 1.15

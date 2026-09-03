@@ -10,6 +10,7 @@
 #include <array>
 #include <memory>
 
+#include "AHFinderParameters.hpp"
 #include "AHFinderState.hpp"
 #include "AHGeometry.hpp"
 #include "ParticleInterpolator.hpp"
@@ -23,15 +24,15 @@ class AHFinder : public ParticleInterpolator<num_components>
     int m_n_local;
     int m_start;
 
-    // Pseudo-timestepping parameters
-    amrex::Real m_eta;
-    amrex::Real m_c;
-    amrex::Real m_tol;
-    amrex::Real m_min_dt;
-    amrex::Real m_r;
+    // Pseudo-timestepping parameters read from the "ah_finder" scope of the
+    // input file (eta, c, tolerance, r). Filled by init().
+    ah_finder_params_t m_params{};
 
-    // Bounds on the per-iteration change in dt, and the magnitude of theta
-    // below which the SER ratio is not trusted.
+    // Smallest permitted pseudo-timestep, bounds on the per-iteration change
+    // in dt, and the magnitude of theta below which the SER ratio is not
+    // trusted. Not input parameters: these are guard rails on the adaptive
+    // timestep rather than knobs to tune per run.
+    amrex::Real m_min_dt;
     amrex::Real m_dt_shrink;
     amrex::Real m_dt_grow;
     amrex::Real m_theta_floor;

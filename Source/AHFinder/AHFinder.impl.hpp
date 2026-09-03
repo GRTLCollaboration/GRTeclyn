@@ -22,12 +22,11 @@
 template <int num_components>
 void AHFinder<num_components>::init(GRAmr *gramr_ptr)
 {
-    m_tol    = 1e-4;
-    m_c      = 1.0;
-    m_min_dt = 1e-4;
-    m_r      = 1.15;
-    m_eta    = 3;
+    // eta, c, tolerance and r come from the "ah_finder" scope of the input
+    // file; see AHFinderParameters.hpp for their defaults and meaning.
+    m_params.fill_params();
 
+    m_min_dt      = 1e-4;
     m_dt_shrink   = 0.8;
     m_dt_grow     = 1.25;
     m_theta_floor = 1e-12;
@@ -98,7 +97,7 @@ template <int num_components> void AHFinder<num_components>::find()
 
     AHState new_state = m_state;
 
-    while (theta_old > m_tol)
+    while (theta_old > m_params.tolerance)
     {
         // Advance one pseudo-time step with the AMReX integrator.
         m_integrator->set_time_step(dt);
@@ -161,7 +160,7 @@ void AHFinder<num_components>::init_particle_vals()
 
     // Since h = v - eta * h, start velocity at eta * h so we don't
     // immediately collapse inwards
-    m_state.v.assign(m_num_particles, m_eta * r0);
+    m_state.v.assign(m_num_particles, m_params.eta * r0);
 }
 
 template <int num_components>
@@ -201,8 +200,8 @@ void AHFinder<num_components>::compute_rhs(AHState &rhs, AHState &state,
     rhs.v.assign(m_num_particles, 0.0);
     for (int id = 0; id < m_num_particles; ++id)
     {
-        rhs.h[id] = state.v[id] - m_eta * state.h[id];
-        rhs.v[id] = -std::pow(m_c, 2) * m_theta_vals[id];
+        rhs.h[id] = state.v[id] - m_params.eta * state.h[id];
+        rhs.v[id] = -std::pow(m_params.c, 2) * m_theta_vals[id];
     }
 }
 
@@ -221,8 +220,8 @@ AHFinder<num_components>::update_dt(amrex::Real dt, double theta_old,
     // Update time step based on ratio of old to new theta
     // Ensure it doesn't grow or shrink too fast.
     double ratio = (std::abs(theta_new) > m_theta_floor)
-                       ? m_r * theta_old / theta_new
-                       : m_r;
+                       ? m_params.r * theta_old / theta_new
+                       : m_params.r;
     ratio        = std::max(ratio, m_dt_shrink);
     ratio        = std::min(ratio, m_dt_grow);
 

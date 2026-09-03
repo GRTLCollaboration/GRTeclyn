@@ -7,6 +7,7 @@
 #define SIMULATIONPARAMETERS_HPP
 
 // General includes
+#include "AHFinderParameters.hpp"
 #include "BaseParameterChecker.hpp"
 #include "BoostedBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
@@ -32,6 +33,7 @@ class SimulationParameters
         CCZ4_params_t::check_params();
         PunctureTagger<2>::check_params();
         puncture_tracker_params_t::check_params();
+        ah_finder_params_t::check_params();
 
         // Only for the tests that use BinaryBH initial data (e.g. AHFinder)
         if (amrex::ParmParse("bh1").contains("mass"))
