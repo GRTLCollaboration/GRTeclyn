@@ -77,3 +77,6 @@ ah_finder.tolerance = 1e-4
 # Target growth factor of the adaptive pseudo-timestep: dt is scaled each step
 # by r * theta_old / theta_new
 ah_finder.r = 1.15
+# Safety factor on the CFL cap: dt <= cfl_factor * (smallest spacing between
+# neighbouring points on the ring grid)
+ah_finder.cfl_factor = 7.0

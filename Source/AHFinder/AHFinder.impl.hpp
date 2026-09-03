@@ -22,8 +22,8 @@
 template <int num_components>
 void AHFinder<num_components>::init(GRAmr *gramr_ptr)
 {
-    // eta, c, tolerance and r come from the "ah_finder" scope of the input
-    // file; see AHFinderParameters.hpp for their defaults and meaning.
+    // eta, c, tolerance, r and cfl_factor come from the "ah_finder" scope of
+    // the input file; see AHFinderParameters.hpp for defaults and meaning.
     m_params.fill_params();
 
     m_min_dt      = 1e-4;
@@ -214,8 +214,7 @@ AHFinder<num_components>::update_dt(amrex::Real dt, double theta_old,
     // Update dt based on ratio of improvement of theta
 
     // Limit timestep by CFL condition of closest pair of particles
-    const double cfl_factor = 7.0;
-    const double max_dt     = cfl_factor * m_geometry.min_ring_spacing(h);
+    const double max_dt = m_params.cfl_factor * m_geometry.min_ring_spacing(h);
 
     // Update time step based on ratio of old to new theta
     // Ensure it doesn't grow or shrink too fast.

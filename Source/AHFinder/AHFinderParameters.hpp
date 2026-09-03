@@ -38,6 +38,12 @@ struct ah_finder_params_t
     // dt by r * theta_old / theta_new, clamped to [m_dt_shrink, m_dt_grow].
     amrex::Real r{};
 
+    // Safety factor on the CFL cap: dt is never allowed above
+    // cfl_factor * (smallest coordinate spacing between neighbouring points
+    // on the ring grid). Larger values let dt grow further before the cap
+    // bites, at the cost of stability.
+    amrex::Real cfl_factor{};
+
     static void check_params()
     {
         GRParmParse ah_finder_pp("ah_finder");
@@ -70,6 +76,13 @@ struct ah_finder_params_t
         {
             ah_finder_pp.error("r", "must be > 0");
         }
+
+        amrex::Real cfl_factor = 7.0;
+        ah_finder_pp.queryAdd("cfl_factor", cfl_factor);
+        if (cfl_factor <= 0.0)
+        {
+            ah_finder_pp.error("cfl_factor", "must be > 0");
+        }
     }
 
     void fill_params()
@@ -80,6 +93,7 @@ struct ah_finder_params_t
         ah_finder_pp.get("c", c);
         ah_finder_pp.get("tolerance", tolerance);
         ah_finder_pp.get("r", r);
+        ah_finder_pp.get("cfl_factor", cfl_factor);
     }
 };
 
