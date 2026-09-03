@@ -193,6 +193,10 @@ to your <code>Make.local-pre</code> configuration file. This is particularly use
 <p>You can run the example by passing the parameter file as the first argument. For example, for launching with MPI, you might do something like</p>
 <pre class="highlight"><code class="language-bash">mpiexec -n 4 ./main3d.gnu.MPI.OMP.ex params.txt</code></pre>
 <p>On a cluster you will probably need to submit a jobscript for the run. You should consult the system documentation, but some example jobscripts can be found in <a href="../example_configs/">Example configs for specific HPC systems</a> along with the <code>Make.local-pre</code> files and module choices if relevant.</p>
+<div class="admonition note">
+<p class="admonition-title">Stoic build quotes</p>
+<p>After each build, GRTeclyn prints a random Stoic quote for either success or failure. Add quotes to <code>Tools/StoicQuotes/StoicQuotes.txt</code>, or set <code>USE_STOIC_QUOTES=FALSE</code> on the command line or in <code>Make.local-pre</code> to disable them.</p>
+</div>
               
             </div>
           </div><footer>

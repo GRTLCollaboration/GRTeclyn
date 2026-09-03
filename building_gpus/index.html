@@ -199,6 +199,10 @@ AMREX_AMD_ARCH=gfx942
 amrex.the_arena_init_size = 190000000000
 amrex.use_gpu_aware_mpi = 1</code></pre>
 (Usually you are using one MPI process per GPU, so you specify the per GPU amount of memory, not the total for your whole job.)</p>
+<div class="admonition note">
+<p class="admonition-title">Stoic build quotes</p>
+<p>After each build, GRTeclyn prints a random Stoic quote for either success or failure. Add quotes to <code>Tools/StoicQuotes/StoicQuotes.txt</code>, or set <code>USE_STOIC_QUOTES=FALSE</code> on the command line or in <code>Make.local-pre</code> to disable them.</p>
+</div>
               
             </div>
           </div><footer>
