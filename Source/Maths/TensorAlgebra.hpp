@@ -357,7 +357,7 @@ compute_christoffel(const Tensor::Rank3 &d1_metric, const Tensor::Rank2 &h_UU)
     FOR (i, j, k)
     {
         out.LLL(i, j, k) = 0.5_rt * (d1_metric(j, i, k) + d1_metric(k, i, j) -
-                                  d1_metric(j, k, i));
+                                     d1_metric(j, k, i));
     }
     FOR (i, j, k)
     {

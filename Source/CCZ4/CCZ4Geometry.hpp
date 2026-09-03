@@ -249,7 +249,7 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
         // replaced what should be \tilde{Gamma} with \hat{Gamma} in
         // order to avoid adding terms that cancel later on
         ricci_hat += 0.5_rt * (vars.h(k, i) * d1_Gamma(k, j) +
-                            vars.h(k, j) * d1_Gamma(k, i));
+                               vars.h(k, j) * d1_Gamma(k, i));
         ricci_hat += 0.5_rt * vars.Gamma(k) * d1_h(i, j, k);
 
         FOR (l)
@@ -316,10 +316,10 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
 
         amrex::Real ricci_chi =
             0.5_rt * ((GR_SPACEDIM - 2) * covdtilde2chi(i, j) +
-                   vars.h(i, j) * boxtildechi -
-                   ((GR_SPACEDIM - 2) * d1_chi(i) * d1_chi(j) +
-                    GR_SPACEDIM * vars.h(i, j) * dchi_dot_dchi) /
-                       (2 * vars.chi()));
+                      vars.h(i, j) * boxtildechi -
+                      ((GR_SPACEDIM - 2) * d1_chi(i) * d1_chi(j) +
+                       GR_SPACEDIM * vars.h(i, j) * dchi_dot_dchi) /
+                          (2 * vars.chi()));
 
         amrex::Real z_terms = compute_z_terms(i, j, Z_over_chi, vars, d1_chi);
 

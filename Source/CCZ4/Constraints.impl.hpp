@@ -98,10 +98,11 @@ Constraints::constraints_t Constraints::constraint_equations(
                   (GR_SPACEDIM - 1._rt) * vars.K() * vars.K() / GR_SPACEDIM -
                   Aij_squared - 2.0_rt * m_cosmological_constant;
 
-        out.Ham_abs_terms =
-            std::abs(ricci.scalar) +
-            std::abs((GR_SPACEDIM - 1._rt) * vars.K() * vars.K() / GR_SPACEDIM) +
-            std::abs(Aij_squared) + 2.0_rt * std::abs(m_cosmological_constant);
+        out.Ham_abs_terms = std::abs(ricci.scalar) +
+                            std::abs((GR_SPACEDIM - 1._rt) * vars.K() *
+                                     vars.K() / GR_SPACEDIM) +
+                            std::abs(Aij_squared) +
+                            2.0_rt * std::abs(m_cosmological_constant);
     }
 
     if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)
@@ -119,7 +120,7 @@ Constraints::constraints_t Constraints::constraint_equations(
         }
         FOR (i)
         {
-            out.Mom(i)           = -(GR_SPACEDIM - 1._rt) * d1_K(i) / GR_SPACEDIM;
+            out.Mom(i) = -(GR_SPACEDIM - 1._rt) * d1_K(i) / GR_SPACEDIM;
             out.Mom_abs_terms(i) = std::abs(out.Mom(i));
         }
         Tensor::Rank1 covd_A_term{};

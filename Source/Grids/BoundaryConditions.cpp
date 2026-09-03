@@ -318,17 +318,19 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                             {
                                 iv_offset1[idir2] += +1;
                                 iv_offset2[idir2] += +2;
-                                d1 = (1.0_rt / dx) * (-1.5_rt * sol(iv, n) +
-                                                   2.0_rt * sol(iv_offset1, n) -
-                                                   0.5_rt * sol(iv_offset2, n));
+                                d1 = (1.0_rt / dx) *
+                                     (-1.5_rt * sol(iv, n) +
+                                      2.0_rt * sol(iv_offset1, n) -
+                                      0.5_rt * sol(iv_offset2, n));
                             }
                             else if (iv[idir2] == domhi[idir2])
                             {
                                 iv_offset1[idir2] += -1;
                                 iv_offset2[idir2] += -2;
-                                d1 = (1.0_rt / dx) * (+1.5_rt * sol(iv, n) -
-                                                   2.0_rt * sol(iv_offset1, n) +
-                                                   0.5_rt * sol(iv_offset2, n));
+                                d1 = (1.0_rt / dx) *
+                                     (+1.5_rt * sol(iv, n) -
+                                      2.0_rt * sol(iv_offset1, n) +
+                                      0.5_rt * sol(iv_offset2, n));
                             }
                             else
                             {

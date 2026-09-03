@@ -68,7 +68,8 @@ CCZ4RHSWithMatter<matter_t, deriv_t>::add_emtensor_rhs(
         amrex::Real matter_term_Gamma = 0.0_rt;
         FOR (j)
         {
-            matter_term_Gamma -= 2.0_rt * vars.lapse() * h_UU(i, j) * source.j(j);
+            matter_term_Gamma -=
+                2.0_rt * vars.lapse() * h_UU(i, j) * source.j(j);
         }
         rhs_cell_data[c_Gamma1 + i] += matter_term_Gamma;
     }

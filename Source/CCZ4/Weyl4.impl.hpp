@@ -132,7 +132,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // Compute inverse, Christoffel symbols, Ricci tensor and Z terms
     // Note that unlike in CCZ4 equations we want R_ij + 0.5(D_iZ_j + D_jZ_i)
     // rather than R_ij + D_iZ_j + D_jZ_i hence use compute_ricci_Z_general
-    amrex::Real dZ_coeff = (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1._rt : 0._rt;
+    amrex::Real dZ_coeff =
+        (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1._rt : 0._rt;
 
     auto ricci_and_Z_terms = CCZ4Geometry::compute_ricci_Z_general(
         vars, d1_chi, d1_Gamma, d1_h, d2_chi, d2_h, h_UU, chris, dZ_coeff);
@@ -233,12 +234,14 @@ Weyl4::compute_Weyl4(const EBFields_t &ebfields, const CCZ4Vars &vars,
     out.Im   = 0.0_rt;
     FOR (i, j)
     {
-        out.Real += 0.5_rt * (ebfields.E(i, j) * (tetrad.w(i) * tetrad.w(j) -
-                                               tetrad.v(i) * tetrad.v(j)) -
-                           2.0_rt * ebfields.B(i, j) * tetrad.w(i) * tetrad.v(j));
-        out.Im   += 0.5_rt * (ebfields.B(i, j) * (-tetrad.w(i) * tetrad.w(j) +
-                                               tetrad.v(i) * tetrad.v(j)) -
-                           2.0_rt * ebfields.E(i, j) * tetrad.w(i) * tetrad.v(j));
+        out.Real +=
+            0.5_rt * (ebfields.E(i, j) * (tetrad.w(i) * tetrad.w(j) -
+                                          tetrad.v(i) * tetrad.v(j)) -
+                      2.0_rt * ebfields.B(i, j) * tetrad.w(i) * tetrad.v(j));
+        out.Im +=
+            0.5_rt * (ebfields.B(i, j) * (-tetrad.w(i) * tetrad.w(j) +
+                                          tetrad.v(i) * tetrad.v(j)) -
+                      2.0_rt * ebfields.E(i, j) * tetrad.w(i) * tetrad.v(j));
     }
 
     return out;
@@ -278,8 +281,8 @@ Weyl4::compute_null_tetrad(const CCZ4Vars &vars, const Tensor::Rank2 &h_UU,
 
     FOR (i, j, k, m)
     {
-        out.w(i) += 1._rt / std::sqrt(vars.chi()) * h_UU(i, j) * epsilon(j, k, m) *
-                    out.v(k) * out.u(m);
+        out.w(i) += 1._rt / std::sqrt(vars.chi()) * h_UU(i, j) *
+                    epsilon(j, k, m) * out.v(k) * out.u(m);
     }
 
     // Gram Schmitt orthonormalisation

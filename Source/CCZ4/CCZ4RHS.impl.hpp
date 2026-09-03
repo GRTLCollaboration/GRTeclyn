@@ -136,7 +136,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         covd2lapse(k, l) =
             vars.chi() * covdtilde2lapse(k, l) +
             0.5_rt * (d1_lapse(k) * d1_chi(l) + d1_chi(k) * d1_lapse(l) -
-                   vars.h(k, l) * dlapse_dot_dchi);
+                      vars.h(k, l) * dlapse_dot_dchi);
     }
 
     auto A_UU = CCZ4Geometry::compute_A_UU(state_cell_data, h_UU);
@@ -261,7 +261,8 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
                                     h_UU(i, j) * d1_K(j) +
                                 (amrex::Real)GR_SPACEDIM * A_UU(i, j) *
                                     d1_chi(j) / vars.chi()) -
-                (chris.contracted(j) + 2.0_rt * m_params.kappa3 * Z_over_chi(j)) *
+                (chris.contracted(j) +
+                 2.0_rt * m_params.kappa3 * Z_over_chi(j)) *
                     d1_shift(i, j);
 
             FOR (k)
