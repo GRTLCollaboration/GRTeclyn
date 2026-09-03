@@ -49,7 +49,7 @@ two_punctures.momentum_minus =  0.00084541526517121 -0.09530152296974252 0.0
 two_punctures.spin_plus      = 0.0 0.0 0.09509112426035504
 two_punctures.spin_minus     = 0.0 0.0 -0.09156449704142013
 
-# two_punctures.use_spectral_interpolation = true
+two_punctures.use_spectral_interpolation = true
 two_punctures.initial_lapse = "psi^n"
 # two_punctures.initial_lapse_psi_exponent = -2.0
 
