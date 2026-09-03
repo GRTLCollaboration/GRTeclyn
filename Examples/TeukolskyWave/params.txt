@@ -1,0 +1,130 @@
+# GRTeclyn Teukolsky Wave example
+# Commented parameters show default or suggested values
+
+#################################################
+# Filesystem parameters
+# grteclyn.output_path = . # base path for all output
+
+amr.verbose = 1
+
+# Plotfiles default to <grteclyn.output_path>/plots and checkpoint files to
+# <grteclyn.output_path>/checkpoints
+# amr.check_file = checkpoints/chk
+# amr.plot_file = plots/plt
+# amr.restart = checkpoints/chk00000
+# amr.file_name_digits = 5
+
+# Number of level-0 time steps between checkpoint files; -1 disables output
+# amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
+amr.plot_int = 50
+
+amr.plot_vars = Weyl4_Re Weyl4_Im
+amr.derive_plot_vars = constraints
+
+#################################################
+# Teukolsky Wave parameters
+
+# Initial Data is provided via the Eppley packet construction.
+# Implemented: (even, 0), (even, 2), (odd, 2)
+teukolsky_wave.parity = even
+teukolsky_wave.magnetic = 0
+teukolsky_wave.sigma = 10.
+teukolsky_wave.amplitude = 5.
+teukolsky_wave.radial_offset = 50.
+teukolsky_wave.regularize_r = 1.
+
+#################################################
+# Weyl extraction parameters
+# specific_post_timestep() reads "enabled" and "center" unconditionally, so
+# both must always be set even if extraction itself is switched off.
+
+weyl_extraction.enabled = true
+weyl_extraction.center = 0 0 0
+weyl_extraction.num_radii = 3
+weyl_extraction.radii = 75.0 100.0 125.0
+# weyl_extraction.levels = 0
+weyl_extraction.num_points_phi = 48
+weyl_extraction.num_points_theta = 32
+weyl_extraction.num_modes = 5
+weyl_extraction.modes = 2 0 \
+                        2 1 \
+                        2 2 \
+                        2 -1 \
+                        2 -2 \
+
+#################################################
+# Grid parameters
+
+# This octant domain corresponds to a 192^3 full domain of side length 128.
+# The even parity metrics with m=0, m=2 can be run in an octant grid.
+# The odd parity metric with m=2 needs a quadrant grid, with reflection
+# around the xy-plane turned off.
+amr.n_cell = 192 192 192
+geometry.prob_extent = 128 128 128
+# geometry.center = 0 0 0 # defaults based on the domain and boundaries
+
+amr.max_level = 0 # there are max_level + 1 levels
+
+# Regridding interval in level timesteps; -1 disables regridding
+# Supply one shared value or max_level values, one per coarse-to-fine
+# transition
+amr.regrid_int = -1
+
+# Maximum number of cells along each side of a grid box
+amr.max_grid_size = 32
+# Grid box side lengths must be divisible by this value
+amr.blocking_factor = 16
+# Minimum fraction of tagged cells required in generated grids
+# amr.grid_eff = 0.7
+
+# Number of cells by which tagged regions are grown
+amr.n_error_buf = 0
+# Proper-nesting width is n_proper * max(1, blocking_factor / 2) coarse cells
+# amr.n_proper = 1
+
+#################################################
+# Boundary condition parameters
+
+# Periodic directions: 0 = false, 1 = true
+geometry.is_periodic = 0 0 0
+# Options are currently FIRST_ORDER_EXTRAPOLATION_BC, SOMMERFELD_BC,
+# or REFLECTIVE_BC
+boundary.hi_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
+boundary.lo_condition = "REFLECTIVE_BC" "REFLECTIVE_BC" "REFLECTIVE_BC"
+
+#################################################
+# Evolution parameters
+
+# dt is dx * dt_multiplier on each grid level
+evolution.dt_multiplier = 0.25
+evolution.stop_time = 250.0
+# evolution.max_steps = 10000000
+
+# Spatial derivative order (only affects the CCZ4 RHS)
+# evolution.spatial_derivative_order = 4
+
+# evolution.nan_check = true
+
+# Lapse evolution
+# gauge.lapse_advec_coeff = 1.0
+# gauge.lapse_coeff = 2.0
+# gauge.lapse_power = 1.0
+
+# Shift evolution
+# gauge.shift_advec_coeff = 0.0
+# gauge.shift_Gamma_coeff = 0.75
+gauge.eta = 1.0
+
+# CCZ4 parameters
+# ccz4.formulation = 0 # 1 for BSSN, 0 for CCZ4
+# ccz4.kappa1 = 0.1
+# ccz4.kappa2 = 0.0
+# ccz4.kappa3 = 1.0
+# ccz4.covariantZ4 = true # replace kappa1 with kappa1/lapse
+
+# Coefficient for KO numerical dissipation
+evolution.sigma = 0.3
+
+# ccz4.min_chi = 1.e-4
+# ccz4.min_lapse = 1.e-4
