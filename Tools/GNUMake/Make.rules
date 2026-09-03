@@ -1,6 +1,7 @@
 GRTECLYN_HOME ?= $(realpath ../..)
 AMREX_HOME ?= $(realpath ../../../amrex)
 
+include $(GRTECLYN_HOME)/Tools/StoicQuotes/Make.stoic_quotes
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 .PHONY: clang-tidy clang-tidy-fix
