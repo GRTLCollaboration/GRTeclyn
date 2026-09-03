@@ -3,8 +3,10 @@
 
 #include <AMReX_Array.H>
 #include <AMReX_ParIter.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Particles.H>
 #include <AMReX_TimeIntegrator.H>
+#include <algorithm>
 #include <array>
 #include <memory>
 
@@ -18,11 +20,8 @@ class AHFinder : public ParticleInterpolator<num_components>
 {
   private:
     int m_num_particles;
-
-    // Ring (latitude x longitude) decomposition of the particles,
-    // computed from m_num_particles. m_n_theta * m_n_phi == m_num_particles.
-    int m_n_rings   = 0;
-    int m_ring_size = 0;
+    int m_n_local;
+    int m_start;
 
     // Pseudo-timestepping parameters
     amrex::Real m_eta;
@@ -37,19 +36,10 @@ class AHFinder : public ParticleInterpolator<num_components>
     amrex::Real m_dt_grow;
     amrex::Real m_theta_floor;
 
-    // Carries the particles' Cartesian coordinates for the one-time initial
-    // seeding in populate_from_query(); not used for interpolation itself.
-    InterpolationQueryParticle query;
-
     // Coords for particleinterpolator query
     std::vector<double> interp_coords_x{};
     std::vector<double> interp_coords_y{};
     std::vector<double> interp_coords_z{};
-
-    // Normalised directions to AHFinder centre for each particle
-    std::vector<double> m_dir_x{};
-    std::vector<double> m_dir_y{};
-    std::vector<double> m_dir_z{};
 
     // State storing h and v values for all particles. Stored off particles
     // since we need h from other particles to compute its derivative, and
@@ -57,33 +47,26 @@ class AHFinder : public ParticleInterpolator<num_components>
     // same tile
     AHState m_state{};
 
-    // Computes geometric diagnostics (e.g. area) of the surface. Pointed
-    // at this AHFinder's persistent per-particle arrays via
-    // m_geometry.refresh(); see AHGeometry.hpp for when to call it.
-    AHGeometry m_geometry{};
+    // Owns the ring (latitude x longitude) grid: the per-particle
+    // directions, the finite-difference stencil, the derivatives of h, and
+    // the surface diagnostics (area)
+    AHGeometry m_geometry;
 
     // Physical 3-metric gamma_ij at each particle (flat-indexed as
-    // i * m_ring_size + j), computed each step in compute_theta().
-    // AHGeometry is given a pointer to this via m_geometry.refresh(),
-    // so it always reads the latest values without a separate copy.
+    // i * m_geometry.ring_size() + j), computed each step in
+    // compute_theta(). AHGeometry is given a pointer to this in init(), so
+    // it always reads the latest values without a separate copy.
     std::vector<Tensor::Rank2> m_gamma_LL{};
+
+    // Physical extrinsic curvature K_ij and its trace K at each particle
+    // (same indexing as m_gamma_LL), computed each step in
+    // compute_theta(). AHGeometry is given pointers to these in init()
+    // too, alongside gamma_LL.
+    std::vector<Tensor::Rank2> m_K_LL{};
+    std::vector<double> m_K{};
 
     // AMReX time integrator for evolution of h and v.
     std::unique_ptr<amrex::TimeIntegrator<AHState>> m_integrator;
-
-    std::array<double, AMREX_SPACEDIM> m_center;
-    double m_guess_radius;
-
-    // Gradient and Hessian of h
-    std::vector<double> m_dhdx{};
-    std::vector<double> m_dhdy{};
-    std::vector<double> m_dhdz{};
-    std::vector<double> m_d2h_xx{};
-    std::vector<double> m_d2h_yy{};
-    std::vector<double> m_d2h_zz{};
-    std::vector<double> m_d2h_xy{};
-    std::vector<double> m_d2h_xz{};
-    std::vector<double> m_d2h_yz{};
 
     // Output arrays for interpolation queries
     std::array<std::vector<double>, 14> m_metric_state{};
@@ -100,11 +83,24 @@ class AHFinder : public ParticleInterpolator<num_components>
 
     std::vector<double> m_theta_vals{};
 
-    void generate_spherical_query();
+    static int local_count(int num_particles)
+    {
+        const int nprocs = amrex::ParallelDescriptor::NProcs();
+        const int myproc = amrex::ParallelDescriptor::MyProc();
 
-    // Returns the indices of the 4 neighbours of particle j on the ring
-    // grid, ordered {north, south, east, west}
-    amrex::GpuArray<int, 4> neighbours(int j) const;
+        return num_particles / nprocs +
+               (myproc < num_particles % nprocs ? 1 : 0);
+    }
+
+    static int local_start(int num_particles)
+    {
+        const int nprocs = amrex::ParallelDescriptor::NProcs();
+        const int myproc = amrex::ParallelDescriptor::MyProc();
+
+        return myproc * (num_particles / nprocs) +
+               std::min(myproc, num_particles % nprocs);
+    }
+
     void init_particle_vals();
 
     // Set particles' coordinates according to their distance from the centre
@@ -114,22 +110,13 @@ class AHFinder : public ParticleInterpolator<num_components>
     void compute_rhs(AHState &rhs, AHState &state, amrex::Real time);
 
     // Update pseudo-timestep based on ratio of improvement of Theta between
-    // steps
+    // steps, capped by a CFL condition on the ring-grid spacing
     amrex::Real update_dt(amrex::Real dt, double theta_old, double theta_new,
                           const std::vector<double> &h) const;
 
-    void h_derivs(const std::vector<double> &h);
-    void h_hessian(const std::vector<double> &h);
     void setup_metric_query();
     void compute_theta(const std::vector<double> &h);
     double inf_norm(std::vector<double>);
-
-    // Differentiates a scalar field defined on the ring grid
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE static amrex::GpuArray<amrex::Real, 3>
-    ring_gradient(const double *field_ptr, int north_idx, int south_idx,
-                  int east_idx, int west_idx, double d_theta, double d_phi,
-                  double theta, double phi, double r);
 
   public:
 
@@ -138,21 +125,18 @@ class AHFinder : public ParticleInterpolator<num_components>
     using ParticleType = typename Base::ParticleType;
     using Base::Base;
 
-    AHFinder(int num_particles, std::array<double, AMREX_SPACEDIM> &center,
+    AHFinder(int num_particles,
+             const std::array<double, AMREX_SPACEDIM> &center,
              double guess_radius = 1.0)
-        : m_num_particles(num_particles), query(num_particles),
-          interp_coords_x(num_particles), interp_coords_y(num_particles),
-          interp_coords_z(num_particles), m_dir_x(num_particles),
-          m_dir_y(num_particles), m_dir_z(num_particles),
+        : m_num_particles(num_particles), m_n_local(local_count(num_particles)),
+          m_start(local_start(num_particles)), interp_coords_x(num_particles),
+          interp_coords_y(num_particles), interp_coords_z(num_particles),
           m_state(std::vector<double>(num_particles),
                   std::vector<double>(num_particles)),
-          m_gamma_LL(num_particles), m_center(center),
-          m_guess_radius(guess_radius), m_dhdx(num_particles),
-          m_dhdy(num_particles), m_dhdz(num_particles), m_d2h_xx(num_particles),
-          m_d2h_yy(num_particles), m_d2h_zz(num_particles),
-          m_d2h_xy(num_particles), m_d2h_xz(num_particles),
-          m_d2h_yz(num_particles), m_metric_query_state(num_particles),
-          m_metric_query_deriv(num_particles), m_theta_vals(num_particles)
+          m_geometry(num_particles, center, guess_radius),
+          m_gamma_LL(num_particles), m_K_LL(num_particles), m_K(num_particles),
+          m_metric_query_state(m_n_local),
+          m_metric_query_deriv(m_n_local), m_theta_vals(num_particles)
     {
     }
 

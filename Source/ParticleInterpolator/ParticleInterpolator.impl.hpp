@@ -227,68 +227,6 @@ void ParticleInterpolator<num_components>::populate_from_query(
     m_particles_populated = true;
 }
 
-// Move already-populated particles onto the (updated) query coordinates.
-// safely once the particles are spread over several boxes
-//
-// Every rank must hold the same query points in the same order
-template <int num_components>
-void ParticleInterpolator<num_components>::update_particle_positions(
-    const InterpolationQueryParticle &query)
-{
-    AMREX_ASSERT(m_initialized);
-    AMREX_ALWAYS_ASSERT(m_particles_populated);
-
-    const int num_points = static_cast<int>(query.m_num_points);
-
-    const auto prob_lo    = m_prob_lo;
-    const auto prob_hi    = m_prob_hi;
-    const auto lo_reflect = m_lo_boundary_reflective;
-    const auto hi_reflect = m_hi_boundary_reflective;
-
-    // coords on device, indexed by particle id
-    amrex::GpuArray<amrex::Gpu::DeviceVector<double>, AMREX_SPACEDIM> coords_d;
-    amrex::GpuArray<const double *, AMREX_SPACEDIM> coords_d_ptr{};
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        coords_d[d].resize(num_points);
-        amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, query.m_coords[d],
-                              query.m_coords[d] + num_points,
-                              coords_d[d].begin());
-        coords_d_ptr[d] = coords_d[d].data();
-    }
-    amrex::Gpu::streamSynchronize();
-
-    for (int lev = 0; lev <= this->finestLevel(); ++lev)
-    {
-        for (ParIterType par_iter(*this, lev); par_iter.isValid(); ++par_iter)
-        {
-            auto &ptile        = this->ParticlesAt(lev, par_iter);
-            auto particle_data = ptile.getParticleTileData();
-            const int np       = par_iter.numParticles();
-
-            amrex::ParallelFor(
-                np,
-                [=] AMREX_GPU_DEVICE(int ip)
-                {
-                    auto &p      = particle_data[ip];
-                    const int id = static_cast<int>(p.id());
-
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    {
-                        p.pos(d) = reflect_particle(
-                            static_cast<amrex::Real>(coords_d_ptr[d][id]),
-                            prob_lo[d], prob_hi[d], lo_reflect[d],
-                            hi_reflect[d]);
-                    }
-                });
-        }
-    }
-    amrex::Gpu::streamSynchronize();
-
-    // the particles have moved, so they may now belong to a different box
-    m_need_redistribute = true;
-}
-
 // a helper function that helps with interpolation from grid onto particles
 template <int num_components>
 void ParticleInterpolator<num_components>::interpolate_to_particle(
