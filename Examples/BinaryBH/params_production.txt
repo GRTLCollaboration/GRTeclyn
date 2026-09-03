@@ -16,8 +16,10 @@ amrex.use_gpu_aware_mpi = 1
 # <grteclyn.output_path>/checkpoints
 # amr.check_file = checkpoints/chk
 # amr.plot_file = plots/plt
-# amr.restart = checkpoints/chk00030
 # amr.file_name_digits = 5
+
+# Restart from specific checkpoint file
+# amr.restart = checkpoints/chk00030
 
 # Number of level-0 time steps between checkpoint files; -1 disables output
 amr.check_int = 100
