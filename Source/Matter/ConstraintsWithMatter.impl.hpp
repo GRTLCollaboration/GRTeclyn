@@ -19,7 +19,7 @@ ConstraintsWithMatter<matter_t>::ConstraintsWithMatter(
     int a_c_Ham_abs_terms /* defaulted*/,
     const Interval &a_c_Moms_abs_terms /*defaulted*/)
     : Constraints(dx, a_c_Ham, a_c_Moms, a_c_Ham_abs_terms, a_c_Moms_abs_terms,
-                  0.0 /*No cosmological constant*/)
+                  0.0_rt /*No cosmological constant*/)
 {
 }
 
@@ -57,8 +57,8 @@ ConstraintsWithMatter<matter_t>::operator()(
     // Hamiltonian constraint
     if (m_c_Ham >= 0 || m_c_Ham_abs_terms >= 0)
     {
-        out.Ham           += -2.0 * source.rho;
-        out.Ham_abs_terms += 2.0 * std::abs(source.rho);
+        out.Ham           += -2.0_rt * source.rho;
+        out.Ham_abs_terms += 2.0_rt * std::abs(source.rho);
     }
 
     // Momentum constraints

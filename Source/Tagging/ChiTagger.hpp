@@ -17,6 +17,8 @@
 #include <AMReX_REAL.H>
 #include <AMReX_TagBox.H>
 
+using namespace amrex::literals;
+
 class ChiTagger
 {
   protected:

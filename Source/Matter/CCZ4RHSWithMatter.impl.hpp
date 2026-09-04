@@ -13,7 +13,7 @@
 
 template <class matter_t, class deriv_t>
 CCZ4RHSWithMatter<matter_t, deriv_t>::CCZ4RHSWithMatter(amrex::Real a_dx)
-    : CCZ4RHS<deriv_t>(a_dx, 0.0 /*No cosmological constant*/)
+    : CCZ4RHS<deriv_t>(a_dx, 0.0_rt /*No cosmological constant*/)
 {
 }
 
@@ -38,12 +38,12 @@ CCZ4RHSWithMatter<matter_t, deriv_t>::add_emtensor_rhs(
                                                           this->m_deriv, h_UU);
 
     // Select the matter source terms without branching in the GPU kernel.
-    const amrex::Real ccz4_coeff = 1.0 - this->m_params.bssn_coeff;
+    const amrex::Real ccz4_coeff = 1.0_rt - this->m_params.bssn_coeff;
 
     const amrex::Real ccz4_K_matter_rhs =
-        0.5 * vars.lapse() * (source.trS - 3.0 * source.rho);
+        0.5_rt * vars.lapse() * (source.trS - 3.0_rt * source.rho);
     const amrex::Real bssn_K_matter_rhs =
-        0.5 * vars.lapse() * (source.trS + source.rho);
+        0.5_rt * vars.lapse() * (source.trS + source.rho);
     rhs_cell_data[c_K] += ccz4_coeff * ccz4_K_matter_rhs +
                           this->m_params.bssn_coeff * bssn_K_matter_rhs;
 
@@ -65,10 +65,11 @@ CCZ4RHSWithMatter<matter_t, deriv_t>::add_emtensor_rhs(
 
     FOR (i)
     {
-        amrex::Real matter_term_Gamma = 0.0;
+        amrex::Real matter_term_Gamma = 0.0_rt;
         FOR (j)
         {
-            matter_term_Gamma -= 2.0 * vars.lapse() * h_UU(i, j) * source.j(j);
+            matter_term_Gamma -=
+                2.0_rt * vars.lapse() * h_UU(i, j) * source.j(j);
         }
         rhs_cell_data[c_Gamma1 + i] += matter_term_Gamma;
     }

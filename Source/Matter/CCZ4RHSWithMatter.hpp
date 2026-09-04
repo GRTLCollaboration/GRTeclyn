@@ -13,6 +13,8 @@
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "TensorAlgebra.hpp"
 
+using namespace amrex::literals;
+
 //!  Calculates RHS using CCZ4 including matter terms, and matter variable
 //!  evolution
 /*!

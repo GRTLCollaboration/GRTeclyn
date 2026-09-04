@@ -11,6 +11,8 @@
 #include <map>
 #include <string>
 
+using namespace amrex::literals;
+
 namespace
 {
 // NOLINTNEXTLINE(bugprone-throwing-static-initialization)
@@ -302,10 +304,10 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                     valid_sommbox, a_rhs.nComp(),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
                     {
-                        amrex::RealVect loc((i + 0.5) * dx - center[0],
-                                            (j + 0.5) * dx - center[1],
-                                            (k + 0.5) * dx - center[2]);
-                        amrex::Real tmp = 0.;
+                        amrex::RealVect loc((i + 0.5_rt) * dx - center[0],
+                                            (j + 0.5_rt) * dx - center[1],
+                                            (k + 0.5_rt) * dx - center[2]);
+                        amrex::Real tmp = 0._rt;
                         amrex::IntVect iv(i, j, k);
                         for (int idir2 = 0; idir2 < AMREX_SPACEDIM; ++idir2)
                         {
@@ -316,23 +318,25 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                             {
                                 iv_offset1[idir2] += +1;
                                 iv_offset2[idir2] += +2;
-                                d1 = (1.0 / dx) * (-1.5 * sol(iv, n) +
-                                                   2.0 * sol(iv_offset1, n) -
-                                                   0.5 * sol(iv_offset2, n));
+                                d1 = (1.0_rt / dx) *
+                                     (-1.5_rt * sol(iv, n) +
+                                      2.0_rt * sol(iv_offset1, n) -
+                                      0.5_rt * sol(iv_offset2, n));
                             }
                             else if (iv[idir2] == domhi[idir2])
                             {
                                 iv_offset1[idir2] += -1;
                                 iv_offset2[idir2] += -2;
-                                d1 = (1.0 / dx) * (+1.5 * sol(iv, n) -
-                                                   2.0 * sol(iv_offset1, n) +
-                                                   0.5 * sol(iv_offset2, n));
+                                d1 = (1.0_rt / dx) *
+                                     (+1.5_rt * sol(iv, n) -
+                                      2.0_rt * sol(iv_offset1, n) +
+                                      0.5_rt * sol(iv_offset2, n));
                             }
                             else
                             {
                                 iv_offset1[idir2] += +1;
                                 iv_offset2[idir2] += -1;
-                                d1 = (0.5 / dx) *
+                                d1 = (0.5_rt / dx) *
                                      (sol(iv_offset1, n) - sol(iv_offset2, n));
                             }
                             // for each direction add dphidx * x^i
@@ -345,7 +349,7 @@ void BoundaryConditions::apply_sommerfeld_boundaries(
                                       loc[2] * loc[2]);
                         rhs(i, j, k, n) =
                             (asymptotic_values[n] - sol(i, j, k, n) + tmp) *
-                            (1. / radius);
+                            (1._rt / radius);
                     });
             }
         }

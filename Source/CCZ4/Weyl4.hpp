@@ -20,6 +20,8 @@
 #include <AMReX_AmrLevel.H>
 #include <AMReX_Array.H>
 
+using namespace amrex::literals;
+
 // This class only works for 3+1D
 static_assert(GR_SPACEDIM == 3, "GR_SPACEDIM must be 3");
 

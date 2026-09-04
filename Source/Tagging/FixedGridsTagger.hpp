@@ -13,6 +13,8 @@
 // AMReX includes
 #include <AMReX_TagBox.H>
 
+using namespace amrex::literals;
+
 class FixedGridsTagger
 {
   protected:
@@ -32,7 +34,7 @@ class FixedGridsTagger
 
         for (int direction = 0; direction < AMREX_SPACEDIM; ++direction)
         {
-            if (center[direction] < 0.0 ||
+            if (center[direction] < 0.0_rt ||
                 center[direction] > domain_lengths[direction])
             {
                 geometry_pp.error(
@@ -60,7 +62,7 @@ class FixedGridsTagger
         // Refine half the simulated domain length on level 0, then halve the
         // refined length again on each subsequent level.
         const amrex::Real fraction_of_each_side_to_refine =
-            pow(0.5, m_level + 1.0);
+            std::pow(0.5_rt, m_level + 1.0_rt);
         const amrex::IntVect cell(AMREX_D_DECL(ix, iy, iz));
 
         for (int direction = 0; direction < AMREX_SPACEDIM; ++direction)
@@ -73,7 +75,7 @@ class FixedGridsTagger
             // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
             amrex::Real distance_to_boundary =
                 m_domain_lengths[direction] - m_center[direction];
-            if (coordinate_from_center < 0.0)
+            if (coordinate_from_center < 0.0_rt)
             {
                 distance_to_boundary = m_center[direction];
             }

@@ -26,6 +26,8 @@
 // System includes
 #include <array>
 
+using namespace amrex::literals;
+
 class Constraints
 {
   public:

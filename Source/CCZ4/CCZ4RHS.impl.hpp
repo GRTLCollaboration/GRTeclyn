@@ -44,7 +44,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<deriv_t>::compute_chi_and_h_ij(
     amrex::Real divshift   = CCZ4Geometry::compute_divshift(d1_shift);
     amrex::Real advec_chi =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_chi);
-    rhs_cell_data[c_chi] = advec_chi + (2.0 / (amrex::Real)GR_SPACEDIM) *
+    rhs_cell_data[c_chi] = advec_chi + (2.0_rt / (amrex::Real)GR_SPACEDIM) *
                                            vars.chi() *
                                            (vars.lapse() * vars.K() - divshift);
 
@@ -55,8 +55,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<deriv_t>::compute_chi_and_h_ij(
         rhs_cell_data[sym_var_idx(c_h11, i, j)] =
             m_deriv.advection(ix, iy, iz, state, shift_vector,
                               sym_var_idx(c_h11, i, j)) -
-            2.0 * vars.lapse() * vars.A(i, j) -
-            (2.0 / (amrex::Real)GR_SPACEDIM) * vars.h(i, j) * divshift;
+            2.0_rt * vars.lapse() * vars.A(i, j) -
+            (2.0_rt / (amrex::Real)GR_SPACEDIM) * vars.h(i, j) * divshift;
 
         FOR (k)
         {
@@ -89,12 +89,12 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     Tensor::Rank1 Z; // NOLINT(readability-identifier-length)
 
     // Select CCZ4 without introducing a branch into the GPU kernel.
-    const amrex::Real ccz4_coeff = 1.0 - m_params.bssn_coeff;
+    const amrex::Real ccz4_coeff = 1.0_rt - m_params.bssn_coeff;
 
     FOR (i)
     {
         Z_over_chi(i) =
-            ccz4_coeff * 0.5 * (vars.Gamma(i) - chris.contracted(i));
+            ccz4_coeff * 0.5_rt * (vars.Gamma(i) - chris.contracted(i));
     }
     FOR (i)
         Z(i) = vars.chi() * Z_over_chi(i);
@@ -135,8 +135,8 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         }
         covd2lapse(k, l) =
             vars.chi() * covdtilde2lapse(k, l) +
-            0.5 * (d1_lapse(k) * d1_chi(l) + d1_chi(k) * d1_lapse(l) -
-                   vars.h(k, l) * dlapse_dot_dchi);
+            0.5_rt * (d1_lapse(k) * d1_chi(l) + d1_chi(k) * d1_lapse(l) -
+                      vars.h(k, l) * dlapse_dot_dchi);
     }
 
     auto A_UU = CCZ4Geometry::compute_A_UU(state_cell_data, h_UU);
@@ -157,8 +157,8 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
             m_deriv.advection(ix, iy, iz, state, shift_vector,
                               sym_var_idx(c_A11, i, j)) +
             Adot_TF(i, j) +
-            vars.A(i, j) * (vars.lapse() * (vars.K() - 2.0 * vars.Theta()) -
-                            (2.0 / (amrex::Real)GR_SPACEDIM) * divshift);
+            vars.A(i, j) * (vars.lapse() * (vars.K() - 2.0_rt * vars.Theta()) -
+                            (2.0_rt / (amrex::Real)GR_SPACEDIM) * divshift);
         FOR (k)
         {
             rhs_cell_data[sym_var_idx(c_A11, i, j)] +=
@@ -166,7 +166,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
             FOR (l)
             {
                 rhs_cell_data[sym_var_idx(c_A11, i, j)] -=
-                    2.0 * vars.lapse() * h_UU(k, l) * vars.A(i, k) *
+                    2.0_rt * vars.lapse() * h_UU(k, l) * vars.A(i, k) *
                     vars.A(l, j);
             }
         }
@@ -181,7 +181,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_K);
 
     amrex::Real tr_covd2lapse =
-        -((amrex::Real)GR_SPACEDIM / 2.0) * dlapse_dot_dchi;
+        -((amrex::Real)GR_SPACEDIM / 2.0_rt) * dlapse_dot_dchi;
     FOR (i)
     {
         tr_covd2lapse -= vars.chi() * chris.contracted(i) * d1_lapse(i);
@@ -192,7 +192,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         }
     }
 
-    const amrex::Real non_covariant_z4 = 1.0 - m_params.covariant_z4_coeff;
+    const amrex::Real non_covariant_z4 = 1.0_rt - m_params.covariant_z4_coeff;
     const amrex::Real kappa1_times_lapse =
         m_params.covariant_z4_coeff * m_params.kappa1 +
         non_covariant_z4 * m_params.kappa1 * vars.lapse();
@@ -202,14 +202,14 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     const amrex::Real ccz4_Theta_rhs =
         advec_Theta +
-        0.5 * vars.lapse() *
+        0.5_rt * vars.lapse() *
             (ricci.scalar - Aij_squared +
-             (((amrex::Real)GR_SPACEDIM - 1.0) / (amrex::Real)GR_SPACEDIM) *
+             (((amrex::Real)GR_SPACEDIM - 1.0_rt) / (amrex::Real)GR_SPACEDIM) *
                  vars.K() * vars.K() -
-             2.0 * vars.Theta() * vars.K()) -
-        0.5 * vars.Theta() * kappa1_times_lapse *
+             2.0_rt * vars.Theta() * vars.K()) -
+        0.5_rt * vars.Theta() * kappa1_times_lapse *
             (((amrex::Real)GR_SPACEDIM + 1) +
-             m_params.kappa2 * ((amrex::Real)GR_SPACEDIM - 1.0)) -
+             m_params.kappa2 * ((amrex::Real)GR_SPACEDIM - 1.0_rt)) -
         Z_dot_d1lapse - vars.lapse() * m_cosmological_constant;
 
     // Theta is not evolved in BSSN, so this also keeps it fixed at zero.
@@ -219,18 +219,18 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
 
     const amrex::Real ccz4_K_terms =
         vars.lapse() *
-            (ricci.scalar + vars.K() * (vars.K() - 2.0 * vars.Theta())) -
+            (ricci.scalar + vars.K() * (vars.K() - 2.0_rt * vars.Theta())) -
         kappa1_times_lapse * (amrex::Real)GR_SPACEDIM *
-            (1.0 + m_params.kappa2) * vars.Theta() -
-        2.0 * vars.lapse() * (amrex::Real)GR_SPACEDIM /
-            ((amrex::Real)GR_SPACEDIM - 1.0) * m_cosmological_constant;
+            (1.0_rt + m_params.kappa2) * vars.Theta() -
+        2.0_rt * vars.lapse() * (amrex::Real)GR_SPACEDIM /
+            ((amrex::Real)GR_SPACEDIM - 1.0_rt) * m_cosmological_constant;
 
     // The BSSN update uses the Hamiltonian constraint to eliminate R.
     const amrex::Real bssn_K_terms =
         vars.lapse() *
             (Aij_squared + vars.K() * vars.K() / (amrex::Real)GR_SPACEDIM) -
-        2.0 * vars.lapse() * m_cosmological_constant /
-            ((amrex::Real)GR_SPACEDIM - 1.0);
+        2.0_rt * vars.lapse() * m_cosmological_constant /
+            ((amrex::Real)GR_SPACEDIM - 1.0_rt);
 
     rhs_cell_data[c_K] = common_K_rhs + ccz4_coeff * ccz4_K_terms +
                          m_params.bssn_coeff * bssn_K_terms;
@@ -244,34 +244,35 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     FOR (i)
     {
         rhs_cell_data[c_Gamma1 + i] =
-            (2.0 / (amrex::Real)GR_SPACEDIM) *
+            (2.0_rt / (amrex::Real)GR_SPACEDIM) *
                 (divshift * (chris.contracted(i) +
-                             2.0 * m_params.kappa3 * Z_over_chi(i)) -
-                 2.0 * vars.lapse() * vars.K() * Z_over_chi(i)) -
-            2.0 * kappa1_times_lapse * Z_over_chi(i);
+                             2.0_rt * m_params.kappa3 * Z_over_chi(i)) -
+                 2.0_rt * vars.lapse() * vars.K() * Z_over_chi(i)) -
+            2.0_rt * kappa1_times_lapse * Z_over_chi(i);
 
         FOR (j)
         {
             rhs_cell_data[c_Gamma1 + i] +=
-                2.0 * h_UU(i, j) *
+                2.0_rt * h_UU(i, j) *
                     (vars.lapse() * d1_Theta(j) - vars.Theta() * d1_lapse(j)) -
-                2.0 * A_UU(i, j) * d1_lapse(j) -
-                vars.lapse() * ((2.0 * ((amrex::Real)GR_SPACEDIM - 1.0) /
+                2.0_rt * A_UU(i, j) * d1_lapse(j) -
+                vars.lapse() * ((2.0_rt * ((amrex::Real)GR_SPACEDIM - 1.0_rt) /
                                  (amrex::Real)GR_SPACEDIM) *
                                     h_UU(i, j) * d1_K(j) +
                                 (amrex::Real)GR_SPACEDIM * A_UU(i, j) *
                                     d1_chi(j) / vars.chi()) -
-                (chris.contracted(j) + 2.0 * m_params.kappa3 * Z_over_chi(j)) *
+                (chris.contracted(j) +
+                 2.0_rt * m_params.kappa3 * Z_over_chi(j)) *
                     d1_shift(i, j);
 
             FOR (k)
             {
                 rhs_cell_data[c_Gamma1 + i] +=
-                    2.0 * vars.lapse() * chris.ULL(i, j, k) *
+                    2.0_rt * vars.lapse() * chris.ULL(i, j, k) *
 
                         A_UU(j, k) +
                     h_UU(j, k) * d2_shift(i, j, k) +
-                    (((amrex::Real)GR_SPACEDIM - 2.0) /
+                    (((amrex::Real)GR_SPACEDIM - 2.0_rt) /
                      (amrex::Real)GR_SPACEDIM) *
                         h_UU(i, j) * d2_shift(k, j, k);
             }

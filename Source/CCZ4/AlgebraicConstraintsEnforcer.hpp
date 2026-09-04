@@ -11,6 +11,8 @@
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
+using namespace amrex::literals;
+
 // This class enforces det(h)=1 and A to be trace-free
 class AlgebraicConstraintsEnforcer
 {
@@ -37,9 +39,9 @@ class AlgebraicConstraintsEnforcer
         using namespace CCZ4Geometry;
         // Enforce the unit determinant constraint on the conformal metric.
         const amrex::Real det_h = compute_metric_determinant(vars);
-        AMREX_ASSERT(det_h > 0.0);
+        AMREX_ASSERT(det_h > 0.0_rt);
         const amrex::Real metric_factor =
-            std::pow(det_h, -1.0 / static_cast<double>(GR_SPACEDIM));
+            std::pow(det_h, -1.0_rt / static_cast<amrex::Real>(GR_SPACEDIM));
         FOR2_SYM(i, j)
         {
             state_cell_data[sym_var_idx(c_h11, i, j)] *= metric_factor;
@@ -47,7 +49,7 @@ class AlgebraicConstraintsEnforcer
         // Enforce A to be trace-free
         const auto trace_A = compute_trace_A(vars);
         const amrex::Real one_over_gr_spacedim =
-            1. / ((amrex::Real)GR_SPACEDIM);
+            1._rt / ((amrex::Real)GR_SPACEDIM);
         FOR2_SYM(i, j)
         {
             state_cell_data[sym_var_idx(c_A11, i, j)] -=

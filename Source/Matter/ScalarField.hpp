@@ -15,6 +15,8 @@
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "TensorAlgebra.hpp"
 
+using namespace amrex::literals;
+
 //!  Calculates the matter type specific elements such as the EMTensor and
 //   matter evolution
 /*!
@@ -40,20 +42,20 @@ class ScalarField
   protected:
     potential_t m_potential;
     //! The local copy of the potential
-    amrex::Real m_G_Newton{1.0};
+    amrex::Real m_G_Newton{1.0_rt};
 
   public:
 
     struct params_t
     {
-        amrex::Real G_Newton{1.0};
+        amrex::Real G_Newton{1.0_rt};
 
         static void check_params()
         {
             GRParmParse scalar_field_pp("scalar_field");
-            amrex::Real G_Newton{1.0};
+            amrex::Real G_Newton{1.0_rt};
             scalar_field_pp.queryAdd("G_Newton", G_Newton);
-            if (G_Newton < 0.0)
+            if (G_Newton < 0.0_rt)
             {
                 scalar_field_pp.error("G_Newton", "must be >= 0.0");
             }

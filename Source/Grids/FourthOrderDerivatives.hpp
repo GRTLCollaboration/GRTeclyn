@@ -349,14 +349,14 @@ class FourthOrderDerivatives : protected DerivativeBase
               const amrex::Array4<const amrex::Real> &state,
               const Tensor::Rank1 &shift_vector, const int ivar) const
     {
-        amrex::Real advec         = 0.0;
+        amrex::Real advec         = 0.0_rt;
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         const auto strides        = get_strides(state);
         const auto *var_ptr       = get_var_ptr(ivar, state_ptr_xyz, strides);
 
         FOR (idir)
         {
-            const bool shift_positive = (shift_vector(idir) > 0.0);
+            const bool shift_positive = (shift_vector(idir) > 0.0_rt);
             advec += advection_term(var_ptr, shift_vector(idir), strides[idir],
                                     shift_positive);
         }
@@ -462,7 +462,7 @@ class FourthOrderDerivatives : protected DerivativeBase
                           const amrex::Array4<const amrex::Real> &state,
                           const amrex::Real sigma_coeff, const int ivar) const
     {
-        amrex::Real diss          = 0.0;
+        amrex::Real diss          = 0.0_rt;
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         const auto strides        = get_strides(state);
 
@@ -485,7 +485,7 @@ class FourthOrderDerivatives : protected DerivativeBase
                     int num_vars = NUM_VARS) const
 
     {
-        amrex::Real diss = 0.0;
+        amrex::Real diss = 0.0_rt;
         for (int ivar = 0; ivar < num_vars; ++ivar)
         {
             diss = calculate_dissipation(ix, iy, iz, state, sigma_coeff, ivar);
