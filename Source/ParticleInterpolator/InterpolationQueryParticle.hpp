@@ -13,6 +13,8 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuContainers.H>
 #include <map>
+#include <set>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -37,9 +39,9 @@ class InterpolationQueryParticle
     template <int num_components> friend class ParticleInterpolator;
 
     size_t m_num_points;
-
     std::array<const amrex::ParticleReal *, AMREX_SPACEDIM> m_coords{};
     comp_map_t m_comps{};
+    std::set<int> m_unique_comps{};
     VariableType m_variable_type{}; // for a given InterpolationQueryParticle
                                     // the variable type must be the same!
     bool m_variable_type_set =
@@ -51,7 +53,6 @@ class InterpolationQueryParticle
     // Returns the pointer that was passed to setCoords
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     [[nodiscard]] const amrex::ParticleReal *coords(int dim) const
-
     {
         AMREX_ASSERT(dim >= 0 && dim < AMREX_SPACEDIM);
         return m_coords[dim];
@@ -94,14 +95,18 @@ class InterpolationQueryParticle
                          "for diagnostic variables!");
         }
 
-        // for now we do not allow derivatives
-        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+        for (int dim = 0; dim < AMREX_SPACEDIM; ++dim)
         {
-            if (deriv[dir] != 0)
+            if (deriv[dim] > 2)
             {
                 amrex::Abort(
-                    "InterpolationQueryParticle::addComp(): "
-                    "Derivative interpolation is not yet implemented :/ !");
+                    "InterpolationQueryParticle::addComp() Oi oi oi! You have "
+                    "requested a derivative of order " +
+                    std::to_string(deriv[dim]) + " in direction " +
+                    std::to_string(dim) +
+                    " in your ParticleInterpolator query. The "
+                    "ParticleInterpolator only supports interpolation of "
+                    "component values and their first and second derivatives.");
             }
         }
 
@@ -115,12 +120,14 @@ class InterpolationQueryParticle
         }
 
         result->second.push_back(out_t{comp, out_ptr, parity});
+        m_unique_comps.insert(comp);
         return *this;
     }
 
     InterpolationQueryParticle &clearComps()
     {
         m_comps.clear();
+        m_unique_comps.clear();
         m_variable_type_set = false; // reset the initialised var type flag
         return *this;
     }
@@ -134,16 +141,26 @@ class InterpolationQueryParticle
     }
 
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    int numComps()
+    [[nodiscard]] int numComps() const
     {
         int accum = 0;
 
-        for (auto &m_comp : m_comps)
+        for (const auto &m_comp : m_comps)
         {
             accum += static_cast<int>(m_comp.second.size());
         }
 
         return accum;
+    }
+
+    [[nodiscard]] const std::set<int> &uniqueComps() const
+    {
+        return m_unique_comps;
+    }
+
+    [[nodiscard]] int numUniqueComps() const
+    {
+        return static_cast<int>(m_unique_comps.size());
     }
 
     [[nodiscard]] size_t numPoints() const { return m_num_points; }
