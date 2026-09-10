@@ -8,8 +8,8 @@ EBASE = BinaryBH
 USE_PARTICLES = TRUE
 
 # Use TwoPunctures initial data
-USE_TWOPUNCTURES = TRUE
-TWOPUNCTURES_HOME ?= $(GRTECLYN_HOME)/TwoPunctures
+# USE_TWOPUNCTURES = TRUE
+# TWOPUNCTURES_HOME ?= $(GRTECLYN_HOME)/TwoPunctures
 
 AMREX_HOME ?= $(realpath ../../../amrex)
 
