@@ -7,6 +7,10 @@ EBASE = BinaryBH
 # We use particles for the puncture tracking
 USE_PARTICLES = TRUE
 
+# Use TwoPunctures initial data
+USE_TWOPUNCTURES = TRUE
+TWOPUNCTURES_HOME ?= $(GRTECLYN_HOME)/TwoPunctures
+
 AMREX_HOME ?= $(realpath ../../../amrex)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
