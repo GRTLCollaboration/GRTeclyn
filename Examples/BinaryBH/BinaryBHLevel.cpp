@@ -328,7 +328,6 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
         bh2_mass          = masses[1];
     }
 #else
-    GRParmParse pp;
     pp.get("bh1.mass", bh1_mass);
     pp.get("bh2.mass", bh2_mass);
 #endif
