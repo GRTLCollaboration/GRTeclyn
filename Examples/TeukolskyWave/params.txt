@@ -26,12 +26,15 @@ amr.derive_plot_vars = constraints
 # Teukolsky Wave parameters
 
 # Initial Data is provided via the Eppley packet construction.
-# Implemented: (even, 0), (even, 2), (odd, 2)
+# Implemented (parity, magnetic) pairs: (even, 0), (even, 2), (odd, 2)
 teukolsky_wave.parity = even
 teukolsky_wave.magnetic = 0
+# Control parameters for the seed function
 teukolsky_wave.sigma = 10.
 teukolsky_wave.amplitude = 5.
 teukolsky_wave.radial_offset = 50.
+# A small parameter that regularizes the initial data close to the origin.
+# Assumes regularize_r << sigma << r_0
 teukolsky_wave.regularize_r = 1.
 
 #################################################
@@ -45,7 +48,7 @@ weyl_extraction.num_radii = 3
 weyl_extraction.radii = 75.0 100.0 125.0
 # weyl_extraction.levels = 0
 weyl_extraction.num_points_phi = 48
-weyl_extraction.num_points_theta = 32
+weyl_extraction.num_points_theta = 33
 weyl_extraction.num_modes = 5
 weyl_extraction.modes = 2 0 \
                         2 1 \

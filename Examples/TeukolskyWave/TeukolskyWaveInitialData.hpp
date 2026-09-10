@@ -66,9 +66,9 @@ class TeukolskyWaveInitialData
             }
             amrex::Real radial_offset{};
             tw_pp.queryAdd("radial_offset", radial_offset);
-            if (radial_offset < 0.0)
+            if (radial_offset <= 0.0)
             {
-                tw_pp.error("radial_offset", "must be >= 0");
+                tw_pp.error("radial_offset", "must be > 0");
             }
             amrex::Real regularize_r{};
             tw_pp.queryAdd("regularize_r", regularize_r);

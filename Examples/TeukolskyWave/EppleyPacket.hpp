@@ -45,9 +45,6 @@ enum class EppleyPacketType
 };
 
 //! Superposition of an ingoing and outgoing Teukolsky wave.
-//! This is captured by value into GPU device lambdas (via
-//! TeukolskyWaveInitialData), so it must stay trivially copyable: the choice
-//! of (parity, magnetic number) is a plain enum tag.
 class EppleyPacket
 {
   public:
@@ -79,18 +76,21 @@ class EppleyPacket
         m_params.fill_params();
     }
 
-    //! F function and its first four derivatives, where x = r \pm t
+    //! Get F and its first four derivatives, where x = r \pm t
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE EppleyPacketDerivs
     get_F_derivs(amrex::Real x) const;
 
+    //! Get the metric coefficients A, B, and C for the even parity case
     [[nodiscard]] AMREX_GPU_DEVICE
         AMREX_FORCE_INLINE EvenEppleyPacketCoefficients
         get_ABC(amrex::Real r) const;
 
+    //! Get the metric coefficients K and L for the odd parity case
     [[nodiscard]] AMREX_GPU_DEVICE
         AMREX_FORCE_INLINE OddEppleyPacketCoefficients
         get_KL(amrex::Real r) const;
 
+    //! Get the metric components for the Eppley packet
     [[nodiscard]] AMREX_GPU_DEVICE
         AMREX_FORCE_INLINE EppleyPacketMetricComponents
         get_metric_components(amrex::Real x, amrex::Real y,
