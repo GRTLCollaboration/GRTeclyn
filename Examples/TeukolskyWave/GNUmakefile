@@ -4,7 +4,7 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 EBASE = TeukolskyWave
 
-# Line extraction uses the particle interpolator.
+# Gravitational wave extraction uses the particle interpolator.
 USE_PARTICLES = TRUE
 
 AMREX_HOME ?= $(realpath ../../../amrex)
