@@ -319,8 +319,19 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     amrex::Real bh1_mass{};
     amrex::Real bh2_mass{};
+#ifdef USE_TWOPUNCTURES
+    {
+        const TwoPuncturesInitialData two_punctures_initial_data(
+            Geom().CellSize(0));
+        const auto masses = two_punctures_initial_data.get_tagging_masses();
+        bh1_mass          = masses[0];
+        bh2_mass          = masses[1];
+    }
+#else
+    GRParmParse pp;
     pp.get("bh1.mass", bh1_mass);
     pp.get("bh2.mass", bh2_mass);
+#endif
 
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gr_amr_ptr()->maxLevel(),

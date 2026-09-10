@@ -73,6 +73,16 @@ class TwoPuncturesInitialData
             s_two_punctures.center_offset[offset_dir] + s_two_punctures.par_b;
     }
 
+
+    std::array<amrex::Real, 2> get_tagging_masses() const
+    {
+        if (s_two_punctures.give_bare_mass)
+        {
+            return {s_two_punctures.par_m_minus, s_two_punctures.par_m_plus};
+        }
+        return {s_two_punctures.target_M_minus, s_two_punctures.target_M_plus};
+    }
+
     AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &a_state) const
