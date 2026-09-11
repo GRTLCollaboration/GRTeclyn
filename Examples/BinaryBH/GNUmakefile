@@ -9,7 +9,7 @@ USE_PARTICLES = TRUE
 
 # Use TwoPunctures initial data
 # USE_TWOPUNCTURES = TRUE
-# TWOPUNCTURES_HOME ?= $(GRTECLYN_HOME)/TwoPunctures
+# TWOPUNCTURES_HOME ?= $(realpath ../../../TwoPunctures/)
 
 AMREX_HOME ?= $(realpath ../../../amrex)
 
@@ -21,7 +21,6 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
-GRTECLYN_HOME = $(realpath ../..)
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 # Name all directories for relevant source and header files
