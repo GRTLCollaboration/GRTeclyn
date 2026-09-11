@@ -73,7 +73,6 @@ class TwoPuncturesInitialData
             s_two_punctures.center_offset[offset_dir] + s_two_punctures.par_b;
     }
 
-
     std::array<amrex::Real, 2> get_tagging_masses() const
     {
         if (s_two_punctures.give_bare_mass)
