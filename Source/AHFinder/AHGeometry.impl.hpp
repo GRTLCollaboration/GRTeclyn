@@ -14,7 +14,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 
 // AHGeometry is not a template, so every out-of-class definition below must
 // have inline linkage: this file is pulled in by AHGeometry.hpp, and without
@@ -226,28 +225,6 @@ inline Tensor::Rank2 AHGeometry::hess_h(int idx) const
     hess_h_LL(1, 2) = hess_h_LL(2, 1) = m_d2h_yz[idx];
 
     return hess_h_LL;
-}
-
-// Closest pair of grid points anywhere on the surface: the rings pinch
-// together towards the poles, so the phi spacing carries the sin(theta)
-inline double AHGeometry::min_ring_spacing(const std::vector<double> &h) const
-{
-    double min_spacing = std::numeric_limits<double>::max();
-
-    for (int i = 0; i < m_n_rings; ++i)
-    {
-        const double sin_theta = std::sin(theta(i));
-
-        for (int j = 0; j < m_ring_size; ++j)
-        {
-            const double r = h[i * m_ring_size + j];
-
-            min_spacing = std::min(min_spacing, r * d_theta());
-            min_spacing = std::min(min_spacing, r * sin_theta * d_phi());
-        }
-    }
-
-    return min_spacing;
 }
 
 inline void

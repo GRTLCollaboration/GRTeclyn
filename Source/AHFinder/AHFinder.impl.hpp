@@ -9,6 +9,8 @@
 #include <AMReX_ParIter.H>
 #include <AMReX_Particles.H>
 
+#include <AMReX_MLMG.H>
+
 #include "CCZ4StateVariables.hpp"
 #include "DefaultLevelBld.hpp"
 #include "Derivative.hpp"
@@ -18,12 +20,14 @@
 #include "TensorAlgebra.hpp"
 #include <filesystem>
 #include <fstream>
+#include <limits>
 
 template <int num_components>
 void AHFinder<num_components>::init(GRAmr *gramr_ptr)
 {
-    // eta, c, tolerance, r and cfl_factor come from the "ah_finder" scope of
-    // the input file; see AHFinderParameters.hpp for defaults and meaning.
+    // tolerance, r, max_iter and the linear-solve tolerances come
+    // from the "ah_finder" scope of the input file; see AHFinderParameters.hpp
+    // for defaults and meaning.
     m_params.fill_params();
 
     m_min_dt      = 1e-4;
@@ -38,35 +42,83 @@ void AHFinder<num_components>::init(GRAmr *gramr_ptr)
 
     m_geometry.set_surface_data(&m_state.h, &m_gamma_LL);
 
-    // Initialise h, v and dt values for particles, then place the particles
+    // Matrix-free operator for the per-step linear solve, laid out on the same
+    // ring grid the surface is discretised on.
+    m_jac_op = std::make_unique<AHJacobianOp>(m_geometry.n_rings(),
+                                              m_geometry.ring_size());
+
+    // Initialise h for the particles, then place them
     this->init_particle_vals();
     this->set_particle_positions(m_state.h);
 }
 
 template <int num_components> void AHFinder<num_components>::find()
 {
-    // Create amrex time integrator
-    // Allows for different (explicit) time stepping methods
-    m_integrator = std::make_unique<amrex::TimeIntegrator<AHState>>(m_state);
-    m_integrator->set_rhs([this](AHState &rhs, AHState &state, amrex::Real time)
-                          { this->compute_rhs(rhs, state, time); });
+    // The Jacobian mat-vec closes over the current pseudo-timestep m_dt and the
+    // frozen residual m_theta_n, both refreshed at the top of each PTC step.
+    // For a direction "in" it returns (I/dt + J) in, with J dTheta/dh applied
+    // as a finite-difference directional derivative of theta_from_metric about
+    // the frozen surface m_state.h:
+    //   J in ~= (Theta(h_n + eps*in) - Theta(h_n)) / eps
+    // and eps set by the Brown-Saad rule. theta_from_metric() leaves the full
+    // array on every rank, so "in"/"out" are complete flat vectors throughout.
+    m_jac_op->set_matvec(
+        [this](const std::vector<double> &in, std::vector<double> &out)
+        {
+            const double macheps = std::numeric_limits<double>::epsilon();
+
+            double h_norm = 0.0;
+            double v_norm = 0.0;
+            for (int ip = 0; ip < m_num_particles; ++ip)
+            {
+                h_norm += m_state.h[ip] * m_state.h[ip];
+                v_norm += in[ip] * in[ip];
+            }
+            h_norm = std::sqrt(h_norm);
+            v_norm = std::sqrt(v_norm);
+
+            // If the direction is (numerically) zero, J in = 0 and the apply
+            // reduces to the I/dt term.
+            if (v_norm == 0.0)
+            {
+                for (int ip = 0; ip < m_num_particles; ++ip)
+                    out[ip] = in[ip] / m_dt;
+                return;
+            }
+
+            const double eps =
+                std::sqrt(macheps) * (1.0 + h_norm) / v_norm;
+
+            std::vector<double> h_pert(m_num_particles);
+            for (int ip = 0; ip < m_num_particles; ++ip)
+                h_pert[ip] = m_state.h[ip] + eps * in[ip];
+
+            std::vector<double> theta_pert(m_num_particles);
+            this->theta_from_metric(h_pert, theta_pert);
+
+            for (int ip = 0; ip < m_num_particles; ++ip)
+                out[ip] = in[ip] / m_dt +
+                          (theta_pert[ip] - m_theta_n[ip]) / eps;
+        });
 
     int n_iter = 0;
 
+    // Freeze the metric and residual at the initial surface. The loop keeps the
+    // invariant that on entry m_gamma_LL and m_theta_n are frozen at m_state.h
+    // and theta_old == inf_norm(m_theta_n).
     this->set_particle_positions(m_state.h);
-    compute_theta(m_state.h);
+    this->interpolate_metric(m_state.h);
+    this->theta_from_metric(m_state.h, m_theta_n);
 
-    double theta_old = inf_norm(m_theta_vals);
+    double theta_old = inf_norm(m_theta_n);
 
-    // Global pseudo-timeste
-    amrex::Real dt = 1e-2;
+    // Global pseudo-timestep
+    m_dt = 1e-2;
 
     const bool io_proc = amrex::ParallelDescriptor::IOProcessor();
 
-    // Temp logging
-    amrex::Print() << "\n AHFinder expansion Theta inf "
-                      "norm = "
-                   << theta_old << "\n";
+    amrex::Print() << "\n AHFinder expansion Theta inf norm = " << theta_old
+                   << "\n";
 
     std::ofstream theta_log;
     std::ofstream dt_log;
@@ -78,7 +130,7 @@ template <int num_components> void AHFinder<num_components>::find()
         std::filesystem::create_directory("particles");
 
         theta_log << n_iter << "," << theta_old << std::endl;
-        dt_log << n_iter << "," << dt << std::endl;
+        dt_log << n_iter << "," << m_dt << std::endl;
     }
 
     auto write_particles = [&](int iter)
@@ -95,39 +147,94 @@ template <int num_components> void AHFinder<num_components>::find()
     };
     write_particles(n_iter);
 
-    AHState new_state = m_state;
+    // MultiFabs on the operator's ring-grid layout for the RHS -Theta(h_n) and
+    // the solution increment delta_h.
+    amrex::MultiFab rhs   = m_jac_op->make_mf();
+    amrex::MultiFab delta = m_jac_op->make_mf();
 
-    while (theta_old > m_params.tolerance)
+    while (theta_old > m_params.tolerance && n_iter < m_params.max_iter)
     {
-        // Advance one pseudo-time step with the AMReX integrator.
-        m_integrator->set_time_step(dt);
-        m_integrator->advance(m_state, new_state, n_iter * dt, dt);
-        std::swap(m_state, new_state);
+        // RHS = -Theta(h_n) (frozen at the current surface).
+        std::vector<double> minus_theta(m_num_particles);
+        for (int ip = 0; ip < m_num_particles; ++ip)
+            minus_theta[ip] = -m_theta_n[ip];
+        m_jac_op->flat_to_mf(minus_theta, rhs);
 
-        // Evaluate Theta at the new state
+        // Solve (I/dt + J) delta_h = -Theta(h_n) with a single-level,
+        // matrix-free BiCGStab (coarsening disabled in the operator).
+        delta.setVal(0.0);
+        amrex::MLMG mlmg(*m_jac_op);
+        mlmg.setBottomSolver(amrex::BottomSolver::bicgstab);
+        // No geometric multigrid levels exist, so the pre/post V-cycle sweeps
+        // never run; disable the post-bottom smoothing too, since Fsmooth
+        // (relaxation) is not implemented for this matrix-free operator.
+        mlmg.setBottomSmooth(0);
+        mlmg.setFinalSmooth(0);
+        mlmg.setVerbose(0);
+        mlmg.setBottomVerbose(0);
+        // As dt grows the frozen-metric operator (I/dt + J) becomes
+        // ill-conditioned; an inexact linear solve is acceptable for PTC, so
+        // take whatever increment the solver reaches instead of aborting.
+        mlmg.setThrowException(true);
+        try
+        {
+            mlmg.solve({&delta}, {&rhs}, m_params.linear_rel_tol,
+                       m_params.linear_abs_tol);
+        }
+        catch (const std::exception &)
+        {
+            // Keep the partially-converged increment in delta.
+        }
+
+        std::vector<double> delta_h(m_num_particles);
+        m_jac_op->mf_to_flat(delta, delta_h);
+
+        // Trial update h_{n+1} = h_n + delta_h, keeping h_n so the step can be
+        // rejected if it does not reduce the residual.
+        const std::vector<double> h_backup = m_state.h;
+        for (int ip = 0; ip < m_num_particles; ++ip)
+            m_state.h[ip] += delta_h[ip];
+
+        // Evaluate Theta at the trial state, freezing its metric.
         this->set_particle_positions(m_state.h);
-        compute_theta(m_state.h);
+        this->interpolate_metric(m_state.h);
+        this->theta_from_metric(m_state.h, m_theta_vals);
 
-        double theta_new = inf_norm(m_theta_vals);
-
-        amrex::Print() << "\n theta_old = " << theta_old << "\n";
-
-        amrex::Print() << "\n theta_new = " << theta_new << "\n";
-
-        amrex::Print() << "-------------------------\n";
-
-        // Adapt the global timestep for the next step.
-        dt = update_dt(dt, theta_old, theta_new, m_state.h);
-        amrex::Print() << "dt = " << dt << "\n";
-
-        theta_old = theta_new;
+        const double theta_new = inf_norm(m_theta_vals);
 
         n_iter++;
+
+        if (theta_new < theta_old)
+        {
+            // Accept: the frozen metric/residual now hold at the trial surface.
+            m_theta_n = m_theta_vals;
+            // SER: grow dt as the residual falls, approaching Newton.
+            m_dt      = update_dt(m_dt, theta_old, theta_new);
+            theta_old = theta_new;
+        }
+        else
+        {
+            // Reject: restore h_n and its frozen metric/residual, and shrink dt
+            // so the next step is more strongly regularised (I/dt dominant). A
+            // step that fails to reduce the residual is rejected here, including
+            // the zero increment BiCGStab returns when it breaks down on the
+            // ill-conditioned (I/dt + J) at large dt -- shrinking dt then pulls
+            // the operator back into the regime the matrix-free solve handles,
+            // so dt self-limits at the largest value the solver supports.
+            m_state.h = h_backup;
+            this->set_particle_positions(m_state.h);
+            this->interpolate_metric(m_state.h);
+            this->theta_from_metric(m_state.h, m_theta_n);
+            m_dt = std::max(m_dt * m_dt_shrink, m_min_dt);
+        }
+
+        amrex::Print() << " AHFinder iter " << n_iter << ": theta = "
+                       << theta_old << ", dt = " << m_dt << "\n";
 
         if (io_proc)
         {
             theta_log << n_iter << "," << theta_old << std::endl;
-            dt_log << n_iter << "," << dt << std::endl;
+            dt_log << n_iter << "," << m_dt << std::endl;
         }
         write_particles(n_iter);
     }
@@ -157,10 +264,6 @@ void AHFinder<num_components>::init_particle_vals()
 
     // The initial surface is the sphere r = guess_radius
     m_state.h.assign(m_num_particles, r0);
-
-    // Since h = v - eta * h, start velocity at eta * h so we don't
-    // immediately collapse inwards
-    m_state.v.assign(m_num_particles, m_params.eta * r0);
 }
 
 template <int num_components>
@@ -186,38 +289,18 @@ void AHFinder<num_components>::set_particle_positions(
 }
 
 template <int num_components>
-void AHFinder<num_components>::compute_rhs(AHState &rhs, AHState &state,
-                                           amrex::Real /* time */)
-{
-    this->set_particle_positions(state.h);
-
-    // Calculate Theta
-    compute_theta(state.h);
-
-    //   h_dot = v - eta * h
-    //   v_dot = -c^2 * Theta
-    rhs.h.assign(m_num_particles, 0.0);
-    rhs.v.assign(m_num_particles, 0.0);
-    for (int id = 0; id < m_num_particles; ++id)
-    {
-        rhs.h[id] = state.v[id] - m_params.eta * state.h[id];
-        rhs.v[id] = -std::pow(m_params.c, 2) * m_theta_vals[id];
-    }
-}
-
-template <int num_components>
 amrex::Real
 AHFinder<num_components>::update_dt(amrex::Real dt, double theta_old,
-                                    double theta_new,
-                                    const std::vector<double> &h) const
+                                    double theta_new) const
 {
-    // Update dt based on ratio of improvement of theta
+    // SER: grow dt as the residual falls so the implicit step approaches
+    // Newton. The implicit solve (I/dt + J) is unconditionally stable, so dt
+    // is not capped; robustness against an over-large step is provided by the
+    // step-rejection safeguard in find(), which shrinks dt on any step that
+    // increases the residual.
 
-    // Limit timestep by CFL condition of closest pair of particles
-    const double max_dt = m_params.cfl_factor * m_geometry.min_ring_spacing(h);
-
-    // Update time step based on ratio of old to new theta
-    // Ensure it doesn't grow or shrink too fast.
+    // Scale dt by the ratio of old to new theta, clamped so it can't grow or
+    // shrink too fast in a single step.
     double ratio = (std::abs(theta_new) > m_theta_floor)
                        ? m_params.r * theta_old / theta_new
                        : m_params.r;
@@ -226,9 +309,8 @@ AHFinder<num_components>::update_dt(amrex::Real dt, double theta_old,
 
     dt *= ratio;
 
-    // Ensure the timestep doesn't grow too large or small.
+    // Keep dt above the floor.
     dt = std::max(dt, m_min_dt);
-    dt = std::min(dt, max_dt);
 
     return dt;
 }
@@ -308,17 +390,50 @@ void AHFinder<num_components>::setup_metric_query()
 }
 
 template <int num_components>
-void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
+void AHFinder<num_components>::interpolate_metric(const std::vector<double> &h)
 {
-
-    m_geometry.set_h_derivatives(h);
-
-    m_theta_vals.assign(m_num_particles, 0.0);
+    // Place particles on the surface r = h and interpolate the CCZ4 metric
+    // (chi, h_ij, K, A_ij) and its first derivatives onto them. Fills
+    // m_metric_state / m_metric_dx/dy/dz (valid on this rank's local slice)
+    // and the physical 3-metric m_gamma_LL (reduced to the full grid). These
+    // are held fixed while theta_from_metric() varies h, so the Jacobian used
+    // by the PTC solve is evaluated with the metric frozen at this surface.
+    this->set_particle_positions(h);
 
     m_gamma_LL.assign(m_num_particles, Tensor::Rank2{0.0});
 
     this->interp(m_metric_query_state, true);
     this->interp(m_metric_query_deriv, false);
+
+    for (int ip = m_start; ip < m_start + m_n_local; ++ip)
+    {
+        const double chi = m_metric_state[c_chi][ip];
+
+        // gamma_ij = h_ij / chi.
+        FOR (i, j)
+        {
+            const int h_comp     = sym_var_idx(c_h11, i, j);
+            const double h_ij    = m_metric_state[h_comp][ip];
+            m_gamma_LL[ip](i, j) = h_ij / chi;
+        }
+    }
+
+    amrex::ParallelDescriptor::ReduceRealSum(
+        reinterpret_cast<amrex::Real *>(m_gamma_LL.data()),
+        m_num_particles * AMREX_SPACEDIM * AMREX_SPACEDIM);
+}
+
+template <int num_components>
+void AHFinder<num_components>::theta_from_metric(const std::vector<double> &h,
+                                                 std::vector<double> &theta_out)
+{
+    // Evaluate the expansion Theta at every grid point for the surface radius
+    // h, using the metric frozen by the last interpolate_metric(). Only h and
+    // its ring-grid derivatives enter, so this is cheap (local work plus one
+    // reduce) and is what the matrix-free Jacobian differentiates.
+    m_geometry.set_h_derivatives(h);
+
+    theta_out.assign(m_num_particles, 0.0);
 
     amrex::GpuArray<const double *, 14> state_ptr;
     for (int c = 0; c < 14; ++c)
@@ -335,7 +450,7 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
 
     const double *h_ptr = h.data();
 
-    double *theta_ptr = m_theta_vals.data();
+    double *theta_ptr = theta_out.data();
 
     for (int ip = m_start; ip < m_start + m_n_local; ++ip)
     {
@@ -345,21 +460,20 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
         double chi = state_ptr[c_chi][ip];
         double K   = state_ptr[c_K][ip];
 
-        // Physical metric and extrinsic curvature from CCZ4
-        // variables: gamma_ij = h_ij/chi,
-        // K_ij = (A_ij + (1/3) h_ij K)/chi. gamma_ij is written directly
-        // into the persistent m_gamma_LL[ip], shared with AHGeometry.
+        // Physical 3-metric gamma_ij is frozen (from interpolate_metric); the
+        // extrinsic curvature K_ij = (A_ij + (1/3) h_ij K)/chi is rebuilt here
+        // from the frozen interpolated values.
+        const Tensor::Rank2 &gamma_LL = m_gamma_LL[ip];
         Tensor::Rank2 K_LL;
         FOR (i, j)
         {
-            int h_comp           = sym_var_idx(c_h11, i, j);
-            int A_comp           = sym_var_idx(c_A11, i, j);
-            double h_ij          = state_ptr[h_comp][ip];
-            double A_ij          = state_ptr[A_comp][ip];
-            m_gamma_LL[ip](i, j) = h_ij / chi;
-            K_LL(i, j)           = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
+            int h_comp  = sym_var_idx(c_h11, i, j);
+            int A_comp  = sym_var_idx(c_A11, i, j);
+            double h_ij = state_ptr[h_comp][ip];
+            double A_ij = state_ptr[A_comp][ip];
+            K_LL(i, j)  = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
         }
-        Tensor::Rank2 gamma_UU = compute_inverse(m_gamma_LL[ip]);
+        Tensor::Rank2 gamma_UU = compute_inverse(gamma_LL);
 
         // d_k(gamma_ij) from d1(chi), d1(h_ij) (product rule on
         // gamma_ij = h_ij/chi).
@@ -375,7 +489,7 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
             int h_comp     = sym_var_idx(c_h11, i, j);
             double d1h_kij = d1_metric_ptr[k][h_comp][ip];
             d1_gamma_LL(k, i, j) =
-                d1h_kij / chi - m_gamma_LL[ip](i, j) * d1_chi(k) / chi;
+                d1h_kij / chi - gamma_LL(i, j) * d1_chi(k) / chi;
         }
 
         // d_k(gamma^ij) = -gamma^im gamma^jn d_k(gamma_mn).
@@ -488,12 +602,7 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
         theta_ptr[ip] = div_s + s_dot_dlnsqrtgamma - K + s_K_s;
     }
 
-    amrex::ParallelDescriptor::ReduceRealSum(m_theta_vals.data(),
-                                             m_num_particles);
-
-    amrex::ParallelDescriptor::ReduceRealSum(
-        reinterpret_cast<amrex::Real *>(m_gamma_LL.data()),
-        m_num_particles * AMREX_SPACEDIM * AMREX_SPACEDIM);
+    amrex::ParallelDescriptor::ReduceRealSum(theta_out.data(), m_num_particles);
 }
 
 #endif /* AHFINDER_IMPL_HPP_ */

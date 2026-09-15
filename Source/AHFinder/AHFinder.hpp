@@ -5,7 +5,6 @@
 #include <AMReX_ParIter.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Particles.H>
-#include <AMReX_TimeIntegrator.H>
 #include <algorithm>
 #include <array>
 #include <memory>
@@ -13,6 +12,7 @@
 #include "AHFinderParameters.hpp"
 #include "AHFinderState.hpp"
 #include "AHGeometry.hpp"
+#include "AHJacobianOp.hpp"
 #include "ParticleInterpolator.hpp"
 #include "Tensor.hpp"
 
@@ -24,8 +24,9 @@ class AHFinder : public ParticleInterpolator<num_components>
     int m_n_local;
     int m_start;
 
-    // Pseudo-timestepping parameters read from the "ah_finder" scope of the
-    // input file (eta, c, tolerance, r, cfl_factor). Filled by init().
+    // PTC/solver parameters read from the "ah_finder" scope of the input file
+    // (tolerance, r, max_iter, linear_rel_tol, linear_abs_tol).
+    // Filled by init().
     ah_finder_params_t m_params{};
 
     // Smallest permitted pseudo-timestep, bounds on the per-iteration change
@@ -42,10 +43,10 @@ class AHFinder : public ParticleInterpolator<num_components>
     std::vector<double> interp_coords_y{};
     std::vector<double> interp_coords_z{};
 
-    // State storing h and v values for all particles. Stored off particles
-    // since we need h from other particles to compute its derivative, and
-    // this cannot be accessed from another particle if they are not on the
-    // same tile
+    // State storing the surface radius h for all particles. Stored off
+    // particles since we need h from other particles to compute its
+    // derivative, and this cannot be accessed from another particle if they
+    // are not on the same tile
     AHState m_state{};
 
     // Owns the ring (latitude x longitude) grid: the per-particle
@@ -54,13 +55,18 @@ class AHFinder : public ParticleInterpolator<num_components>
     AHGeometry m_geometry;
 
     // Physical 3-metric gamma_ij at each particle (flat-indexed as
-    // i * m_geometry.ring_size() + j), computed each step in
-    // compute_theta(). AHGeometry is given a pointer to this in init(), so
-    // it always reads the latest values without a separate copy.
+    // i * m_geometry.ring_size() + j), interpolated once per PTC step in
+    // interpolate_metric() and then held frozen while theta_from_metric()
+    // varies h. AHGeometry is given a pointer to this in init(), so it always
+    // reads the latest values without a separate copy.
     std::vector<Tensor::Rank2> m_gamma_LL{};
 
-    // AMReX time integrator for evolution of h and v.
-    std::unique_ptr<amrex::TimeIntegrator<AHState>> m_integrator;
+    // Matrix-free Jacobian operator (I/dt + J) for the per-step BiCGStab
+    // solve, and the state the operator's mat-vec closes over: the residual
+    // Theta(h_n) frozen at the current surface and the current pseudo-timestep.
+    std::unique_ptr<AHJacobianOp> m_jac_op;
+    std::vector<double> m_theta_n{};
+    amrex::Real m_dt{};
 
     // Output arrays for interpolation queries
     std::array<std::vector<double>, 14> m_metric_state{};
@@ -100,16 +106,26 @@ class AHFinder : public ParticleInterpolator<num_components>
     // Set particles' coordinates according to their distance from the centre
     void set_particle_positions(const std::vector<double> &h);
 
-    // RHS function to allow amrex time integrator to update h and v
-    void compute_rhs(AHState &rhs, AHState &state, amrex::Real time);
-
-    // Update pseudo-timestep based on ratio of improvement of Theta between
-    // steps, capped by a CFL condition on the ring-grid spacing
-    amrex::Real update_dt(amrex::Real dt, double theta_old, double theta_new,
-                          const std::vector<double> &h) const;
+    // Grow the pseudo-timestep as the residual falls (SER rule), so the
+    // implicit step approaches Newton. The implicit solve is unconditionally
+    // stable, so dt is not capped.
+    amrex::Real update_dt(amrex::Real dt, double theta_old,
+                          double theta_new) const;
 
     void setup_metric_query();
-    void compute_theta(const std::vector<double> &h);
+
+    // Interpolate and freeze the CCZ4 metric at the surface r = h (expensive:
+    // particle placement plus the interpolator queries). Run once per PTC
+    // step, at h_n.
+    void interpolate_metric(const std::vector<double> &h);
+
+    // Evaluate the expansion Theta at every grid point for surface radius h,
+    // using the metric frozen by the last interpolate_metric(). Cheap and
+    // purely local (plus one reduce); this is what the Jacobian mat-vec
+    // differentiates.
+    void theta_from_metric(const std::vector<double> &h,
+                           std::vector<double> &theta_out);
+
     double inf_norm(std::vector<double>);
 
   public:
@@ -125,11 +141,11 @@ class AHFinder : public ParticleInterpolator<num_components>
         : m_num_particles(num_particles), m_n_local(local_count(num_particles)),
           m_start(local_start(num_particles)), interp_coords_x(num_particles),
           interp_coords_y(num_particles), interp_coords_z(num_particles),
-          m_state(std::vector<double>(num_particles),
-                  std::vector<double>(num_particles)),
+          m_state(std::vector<double>(num_particles)),
           m_geometry(num_particles, center, guess_radius),
-          m_gamma_LL(num_particles), m_metric_query_state(m_n_local),
-          m_metric_query_deriv(m_n_local), m_theta_vals(num_particles)
+          m_gamma_LL(num_particles), m_theta_n(num_particles),
+          m_metric_query_state(m_n_local), m_metric_query_deriv(m_n_local),
+          m_theta_vals(num_particles)
     {
     }
 

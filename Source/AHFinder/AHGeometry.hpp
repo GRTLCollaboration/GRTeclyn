@@ -31,10 +31,9 @@ using QAB = Tensor::GeneralRank<2, 2, 2>;
 // AHFinder additionally binds AHGeometry to its persistent h and gamma_ij
 // arrays with set_surface_data(); those are read live through the stored
 // pointers by the area diagnostics, so they always see AHFinder's latest
-// values without a copy. The evolution-facing entry points
-// (set_h_derivatives(), min_ring_spacing()) instead take h by argument,
-// because the AMReX time integrator evaluates them on temporary states
-// that are not AHFinder's m_state.h.
+// values without a copy. set_h_derivatives() instead takes h by argument,
+// because the PTC mat-vec evaluates it on trial surfaces that are not
+// AHFinder's m_state.h.
 class AHGeometry
 {
   private:
@@ -170,7 +169,7 @@ class AHGeometry
 
     // Recomputes the Cartesian gradient and Hessian of h over the whole
     // ring grid. Must be called before grad_h() / hess_h() are read for a
-    // given h; AHFinder::compute_theta() does so on every evaluation.
+    // given h; AHFinder::theta_from_metric() does so on every evaluation.
     void set_h_derivatives(const std::vector<double> &h);
 
     // (dh/dx, dh/dy, dh/dz) at flat index idx, from the last
@@ -180,9 +179,6 @@ class AHGeometry
     // The (symmetric) Cartesian Hessian of h at flat index idx, from the
     // last set_h_derivatives().
     [[nodiscard]] Tensor::Rank2 hess_h(int idx) const;
-
-    // Smallest coordinate distance between neighbouring grid points
-    [[nodiscard]] double min_ring_spacing(const std::vector<double> &h) const;
 
     // Geometric diagnostics
 

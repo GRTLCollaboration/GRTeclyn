@@ -51,32 +51,22 @@ boundary.nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 evolution.max_steps = 1
 
 #################################################
-# AH finder pseudo-time integrator (AMReX TimeIntegrator)
-# type: ForwardEuler or RungeKutta
-integration.type = RungeKutta
-# Butcher tableau for RungeKutta (2=Trapezoid, 3=SSPRK3, 4=RK4); ignored for
-# ForwardEuler.
-integration.rk.type = 4
-
-#################################################
 # AH finder parameters
 
-test.num_particles = 64
+test.num_particles = 1024
 particle_interpolator.verbosity = false
 
-# The surface radius h is evolved as a damped wave,
-#   h_dot = v - eta * h,  v_dot = -c^2 * Theta,
-# until the inf-norm of the expansion Theta falls below the tolerance.
+# The surface radius h is driven to the horizon (Theta = 0) by pseudo-transient
+# continuation: each step solves (I/dt + J) delta_h = -Theta(h_n) and grows dt
+# with an SER rule so the method approaches Newton as the residual falls.
 
-# Damping coefficient
-ah_finder.eta = 3.0
-# Wave speed
-ah_finder.c = 1.0
 # Convergence threshold on the inf-norm of Theta
 ah_finder.tolerance = 1e-4
 # Target growth factor of the adaptive pseudo-timestep: dt is scaled each step
 # by r * theta_old / theta_new
 ah_finder.r = 1.15
-# Safety factor on the CFL cap: dt <= cfl_factor * (smallest spacing between
-# neighbouring points on the ring grid)
-ah_finder.cfl_factor = 7.0
+# Maximum number of PTC iterations before find() gives up
+ah_finder.max_iter = 200
+# Relative and absolute tolerances for the per-step BiCGStab solve
+ah_finder.linear_rel_tol = 1e-6
+ah_finder.linear_abs_tol = 0.0
