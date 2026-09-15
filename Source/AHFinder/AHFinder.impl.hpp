@@ -315,6 +315,8 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
 
     m_theta_vals.assign(m_num_particles, 0.0);
 
+    m_gamma_LL.assign(m_num_particles, Tensor::Rank2{0.0});
+
     this->interp(m_metric_query_state, true);
     this->interp(m_metric_query_deriv, false);
 
@@ -488,6 +490,10 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
 
     amrex::ParallelDescriptor::ReduceRealSum(m_theta_vals.data(),
                                              m_num_particles);
+
+    amrex::ParallelDescriptor::ReduceRealSum(
+        reinterpret_cast<amrex::Real *>(m_gamma_LL.data()),
+        m_num_particles * AMREX_SPACEDIM * AMREX_SPACEDIM);
 }
 
 #endif /* AHFINDER_IMPL_HPP_ */
