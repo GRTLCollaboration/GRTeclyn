@@ -73,6 +73,26 @@ class TwoPuncturesInitialData
             s_two_punctures.center_offset[offset_dir] + s_two_punctures.par_b;
     }
 
+    void add_bh_mass_params()
+    {
+        // If bh1.mass or bh2.mass not specified in the parameter file,
+        // then TwoPunctures masses are given. This is not in set_bh_params
+        // since set_bh_params is only called in void ...::initData(), and
+        // these masses need to be set for each restart too.
+
+        amrex::Real bh1_mass = s_two_punctures.give_bare_mass
+                                   ? s_two_punctures.par_m_minus
+                                   : s_two_punctures.target_M_minus;
+        amrex::Real bh2_mass = s_two_punctures.give_bare_mass
+                                   ? s_two_punctures.par_m_plus
+                                   : s_two_punctures.target_M_plus;
+
+        GRParmParse bh1_pp("bh1");
+        GRParmParse bh2_pp("bh2");
+        bh1_pp.queryAdd("mass", bh1_mass);
+        bh2_pp.queryAdd("mass", bh2_mass);
+    }
+
     AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &a_state) const
