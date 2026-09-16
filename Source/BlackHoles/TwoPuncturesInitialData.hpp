@@ -73,7 +73,7 @@ class TwoPuncturesInitialData
             s_two_punctures.center_offset[offset_dir] + s_two_punctures.par_b;
     }
 
-    void set_bh_masses()
+    void add_bh_mass_params()
     {
         // If bh1.mass or bh2.mass not specified in the parameter file,
         // then TwoPunctures masses are given. This is not in set_bh_params
@@ -87,9 +87,10 @@ class TwoPuncturesInitialData
                                    ? s_two_punctures.par_m_plus
                                    : s_two_punctures.target_M_plus;
 
-        GRParmParse pp;
-        pp.queryAdd("bh1.mass", bh1_mass);
-        pp.queryAdd("bh2.mass", bh2_mass);
+        GRParmParse bh1_pp("bh1");
+        GRParmParse bh2_pp("bh2");
+        bh1_pp.queryAdd("mass", bh1_mass);
+        bh2_pp.queryAdd("mass", bh2_mass);
     }
 
     AMREX_FORCE_INLINE void
