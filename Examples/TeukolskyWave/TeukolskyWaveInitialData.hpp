@@ -83,7 +83,7 @@ class TeukolskyWaveInitialData
     explicit TeukolskyWaveInitialData(amrex::Real a_dx);
 
     AMREX_FORCE_INLINE
-    void initialize_eppley_packet(int magnetic, std::string parity);
+    void initialize_eppley_packet(int magnetic, const std::string &parity);
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void

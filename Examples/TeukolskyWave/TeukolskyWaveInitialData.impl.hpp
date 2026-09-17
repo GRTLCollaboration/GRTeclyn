@@ -26,8 +26,8 @@ TeukolskyWaveInitialData::TeukolskyWaveInitialData(amrex::Real a_dx)
     geometry_pp.get("center", m_center);
 }
 
-void TeukolskyWaveInitialData::initialize_eppley_packet(int magnetic,
-                                                        std::string parity)
+void TeukolskyWaveInitialData::initialize_eppley_packet(
+    int magnetic, const std::string &parity)
 {
     if (parity == "even" && magnetic == 0)
     {
@@ -84,4 +84,4 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void TeukolskyWaveInitialData::operator()(
     // remain zero here.
 }
 
-#endif /* TeukolskyWaveInitialData_IMPL_HPP_ */
+#endif /* TEUKOLSKYWAVEINITIALDATA_IMPL_HPP_ */

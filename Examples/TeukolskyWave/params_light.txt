@@ -3,7 +3,7 @@
 
 #################################################
 # Filesystem parameters
-# grteclyn.output_path = . # base path for all output
+grteclyn.output_path = tw_light # base path for all output
 
 amr.verbose = 1
 
@@ -17,11 +17,11 @@ amr.verbose = 1
 # Number of level-0 time steps between checkpoint files; -1 disables output
 # amr.check_int = -1
 # Number of level-0 time steps between plot files; -1 disables output
-amr.plot_int = 50
+amr.plot_int = 10
 
-amr.plot_vars = Weyl4_Re Weyl4_Im
-amr.derive_plot_vars = constraints
-
+# Store the conformal factor, constraints and Weyl4 to the plot files
+amr.plot_vars = chi
+amr.derive_plot_vars = constraints Weyl4
 #################################################
 # Teukolsky Wave parameters
 
@@ -30,12 +30,15 @@ amr.derive_plot_vars = constraints
 teukolsky_wave.parity = even
 teukolsky_wave.magnetic = 0
 # Control parameters for the seed function
-teukolsky_wave.sigma = 10.
-teukolsky_wave.amplitude = 5.
-teukolsky_wave.radial_offset = 50.
+# The code has been designed for the scenario
+# regularize_r << sigma << radial_offset.
+# The amplitude should be sufficiently small, so that we remain close to the
+# linear regime for the low-resolution example.
+teukolsky_wave.sigma = 1.5
+teukolsky_wave.amplitude = 0.01
+teukolsky_wave.radial_offset = 5.
 # A small parameter that regularizes the initial data close to the origin.
-# Assumes regularize_r << sigma << r_0
-teukolsky_wave.regularize_r = 1.
+teukolsky_wave.regularize_r = 0.1
 
 #################################################
 # Weyl extraction parameters
@@ -44,17 +47,15 @@ teukolsky_wave.regularize_r = 1.
 
 weyl_extraction.enabled = true
 weyl_extraction.center = 0 0 0
-weyl_extraction.num_radii = 3
-weyl_extraction.radii = 75.0 100.0 125.0
+weyl_extraction.num_radii = 1
+weyl_extraction.radii = 10.
 # weyl_extraction.levels = 0
-weyl_extraction.num_points_phi = 48
-weyl_extraction.num_points_theta = 33
-weyl_extraction.num_modes = 5
+weyl_extraction.num_points_phi = 24
+weyl_extraction.num_points_theta = 17
+weyl_extraction.num_modes = 3
 weyl_extraction.modes = 2 0 \
                         2 1 \
-                        2 2 \
-                        2 -1 \
-                        2 -2
+                        2 2
 
 #################################################
 # Grid parameters
@@ -63,8 +64,8 @@ weyl_extraction.modes = 2 0 \
 # The even parity metrics with m=0, m=2 can be run in an octant grid.
 # The odd parity metric with m=2 needs a quadrant grid, with reflection
 # around the xy-plane turned off.
-amr.n_cell = 192 192 192
-geometry.prob_extent = 128 128 128
+amr.n_cell = 64 64 64
+geometry.prob_extent = 12 12 12
 # geometry.center = 0 0 0 # defaults based on the domain and boundaries
 
 amr.max_level = 0 # there are max_level + 1 levels
@@ -75,14 +76,14 @@ amr.max_level = 0 # there are max_level + 1 levels
 amr.regrid_int = -1
 
 # Maximum number of cells along each side of a grid box
-amr.max_grid_size = 32
+amr.max_grid_size = 64
 # Grid box side lengths must be divisible by this value
 amr.blocking_factor = 16
 # Minimum fraction of tagged cells required in generated grids
 # amr.grid_eff = 0.7
 
 # Number of cells by which tagged regions are grown
-amr.n_error_buf = 0
+# amr.n_error_buf = 0
 # Proper-nesting width is n_proper * max(1, blocking_factor / 2) coarse cells
 # amr.n_proper = 1
 
@@ -101,8 +102,8 @@ boundary.lo_condition = "REFLECTIVE_BC" "REFLECTIVE_BC" "REFLECTIVE_BC"
 
 # dt is dx * dt_multiplier on each grid level
 evolution.dt_multiplier = 0.25
-evolution.stop_time = 250.0
-# evolution.max_steps = 10000000
+evolution.stop_time = 20.0
+#evolution.max_steps = 1000000
 
 # Spatial derivative order (only affects the CCZ4 RHS)
 # evolution.spatial_derivative_order = 4
