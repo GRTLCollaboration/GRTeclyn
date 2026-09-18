@@ -17,6 +17,7 @@
 #include "OscillatonInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
+#include "SpectralWishes.hpp"
 #include "StateTypes.hpp"
 
 #include <type_traits>
@@ -83,6 +84,14 @@ void ScalarFieldLevel::specific_post_timestep()
 
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);
+
+        const int comp             = 0;
+        amrex::MultiFab &state_new = get_new_data(state_index);
+
+        SpectralWishes<ScalarFieldLevel::ScalarFieldWithPotential<>>
+            my_spectral_wishes;
+        const amrex::Real mean =
+            my_spectral_wishes.compute_mean(Geom(), state_new, comp);
     }
 }
 
