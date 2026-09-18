@@ -149,8 +149,12 @@ void BinaryBHLevel::initData()
 #endif
 
         get_puncture_tracker().set_puncture_coords(
-            {bh1_params.center[0], bh1_params.center[1], bh1_params.center[2],
-             bh2_params.center[0], bh2_params.center[1], bh2_params.center[2]});
+            {static_cast<amrex::ParticleReal>(bh1_params.center[0]),
+             static_cast<amrex::ParticleReal>(bh1_params.center[1]),
+             static_cast<amrex::ParticleReal>(bh1_params.center[2]),
+             static_cast<amrex::ParticleReal>(bh2_params.center[0]),
+             static_cast<amrex::ParticleReal>(bh2_params.center[1]),
+             static_cast<amrex::ParticleReal>(bh2_params.center[2])});
         // can't call start_from_initial_punctures() because we need the full
         // AMR grid first
     }
@@ -308,7 +312,7 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     constexpr auto num_puncture_coords =
         static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
-    std::array<amrex::Real, num_puncture_coords> puncture_coords{};
+    std::array<amrex::ParticleReal, num_puncture_coords> puncture_coords{};
     const bool puncture_tracking_enabled =
         get_bh_amr_ptr()->puncture_tracking_enabled();
 

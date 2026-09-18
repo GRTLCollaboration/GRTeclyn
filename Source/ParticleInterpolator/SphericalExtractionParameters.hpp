@@ -22,10 +22,9 @@
 struct spherical_extraction_params_t : surface_extraction_params_t
 {
     bool enabled{};
-    std::array<amrex::ParticleReal, AMREX_SPACEDIM>
-        center{};                             //!< center of the shells
-    int num_modes{};                          //!< number of modes to extract
-    std::vector<std::pair<int, int>> modes{}; //!< l = first, m = second
+    std::array<amrex::Real, AMREX_SPACEDIM> center{}; //!< center of the shells
+    int num_modes{};                        //!< number of modes to extract
+    std::vector<std::pair<int, int>> modes; //!< l = first, m = second
 
     explicit spherical_extraction_params_t(std::string a_param_scope)
         : m_param_scope(std::move(a_param_scope))
@@ -79,9 +78,9 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         }
 
         GRParmParse geom_pp("geometry");
-        std::array<amrex::ParticleReal, AMREX_SPACEDIM> grid_center{};
+        std::array<amrex::Real, AMREX_SPACEDIM> grid_center{};
         geom_pp.get("center", grid_center);
-        std::array<amrex::ParticleReal, AMREX_SPACEDIM> center = grid_center;
+        std::array<amrex::Real, AMREX_SPACEDIM> center = grid_center;
         extraction_pp.queryAdd("center", center);
 
         int num_radii = 1;
@@ -106,7 +105,8 @@ struct spherical_extraction_params_t : surface_extraction_params_t
             extraction_pp.addarr("levels", levels);
         }
 
-        const int min_level = *std::min_element(levels.begin(), levels.end());
+        const int min_level =
+            *std::ranges::min_element(levels.begin(), levels.end());
         extraction_pp.add("min_level", min_level);
 
         std::vector<amrex::Real> radii(num_radii, 0.1);
@@ -241,7 +241,7 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         extraction_pp.queryAdd("integral_file_prefix", integral_file_prefix);
     }
 
-    void fill_params()
+    void fill_params() override
     {
         GRParmParse extraction_pp(m_param_scope);
 
@@ -257,12 +257,14 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         std::vector<int> levels(num_extraction_radii());
         extraction_pp.getarr("levels", levels, 0, num_extraction_radii());
         extraction_levels.resize(num_extraction_radii());
-        std::copy(levels.begin(), levels.end(), extraction_levels.begin());
+        std::ranges::copy(levels.begin(), levels.end(),
+                          extraction_levels.begin());
 
         std::vector<amrex::Real> radii(num_extraction_radii());
         extraction_pp.getarr("radii", radii, 0, num_extraction_radii());
         extraction_radii().resize(num_extraction_radii());
-        std::copy(radii.begin(), radii.end(), extraction_radii().begin());
+        std::ranges::copy(radii.begin(), radii.end(),
+                          extraction_radii().begin());
 
         extraction_pp.get("num_points_phi", num_points_phi());
         extraction_pp.get("num_points_theta", num_points_theta());
@@ -273,8 +275,9 @@ struct spherical_extraction_params_t : surface_extraction_params_t
         modes.resize(num_modes);
         for (int imode = 0; imode < num_modes; ++imode)
         {
-            modes[imode].first  = modes_vector[2 * imode];
-            modes[imode].second = modes_vector[2 * imode + 1];
+            modes[imode].first = modes_vector[static_cast<size_t>(2 * imode)];
+            modes[imode].second =
+                modes_vector[static_cast<size_t>(2 * imode + 1)];
         }
 
         extraction_pp.get("write", write_extraction);

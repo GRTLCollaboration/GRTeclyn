@@ -50,11 +50,11 @@ template <int N> class Lagrange
         // bounds (note that we fill [4/2]=2 ghost cells). To avoid this, we
         // will default to center = 0 in this situation.
 
-        const auto lo_face = amrex::Real(
+        const auto lo_face = static_cast<amrex::Real>(
             -0.5); // for low symmetric boundary, the face is at -0.5
         const auto hi_face =
-            amrex::Real(ncell) -
-            amrex::Real(
+            static_cast<amrex::Real>(ncell) -
+            static_cast<amrex::Real>(
                 0.5); // for high symmetric boundary, the face is at ncell-0.5
 
         if (lo_reflective && amrex::Math::abs(grid_pos - lo_face) < eps)
@@ -88,7 +88,8 @@ template <int N> class Lagrange
         }
 
         // Compute Lagrange weights
-        amrex::poly_interp_coeff(0.0, rel_pos, N, weights);
+        amrex::poly_interp_coeff(static_cast<amrex::Real>(0.0), rel_pos, N,
+                                 weights);
 
         // Write in the base (starting) index
         base_idx = stencil[0];
@@ -152,7 +153,7 @@ template <int N> class Lagrange
 
         for (int comp = start_comp; comp < start_comp + ncomp; ++comp)
         {
-            val[counter] = amrex::ParticleReal(0.0);
+            val[counter] = static_cast<amrex::ParticleReal>(0.0);
 #if AMREX_SPACEDIM == 3
             for (int kk = 0; kk < N; ++kk)
             {

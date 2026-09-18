@@ -22,7 +22,7 @@
 class SphericalGeometry
 {
   private:
-    std::array<amrex::ParticleReal, AMREX_SPACEDIM> m_center;
+    std::array<amrex::ParticleReal, AMREX_SPACEDIM> m_center{};
 
   public:
     SphericalGeometry()
@@ -43,13 +43,13 @@ class SphericalGeometry
     //! returns the grid spacing in theta
     [[nodiscard]] static amrex::ParticleReal du(int a_num_points_theta)
     {
-        return M_PI / (amrex::ParticleReal)(a_num_points_theta - 1);
+        return M_PI / static_cast<amrex::ParticleReal>(a_num_points_theta - 1);
     }
 
     //! returns the grid spacing in phi
     [[nodiscard]] static amrex::ParticleReal dv(int a_num_points_phi)
     {
-        return 2.0 * M_PI / ((amrex::ParticleReal)a_num_points_phi);
+        return 2.0 * M_PI / static_cast<amrex::ParticleReal>(a_num_points_phi);
     }
 
     //! returns the theta coordinate associated to the theta/u index
@@ -85,9 +85,12 @@ class SphericalGeometry
 
         const amrex::ParticleReal cylindrical_radius = a_radius * sin(a_theta);
         const std::array<amrex::ParticleReal, AMREX_SPACEDIM> displacement{
-            AMREX_D_DECL(cylindrical_radius * cos(a_phi),
-                         cylindrical_radius * sin(a_phi),
-                         a_radius * cos(a_theta))};
+            AMREX_D_DECL(
+                static_cast<amrex::ParticleReal>(cylindrical_radius *
+                                                 cos(a_phi)),
+                static_cast<amrex::ParticleReal>(cylindrical_radius *
+                                                 sin(a_phi)),
+                static_cast<amrex::ParticleReal>(a_radius * cos(a_theta)))};
         return m_center[a_dir] + displacement[a_dir];
     }
 

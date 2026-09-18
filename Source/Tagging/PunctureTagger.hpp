@@ -24,7 +24,7 @@ template <unsigned int num_punctures> class PunctureTagger
     static constexpr unsigned int num_puncture_coords =
         AMREX_SPACEDIM * num_punctures;
     std::array<amrex::Real, num_punctures> m_puncture_masses;
-    std::array<amrex::Real, num_puncture_coords> m_puncture_coords;
+    std::array<amrex::ParticleReal, num_puncture_coords> m_puncture_coords;
     amrex::Real m_level_separation{1.5};
     amrex::Real m_finest_level_factor{2.0};
 
@@ -71,7 +71,8 @@ template <unsigned int num_punctures> class PunctureTagger
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     PunctureTagger(
         const amrex::Real a_dx, const int a_level, const int a_max_level,
-        const std::array<amrex::Real, num_puncture_coords> &a_puncture_coords,
+        const std::array<amrex::ParticleReal, num_puncture_coords>
+            &a_puncture_coords,
         const std::array<amrex::Real, num_punctures> &a_puncture_masses)
         // NOLINTEND(bugprone-easily-swappable-parameters)
         : m_dx(a_dx), m_level(a_level), m_max_level(a_max_level),
@@ -107,9 +108,12 @@ template <unsigned int num_punctures> class PunctureTagger
         {
             std::array<amrex::Real, AMREX_SPACEDIM> current_puncture_coords = {
                 AMREX_D_DECL(
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 0],
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 1],
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 2])};
+                    static_cast<amrex::Real>(
+                        m_puncture_coords[ipuncture * AMREX_SPACEDIM + 0]),
+                    static_cast<amrex::Real>(
+                        m_puncture_coords[ipuncture * AMREX_SPACEDIM + 1]),
+                    static_cast<amrex::Real>(
+                        m_puncture_coords[ipuncture * AMREX_SPACEDIM + 2]))};
 
             const Coordinates coords(current_cell, m_dx,
                                      current_puncture_coords);
