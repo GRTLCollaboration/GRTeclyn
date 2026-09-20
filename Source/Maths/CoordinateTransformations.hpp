@@ -19,7 +19,8 @@ namespace CoordinateTransformations
 // Jacobian transformation matrix
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-static Tensor::Rank2 spherical_jacobian(const amrex::Real x,
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static
+Tensor::Rank2 spherical_jacobian(const amrex::Real x,
                                         const amrex::Real y,
                                         const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -53,7 +54,8 @@ static Tensor::Rank2 spherical_jacobian(const amrex::Real x,
 // Inverse Jacobian
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-static Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static
+Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
                                                 const amrex::Real y,
                                                 const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -88,7 +90,8 @@ static Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
 // coords
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-static Tensor::Sym12Rank2
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static
+Tensor::Sym12Rank2
 spherical_to_cartesian_LL(const Tensor::Sym12Rank2 &spherical_g,
                           const amrex::Real x, const amrex::Real y,
                           const amrex::Real z)
