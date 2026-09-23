@@ -10,31 +10,88 @@
 
 #include "SpectralWishes.hpp"
 
+#include "StateVariables.hpp"
+
+template <class matter_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE std::unique_ptr<amrex::MultiFab>
+SpectralWishes<matter_t>::get_derived_mf(GRAmr *gramr_ptr, int &ncomp,
+                                         const int &ngrow)
+{
+    //    int ncomp_state{0};
+
+    std::vector<std::string> derive_names;
+    auto &derive_lst = amrex::AmrLevel::get_derive_lst();
+    const auto d     = derive_lst.get(m_var_name);
+    // const std::list<amrex::DeriveRec> &dlist = derive_lst.dlist();
+    // for (auto const &d : dlist)
+    // {
+    //       if (amrex::Amr::isDerivePlotVar(d.name()))
+    for (int i = 0; i < d->numDerive(); ++i)
+    {
+        if (d->variableName(i) == m_var_name)
+        {
+            ncomp = i;
+            amrex::Print() << d->variableName(ncomp) << " " << ncomp << "\n";
+            break;
+            //            derive_names.push_back(d.name());
+            //            num_derive += d.numDerive();
+        }
+        else
+        {
+            amrex::Print() << d->variableName(i) << "\n";
+            //                    ncomp_derive++;
+        }
+    }
+    // }
+    auto out_mf = gramr_ptr->derive(m_var_name, m_time, m_lev, ngrow);
+
+    // mean = derive_mf->sum(
+    //     ncomp_derive); // sum needs a component so check this;
+
+    return out_mf;
+};
+
 template <class matter_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-SpectralWishes<matter_t>::compute_mean(const amrex::Geometry &geom,
-                                       const amrex::MultiFab &src_mf, int ncomp)
+SpectralWishes<matter_t>::compute_mean(GRAmr *gramr_ptr,
+                                       const amrex::MultiFab &src_mf)
+
 {
+    AMREX_ASSERT(gramr_ptr != nullptr);
+
+    //  const std::string var_name = m_var_name;
     amrex::Real mean{0.};
 
-    // Sum all the values in ncomp
-    AMREX_ASSERT(ncomp < NUM_VARS);
+    int ngrow = src_mf.nGrow();
+    int ncomp{0}; // this will be set in isStateVariable or get_derived_mf
 
-    mean = src_mf.sum(ncomp);
+    if (amrex::AmrLevel::isStateVariable(m_var_name, m_state_index, ncomp))
+    {
+        // Use the state multifab
+        // Sum all the values in ncomp
+
+        //        auto out_mf = get_state_data(state_index);
+        mean = src_mf.sum(ncomp);
+    }
+    else
+    {
+        auto out_mf = get_derived_mf(gramr_ptr, ncomp, ngrow);
+        mean        = out_mf->sum(ncomp);
+    }
+
+    //    AMREX_ASSERT(ncomp_state < NUM_VARS);
 
     // Calculate total number of cells on this level
-    // I think this is the same for all ranks
-    const auto problo = geom.ProbLo();
-    const auto probhi = geom.ProbHi();
-    const auto dx     = geom.CellSizeArray();
-    int n_cells       = AMREX_D_TERM((probhi[0] - problo[0]) / dx[0],
-                                     +((probhi[1] - problo[1]) / dx[1]),
-                                     +((probhi[2] - problo[2]) / dx[2]));
+
+    // auto n_cells = amrex::AmrLevel::countCells();
+
+    auto n_cells = gramr_ptr->CountCells(m_lev);
 
     mean /= static_cast<amrex::Real>(n_cells);
 
-    amrex::AllPrint() << "Mean on Rank " << amrex::ParallelDescriptor::MyProc()
-                      << ": " << mean << "\n";
+    amrex::AllPrint() << "Mean of " << m_var_name << " on Rank "
+                      << amrex::ParallelDescriptor::MyProc() << ": " << mean
+                      << "\n";
     amrex::AllPrint() << "Number of cells on Rank "
                       << amrex::ParallelDescriptor::MyProc() << ": " << n_cells
                       << "\n";
@@ -42,6 +99,48 @@ SpectralWishes<matter_t>::compute_mean(const amrex::Geometry &geom,
     return mean;
 }
 
+template <class matter_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+SpectralWishes<matter_t>::compute_variance(GRAmr *gramr_ptr,
+                                           const amrex::MultiFab &src_mf)
+{
+
+    AMREX_ASSERT(gramr_ptr != nullptr);
+
+    amrex::Real var{0.};
+    amrex::Real mean = compute_mean(gramr_ptr, src_mf);
+
+    amrex::Real mean_sq{0.};
+
+    int ngrow = src_mf.nGrow();
+    int ncomp{0}; // this will be set in isStateVariable or get_derived_mf
+
+    if (amrex::AmrLevel::isStateVariable(m_var_name, m_state_index, ncomp))
+    {
+        // Use the state multifab
+        // Sum all the values in ncomp
+
+        //        auto out_mf = get_state_data(state_index);
+        //        mean_sq = amrex::MultiFab::Dot(src_mf, ncomp, 1, ngrow);
+
+        amrex::MultiFab::Multiply(src_mf, src_mf, ncomp, ncomp, 1, ngrow);
+    }
+    else
+    {
+        auto out_mf = get_derived_mf(gramr_ptr, ncomp, ngrow);
+
+        //    mean_sq = amrex::MultiFab::Dot(*out_mf, ncomp, 1, ngrow);
+        amrex::MultiFab::Multiply(*out_mf, *out_mf, ncomp, ncomp, 1, ngrow);
+    }
+
+    var = mean_sq - mean * mean;
+
+    amrex::AllPrint() << "Variance of " << m_var_name << " on Rank "
+                      << amrex::ParallelDescriptor::MyProc() << ": " << var
+                      << "\n";
+
+    return (var);
+}
 // template <class matter_t>
 // void SpectralWishes<matter_t>::set_up(int a_state_index, bool
 // a_calc_mom_norm)

@@ -30,6 +30,8 @@ amr.derive_plot_vars = constraints
 # scalar_field.G_Newton = 1.0
 # scalar_field.scalar_mass = 1.0
 
+scalar_field.wish = "Ham"
+
 #################################################
 # Grid parameters
 

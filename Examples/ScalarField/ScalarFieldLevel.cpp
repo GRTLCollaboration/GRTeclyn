@@ -85,13 +85,12 @@ void ScalarFieldLevel::specific_post_timestep()
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);
 
-        const int comp             = 0;
         amrex::MultiFab &state_new = get_new_data(state_index);
 
         SpectralWishes<ScalarFieldLevel::ScalarFieldWithPotential<>>
-            my_spectral_wishes;
-        const amrex::Real mean =
-            my_spectral_wishes.compute_mean(Geom(), state_new, comp);
+            my_spectral_wishes(state_index, time, Level());
+        const amrex::Real mean = my_spectral_wishes.compute_variance(
+            get_scalar_field_amr_ptr(), state_new);
     }
 }
 
