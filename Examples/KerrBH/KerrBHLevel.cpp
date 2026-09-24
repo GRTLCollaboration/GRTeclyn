@@ -6,12 +6,12 @@
 #include "KerrBHLevel.hpp"
 
 #include "AlgebraicConstraintsEnforcer.hpp"
-#include "KerrBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiTagger.hpp"
 #include "Constraints.hpp"
 #include "ExtractionTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "KerrBHInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
 #include "Weyl4.hpp"
@@ -68,7 +68,7 @@ void KerrBHLevel::initData()
     amrex::Real dx = Geom().CellSize(0);
     KerrBHInitialData kerr_initial_data(dx);
     static_assert(std::is_trivially_copyable_v<KerrBHInitialData>,
-                  "KerrBHInitialData needs to be device copyable"); 
+                  "KerrBHInitialData needs to be device copyable");
 
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
@@ -83,8 +83,7 @@ void KerrBHLevel::initData()
                            {
                                cell[n] = 0.;
                            }
-                           kerr_initial_data(ix, iy, iz,
-                                               state_arrays[box_no]);
+                           kerr_initial_data(ix, iy, iz, state_arrays[box_no]);
                        });
 
     amrex::Gpu::streamSynchronize();
@@ -93,8 +92,8 @@ void KerrBHLevel::initData()
 // Calculate RHS during RK4 substeps
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void KerrBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
-                                      amrex::MultiFab &a_rhs,
-                                      const amrex::Real /*a_time*/)
+                                    amrex::MultiFab &a_rhs,
+                                    const amrex::Real /*a_time*/)
 {
     BL_PROFILE("KerrBHLevel::specific_eval_rhs()");
     const auto &soln_arrays       = a_soln.arrays();
@@ -224,7 +223,7 @@ void KerrBHLevel::pre_tag_cells()
 }
 
 void KerrBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
-                              amrex::Real a_regrid_threshold)
+                            amrex::Real a_regrid_threshold)
 {
     BL_PROFILE("KerrBHLevel::tag_cells()");
     amrex::MultiFab &state_new = get_new_data(state_index);
@@ -254,23 +253,21 @@ void KerrBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 void KerrBHLevel::specific_post_init()
 {
     BL_PROFILE("KerrBHLevel::specific_post_init()");
-
 }
 
 void KerrBHLevel::specific_post_restart()
 {
     BL_PROFILE("KerrBHLevel::specific_post_restart()");
-
 }
 
 void KerrBHLevel::specific_post_plotfile(const std::string &a_dir,
-                                           std::ostream &a_os)
+                                         std::ostream &a_os)
 {
     BL_PROFILE("KerrBHLevel::specific_post_plotfile()");
 }
 
 void KerrBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
-                                             std::ostream & /*a_os*/)
+                                           std::ostream & /*a_os*/)
 {
     BL_PROFILE("KerrBHLevel::specific_post_checkpoint()");
 }

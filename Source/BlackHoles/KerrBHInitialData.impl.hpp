@@ -20,7 +20,7 @@ inline void KerrBHInitialData::params_t::check_params()
     GRParmParse kerr_pp("kerr");
     amrex::Real check_mass{};
     kerr_pp.get("mass", check_mass);
-    
+
     amrex::Real check_spin{};
     kerr_pp.get("spin", check_spin);
 
@@ -58,7 +58,7 @@ AMREX_FORCE_INLINE
 KerrBHInitialData::KerrBHInitialData(amrex::Real a_dx) : m_dx(a_dx)
 {
     m_params.fill_params();
-    
+
     if (std::abs(m_params.spin) > m_params.mass)
     {
         amrex::Abort("The spin parameter must satisfy |a| <= M");
@@ -66,7 +66,7 @@ KerrBHInitialData::KerrBHInitialData(amrex::Real a_dx) : m_dx(a_dx)
 
     // define the rotation matrix needed to transform Cartesian
     // coordinates into the coordinates of the spin direction
-    Tensor::Rank1 z_dir = {0., 0., 1.};
+    Tensor::Rank1 z_dir    = {0., 0., 1.};
     Tensor::Rank1 spin_dir = {m_params.spin_direction[0],
                               m_params.spin_direction[1],
                               m_params.spin_direction[2]};
@@ -75,20 +75,17 @@ KerrBHInitialData::KerrBHInitialData(amrex::Real a_dx) : m_dx(a_dx)
 
 // Unpack symmetric 6-element array into a full 3x3 matrix for TensorAlgebra
 AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor::Rank2
-KerrBHInitialData::to_rank2(const Tensor::Sym12Rank2& sym) const
+KerrBHInitialData::to_rank2(const Tensor::Sym12Rank2 &sym) const
 {
     Tensor::Rank2 r2;
-    FOR2_SYM(i, j) 
-    { 
-        r2(i, j) = r2(j, i) = sym(i, j);
-    }
+    FOR2_SYM(i, j) { r2(i, j) = r2(j, i) = sym(i, j); }
     return r2;
 }
 
 // Computes semi-isotropic Kerr solution as detailed in Liu, Etienne and Shapiro
 // 2010, arxiv gr-qc/1001.4077
 AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
-KerrBHInitialData::operator()(int ix, int iy, int iz, 
+KerrBHInitialData::operator()(int ix, int iy, int iz,
                               const amrex::Array4<amrex::Real> &state) const
 {
     using namespace CoordinateTransformations;
@@ -103,7 +100,8 @@ KerrBHInitialData::operator()(int ix, int iy, int iz,
     amrex::Real kerr_lapse;
 
     // The cartesian variables and coords
-    const amrex::CellData<amrex::Real> &state_cell_data = state.cellData(ix, iy, iz);
+    const amrex::CellData<amrex::Real> &state_cell_data =
+        state.cellData(ix, iy, iz);
     Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx);
 
     Tensor::Rank1 xyz = {coords.x - m_params.center[0],
@@ -138,11 +136,11 @@ KerrBHInitialData::operator()(int ix, int iy, int iz,
     // Convert to BSSN vars
     amrex::Real deth = compute_determinant(h);
     auto h_UU_sym    = compute_inverse_sym(h_sym);
-    
+
     // Unpack Inverse to Rank2
     Tensor::Rank2 h_UU = to_rank2(h_UU_sym);
 
-    amrex::Real chi  = pow(deth, -1. / 3.);
+    amrex::Real chi = pow(deth, -1. / 3.);
 
     // transform extrinsic curvature into A and TrK - note h is still non
     // conformal version which is what we need here
@@ -174,18 +172,16 @@ KerrBHInitialData::operator()(int ix, int iy, int iz,
         state_cell_data[sym_var_idx(c_A11, i, j)] = A(i, j);
     }
 
-    FOR(i)
+    FOR (i)
     {
         state_cell_data[c_shift1 + i] = shift(i);
     }
 }
 
-AMREX_FORCE_INLINE AMREX_GPU_DEVICE void 
-KerrBHInitialData::compute_kerr(Tensor::Sym12Rank2 &spherical_g,
-                                Tensor::Sym12Rank2 &spherical_K,
-                                Tensor::Rank1 &spherical_shift,
-                                amrex::Real &kerr_lapse,
-                                const Tensor::Rank1 &coords) const
+AMREX_FORCE_INLINE AMREX_GPU_DEVICE void KerrBHInitialData::compute_kerr(
+    Tensor::Sym12Rank2 &spherical_g, Tensor::Sym12Rank2 &spherical_K,
+    Tensor::Rank1 &spherical_shift, amrex::Real &kerr_lapse,
+    const Tensor::Rank1 &coords) const
 {
     // Kerr black hole params - mass M and spin a
     amrex::Real M = m_params.mass;
@@ -198,8 +194,8 @@ KerrBHInitialData::compute_kerr(Tensor::Sym12Rank2 &spherical_g,
 
     // the radius, subject to a floor
     amrex::Real r2_raw = x * x + y * y + z * z;
-    amrex::Real r = std::max(sqrt(r2_raw), 1e-6);
-    amrex::Real r2 = r * r;
+    amrex::Real r      = std::max(sqrt(r2_raw), 1e-6);
+    amrex::Real r2     = r * r;
 
     // the radius in xy plane, subject to a floor
     amrex::Real rho2 = std::max(x * x + y * y, 1e-12);
@@ -228,9 +224,9 @@ KerrBHInitialData::compute_kerr(Tensor::Sym12Rank2 &spherical_g,
         Sigma * pow(r + 0.25 * r_plus, 2.0) / (r * r2 * (r_BL - r_minus));
 
     // Zero initialize the symmetric rank 2 arrays safely
-    FOR2_SYM (i, j) 
-    { 
-        spherical_g(i, j) = 0.0; 
+    FOR2_SYM(i, j)
+    {
+        spherical_g(i, j) = 0.0;
         spherical_K(i, j) = 0.0;
     }
 
@@ -247,11 +243,10 @@ KerrBHInitialData::compute_kerr(Tensor::Sym12Rank2 &spherical_g,
         (3.0 * pow(r_BL, 4.0) + 2 * a * a * r_BL * r_BL - pow(a, 4.0) -
          a * a * (r_BL * r_BL - a * a) * sin_theta2) *
         (1.0 + 0.25 * r_plus / r) / sqrt(r * r_BL - r * r_minus);
-    
-    spherical_K(1, 2) = 
-        -2.0 * pow(a, 3.0) * M * r_BL * cos_theta * sin_theta *
-        sin_theta2 / (Sigma * sqrt(AA * Sigma)) *
-        (r - 0.25 * r_plus) * sqrt(r_BL / r - r_minus / r);
+
+    spherical_K(1, 2) = -2.0 * pow(a, 3.0) * M * r_BL * cos_theta * sin_theta *
+                        sin_theta2 / (Sigma * sqrt(AA * Sigma)) *
+                        (r - 0.25 * r_plus) * sqrt(r_BL / r - r_minus / r);
 
     // set the analytic lapse
     kerr_lapse = sqrt(Delta * Sigma / AA);

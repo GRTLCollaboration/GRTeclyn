@@ -12,9 +12,9 @@
 // Problem specific includes:
 #include "CCZ4RHS.hpp"
 #include "ExtractionTagger.hpp"
+#include "KerrBHInitialData.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "SphericalExtractionParameters.hpp"
-#include "KerrBHInitialData.hpp"
 
 class SimulationParameters
 {
