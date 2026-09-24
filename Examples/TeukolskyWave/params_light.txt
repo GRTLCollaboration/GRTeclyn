@@ -47,8 +47,8 @@ teukolsky_wave.regularize_r = 0.1
 
 weyl_extraction.enabled = true
 weyl_extraction.center = 0 0 0
-weyl_extraction.num_radii = 1
-weyl_extraction.radii = 10.
+weyl_extraction.num_radii = 2
+weyl_extraction.radii = 7. 10.
 # weyl_extraction.levels = 0
 weyl_extraction.num_points_phi = 24
 weyl_extraction.num_points_theta = 17
@@ -60,7 +60,7 @@ weyl_extraction.modes = 2 0 \
 #################################################
 # Grid parameters
 
-# This octant domain corresponds to a 192^3 full domain of side length 128.
+# This octant domain corresponds to a 128^3 full domain of side length 24.
 # The even parity metrics with m=0, m=2 can be run in an octant grid.
 # The odd parity metric with m=2 needs a quadrant grid, with reflection
 # around the xy-plane turned off.
