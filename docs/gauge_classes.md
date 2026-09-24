@@ -1,4 +1,4 @@
-# Gauge Classes
+# Gauge classes
 
 GRTeclyn implements the gauge-independent evolution equations and the gauge conditions in separate classes. `CCZ4RHS` or `CCZ4RHSWithMatter` updates variables related to the induced metric and the extrinsic curvature, while a gauge class calculates the lapse and shift right-hand sides. In contrast to GRChombo, this lets each example select its gauge without making the gauge a template parameter of the CCZ4 or matter RHS class.
 
