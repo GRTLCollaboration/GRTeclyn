@@ -2,12 +2,15 @@
 
 GRTeclyn implements the gauge-independent evolution equations and the gauge conditions in separate classes. `CCZ4RHS` or `CCZ4RHSWithMatter` updates variables related to the induced metric and the extrinsic curvature, while a gauge class calculates the lapse and shift right-hand sides. In contrast to GRChombo, this lets each example select its gauge without making the gauge a template parameter of the CCZ4 or matter RHS class.
 
-The two moving puncture gauge classes currently used by the examples are:
+The moving puncture gauge classes currently used by the examples are:
 
-- `MovingPunctureGauge`, which evolves the standard Gamma driver auxiliary field $B^i$ and is used by the Binary Black Hole example, and
+- `MovingPunctureGauge`, which evolves the standard Gamma driver auxiliary field $B^i$ with the eta set in the parameter file,
+- `BHMovingPunctureGauge`, which derives from `MovingPunctureGauge` and adds the mass-dependent eta profile used by the Binary Black Hole example, and
 - `IntegratedMovingPunctureGauge`, which eliminates the evolving Gamma driver auxiliary field and is used by the Scalar Field example.
 
-Both classes are templated over the derivative class and constructed with the grid spacing. For example:
+All three classes are templated over the derivative class. The standard gauge
+is constructed with the grid spacing, while `BHMovingPunctureGauge` also takes
+the puncture masses and coordinates. For example:
 
 ```cpp
 CCZ4RHS<FourthOrderDerivatives> ccz4_rhs(dx);
@@ -44,7 +47,24 @@ The following runtime parameters set the corresponding coefficients in the equat
 | `gauge.lapse_power` | $p$ | `1.0` |
 | `gauge.shift_advec_coeff` | $a_\beta$ | `0.0` |
 | `gauge.shift_Gamma_coeff` | $F$ | `0.75` |
-| `gauge.eta` | $\eta$ | `1.0` |
+| `gauge.eta` | $\eta_*$ | `1.0` |
+
+### Binary-puncture eta profile
+
+`BHMovingPunctureGauge` replaces the constant $\eta_*$ with a mass-dependent
+profile. If $m_p$ and $r_p$ are the mass of puncture $p$ and the coordinate
+distance from it, respectively, the profile is
+
+$$
+\eta_*=\frac{\eta_1r_2^2+\eta_2r_1^2}{r_1^2+r_2^2},
+\qquad \eta_p=\frac{1}{2m_p}.
+$$
+
+Thus $\eta_*$ approaches $1/(2m_p)$ at each puncture and varies smoothly
+between the two values. `BinaryBH` constructs this gauge from the masses and
+current positions stored by `PunctureTracker`. For equal masses the profile
+reduces to a spatially constant $1/(2m_p)$. `MovingPunctureGauge` remains
+available to examples that use the value set by `gauge.eta`.
 
 ### Far-field eta cutoff
 
@@ -54,9 +74,9 @@ $$
 \eta(r)=\eta_*\left[c_f\frac{R^2}{r^2+R^2}+(1-c_f)\right],
 $$
 
-where $\eta_*$ is set by `gauge.eta`, $r=|\boldsymbol{x}-\boldsymbol{x}_{\rm center}|$ with $\boldsymbol{x}_{\rm center}$ set by `geometry.center`, and $R$ is given by `gauge.eta_cutoff_radius`. Here, $c_f$ is `1` when `gauge.enable_eta_cutoff = true` and `0` otherwise. The cutoff is disabled by default, in which case $\eta(r)=\eta_*$ everywhere. When enabled, $\eta(r)$ is approximately $\eta_*$ near the centre and decays as $R^2/r^2$ far outside the scale $R$. `gauge.eta_cutoff_radius` defaults to `500.0` and must be positive.
+where $\eta_*$ is either set by `gauge.eta` or by the binary-puncture profile above, $r=|\boldsymbol{x}-\boldsymbol{x}_{\rm center}|$ with $\boldsymbol{x}_{\rm center}$ set by `geometry.center`, and $R$ is given by `gauge.eta_cutoff_radius`. Here, $c_f$ is `1` when `gauge.enable_eta_cutoff = true` and `0` otherwise. The cutoff is disabled by default, in which case $\eta(r)=\eta_*$ everywhere. When enabled, $\eta(r)$ is approximately $\eta_*$ near the centre and decays as $R^2/r^2$ far outside the scale $R$. `gauge.eta_cutoff_radius` defaults to `500.0` and must be positive.
 
-The eta cutoff is implemented in the standard `MovingPunctureGauge` and is also applied in `IntegratedMovingPunctureGauge`.
+The eta cutoff is applied by all three gauge classes.
 
 ## Integrated moving puncture gauge
 
