@@ -10,16 +10,12 @@ Interpolation is performed using a [Lagrange interpolation](https://github.com/G
 
 The main class used for interpolation in GRTeclyn is `ParticleInterpolator`. This class is templated over the number of components, i.e. the number of variables to be interpolated. It handles the interpolation logic, boundary conditions treatment, interaction between the particles and the mesh data and many other things. If you ever end up using interpolation for your example,`ParticleInterpolator` is one of the classes you will need to interact directly with, in addition to the `InterpolationQueryParticle` class, which set-ups the information about the interpolation query. See the section below for more information on how to get started.
 
-!!! warning
+!!! tip
 
-    Currently, `ParticleInterpolator` supports interpolation of multiple
-    components only when they are in the **contiguous** order!
+    Our `ParticleInterpolator` supports interpolation of multiple
+    components, even when they are in the **non-contiguous** order!
 
-    For example, recall that state variables are assigned unique component indices in
-    [`CCZ4StateVariables.hpp`](https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/CCZ4/CCZ4StateVariables.hpp). Here, the conformal factor $\chi$ and the metric component
-    $h_{11}$ occupy consecutive component indices, so they can be interpolated
-    together. In contrast, $\chi$ and the extrinsic curvature $K$ cannot be
-    interpolated together, as their component indices are not contiguous!
+    Components refer to state, derived variables and their detivatives.
 
 !!! note
 
