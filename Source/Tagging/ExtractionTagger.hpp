@@ -17,6 +17,8 @@
 #include <AMReX_REAL.H>
 #include <AMReX_TagBox.H>
 
+using namespace amrex::literals;
+
 class ExtractionTagger
 {
   protected:
@@ -26,16 +28,16 @@ class ExtractionTagger
     const int *m_extraction_levels_ptr{nullptr};
     std::array<amrex::Real, AMREX_SPACEDIM> m_center;
     int m_level;
-    amrex::Real m_level_separation{1.5};
+    amrex::Real m_level_separation{1.5_rt};
 
   public:
     static void check_params()
     {
         GRParmParse extraction_tagging_pp("extraction_tagging");
-        amrex::Real level_separation{1.5};
+        amrex::Real level_separation{1.5_rt};
         extraction_tagging_pp.queryAdd("level_separation", level_separation);
 
-        if (level_separation < 1.0)
+        if (level_separation < 1.0_rt)
         {
             extraction_tagging_pp.warning(
                 "level_separation",
@@ -43,7 +45,7 @@ class ExtractionTagger
                 "error reflecting; either increase this value or set n_proper "
                 "to be larger");
         }
-        if (level_separation > 2.0)
+        if (level_separation > 2.0_rt)
         {
             extraction_tagging_pp.warning(
                 "level_separation",
@@ -94,7 +96,7 @@ class ExtractionTagger
                 const amrex::Real factor =
                     std::pow(m_level_separation, exponent);
                 // Add a 20% buffer to extraction zone so not too near boundary
-                if (r < 1.2 * factor * m_extraction_radii_ptr[iradius])
+                if (r < 1.2_rt * factor * m_extraction_radii_ptr[iradius])
                 {
                     tags(i, j, k) = amrex::TagBox::SET;
                     // Once tagged, no need to check other radii for this cell

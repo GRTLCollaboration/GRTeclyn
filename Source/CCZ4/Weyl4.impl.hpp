@@ -68,7 +68,7 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
     // NB: this is not Tensor::Rank1 because the dimension is not AMREX_SPACEDIM
     Tensor::SpacetimeRank1 n_U{};
 
-    n_U(GR_SPACEDIM) = 1. / vars.lapse();
+    n_U(GR_SPACEDIM) = 1._rt / vars.lapse();
     FOR (i)
     {
         n_U(i) = -vars.shift(i) / vars.lapse();
@@ -83,8 +83,8 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
     // Alcubierre
     FOR (i, j, k)
     {
-        epsilon3_LLL(i, j, k) = 0.0;
-        epsilon3_LUU(i, j, k) = 0.0;
+        epsilon3_LLL(i, j, k) = 0.0_rt;
+        epsilon3_LUU(i, j, k) = 0.0_rt;
     }
     // projection of 4-antisymetric tensor to 3-tensor on hypersurface
     // note last index contracted as per footnote 86 pg 290 Alcubierre
@@ -94,7 +94,7 @@ Weyl4::compute_epsilon3_LUU(const CCZ4Vars &vars,
         {
             epsilon3_LLL(i, j, k) += n_U(l) * epsilon4(i, j, k, l) *
                                      vars.lapse() /
-                                     (vars.chi() * sqrt(vars.chi()));
+                                     (vars.chi() * std::sqrt(vars.chi()));
         }
     }
     // rasing indices
@@ -132,7 +132,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // Compute inverse, Christoffel symbols, Ricci tensor and Z terms
     // Note that unlike in CCZ4 equations we want R_ij + 0.5(D_iZ_j + D_jZ_i)
     // rather than R_ij + D_iZ_j + D_jZ_i hence use compute_ricci_Z_general
-    amrex::Real dZ_coeff = (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1. : 0.;
+    amrex::Real dZ_coeff =
+        (m_formulation == CCZ4RHS<>::USE_CCZ4) ? 1._rt : 0._rt;
 
     auto ricci_and_Z_terms = CCZ4Geometry::compute_ricci_Z_general(
         vars, d1_chi, d1_Gamma, d1_h, d2_chi, d2_h, h_UU, chris, dZ_coeff);
@@ -146,15 +147,15 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     FOR (i, j)
     {
         K_tensor(i, j) = vars.A(i, j) / vars.chi() +
-                         1. / 3. * (vars.h(i, j) * vars.K()) / vars.chi();
+                         1._rt / 3._rt * (vars.h(i, j) * vars.K()) / vars.chi();
 
         FOR (k)
         {
             d1_K_tensor(i, j, k) =
                 d1_A(i, j, k) / vars.chi() -
                 d1_chi(k) / vars.chi() * K_tensor(i, j) +
-                1. / 3. * d1_h(i, j, k) * vars.K() / vars.chi() +
-                1. / 3. * vars.h(i, j) * d1_K(k) / vars.chi();
+                1._rt / 3._rt * d1_h(i, j, k) * vars.K() / vars.chi() +
+                1._rt / 3._rt * vars.h(i, j) * d1_K(k) / vars.chi();
         }
     }
     // covariant derivative of K
@@ -181,8 +182,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE EBFields_t Weyl4::compute_EB_fields(
     // Calculate electric and magnetic fields
     FOR (i, j)
     {
-        out.E(i, j) = 0.0;
-        out.B(i, j) = 0.0;
+        out.E(i, j) = 0.0_rt;
+        out.B(i, j) = 0.0_rt;
     }
 
     FOR (i, j)
@@ -229,16 +230,18 @@ Weyl4::compute_Weyl4(const EBFields_t &ebfields, const CCZ4Vars &vars,
     const Tetrad_t tetrad = compute_null_tetrad(vars, h_UU, coords);
 
     // Projection of Electric and magnetic field components using tetrads
-    out.Real = 0.0;
-    out.Im   = 0.0;
+    out.Real = 0.0_rt;
+    out.Im   = 0.0_rt;
     FOR (i, j)
     {
-        out.Real += 0.5 * (ebfields.E(i, j) * (tetrad.w(i) * tetrad.w(j) -
-                                               tetrad.v(i) * tetrad.v(j)) -
-                           2.0 * ebfields.B(i, j) * tetrad.w(i) * tetrad.v(j));
-        out.Im   += 0.5 * (ebfields.B(i, j) * (-tetrad.w(i) * tetrad.w(j) +
-                                               tetrad.v(i) * tetrad.v(j)) -
-                           2.0 * ebfields.E(i, j) * tetrad.w(i) * tetrad.v(j));
+        out.Real +=
+            0.5_rt * (ebfields.E(i, j) * (tetrad.w(i) * tetrad.w(j) -
+                                          tetrad.v(i) * tetrad.v(j)) -
+                      2.0_rt * ebfields.B(i, j) * tetrad.w(i) * tetrad.v(j));
+        out.Im +=
+            0.5_rt * (ebfields.B(i, j) * (-tetrad.w(i) * tetrad.w(j) +
+                                          tetrad.v(i) * tetrad.v(j)) -
+                      2.0_rt * ebfields.E(i, j) * tetrad.w(i) * tetrad.v(j));
     }
 
     return out;
@@ -270,31 +273,31 @@ Weyl4::compute_null_tetrad(const CCZ4Vars &vars, const Tensor::Rank2 &h_UU,
 
     out.v(0) = -y;
     out.v(1) = x;
-    out.v(2) = 0.0;
+    out.v(2) = 0.0_rt;
 
-    out.w(0) = 0.0;
-    out.w(1) = 0.0;
-    out.w(2) = 0.0;
+    out.w(0) = 0.0_rt;
+    out.w(1) = 0.0_rt;
+    out.w(2) = 0.0_rt;
 
     FOR (i, j, k, m)
     {
-        out.w(i) += 1. / sqrt(vars.chi()) * h_UU(i, j) * epsilon(j, k, m) *
-                    out.v(k) * out.u(m);
+        out.w(i) += 1._rt / std::sqrt(vars.chi()) * h_UU(i, j) *
+                    epsilon(j, k, m) * out.v(k) * out.u(m);
     }
 
     // Gram Schmitt orthonormalisation
     // Choice of orthonormalisaion to avoid frame-dragging
-    amrex::Real omega_11 = 0.0;
+    amrex::Real omega_11 = 0.0_rt;
     FOR (i, j)
     {
         omega_11 += out.v(i) * out.v(j) * vars.h(i, j) / vars.chi();
     }
     FOR (i)
     {
-        out.v(i) = out.v(i) / sqrt(omega_11);
+        out.v(i) = out.v(i) / std::sqrt(omega_11);
     }
 
-    amrex::Real omega_12 = 0.0;
+    amrex::Real omega_12 = 0.0_rt;
     FOR (i, j)
     {
         omega_12 += out.v(i) * out.u(j) * vars.h(i, j) / vars.chi();
@@ -304,18 +307,18 @@ Weyl4::compute_null_tetrad(const CCZ4Vars &vars, const Tensor::Rank2 &h_UU,
         out.u(i) += -omega_12 * out.v(i);
     }
 
-    amrex::Real omega_22 = 0.0;
+    amrex::Real omega_22 = 0.0_rt;
     FOR (i, j)
     {
         omega_22 += out.u(i) * out.u(j) * vars.h(i, j) / vars.chi();
     }
     FOR (i)
     {
-        out.u(i) = out.u(i) / sqrt(omega_22);
+        out.u(i) = out.u(i) / std::sqrt(omega_22);
     }
 
-    amrex::Real omega_13 = 0.0;
-    amrex::Real omega_23 = 0.0;
+    amrex::Real omega_13 = 0.0_rt;
+    amrex::Real omega_23 = 0.0_rt;
     FOR (i, j)
     {
         omega_13 += out.v(i) * out.w(j) * vars.h(i, j) / vars.chi();
@@ -326,7 +329,7 @@ Weyl4::compute_null_tetrad(const CCZ4Vars &vars, const Tensor::Rank2 &h_UU,
         out.w(i) += -(omega_13 * out.v(i) + omega_23 * out.u(i));
     }
 
-    amrex::Real omega_33 = 0.0;
+    amrex::Real omega_33 = 0.0_rt;
     FOR (i, j)
     {
         omega_33 += out.w(i) * out.w(j) * vars.h(i, j) / vars.chi();

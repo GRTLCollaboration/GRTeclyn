@@ -10,6 +10,8 @@
 #include "Tensor.hpp"
 #include <AMReX_REAL.H>
 
+using namespace amrex::literals;
+
 class DefaultPotential
 {
   public:
@@ -23,10 +25,10 @@ class DefaultPotential
                       const ScalarFieldVars &vars)
     {
         // The potential value at phi
-        V_of_phi = 0.0;
+        V_of_phi = 0.0_rt;
 
         // The potential gradient at phi
-        dVdphi = 0.0;
+        dVdphi = 0.0_rt;
     }
 };
 

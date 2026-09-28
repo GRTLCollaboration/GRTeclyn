@@ -9,6 +9,8 @@
 #include "CCZ4RHSWithMatter.hpp"
 #include "Weyl4.hpp"
 
+using namespace amrex::literals;
+
 //!  Calculates the Weyl4 scalar for spacetimes with matter content
 /*!
    This class calculates the Weyl4 scalar real and im parts. It inherits from

@@ -18,6 +18,8 @@
 
 #include <array>
 
+using namespace amrex::literals;
+
 /// This is an example of a gauge class that can be used in the CCZ4RHS compute
 /// class
 /**
@@ -32,76 +34,80 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
     struct params_t
     {
         // lapse params:
-        amrex::Real lapse_advec_coeff{1.0}; //!< Switches advection terms in
-                                            //! the lapse condition on/off
+        amrex::Real lapse_advec_coeff{1.0_rt}; //!< Switches advection terms in
+                                               //! the lapse condition on/off
         amrex::Real lapse_power{
-            1.0}; //!< The power p in \f$\partial_t \alpha = - c
-                  //!\alpha^p(K-2\Theta)\f$
-        amrex::Real lapse_coeff{2.0}; //!< The coefficient c in \f$\partial_t
-                                      //!\alpha = -c \alpha^p(K-2\Theta)\f$
+            1.0_rt}; //!< The power p in \f$\partial_t \alpha = - c
+                     //!\alpha^p(K-2\Theta)\f$
+        amrex::Real lapse_coeff{2.0_rt}; //!< The coefficient c in \f$\partial_t
+                                         //!\alpha = -c \alpha^p(K-2\Theta)\f$
         // shift params:
-        amrex::Real shift_Gamma_coeff{0.75}; //!< Gives the F in \f$\partial_t
-                                             //!  \beta^i =  F B^i\f$
-        amrex::Real shift_advec_coeff{0.0}; //!< Switches advection terms in the
-                                            //! shift condition on/off
-        amrex::Real eta{1.0}; //!< The central eta in \f$\partial_t B^i =
-                              //!\partial_t \tilde\Gamma - \eta(r) B^i\f$
-        amrex::Real eta_cutoff_coeff{0.0}; //!< Enables the radial decay of eta
-        amrex::Real eta_cutoff_radius{500.0}; //!< Transition radius for eta(r)
+        amrex::Real shift_Gamma_coeff{
+            0.75_rt}; //!< Gives the F in \f$\partial_t
+                      //!  \beta^i =  F B^i\f$
+        amrex::Real shift_advec_coeff{
+            0.0_rt};             //!< Switches advection terms in the
+                                 //! shift condition on/off
+        amrex::Real eta{1.0_rt}; //!< The central eta in \f$\partial_t B^i =
+                                 //!\partial_t \tilde\Gamma - \eta(r) B^i\f$
+        amrex::Real eta_cutoff_coeff{
+            0.0_rt}; //!< Enables the radial decay of eta
+        amrex::Real eta_cutoff_radius{
+            500.0_rt}; //!< Transition radius for eta(r)
         std::array<amrex::Real, AMREX_SPACEDIM> center{};
 
         static void check_params()
         {
             GRParmParse gauge_pp("gauge");
             // Lapse evolution
-            amrex::Real lapse_advec_coeff = 1.;
+            amrex::Real lapse_advec_coeff = 1._rt;
             gauge_pp.queryAdd("lapse_advec_coeff", lapse_advec_coeff);
             if (std::min(std::abs(lapse_advec_coeff),
-                         std::abs(lapse_advec_coeff - amrex::Real(1.0))) >
+                         std::abs(lapse_advec_coeff - amrex::Real(1.0_rt))) >
                 std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("lapse_advec_coeff",
                                  "usually set to 0.0 or 1.0");
             }
 
-            amrex::Real lapse_power = 1.;
+            amrex::Real lapse_power = 1._rt;
             gauge_pp.queryAdd("lapse_power", lapse_power);
-            if (std::abs(lapse_power - 1.0) >
+            if (std::abs(lapse_power - 1.0_rt) >
                 std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("lapse_power", "set to 1.0 for 1+log slicing");
             }
 
-            amrex::Real lapse_coeff = 2.;
+            amrex::Real lapse_coeff = 2._rt;
             gauge_pp.queryAdd("lapse_coeff", lapse_coeff);
-            if (std::abs(lapse_coeff - 2.0) >
+            if (std::abs(lapse_coeff - 2.0_rt) >
                 std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("lapse_coeff", "set to 2.0 for 1+log slicing");
             }
 
             // Shift Evolution
-            amrex::Real shift_Gamma_coeff = 0.75;
+            amrex::Real shift_Gamma_coeff = 0.75_rt;
             gauge_pp.queryAdd("shift_Gamma_coeff", shift_Gamma_coeff);
-            if (std::abs(shift_Gamma_coeff - 0.75) >
+            if (std::abs(shift_Gamma_coeff - 0.75_rt) >
                 std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("shift_Gamma_coeff", "usually set to 0.75");
             }
 
-            amrex::Real shift_advec_coeff = 0.0;
+            amrex::Real shift_advec_coeff = 0.0_rt;
             gauge_pp.queryAdd("shift_advec_coeff", shift_advec_coeff);
             if (std::min(std::abs(shift_advec_coeff),
-                         std::abs(shift_advec_coeff - amrex::Real(1.0))) >
+                         std::abs(shift_advec_coeff - amrex::Real(1.0_rt))) >
                 std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("shift_advec_coeff",
                                  "usually set to 0.0 or 1.0");
             }
 
-            amrex::Real eta = 1.0;
+            amrex::Real eta = 1.0_rt;
             gauge_pp.queryAdd("eta", eta);
-            if (eta < 0.1 || eta > 10)
+            if (eta < 0.1_rt || eta > 10)
             {
                 gauge_pp.warning(
                     "eta",
@@ -110,9 +116,9 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
 
             bool enable_eta_cutoff = false;
             gauge_pp.queryAdd("enable_eta_cutoff", enable_eta_cutoff);
-            amrex::Real eta_cutoff_radius = 500.0;
+            amrex::Real eta_cutoff_radius = 500.0_rt;
             gauge_pp.queryAdd("eta_cutoff_radius", eta_cutoff_radius);
-            if (eta_cutoff_radius <= 0.0)
+            if (eta_cutoff_radius <= 0.0_rt)
             {
                 gauge_pp.error("eta_cutoff_radius",
                                "must be greater than zero");
@@ -172,7 +178,7 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
             (radius * radius + eta_cutoff_radius_squared);
         eta_of_x =
             m_params.eta * (m_params.eta_cutoff_coeff * eta_cutoff_factor +
-                            (1.0 - m_params.eta_cutoff_coeff));
+                            (1.0_rt - m_params.eta_cutoff_coeff));
     }
 
     /// Calculate the gauge RHS using the fully accumulated Gamma RHS.
@@ -211,10 +217,11 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
         amrex::Real eta_of_x{};
         compute_eta(eta_of_x, ix, iy, iz);
 
-        rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec_lapse -
-                                 m_params.lapse_coeff *
-                                     pow(vars.lapse(), m_params.lapse_power) *
-                                     (vars.K() - 2.0 * vars.Theta());
+        rhs_cell_data[c_lapse] =
+            m_params.lapse_advec_coeff * advec_lapse -
+            m_params.lapse_coeff *
+                std::pow(vars.lapse(), m_params.lapse_power) *
+                (vars.K() - 2.0_rt * vars.Theta());
 
         FOR (i)
         {

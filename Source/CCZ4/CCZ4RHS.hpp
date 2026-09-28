@@ -17,6 +17,8 @@
 
 #include <array>
 
+using namespace amrex::literals;
+
 /// Base parameter struct for CCZ4
 /** This struct collects the gauge-independent CCZ4 parameters. */
 struct CCZ4_params_t
@@ -126,25 +128,25 @@ inline void CCZ4_params_t::check_params()
     }
     else
     {
-        amrex::Real kappa1 = 0.1;
+        amrex::Real kappa1 = 0.1_rt;
         ccz4_pp.queryAdd("kappa1", kappa1);
-        if (kappa1 <= 0.0)
+        if (kappa1 <= 0.0_rt)
         {
             ccz4_pp.warning("kappa1",
                             "should be greater than 0.0 to damp constraints "
                             "(see arXiv:1106.2254).");
         }
 
-        amrex::Real kappa2 = 0.0;
+        amrex::Real kappa2 = 0.0_rt;
         ccz4_pp.queryAdd("kappa2", kappa2);
-        if (kappa2 <= -1.0)
+        if (kappa2 <= -1.0_rt)
         {
             ccz4_pp.warning("kappa2",
                             "should be greater than -1.0 to damp constraints "
                             "(see arXiv:1106.2254).");
         }
 
-        amrex::Real kappa3 = 1.0;
+        amrex::Real kappa3 = 1.0_rt;
         ccz4_pp.queryAdd("kappa3", kappa3);
     }
 

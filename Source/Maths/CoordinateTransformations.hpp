@@ -46,7 +46,7 @@ static Tensor::Rank2 spherical_jacobian(const amrex::Real x,
     jac(2, 1) = x / rho2;
     jac(0, 2) = z / r;
     jac(1, 2) = -rho / r2;
-    jac(2, 2) = 0.0;
+    jac(2, 2) = 0.0_rt;
     return jac;
 }
 
@@ -80,7 +80,7 @@ static Tensor::Rank2 inverse_spherical_jacobian(const amrex::Real x,
     inv_jac(2, 1) = -rho;
     inv_jac(0, 2) = -y;
     inv_jac(1, 2) = x;
-    inv_jac(2, 2) = 0.0;
+    inv_jac(2, 2) = 0.0_rt;
     return inv_jac;
 }
 
@@ -94,7 +94,7 @@ spherical_to_cartesian_LL(const Tensor::Sym12Rank2 &spherical_g,
                           const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    Tensor::Sym12Rank2 cartesian_g{0.};
+    Tensor::Sym12Rank2 cartesian_g{0._rt};
 
     // derivatives for jacobian matrix - drdx etc
     Tensor::Rank2 jac = spherical_jacobian(x, y, z);
@@ -120,7 +120,7 @@ spherical_to_cartesian_UU(const Tensor::Sym12Rank2 &spherical_g_UU,
                           const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    Tensor::Sym12Rank2 cartesian_g_UU{0.};
+    Tensor::Sym12Rank2 cartesian_g_UU{0._rt};
 
     // derivatives for jacobian matrix - drdx etc
     Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
@@ -147,7 +147,7 @@ cartesian_to_spherical_LL(const Tensor::Sym12Rank2 &cartesian_g,
                           const amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    Tensor::Sym12Rank2 spherical_g{0.};
+    Tensor::Sym12Rank2 spherical_g{0._rt};
 
     // derivatives for inverse jacobian matrix - drdx etc
     Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
@@ -173,7 +173,7 @@ cartesian_to_spherical_UU(const Tensor::Sym12Rank2 &cartesian_g_UU,
                           amrex::Real x, amrex::Real y, amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    Tensor::Sym12Rank2 spherical_g_UU{0.};
+    Tensor::Sym12Rank2 spherical_g_UU{0._rt};
 
     // derivatives for jacobian matrix - drdx etc
     Tensor::Rank2 jac = spherical_jacobian(x, y, z);
@@ -199,7 +199,7 @@ Tensor::Rank1 spherical_to_cartesian_U(const Tensor::Rank1 &spherical_v_U,
                                        amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    Tensor::Rank1 cartesian_v_U{0., 0., 0.};
+    Tensor::Rank1 cartesian_v_U{0._rt, 0._rt, 0._rt};
 
     // derivatives for inverse jacobian matrix - drdx etc
     Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
@@ -224,7 +224,7 @@ Tensor::Rank1 spherical_to_cartesian_L(const Tensor::Rank1 &spherical_v_L,
                                        amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    Tensor::Rank1 cartesian_v_L{0., 0., 0.};
+    Tensor::Rank1 cartesian_v_L{0._rt, 0._rt, 0._rt};
 
     // derivatives for jacobian matrix - drdx etc
     Tensor::Rank2 jac = spherical_jacobian(x, y, z);
@@ -249,7 +249,7 @@ Tensor::Rank1 cartesian_to_spherical_U(const Tensor::Rank1 &cartesian_v_U,
                                        amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    Tensor::Rank1 spherical_v_U{0., 0., 0.};
+    Tensor::Rank1 spherical_v_U{0._rt, 0._rt, 0._rt};
 
     // derivatives for jacobian matrix - drdx etc
     Tensor::Rank2 jac = spherical_jacobian(x, y, z);
@@ -274,7 +274,7 @@ Tensor::Rank1 cartesian_to_spherical_L(const Tensor::Rank1 &cartesian_v_L,
                                        amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    Tensor::Rank1 spherical_v_L{0., 0., 0.};
+    Tensor::Rank1 spherical_v_L{0._rt, 0._rt, 0._rt};
 
     // derivatives for inverse jacobian matrix - drdx etc
     Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);

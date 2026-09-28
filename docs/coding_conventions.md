@@ -105,6 +105,7 @@ All code should be commented frequently but concisely. Please provide references
 * Operators on an object are not underscored
 * Greek vars - the use of capital letters makes a difference, so Pi != pi.
 * User enums c_name. Otherwise caps and underscore - e.g. FILL_GHOST_CELLS
+* Floating-point literals mixed with `amrex::Real` values should use the `_rt` suffix (`0.5_rt`, not `0.5`), and standard maths functions should be qualified as `std::pow`/`std::sqrt`/etc. Unsuffixed literals and unqualified calls default to `double` in C++.
 
 ---
 

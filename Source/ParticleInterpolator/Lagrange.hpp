@@ -88,7 +88,7 @@ template <int N> class Lagrange
         }
 
         // Compute Lagrange weights
-        amrex::poly_interp_coeff(0.0, rel_pos, N, weights);
+        amrex::poly_interp_coeff(amrex::Real(0.0), rel_pos, N, weights);
 
         // Write in the base (starting) index
         base_idx = stencil[0];

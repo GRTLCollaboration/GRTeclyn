@@ -110,7 +110,7 @@ void ScalarFieldLevel::initData()
                            for (int component = 0; component < cell.nComp();
                                 ++component)
                            {
-                               cell[component] = 0.0;
+                               cell[component] = amrex::Real(0.0);
                            }
                            initial_data(ix, iy, iz, state_arrays[box_no]);
                        });

@@ -83,7 +83,7 @@ Weyl4WithMatter<matter_t>::add_matter_EB(
     // explictly trace-free, only Eij has matter terms
     FOR (i, j)
     {
-        ebfields.E(i, j) += -0.5 * S_TF(i, j);
+        ebfields.E(i, j) += -0.5_rt * S_TF(i, j);
     }
 }
 

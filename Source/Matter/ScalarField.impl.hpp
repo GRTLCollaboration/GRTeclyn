@@ -34,8 +34,8 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t, deriv_t>::compute_emtensor(
     }
 
     // set the potential values
-    amrex::Real V_of_phi = 0.0;
-    amrex::Real dVdphi   = 0.0;
+    amrex::Real V_of_phi = 0.0_rt;
+    amrex::Real dVdphi   = 0.0_rt;
     // compute potential and add constributions to EM Tensor
     m_potential.compute_potential(V_of_phi, dVdphi, vars);
 
@@ -43,13 +43,13 @@ AMREX_GPU_DEVICE emtensor_t ScalarField<potential_t, deriv_t>::compute_emtensor(
     // S = T_ij
     FOR (i, j)
     {
-        out.S(i, j) = -0.5 * vars.h(i, j) * Vt / vars.chi() +
+        out.S(i, j) = -0.5_rt * vars.h(i, j) * Vt / vars.chi() +
                       d1_phi(i) * d1_phi(j) -
                       vars.h(i, j) * V_of_phi / vars.chi();
     }
 
     // rho = n^a n^b T_ab
-    out.rho = vars.Pi() * vars.Pi() + 0.5 * Vt + V_of_phi;
+    out.rho = vars.Pi() * vars.Pi() + 0.5_rt * Vt + V_of_phi;
 
     // trS = Tr_S_ij
     out.trS = vars.chi() * TensorAlgebra::compute_trace(out.S, h_UU);
@@ -71,7 +71,8 @@ ScalarField<potential_t, deriv_t>::compute_einstein_sources(
 {
     const emtensor_t emtensor =
         compute_emtensor(ix, iy, iz, state, a_deriv, h_UU);
-    const amrex::Real coupling = 8.0 * M_PI * m_G_Newton;
+    const amrex::Real coupling =
+        8.0_rt * static_cast<amrex::Real>(M_PI) * m_G_Newton;
 
     einstein_sources_t out;
     out.rho = coupling * emtensor.rho;
@@ -122,8 +123,8 @@ ScalarField<potential_t, deriv_t>::add_matter_rhs(
     auto advec_Pi = a_deriv.advec_scalar(ix, iy, iz, state, shift_vector, c_Pi);
 
     // set the potential values
-    amrex::Real V_of_phi = 0.0;
-    amrex::Real dVdphi   = 0.0;
+    amrex::Real V_of_phi = 0.0_rt;
+    amrex::Real dVdphi   = 0.0_rt;
     m_potential.compute_potential(V_of_phi, dVdphi, vars);
 
     // evolution equations for scalar field and (minus) its conjugate momentum
@@ -136,7 +137,7 @@ ScalarField<potential_t, deriv_t>::add_matter_rhs(
     {
         // includes non conformal parts of chris not included in chris_ULL
         rhs_cell_data[c_Pi] +=
-            h_UU(i, j) * (-0.5 * d1_chi(j) * vars.lapse() * d1_phi(i) +
+            h_UU(i, j) * (-0.5_rt * d1_chi(j) * vars.lapse() * d1_phi(i) +
                           vars.chi() * vars.lapse() * d2_phi(i, j) +
                           vars.chi() * d1_lapse(i) * d1_phi(j));
         FOR (k)

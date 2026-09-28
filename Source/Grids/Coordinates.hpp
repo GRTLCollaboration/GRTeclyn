@@ -50,7 +50,7 @@ class Coordinates
     compute_coord(amrex::Real &out, int position, amrex::Real dx,
                   amrex::Real center_distance = 0.0)
     {
-        out = (position + 0.5) * dx - center_distance;
+        out = (position + 0.5_rt) * dx - center_distance;
     }
 
     /// This function returns the radius subject to a floor for a given
@@ -59,7 +59,7 @@ class Coordinates
     get_radius() const
     {
         // Note that this is not currently dimension independent
-        amrex::Real r = sqrt(x * x + y * y + z * z);
+        amrex::Real r = std::sqrt(x * x + y * y + z * z);
         return std::max(r, 1.0e-6_rt);
     }
 

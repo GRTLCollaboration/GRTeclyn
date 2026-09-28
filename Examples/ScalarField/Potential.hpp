@@ -12,6 +12,8 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>
 
+using namespace amrex::literals;
+
 class Potential
 {
   public:
@@ -66,7 +68,7 @@ class Potential
                       const ScalarFieldVars &vars) const
     {
         const amrex::Real mass_times_phi = m_params.scalar_mass * vars.phi();
-        V_of_phi = 0.5 * mass_times_phi * mass_times_phi;
+        V_of_phi = 0.5_rt * mass_times_phi * mass_times_phi;
         dVdphi   = m_params.scalar_mass * m_params.scalar_mass * vars.phi();
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)

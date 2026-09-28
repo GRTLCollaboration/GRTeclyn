@@ -79,3 +79,33 @@ amrex.use_gpu_aware_mpi = 1
 !!! note "Stoic build quotes"
 
     After each build, GRTeclyn prints a random Stoic quote for either success or failure. Add quotes to `Tools/StoicQuotes/StoicQuotes.txt`, or set `USE_STOIC_QUOTES=FALSE` on the command line or in `Make.local-pre` to disable them.
+
+## You need to match the precision
+
+It is sometimes useful to run in float precision (single precision) rather than double precision for performance. If you are running on a GPU that doesn't support double precision (e.g. laptop Intel/AMD integrated graphics), this is a compulsory step. GRTeclyn code assumes double precision by default, so if you build and run on one of these devices you will hit a runtime crash that looks like:
+
+```
+amrex::Abort::0::ParallelFor: Required aspect fp64 is not supported on the device!!!!! !!!
+SIGABRT
+```
+
+You can check whether your device supports fp64 before you even try to build, e.g. with `clinfo` on Linux (look for "Double-precision Floating-point support" under your device):
+```bash
+clinfo
+```
+If you see `n/a` or the extension list is missing `cl_khr_fp64`, your device has no fp64 support and you need single precision.
+
+The fix is to build with single precision by adding to your `Make.local-pre`:
+```
+PRECISION=FLOAT
+# Only needed if you use particle-based features: line/surface extraction, or
+# puncture tracking (on by default in the BinaryBH example's params files)
+USE_SINGLE_PRECISION_PARTICLES=TRUE
+```
+(`amrex::ParticleReal`, used by particle-based features, is `double` by default independent of `PRECISION`, which is why it needs its own flag.)
+
+!!! warning
+
+    `PRECISION` is a global, project-wide setting, not something you can turn on for individual files. Switching it changes the accuracy of every calculation in the code, and the build system will not automatically detect that you have changed it — if you have already built with a different `PRECISION` you must run `make realclean` before rebuilding, otherwise you will silently link against stale object files built with the old setting.
+
+If you still hit the fp64 abort after building with `PRECISION=FLOAT`, the most likely cause is a bare floating-point literal (e.g. `0.5` instead of `0.5_rt`), the `M_PI` macro, or an unqualified call to a maths function like `pow`/`sqrt` somewhere in the code path you are exercising — these are all `double` by default in C++ and silently reintroduce double precision into GPU kernels even though the build itself succeeds. See [Coding conventions](coding_conventions.md) for how to avoid this when writing physics code.

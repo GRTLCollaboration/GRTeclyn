@@ -95,13 +95,14 @@ Constraints::constraints_t Constraints::constraint_equations(
         amrex::Real Aij_squared = CCZ4Geometry::compute_Aij_squared(vars, h_UU);
 
         out.Ham = ricci.scalar +
-                  (GR_SPACEDIM - 1.) * vars.K() * vars.K() / GR_SPACEDIM -
-                  Aij_squared - 2.0 * m_cosmological_constant;
+                  (GR_SPACEDIM - 1._rt) * vars.K() * vars.K() / GR_SPACEDIM -
+                  Aij_squared - 2.0_rt * m_cosmological_constant;
 
-        out.Ham_abs_terms =
-            std::abs(ricci.scalar) +
-            std::abs((GR_SPACEDIM - 1.) * vars.K() * vars.K() / GR_SPACEDIM) +
-            std::abs(Aij_squared) + 2.0 * std::abs(m_cosmological_constant);
+        out.Ham_abs_terms = std::abs(ricci.scalar) +
+                            std::abs((GR_SPACEDIM - 1._rt) * vars.K() *
+                                     vars.K() / GR_SPACEDIM) +
+                            std::abs(Aij_squared) +
+                            2.0_rt * std::abs(m_cosmological_constant);
     }
 
     if (m_c_Moms.size() > 0 || m_c_Moms_abs_terms.size() > 0)
@@ -119,7 +120,7 @@ Constraints::constraints_t Constraints::constraint_equations(
         }
         FOR (i)
         {
-            out.Mom(i)           = -(GR_SPACEDIM - 1.) * d1_K(i) / GR_SPACEDIM;
+            out.Mom(i) = -(GR_SPACEDIM - 1._rt) * d1_K(i) / GR_SPACEDIM;
             out.Mom_abs_terms(i) = std::abs(out.Mom(i));
         }
         Tensor::Rank1 covd_A_term{};
@@ -128,7 +129,7 @@ Constraints::constraints_t Constraints::constraint_equations(
         {
             covd_A_term(i) += h_UU(j, k) * covd_A(k, j, i);
             d1_chi_term(i) += -GR_SPACEDIM * h_UU(j, k) * vars.A(i, j) *
-                              d1_chi(k) / (2.0 * vars.chi());
+                              d1_chi(k) / (2.0_rt * vars.chi());
         }
         FOR (i)
         {
@@ -163,7 +164,7 @@ Constraints::store_vars(const constraints_t &out,
     }
     else if (m_c_Moms.size() == 1)
     {
-        amrex::Real Mom_sq = 0.0;
+        amrex::Real Mom_sq = 0.0_rt;
         FOR (i)
         {
             Mom_sq += out.Mom(i) * out.Mom(i);
@@ -181,7 +182,7 @@ Constraints::store_vars(const constraints_t &out,
     }
     else if (m_c_Moms_abs_terms.size() == 1)
     {
-        amrex::Real Mom_abs_terms_sq = 0.0;
+        amrex::Real Mom_abs_terms_sq = 0.0_rt;
         FOR (i)
         {
             Mom_abs_terms_sq += out.Mom_abs_terms(i) * out.Mom_abs_terms(i);
