@@ -76,7 +76,7 @@ two_punctures.solver_max_iterations = 200
 
 # Number of cells and physical domain extent on the coarsest level
 amr.n_cell = 192 192 96
-geometry.prob_extent = 3584 3584 1792
+geometry.prob_extent = 3072 3072 1536
 # geometry.center = 1792 1792 0 # defaults based on the domain and boundaries
 
 amr.max_level = 11 # there are max_level + 1 levels
