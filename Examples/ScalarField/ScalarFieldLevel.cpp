@@ -9,6 +9,7 @@
 #include "CCZ4RHSWithMatter.hpp"
 #include "ConstraintsWithMatter.hpp"
 #include "EMTensor.hpp"
+#include "ADMQuantities.hpp"
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GammaCalculator.hpp"
@@ -38,6 +39,7 @@ void ScalarFieldLevel::variableSetUp()
     state_variable_set_up();
     ScalarFieldConstraints::set_up(state_index);
     ScalarFieldEnergyDensity::set_up(state_index);
+    ADMQuantities::set_up(state_index);
 }
 
 void ScalarFieldLevel::specific_advance()
