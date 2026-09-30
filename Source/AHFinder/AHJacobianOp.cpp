@@ -133,15 +133,14 @@ void AHJacobianOp::Fsmooth(int /*amrlev*/, int /*mglev*/,
                            int /*redblack*/) const
 {
     amrex::Abort("AHJacobianOp::Fsmooth: relaxation is not implemented; the "
-                 "single-level solve must use a bottom solver (BiCGStab) with "
+                 "single-level solve must use unpreconditioned GMRES with "
                  "coarsening disabled");
 }
 
 void AHJacobianOp::FFlux(
     int /*amrlev*/, const amrex::MFIter & /*mfi*/,
     const amrex::Array<amrex::FArrayBox *, AMREX_SPACEDIM> & /*flux*/,
-    const amrex::FArrayBox & /*sol*/, Location /*loc*/,
-    int /*face_only*/) const
+    const amrex::FArrayBox & /*sol*/, Location /*loc*/, int /*face_only*/) const
 {
     // Single level: no inter-level fluxes are ever requested.
 }

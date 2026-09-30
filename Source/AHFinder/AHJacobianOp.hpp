@@ -22,7 +22,7 @@
 // over the theta/phi ring grid, with J the frozen-metric Jacobian applied
 // through a finite-difference directional derivative. This class plugs that
 // operator into AMReX's MLMG framework so the system can be solved by a
-// matrix-free BiCGStab (see AHFinder::find()).
+// matrix-free GMRES (amrex::GMRESMLMG, see AHFinder::find()).
 //
 // The ring grid is laid out as a single-level, cell-centred domain of shape
 // (n_rings, ring_size, 1): dimension 0 is latitude (theta), dimension 1 is
@@ -79,8 +79,7 @@ class AHJacobianOp : public amrex::MLCellLinOp
 
     // Gather the owned cells of mf into a complete flat vector: every rank
     // holds the full result after the reduction.
-    void mf_to_flat(const amrex::MultiFab &mf,
-                    std::vector<double> &flat) const;
+    void mf_to_flat(const amrex::MultiFab &mf, std::vector<double> &flat) const;
 
   protected:
     // No-op boundary fill. Fapply reconstructs the complete input from valid
@@ -93,14 +92,25 @@ class AHJacobianOp : public amrex::MLCellLinOp
                  const amrex::MLMGBndryT<amrex::MultiFab> *bndry = nullptr,
                  bool skip_fillboundary = false) const override;
 
+    // Nothing to mask: every cell of the ring grid is a solved-for unknown.
+    // The domain BCs are Neumann (theta and the degenerate z) and periodic
+    // (phi), so there are no Dirichlet cells for GMRES to zero out of the
+    // residual. The base-class default is also a no-op, but it warns once per
+    // GMRESMLMG::solve() -- i.e. once per PTC step -- so override it.
+    void setDirichletNodesToZero(int /*amrlev*/, int /*mglev*/,
+                                 amrex::MultiFab & /*mf*/) const override
+    {
+    }
+
     // out = (I/dt + J) in. Reconstructs the complete input via mf_to_flat,
     // runs the bound mat-vec, and scatters the result back. The applyBC() that
     // MLCellLinOp runs before this only touches ghost cells, which are ignored.
     void Fapply(int amrlev, int mglev, amrex::MultiFab &out,
                 const amrex::MultiFab &in) const override;
 
-    // Never invoked: with coarsening disabled the single-level V-cycle calls
-    // the bottom solver directly and does no relaxation sweeps.
+    // Never invoked: GMRES runs unpreconditioned, so MLMG's V-cycle (and with
+    // it any relaxation sweep or bottom solve) is never entered -- the
+    // framework is only ever asked for a mat-vec.
     void Fsmooth(int amrlev, int mglev, amrex::MultiFab &sol,
                  const amrex::MultiFab &rhs, int redblack) const override;
 

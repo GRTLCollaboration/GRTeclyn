@@ -33,10 +33,31 @@ class AHFinder : public ParticleInterpolator<num_components>
     // in dt, and the magnitude of theta below which the SER ratio is not
     // trusted. Not input parameters: these are guard rails on the adaptive
     // timestep rather than knobs to tune per run.
+    //
+    // m_dt_shrink is what dt is multiplied by when the line search fails
+    // outright. That failure means no step length along delta_h helps, i.e.
+    // the direction itself is ascent, so dt has to fall far enough to change
+    // the direction in one go; shrinking gently just makes the solver ratchet
+    // down over several iterations, each costing a full GMRES solve. It is
+    // also the lower clamp on the SER ratio in update_dt(), but that clamp
+    // cannot bind for r >= 1: update_dt() is only reached on an accepted full
+    // step, where theta_new < theta_old and so the ratio exceeds r.
     amrex::Real m_min_dt;
     amrex::Real m_dt_shrink;
     amrex::Real m_dt_grow;
     amrex::Real m_theta_floor;
+
+    // Factor by which the line search shortens the step length alpha on each
+    // backtrack. Also a guard rail rather than a tuning knob; how many times
+    // it may be applied is the max_backtracks input parameter.
+    amrex::Real m_backtrack_factor;
+
+    // Safety factor in the gate on measure_newton_shift(): c is re-measured
+    // once 1/dt falls below m_shift_gate_margin * c, i.e. one factor of two
+    // before the shift can actually influence the step. Also a guard rail
+    // rather than a knob -- c climbs monotonically in every case measured, so
+    // the margin only has to cover one step's worth of that drift.
+    amrex::Real m_shift_gate_margin;
 
     // Coords for particleinterpolator query
     std::vector<double> interp_coords_x{};
@@ -61,7 +82,7 @@ class AHFinder : public ParticleInterpolator<num_components>
     // reads the latest values without a separate copy.
     std::vector<Tensor::Rank2> m_gamma_LL{};
 
-    // Matrix-free Jacobian operator (I/dt + J) for the per-step BiCGStab
+    // Matrix-free Jacobian operator (I/dt + J) for the per-step GMRES
     // solve, and the state the operator's mat-vec closes over: the residual
     // Theta(h_n) frozen at the current surface and the current pseudo-timestep.
     std::unique_ptr<AHJacobianOp> m_jac_op;
@@ -70,9 +91,25 @@ class AHFinder : public ParticleInterpolator<num_components>
 
     // Output arrays for interpolation queries
     std::array<std::vector<double>, 14> m_metric_state{};
-    std::array<std::vector<double>, 7> m_metric_dx{};
-    std::array<std::vector<double>, 7> m_metric_dy{};
-    std::array<std::vector<double>, 7> m_metric_dz{};
+    // First derivatives. theta_from_metric() only reads the first 7 (chi and
+    // h_ij, which build the Christoffels); the analytic shift additionally
+    // needs d_k of K and A_ij, hence 14 rather than 7.
+    std::array<std::vector<double>, 14> m_metric_dx{};
+    std::array<std::vector<double>, 14> m_metric_dy{};
+    std::array<std::vector<double>, 14> m_metric_dz{};
+
+    // Second derivatives d_j d_k of chi and h_ij, symmetric in (j, k) and
+    // indexed by sym2_idx() in the order xx, yy, zz, xy, xz, yz. Only filled
+    // when ah_finder.newton_shift_analytic is set: they are what lets the
+    // radial transport below move the *first* derivatives that
+    // theta_from_metric() reads, not just the values.
+    std::array<std::array<std::vector<double>, 7>, 6> m_metric_d2{};
+
+    // Flat index into m_metric_d2 for the symmetric derivative pair (j, k).
+    static constexpr int sym2_idx(int j, int k)
+    {
+        return (j == k) ? j : (2 + j + k);
+    }
 
     // Split up queries num_components doubles as both the
     // query's flat scratch-array size and the number of contiguous grid
@@ -80,8 +117,47 @@ class AHFinder : public ParticleInterpolator<num_components>
     // count can't exceed the simulation's total number of state variables.
     InterpolationQueryParticle m_metric_query_state;
     InterpolationQueryParticle m_metric_query_deriv;
+    // Only issued by interpolate_shift_data(), for the analytic shift: d_k of
+    // K and A_ij, and the six second derivatives of chi and h_ij split across
+    // two queries to stay inside the num_components entry limit.
+    InterpolationQueryParticle m_metric_query_deriv2;
+    InterpolationQueryParticle m_metric_query_d2a;
+    InterpolationQueryParticle m_metric_query_d2b;
 
     std::vector<double> m_theta_vals{};
+
+    // Whether the mat-vec re-interpolates the metric for the PTC step now in
+    // progress. Set once per step by the unfreeze policy (see
+    // AHFinderParameters) and held constant for the whole GMRES solve, so the
+    // Krylov method always sees a single consistent linear operator.
+    bool m_unfreeze_now{};
+
+    // Number of PTC steps that used the exact (unfrozen) Jacobian, and the
+    // number that actually re-measured c rather than reusing the last value.
+    long m_n_unfrozen_steps{};
+    long m_n_shift_measured{};
+
+    // The shift c currently capping dt at 1/c, either the fixed
+    // ah_finder.newton_shift or the value measured this step. 0 when the cap
+    // is disabled.
+    double m_newton_shift{};
+
+    // The per-particle diagonal c(x) measured this step, of which
+    // m_newton_shift is the mean. Filled by measure_newton_shift(); only read
+    // by the mat-vec when ah_finder.newton_shift_diagonal is set, in which case
+    // the scalar dt cap is dropped in its favour.
+    std::vector<double> m_newton_shift_diag{};
+
+    // Cost counters for the two kernels the PTC step is built from, reported
+    // at the end of find(). interpolate_metric() is the expensive one (particle
+    // placement, two interpolator queries, an MPI reduce); theta_from_metric()
+    // is local tensor algebra plus one reduce. Which of them dominates depends
+    // entirely on ah_finder.unfreeze_jacobian: frozen, the metric is
+    // interpolated once per PTC step; unfrozen, once per Krylov iteration.
+    long m_n_interp{};
+    long m_n_theta{};
+    double m_t_interp{};
+    double m_t_theta{};
 
     static int local_count(int num_particles)
     {
@@ -126,6 +202,31 @@ class AHFinder : public ParticleInterpolator<num_components>
     void theta_from_metric(const std::vector<double> &h,
                            std::vector<double> &theta_out);
 
+    // Apply the finite-difference directional derivative J v about the current
+    // surface m_state.h, with the metric either frozen at h_n or
+    // re-interpolated at the perturbed surface. Shared by the GMRES mat-vec and
+    // the spectral probe; the I/dt term is *not* included.
+    void jacobian_apply(const std::vector<double> &v, bool unfreeze,
+                        std::vector<double> &jv);
+
+    // Rayleigh-quotient probe of the frozen and unfrozen Jacobians on a few
+    // low-order modes, printed when ah_finder.jacobian_diagnostic is set.
+    void jacobian_diagnostic(int n_iter);
+
+    // Estimate the constant shift c in J_exact ~= J_frozen + c I at the current
+    // surface, from the l=0 mode. Costs two metric interpolations.
+    double measure_newton_shift(int n_iter);
+
+    // Interpolate the extra derivative data the analytic shift needs, at the
+    // particle positions the last interpolate_metric() already placed.
+    void interpolate_shift_data();
+
+    // Same quantity as measure_newton_shift(), but obtained by transporting the
+    // frozen fields to the displaced radius with their own derivatives instead
+    // of re-interpolating at a perturbed surface. Costs three partial queries
+    // and two theta evaluations rather than two full metric interpolations.
+    double measure_newton_shift_analytic(int n_iter);
+
     double inf_norm(std::vector<double>);
 
   public:
@@ -145,7 +246,8 @@ class AHFinder : public ParticleInterpolator<num_components>
           m_geometry(num_particles, center, guess_radius),
           m_gamma_LL(num_particles), m_theta_n(num_particles),
           m_metric_query_state(m_n_local), m_metric_query_deriv(m_n_local),
-          m_theta_vals(num_particles)
+          m_metric_query_deriv2(m_n_local), m_metric_query_d2a(m_n_local),
+          m_metric_query_d2b(m_n_local), m_theta_vals(num_particles)
     {
     }
 

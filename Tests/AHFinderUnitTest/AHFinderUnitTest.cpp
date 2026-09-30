@@ -87,12 +87,35 @@ void run_ah_finder_unit_test()
                               << n_local << " LOCAL particles \n";
         }
 
-        // Search for the individual horizon around puncture A.
+        // By default, search for the individual horizon around puncture A.
+        // test.ah_offset / test.ah_guess_radius override this, which is how the
+        // common horizon of a close binary is targeted instead -- see
+        // docs/ah_finder_implicit_ptc.md.
         BoostedBHInitialData::params_t bh1_params(1);
         bh1_params.fill_params();
 
-        amrex::Real guess_radius = 0.5 * bh1_params.mass;
-        AHFinder<21> finder(num_particles, bh1_params.center, guess_radius);
+        std::array<double, AMREX_SPACEDIM> ah_center = bh1_params.center;
+        amrex::Real guess_radius                     = 0.5 * bh1_params.mass;
+
+        // test.ah_offset is measured from the domain centre, the same
+        // convention as bh1.offset / bh2.offset, so (0,0,0) is the midpoint of
+        // the binary and targets the common horizon.
+        std::vector<amrex::Real> ah_offset;
+        if (pp.queryarr("test.ah_offset", ah_offset) &&
+            ah_offset.size() == AMREX_SPACEDIM)
+        {
+            GRParmParse geom_pp("geometry");
+            std::array<amrex::Real, AMREX_SPACEDIM> domain_center{};
+            geom_pp.get("center", domain_center);
+
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            {
+                ah_center[i] = domain_center[i] + ah_offset[i];
+            }
+        }
+        pp.query("test.ah_guess_radius", guess_radius);
+
+        AHFinder<21> finder(num_particles, ah_center, guess_radius);
 
         finder.init(&gr_amr);
         finder.find();

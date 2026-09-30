@@ -16,8 +16,11 @@ amr.plot_int = -1
 bh1.mass = 0.5
 bh2.mass = 0.5
 
-bh1.offset = -1.0 0.0 0.0
-bh2.offset =  1.0 0.0 0.0
+# Punctures at +-0.2, close enough that the only horizon is the common one.
+# For the individual-horizon case instead use +-1.0 with the ah_offset /
+# ah_guess_radius at the bottom of this file changed to match.
+bh1.offset = -0.2 0.0 0.0
+bh2.offset = 0.2 0.0 0.0
 
 bh1.momentum = 0.0 0.0 0.0
 bh2.momentum = 0.0 0.0 0.0
@@ -25,7 +28,7 @@ bh2.momentum = 0.0 0.0 0.0
 #################################################
 # Grid parameters
 
-amr.n_cell = 64 64 64
+amr.n_cell = 128 128 128
 geometry.prob_extent = 8.0 8.0 8.0
 
 # We only need the first timestep's data, so never regrid
@@ -61,12 +64,65 @@ particle_interpolator.verbosity = false
 # with an SER rule so the method approaches Newton as the residual falls.
 
 # Convergence threshold on the inf-norm of Theta
-ah_finder.tolerance = 1e-4
+ah_finder.tolerance = 1e-10
 # Target growth factor of the adaptive pseudo-timestep: dt is scaled each step
 # by r * theta_old / theta_new
-ah_finder.r = 1.15
+ah_finder.r = 1.2
 # Maximum number of PTC iterations before find() gives up
 ah_finder.max_iter = 200
-# Relative and absolute tolerances for the per-step BiCGStab solve
+# Relative and absolute tolerances for the per-step GMRES solve
 ah_finder.linear_rel_tol = 1e-6
 ah_finder.linear_abs_tol = 0.0
+# Maximum GMRES iterations per PTC step (one Theta evaluation each)
+ah_finder.linear_max_iter = 1000
+# GMRES restart length
+ah_finder.linear_restart_length = 1000
+# Times the line search may halve the step length before rejecting the step
+ah_finder.max_backtracks = 4
+
+# Multiplier on the Brown-Saad finite-difference step of the Jacobian mat-vec
+ah_finder.fd_eps_scale = 1.0
+
+# Jacobian policy. By default the metric is frozen at h_n for the whole GMRES
+# solve, so the Jacobian omits the d(metric)/dh term: approximate but around
+# 50x cheaper. unfreeze_jacobian = 1 uses the exact Newton Jacobian on every
+# step; the two hybrid knobs below instead spend it only on selected steps.
+# All three are off by default: measured against the frozen Jacobian, the exact
+# one gives a *worse* step at every residual level tested (see
+# docs/ah_finder_implicit_ptc.md).
+ah_finder.unfreeze_jacobian = 0
+# Use the exact Jacobian every Nth PTC step (0 disables)
+ah_finder.unfreeze_every = 0
+# Use the exact Jacobian on the step after a rejected one (0 or 1)
+ah_finder.unfreeze_on_reject = 0
+
+# Rayleigh-quotient probe of the frozen vs unfrozen Jacobian each step
+ah_finder.jacobian_diagnostic = 0
+
+# Newton at frozen cost: cap dt at 1/newton_shift, where c = newton_shift is the
+# constant in J_exact ~= J_frozen + c I. 0 disables the cap.
+ah_finder.newton_shift = 0.0
+# Measure c each step instead of using the fixed value above (0 or 1)
+ah_finder.newton_shift_auto = 1
+# Apply the measured c(x) as a diagonal, max(1/dt, c(x_ip)), instead of capping
+# dt at 1/mean(c). Needed here: on a close binary the spread of c across the
+# surface is comparable to its mean, and the scalar reading takes 84 iterations
+# against 22 for the diagonal.
+ah_finder.newton_shift_diagonal = 1
+
+# Which surface to search for. ah_offset is measured from geometry.center, the
+# same convention as bh1.offset / bh2.offset, so 0 0 0 is the midpoint of the
+# binary and targets the common horizon. For the individual horizon around
+# puncture 1 use -1.0 0.0 0.0 with guess radius 0.25 (and offsets +-1.0 above).
+test.ah_offset = 0.0 0.0 0.0
+# Total mass is 1.0, so the common horizon sits near coordinate radius 0.5.
+# Guess small rather than large: the horizon's basin of attraction ends at
+# r* = M(1 + sqrt(3)/2) ~ 1.87 M, beyond which dTheta/dr flips sign and no step
+# can recover -- see docs/ah_finder_implicit_ptc.md.
+test.ah_guess_radius = 0.5
+
+# Compute c by transporting the frozen fields to the displaced radius with
+# their own derivatives instead of re-interpolating the metric at a perturbed
+# surface. Agrees with the interpolating route to ~1e-8 and costs roughly half
+# as much; off by default only because it is the newer path.
+ah_finder.newton_shift_analytic = 1
