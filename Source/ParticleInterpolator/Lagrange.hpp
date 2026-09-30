@@ -348,7 +348,7 @@ template <int N> class Lagrange
             {
                 const int comp = comps[j].comp;
 
-                val[counter] = amrex::ParticleReal(0.0);
+                val[counter] = static_cast<amrex::ParticleReal>(0.0);
 
 #if AMREX_SPACEDIM == 3
                 for (int kk = 0; kk < N; ++kk)

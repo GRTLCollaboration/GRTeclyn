@@ -33,9 +33,9 @@ class PolynomialDerivedQuantity
         }
     }
 
-    static inline const std::string name = "polynomial";
+    static constexpr const char *name = "polynomial";
 
-    static inline const amrex::Vector<std::string> var_names = {"pol"};
+    static amrex::Vector<std::string> var_names() { return {"pol"}; }
 
     // register with AMReX derive list
     AMREX_FORCE_INLINE static void set_up(int a_state_index)
@@ -43,7 +43,7 @@ class PolynomialDerivedQuantity
         const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
         auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
 
-        derive_lst.add(name, amrex::IndexType::TheCellType(), 1, var_names,
+        derive_lst.add(name, amrex::IndexType::TheCellType(), 1, var_names(),
                        compute_mf, amrex::DeriveRec::TheSameBox,
                        &amrex::cell_quartic_interp);
 
