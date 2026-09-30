@@ -63,9 +63,9 @@ class ParticleInterpolator
 
     bool m_particles_populated{false};
     std::vector<int>
-        m_last_redistribute_step{}; // a vector to keep the steps at which
-                                    // redistribute happended (this is a vector
-                                    // of values stored for all levels)
+        m_last_redistribute_step; // a vector to keep the steps at which
+                                  // redistribute happended (this is a vector
+                                  // of values stored for all levels)
     bool m_need_redistribute{true};
 
     // dx on level 0
@@ -86,13 +86,13 @@ class ParticleInterpolator
     // mpi stuff
     MPIContextParticle m_mpi;
 
-    std::vector<int> m_answer_idx{}; // indices of the answers (send buffers)
+    std::vector<int> m_answer_idx; // indices of the answers (send buffers)
     std::vector<std::vector<amrex::ParticleReal>>
-        m_answer_data{}; // send buffers on the answering rank
+        m_answer_data; // send buffers on the answering rank
 
-    std::vector<int> m_query_idx{}; // indices of query (receiving buffers)
+    std::vector<int> m_query_idx; // indices of query (receiving buffers)
     std::vector<std::vector<amrex::ParticleReal>>
-        m_query_data{}; // receive buffers on the query rank
+        m_query_data; // receive buffers on the query rank
 
     // a parity helper (the same way as it was defined in the AMRInterpolator)
     [[nodiscard]] int
@@ -129,8 +129,8 @@ class ParticleInterpolator
   public:
 
     using Base         = amrex::ParticleContainer<0, 0, num_components, 0>;
-    using ParIterType  = typename Base::ParIterType;
-    using ParticleType = typename Base::ParticleType;
+    using ParIterType  = Base::ParIterType;
+    using ParticleType = Base::ParticleType;
     using Base::Base;
 
     ParticleInterpolator() = default; // default constructible

@@ -155,9 +155,9 @@ template <int N> class Lagrange
     {
         for (int j = 0; j < N; ++j)
         {
-            weights[j] = amrex::Real(0.0);
+            weights[j] = static_cast<amrex::Real>(0.0);
 
-            auto den = amrex::Real(1.0);
+            auto den = static_cast<amrex::Real>(1.0);
             for (int i = 0; i < N; ++i)
             {
                 if (i != j)
@@ -184,7 +184,7 @@ template <int N> class Lagrange
                         continue;
                     }
 
-                    auto num = amrex::Real(1.0);
+                    auto num = static_cast<amrex::Real>(1.0);
 
                     for (int i = 0; i < N; ++i)
                     {
@@ -227,14 +227,17 @@ template <int N> class Lagrange
         // Compute the grid index of the position
         AMREX_D_TERM(
             amrex::Real xpos =
-                (amrex::Real(par.pos(0)) - plo[0]) * dxi[0] -
-                static_cast<amrex::Real>(!is_nodal[0]) * amrex::Real(0.5);
+                (static_cast<amrex::Real>(par.pos(0)) - plo[0]) * dxi[0] -
+                static_cast<amrex::Real>(!is_nodal[0]) *
+                    static_cast<amrex::Real>(0.5);
             , amrex::Real ypos =
-                  (amrex::Real(par.pos(1)) - plo[1]) * dxi[1] -
-                  static_cast<amrex::Real>(!is_nodal[1]) * amrex::Real(0.5);
+                  (static_cast<amrex::Real>(par.pos(1)) - plo[1]) * dxi[1] -
+                  static_cast<amrex::Real>(!is_nodal[1]) *
+                      static_cast<amrex::Real>(0.5);
             , amrex::Real zpos =
-                  (amrex::Real(par.pos(2)) - plo[2]) * dxi[2] -
-                  static_cast<amrex::Real>(!is_nodal[2]) * amrex::Real(0.5););
+                  (static_cast<amrex::Real>(par.pos(2)) - plo[2]) * dxi[2] -
+                  static_cast<amrex::Real>(!is_nodal[2]) *
+                      static_cast<amrex::Real>(0.5););
 
         build_stencil(xpos, i0, weights_local[0], lo_reflective[0],
                       hi_reflective[0], domain_ncell[0], 0);
