@@ -32,16 +32,15 @@ class InterpolationQueryParticle
     };
 
     using comp_map_t = std::map<Derivative, std::vector<out_t>>;
-    using iterator =
-        typename std::map<Derivative, std::vector<out_t>>::const_iterator;
+    using iterator   = std::map<Derivative, std::vector<out_t>>::const_iterator;
 
   private:
     template <int num_components> friend class ParticleInterpolator;
 
     size_t m_num_points;
     std::array<const amrex::ParticleReal *, AMREX_SPACEDIM> m_coords{};
-    comp_map_t m_comps{};
-    std::set<int> m_unique_comps{};
+    comp_map_t m_comps;
+    std::set<int> m_unique_comps;
     VariableType m_variable_type{}; // for a given InterpolationQueryParticle
                                     // the variable type must be the same!
     bool m_variable_type_set =
@@ -119,7 +118,8 @@ class InterpolationQueryParticle
                          .first;
         }
 
-        result->second.push_back(out_t{comp, out_ptr, parity});
+        result->second.push_back(
+            out_t{.comp = comp, .out_data_ptr = out_ptr, .parity = parity});
         m_unique_comps.insert(comp);
         return *this;
     }
