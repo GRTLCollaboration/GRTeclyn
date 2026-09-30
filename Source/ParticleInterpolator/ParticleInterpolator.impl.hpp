@@ -355,7 +355,7 @@ void ParticleInterpolator<num_components>::interp(
 {
     AMREX_ASSERT(m_initialized);
 
-    if (query.numComps() > num_components)
+    if (query.numComps() != num_components)
     {
         std::string msg =
             "ParticleInterpolator::interp() Oi oi oi! Your query asks for " +
@@ -666,7 +666,7 @@ void ParticleInterpolator<num_components>::exchange_answers()
 
     // exchange values for each component
     MPI_Datatype mpi_real =
-        amrex::ParallelDescriptor::Mpi_typemap<amrex::Real>::type();
+        amrex::ParallelDescriptor::Mpi_typemap<amrex::ParticleReal>::type();
 
     for (int k = 0; k < num_components; ++k)
     {
