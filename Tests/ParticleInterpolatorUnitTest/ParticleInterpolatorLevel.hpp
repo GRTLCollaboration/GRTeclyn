@@ -37,6 +37,8 @@ class ParticleInterpolatorLevel : public GRAmrLevel
         auto const &geom       = Geom();
         auto const prob_lo     = geom.ProbLoArray();
         auto const dx          = geom.CellSizeArray();
+        // a second, non-contiguous state component to interpolate
+        const int c_polystate2 = c_phi;
 
         std::array<amrex::Real, AMREX_SPACEDIM> center{
             AMREX_D_DECL(0., 0., 0.)};
@@ -52,10 +54,12 @@ class ParticleInterpolatorLevel : public GRAmrLevel
                 const auto &array = arrs[box_no];
 
                 // compute coordinates
+                amrex::Real y = prob_lo[1] + (j + 0.5) * dx[1] - center[1];
                 amrex::Real z = prob_lo[2] + (k + 0.5) * dx[2] - center[2];
 
                 // write in
-                array(i, j, k, c_polystate) = z * z * z;
+                array(i, j, k, c_polystate)  = z * z * z;
+                array(i, j, k, c_polystate2) = y * y * y;
             });
 
         amrex::Gpu::streamSynchronize();
