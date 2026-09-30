@@ -88,9 +88,9 @@ void ScalarFieldLevel::specific_post_timestep()
         amrex::MultiFab &state_new = get_new_data(state_index);
 
         SpectralWishes<ScalarFieldLevel::ScalarFieldWithPotential<>>
-            my_spectral_wishes(state_index, time, Level());
-        const amrex::Real mean = my_spectral_wishes.compute_variance(
-            get_scalar_field_amr_ptr(), state_new);
+            my_spectral_wishes(state_index, time, Level(), state_new.nGrow());
+        const amrex::Real result =
+            my_spectral_wishes.compute(get_scalar_field_amr_ptr());
     }
 }
 
