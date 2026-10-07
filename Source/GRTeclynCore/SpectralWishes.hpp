@@ -13,22 +13,6 @@
 
 #include "GRParmParse.hpp"
 
-// struct SpectralOptions
-// {
-
-//     AMREX_ENUM_IN_CLASS(Op, Mean, Variance);
-
-//     static std::string get_name(Op op)
-//     {
-//         return amrex::getEnumNameString(hero);
-//     }
-
-//     static Op get_op(std::string_view name) { return
-//     amrex::getEnum<Op>(name); }
-
-//     Op m_operation;
-// };
-
 template <class matter_t> class SpectralWishes
 {
   public:
@@ -37,20 +21,17 @@ template <class matter_t> class SpectralWishes
 
     //! Constructor
     SpectralWishes(int state_index, const amrex::Real time, int lev, int ngrow)
+        : m_time(time), m_lev(lev), m_state_index(state_index), m_ngrow(ngrow)
     {
-        m_time        = time;
-        m_lev         = lev;
-        m_state_index = state_index;
-        m_ngrow       = ngrow;
         fill_params();
     };
 
     void fill_params(void)
     {
-        GRParmParse scalar_field_pp("scalar_field");
+        GRParmParse spectral_wishes_pp("spectral_wishes");
 
-        scalar_field_pp.query("wish_op", m_operation);
-        scalar_field_pp.query("wish_var", m_var_name);
+        spectral_wishes_pp.query("operation", m_operation);
+        spectral_wishes_pp.query("variable_name", m_var_name);
     };
     //! Main compute function wrapper (that calls specific compute function)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real compute(GRAmr *gramr_ptr);
@@ -67,11 +48,12 @@ template <class matter_t> class SpectralWishes
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real get_ncomp();
 
   protected:
-    matter_t m_matter;  //!< The matter object, e.g. a scalar field
-    amrex::Real m_time; // Time as measured by AmrLevel
-    int m_lev;          // AMR level
+    matter_t m_matter;        //!< The matter object, e.g. a scalar field
+    const amrex::Real m_time; // Time as measured by AmrLevel
+    const int m_lev;          // AMR level
     int m_state_index;
-    int m_ngrow; // Number of ghost cells to use in Spectral Wish calculation,
+    const int
+        m_ngrow; // Number of ghost cells to use in Spectral Wish calculation,
                  // should match what is used in the state MF in most cases.
     std::string m_var_name;  // The variable you wish to operate on
     std::string m_operation; // The operation e.g. mean, variance.

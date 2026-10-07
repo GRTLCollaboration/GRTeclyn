@@ -91,6 +91,8 @@ void ScalarFieldLevel::specific_post_timestep()
             my_spectral_wishes(state_index, time, Level(), state_new.nGrow());
         const amrex::Real result =
             my_spectral_wishes.compute(get_scalar_field_amr_ptr());
+
+        amrex::Print() << "Spectral Wishes result: " << result << "\n";
     }
 }
 

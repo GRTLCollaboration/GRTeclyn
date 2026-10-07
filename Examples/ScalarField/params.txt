@@ -30,8 +30,9 @@ amr.derive_plot_vars = constraints
 # scalar_field.G_Newton = 1.0
 # scalar_field.scalar_mass = 1.0
 
-scalar_field.wish_op = Variance
-scalar_field.wish_var = Ham
+
+spectral_wishes.operation = Variance
+spectral_wishes.variable_name = Ham
 
 #################################################
 # Grid parameters
