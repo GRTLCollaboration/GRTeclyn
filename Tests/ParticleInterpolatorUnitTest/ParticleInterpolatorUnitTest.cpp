@@ -30,7 +30,6 @@
 
 // Problem specific includes
 #include "Derivative.hpp"
-#include "DerivativeSetup.hpp"
 #include "ParticleInterpolator.hpp"
 #include "ParticleInterpolatorLevel.hpp"
 #include "PolynomialDerivedQuantity.hpp"
