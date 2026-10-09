@@ -107,7 +107,7 @@ The template parameter `num_components` must correspond to the number of compone
 
 !!! note
     If you wish to interpolate derivatives they count as
-    their own component: For example if you want to interpolate chi, the first derivative of chi and h_11 the value of num_components should be 3.
+    their own component: for example, if you want to interpolate $\chi$, the first derivative of $\chi$ and $h_{11}$ the value of ```num_components``` should be 3.
 
 ### Performing the interpolation
 
