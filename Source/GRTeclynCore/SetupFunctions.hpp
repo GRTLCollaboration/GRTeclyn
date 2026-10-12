@@ -9,7 +9,6 @@
 // set up the runs but aren't very interesting for the normal user.
 
 // xxxxx various setups
-#include "DerivativeSetup.hpp"
 #include "FilesystemTools.hpp"
 #include "GRAmr.hpp"
 #include "GRParmParse.hpp"

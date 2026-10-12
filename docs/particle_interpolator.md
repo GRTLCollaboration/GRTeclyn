@@ -2,24 +2,23 @@
 
 ## Overview
 
-GRTeclyn uses AMReX particles to interpolate evolved fields on the computational grid. Particles are placed at the positions where interpolation is required and the field values are then interpolated to those particle locations. In this sense, the particles act as special data containers storing the interpolated values. The reason for using particles is that it lets us reuse AMReX's existing machinery for locating interpolation points on the AMR grid, rather than implementing this logic ourselves. In particular, AMReX determines which AMR level and grid contains each particle and which MPI rank owns it. During `Redistribute()`, AMReX also handles the MPI communication required to move particles to the appropriate ranks. This significantly reduces the amount of parallel book-keeping required in GRTeclyn.
+GRTeclyn uses AMReX particles to interpolate evolved fields on the computational grid and their derivatives. Particles are placed at the positions where interpolation is required and the field values are then interpolated to those particle locations. In this sense, the particles act as special data containers storing the interpolated values. The reason for using particles is that it lets us reuse AMReX's existing machinery for locating interpolation points on the AMR grid, rather than implementing this logic ourselves. In particular, AMReX determines which AMR level and grid contains each particle and which MPI rank owns it. During `Redistribute()`, AMReX also handles the MPI communication required to move particles to the appropriate ranks. This significantly reduces the amount of parallel book-keeping required in GRTeclyn.
 
 If you are not familiar with the AMReX particle interface, see the [AMReX particle documentation](https://amrex-codes.github.io/amrex/docs_html/Particle.html).
 
 Interpolation is performed using a [Lagrange interpolation](https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/ParticleInterpolator/Lagrange.hpp) algorithm of arbitrary order, with fourth-order interpolation typically used by default. AMReX particles support several possible memory layouts for particle data. In GRTeclyn, interpolated values are stored using a **Struct-of-Arrays (SoA)** layout.
 
+!!! note
+    Interpolation of derivatives is performed by analytically differentiating the interpolating polynomial and applying the resulting interpolation stencil to the grid data. As such, interpolated derivatives will be of lower order accuracy. If the Lagrange is requested with a fourth-order polynomial, interpolated variables witll be fifth-order accurate, first and mixed second (e.g. dxdy) derivatives will be fourth-order accurate, and non-mixed second derivatives (e.g. dxdx) will be third-order.
+
 The main class used for interpolation in GRTeclyn is `ParticleInterpolator`. This class is templated over the number of components, i.e. the number of variables to be interpolated. It handles the interpolation logic, boundary conditions treatment, interaction between the particles and the mesh data and many other things. If you ever end up using interpolation for your example,`ParticleInterpolator` is one of the classes you will need to interact directly with, in addition to the `InterpolationQueryParticle` class, which set-ups the information about the interpolation query. See the section below for more information on how to get started.
 
-!!! warning
+!!! tip
 
-    Currently, `ParticleInterpolator` supports interpolation of multiple
-    components only when they are in the **contiguous** order!
+    Our `ParticleInterpolator` supports interpolation of multiple
+    components, even when they are in the **non-contiguous** order!
 
-    For example, recall that state variables are assigned unique component indices in
-    [`CCZ4StateVariables.hpp`](https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/CCZ4/CCZ4StateVariables.hpp). Here, the conformal factor $\chi$ and the metric component
-    $h_{11}$ occupy consecutive component indices, so they can be interpolated
-    together. In contrast, $\chi$ and the extrinsic curvature $K$ cannot be
-    interpolated together, as their component indices are not contiguous!
+    Components refer to state, derived variables and their derivatives.
 
 !!! note
 
@@ -33,7 +32,13 @@ To use the particle interpolator, we first need to define an interpolation query
 
 1. where interpolation should take place (i.e. coordinate positions)
 2. which component(s) should be interpolated
-3. any additional information, such as whether the variable being interpolated is state or derived and the parity, if derived variable is queried.
+3. any additional information, such as:
+    - whether the variable being interpolated is state or derived,
+    - the parity, if derived variable is queried,
+    - optionally, the derivative of the variable you wish to interpolate. If not specified this will default to Derivative::LOCAL, giving the value of the component.
+
+!!! note
+    Only derivatives up to second order are supported.
 
 Queries are generated by the `InterpolationQueryParticle` class.
 
@@ -57,7 +62,7 @@ InterpolationQueryParticle query(2);
 query.setCoords(0, interp_x.data())
      .setCoords(1, interp_y.data())
      .setCoords(2, interp_z.data())
-     .addComp(0, out_interp, VariableType::state);
+     .addComp(0, out_interp, VariableType::state, Derivative::LOCAL);
 ```
 
 `VariableType::state` is the default variable type, so it may be omitted when appropriate.
@@ -72,7 +77,7 @@ The query for a derived variable is constructed in essentially the same way, but
 For example:
 
 ```cpp
-query.addComp(0, out_interp, VariableType::derived, BCParity::even);
+query.addComp(0, out_interp, VariableType::derived, BCParity::even, Derivative::dx);
 ```
 
 See the definition of [`InterpolationQueryParticle::addComp()`](https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/ParticleInterpolator/InterpolationQueryParticle.hpp#L65) for the complete list of arguments.
@@ -99,6 +104,10 @@ Here:
 * `verbosity` controls the amount of diagnostic output.
 
 The template parameter `num_components` must correspond to the number of components that will be interpolated. In this example, `num_components = 1`.
+
+!!! note
+    If you wish to interpolate derivatives they count as
+    their own component: for example, if you want to interpolate $\chi$, the first derivative of $\chi$ and $h_{11}$ the value of ```num_components``` should be 3.
 
 ### Performing the interpolation
 

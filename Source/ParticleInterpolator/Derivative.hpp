@@ -14,16 +14,20 @@
 class Derivative : public std::array<int, AMREX_SPACEDIM>
 {
   private:
-    Derivative(int dir) : array{AMREX_D_DECL(0, 0, 0)} { (*this)[dir] = 1; }
+    constexpr Derivative(int dir) noexcept : array{AMREX_D_DECL(0, 0, 0)}
+    {
+        (*this)[dir] = 1;
+    }
 
-    Derivative(int dir1, int dir2) : array{AMREX_D_DECL(0, 0, 0)}
+    constexpr Derivative(int dir1, int dir2) noexcept
+        : array{AMREX_D_DECL(0, 0, 0)}
     {
         (*this)[dir1] += 1;
         (*this)[dir2] += 1;
     }
 
   public:
-    Derivative() : array{AMREX_D_DECL(0, 0, 0)} {}
+    constexpr Derivative() noexcept : array{AMREX_D_DECL(0, 0, 0)} {}
 
     // Ordering for std::map
 
@@ -142,21 +146,18 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
     }
 };
 
-/* Moved to DerivativeSetup.hpp as otherwise multiply
- * defined in the various translaion units
+inline constexpr Derivative Derivative::LOCAL;
 
-const Derivative Derivative::LOCAL;
+inline constexpr Derivative Derivative::dx(0);
+inline constexpr Derivative Derivative::dy(1);
+inline constexpr Derivative Derivative::dz(2);
 
-const Derivative Derivative::dx(0);
-const Derivative Derivative::dy(1);
-const Derivative Derivative::dz(2);
+inline constexpr Derivative Derivative::dxdx(0, 0);
+inline constexpr Derivative Derivative::dydy(1, 1);
+inline constexpr Derivative Derivative::dzdz(2, 2);
 
-const Derivative Derivative::dxdx(0, 0);
-const Derivative Derivative::dydy(1, 1);
-const Derivative Derivative::dzdz(2, 2);
+inline constexpr Derivative Derivative::dxdy(0, 1);
+inline constexpr Derivative Derivative::dxdz(0, 2);
+inline constexpr Derivative Derivative::dydz(1, 2);
 
-const Derivative Derivative::dxdy(0, 1);
-const Derivative Derivative::dxdz(0, 2);
-const Derivative Derivative::dydz(1, 2);
-*/
 #endif /* DERIVATIVE_HPP_ */
