@@ -19,8 +19,7 @@
 #include <filesystem>
 #include <fstream>
 
-template <int num_components>
-void AHFinder<num_components>::init(GRAmr *gramr_ptr)
+inline void AHFinder::init(GRAmr *gramr_ptr)
 {
     // eta, c, tolerance, r and cfl_factor come from the "ah_finder" scope of
     // the input file; see AHFinderParameters.hpp for defaults and meaning.
@@ -43,7 +42,7 @@ void AHFinder<num_components>::init(GRAmr *gramr_ptr)
     this->set_particle_positions(m_state.h);
 }
 
-template <int num_components> void AHFinder<num_components>::find()
+inline void AHFinder::find()
 {
     // Create amrex time integrator
     // Allows for different (explicit) time stepping methods
@@ -150,8 +149,7 @@ template <int num_components> void AHFinder<num_components>::find()
     amrex::AllPrint() << " AHFinder irreducible mass = " << mass << "\n";
 }
 
-template <int num_components>
-void AHFinder<num_components>::init_particle_vals()
+inline void AHFinder::init_particle_vals()
 {
     const double r0 = m_geometry.guess_radius();
 
@@ -163,9 +161,7 @@ void AHFinder<num_components>::init_particle_vals()
     m_state.v.assign(m_num_particles, m_params.eta * r0);
 }
 
-template <int num_components>
-void AHFinder<num_components>::set_particle_positions(
-    const std::vector<double> &h)
+inline void AHFinder::set_particle_positions(const std::vector<double> &h)
 {
     const std::array<double, AMREX_SPACEDIM> &center = m_geometry.center();
 
@@ -185,9 +181,8 @@ void AHFinder<num_components>::set_particle_positions(
     }
 }
 
-template <int num_components>
-void AHFinder<num_components>::compute_rhs(AHState &rhs, AHState &state,
-                                           amrex::Real /* time */)
+inline void AHFinder::compute_rhs(AHState &rhs, AHState &state,
+                                  amrex::Real /* time */)
 {
     this->set_particle_positions(state.h);
 
@@ -205,11 +200,9 @@ void AHFinder<num_components>::compute_rhs(AHState &rhs, AHState &state,
     }
 }
 
-template <int num_components>
-amrex::Real
-AHFinder<num_components>::update_dt(amrex::Real dt, double theta_old,
-                                    double theta_new,
-                                    const std::vector<double> &h) const
+inline amrex::Real AHFinder::update_dt(amrex::Real dt, double theta_old,
+                                       double theta_new,
+                                       const std::vector<double> &h) const
 {
     // Update dt based on ratio of improvement of theta
 
@@ -233,8 +226,7 @@ AHFinder<num_components>::update_dt(amrex::Real dt, double theta_old,
     return dt;
 }
 
-template <int num_components>
-double AHFinder<num_components>::inf_norm(std::vector<double> arr)
+inline double AHFinder::inf_norm(std::vector<double> arr)
 {
     double max_el = std::abs(arr[0]);
     for (auto &&i : arr)
@@ -246,8 +238,7 @@ double AHFinder<num_components>::inf_norm(std::vector<double> arr)
     return max_el;
 }
 
-template <int num_components>
-void AHFinder<num_components>::setup_metric_query()
+inline void AHFinder::setup_metric_query()
 {
     for (auto &v : m_metric_state)
         v.resize(m_num_particles);
@@ -258,65 +249,61 @@ void AHFinder<num_components>::setup_metric_query()
     for (auto &v : m_metric_dz)
         v.resize(m_num_particles);
 
-    m_metric_query_state.setCoords(0, interp_coords_x.data() + m_start)
-        .setCoords(1, interp_coords_y.data() + m_start)
-        .setCoords(2, interp_coords_z.data() + m_start);
-    m_metric_query_deriv.setCoords(0, interp_coords_x.data() + m_start)
+    m_metric_query.setCoords(0, interp_coords_x.data() + m_start)
         .setCoords(1, interp_coords_y.data() + m_start)
         .setCoords(2, interp_coords_z.data() + m_start);
 
     // chi, h_ij, K, A_ij (values only).
-    m_metric_query_state.addComp(c_chi, m_metric_state[c_chi].data() + m_start,
-                                 VariableType::state);
+    m_metric_query.addComp(c_chi, m_metric_state[c_chi].data() + m_start,
+                           VariableType::state);
     FOR2_SYM(i, j)
     {
         int comp = sym_var_idx(c_h11, i, j);
-        m_metric_query_state.addComp(
-            comp, m_metric_state[comp].data() + m_start, VariableType::state);
+        m_metric_query.addComp(comp, m_metric_state[comp].data() + m_start,
+                               VariableType::state);
     }
-    m_metric_query_state.addComp(c_K, m_metric_state[c_K].data() + m_start,
-                                 VariableType::state);
+    m_metric_query.addComp(c_K, m_metric_state[c_K].data() + m_start,
+                           VariableType::state);
     FOR2_SYM(i, j)
     {
         int comp = sym_var_idx(c_A11, i, j);
-        m_metric_query_state.addComp(
-            comp, m_metric_state[comp].data() + m_start, VariableType::state);
+        m_metric_query.addComp(comp, m_metric_state[comp].data() + m_start,
+                               VariableType::state);
     }
 
-    m_metric_query_deriv.addComp(c_chi, m_metric_dx[c_chi].data() + m_start,
-                                 VariableType::state, BCParity::undefined,
-                                 Derivative::dx);
-    m_metric_query_deriv.addComp(c_chi, m_metric_dy[c_chi].data() + m_start,
-                                 VariableType::state, BCParity::undefined,
-                                 Derivative::dy);
-    m_metric_query_deriv.addComp(c_chi, m_metric_dz[c_chi].data() + m_start,
-                                 VariableType::state, BCParity::undefined,
-                                 Derivative::dz);
+    m_metric_query.addComp(c_chi, m_metric_dx[c_chi].data() + m_start,
+                           VariableType::state, BCParity::undefined,
+                           Derivative::dx);
+    m_metric_query.addComp(c_chi, m_metric_dy[c_chi].data() + m_start,
+                           VariableType::state, BCParity::undefined,
+                           Derivative::dy);
+    m_metric_query.addComp(c_chi, m_metric_dz[c_chi].data() + m_start,
+                           VariableType::state, BCParity::undefined,
+                           Derivative::dz);
     FOR2_SYM(i, j)
     {
         int comp = sym_var_idx(c_h11, i, j);
-        m_metric_query_deriv.addComp(comp, m_metric_dx[comp].data() + m_start,
-                                     VariableType::state, BCParity::undefined,
-                                     Derivative::dx);
-        m_metric_query_deriv.addComp(comp, m_metric_dy[comp].data() + m_start,
-                                     VariableType::state, BCParity::undefined,
-                                     Derivative::dy);
-        m_metric_query_deriv.addComp(comp, m_metric_dz[comp].data() + m_start,
-                                     VariableType::state, BCParity::undefined,
-                                     Derivative::dz);
+        m_metric_query.addComp(comp, m_metric_dx[comp].data() + m_start,
+                               VariableType::state, BCParity::undefined,
+                               Derivative::dx);
+        m_metric_query.addComp(comp, m_metric_dy[comp].data() + m_start,
+                               VariableType::state, BCParity::undefined,
+                               Derivative::dy);
+        m_metric_query.addComp(comp, m_metric_dz[comp].data() + m_start,
+                               VariableType::state, BCParity::undefined,
+                               Derivative::dz);
     }
 }
 
-template <int num_components>
-void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
+inline void AHFinder::compute_theta(const std::vector<double> &h)
 {
 
     m_geometry.set_h_derivatives(h);
 
     m_theta_vals.assign(m_num_particles, 0.0);
 
-    this->interp(m_metric_query_state, true);
-    this->interp(m_metric_query_deriv, false);
+    // Particle positions move with h, so refresh them on every call
+    this->interp(m_metric_query, true);
 
     amrex::GpuArray<const double *, 14> state_ptr;
     for (int c = 0; c < 14; ++c)

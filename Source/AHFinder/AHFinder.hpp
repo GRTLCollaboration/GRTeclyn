@@ -16,8 +16,13 @@
 #include "ParticleInterpolator.hpp"
 #include "Tensor.hpp"
 
-template <int num_components>
-class AHFinder : public ParticleInterpolator<num_components>
+// Number of components (including derivatives) the AHFinder needs to
+// interpolate to calculate the expansion
+// (values of chi, h_ij, K, A_ij: 14; first derivatives of chi, h_ij: 7 * 3 =
+// 21), all fetched in a single query
+static constexpr int ah_finder_num_components = 35;
+
+class AHFinder : public ParticleInterpolator<ah_finder_num_components>
 {
   private:
     int m_num_particles;
@@ -68,12 +73,9 @@ class AHFinder : public ParticleInterpolator<num_components>
     std::array<std::vector<double>, 7> m_metric_dy{};
     std::array<std::vector<double>, 7> m_metric_dz{};
 
-    // Split up queries num_components doubles as both the
-    // query's flat scratch-array size and the number of contiguous grid
-    // comps FillPatch fetches, so a query's total (comp, derivative) entry
-    // count can't exceed the simulation's total number of state variables.
-    InterpolationQueryParticle m_metric_query_state;
-    InterpolationQueryParticle m_metric_query_deriv;
+    // Single query for all metric values and derivatives; its total
+    // (comp, derivative) entry count must equal ah_finder_num_components.
+    InterpolationQueryParticle m_metric_query;
 
     std::vector<double> m_theta_vals{};
 
@@ -114,9 +116,9 @@ class AHFinder : public ParticleInterpolator<num_components>
 
   public:
 
-    using Base         = ParticleInterpolator<num_components>;
-    using ParIterType  = typename Base::ParIterType;
-    using ParticleType = typename Base::ParticleType;
+    using Base         = ParticleInterpolator<ah_finder_num_components>;
+    using ParIterType  = Base::ParIterType;
+    using ParticleType = Base::ParticleType;
     using Base::Base;
 
     AHFinder(int num_particles,
@@ -128,8 +130,8 @@ class AHFinder : public ParticleInterpolator<num_components>
           m_state(std::vector<double>(num_particles),
                   std::vector<double>(num_particles)),
           m_geometry(num_particles, center, guess_radius),
-          m_gamma_LL(num_particles), m_metric_query_state(m_n_local),
-          m_metric_query_deriv(m_n_local), m_theta_vals(num_particles)
+          m_gamma_LL(num_particles), m_metric_query(m_n_local),
+          m_theta_vals(num_particles)
     {
     }
 

@@ -92,7 +92,7 @@ void run_ah_finder_unit_test()
         bh1_params.fill_params();
 
         amrex::Real guess_radius = 0.5 * bh1_params.mass;
-        AHFinder<21> finder(num_particles, bh1_params.center, guess_radius);
+        AHFinder finder(num_particles, bh1_params.center, guess_radius);
 
         finder.init(&gr_amr);
         finder.find();
