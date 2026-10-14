@@ -237,6 +237,11 @@ void GRAmrLevel::post_init(amrex::Real /*stop_time*/)
 
 void GRAmrLevel::post_restart()
 {
+    // Levels are default-constructed when AMReX reads a checkpoint, so the
+    // geometry-dependent boundary data has not been initialised by the usual
+    // level constructor.
+    m_boundaries.define(Geom());
+
     if (Level() == 0)
     {
         get_gr_amr_ptr()->set_restart_time(get_gr_amr_ptr()->cumTime());
