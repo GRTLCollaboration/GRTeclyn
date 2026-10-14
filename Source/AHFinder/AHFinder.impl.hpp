@@ -21,8 +21,9 @@
 
 inline void AHFinder::init(GRAmr *gramr_ptr)
 {
-    // eta, c, tolerance, r and cfl_factor come from the "ah_finder" scope of
-    // the input file; see AHFinderParameters.hpp for defaults and meaning.
+    // eta, c, tolerance, r, cfl_factor, max_iter and max_stall_iter come from
+    // the "ah_finder" scope of the input file; see AHFinderParameters.hpp for
+    // defaults and meaning.
     m_params.fill_params();
 
     m_min_dt      = 1e-4;
@@ -96,7 +97,10 @@ inline void AHFinder::find()
 
     AHState new_state = m_state;
 
-    while (theta_old > m_params.tolerance)
+    // Number of consecutive iterations with dt at its minimum
+    int n_stall = 0;
+
+    while (theta_old > m_params.tolerance && n_iter < m_params.max_iter)
     {
         // Advance one pseudo-time step with the AMReX integrator.
         m_integrator->set_time_step(dt);
@@ -119,6 +123,8 @@ inline void AHFinder::find()
         dt = update_dt(dt, theta_old, theta_new, m_state.h);
         amrex::Print() << "dt = " << dt << "\n";
 
+        n_stall = (dt <= m_min_dt) ? n_stall + 1 : 0;
+
         theta_old = theta_new;
 
         n_iter++;
@@ -129,12 +135,29 @@ inline void AHFinder::find()
             dt_log << n_iter << "," << dt << std::endl;
         }
         write_particles(n_iter);
+
+        if (n_stall >= m_params.max_stall_iter)
+        {
+            amrex::Print()
+                << "\n AHFinder stalled: dt has been at its minimum ("
+                << m_min_dt << ") for " << n_stall
+                << " consecutive iterations\n";
+            break;
+        }
     }
 
     if (io_proc)
     {
         theta_log.close();
         dt_log.close();
+    }
+
+    if (theta_old > m_params.tolerance)
+    {
+        amrex::Print() << "\n AHFinder failed to converge in " << n_iter
+                       << " iterations, inf norm of theta = " << theta_old
+                       << "\n";
+        return;
     }
 
     amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "

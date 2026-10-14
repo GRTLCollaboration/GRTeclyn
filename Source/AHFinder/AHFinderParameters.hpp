@@ -20,8 +20,10 @@
 //   h_dot = v - eta * h
 //   v_dot = -c^2 * Theta
 // with Theta the expansion, until the inf-norm of Theta drops below
-// `tolerance`. The remaining timestepping bounds (m_min_dt, m_dt_shrink,
-// m_dt_grow, m_theta_floor) are still hard-coded in AHFinder::init().
+// `tolerance`, `max_iter` iterations have been taken, or the pseudo-timestep
+// has sat at its minimum for `max_stall_iter` consecutive iterations. The
+// remaining timestepping bounds (m_min_dt, m_dt_shrink, m_dt_grow,
+// m_theta_floor) are still hard-coded in AHFinder::init().
 struct ah_finder_params_t
 {
     // Damping coefficient eta. Too small and the surface rings; too large and
@@ -43,6 +45,15 @@ struct ah_finder_params_t
     // on the ring grid). Larger values let dt grow further before the cap
     // bites, at the cost of stability.
     amrex::Real cfl_factor{};
+
+    // Maximum number of pseudo-time iterations before find() gives up
+    // without convergence.
+    int max_iter{};
+
+    // Maximum number of consecutive iterations the pseudo-timestep may sit at
+    // its minimum (m_min_dt) before find() treats the solve as stalled and
+    // gives up without convergence.
+    int max_stall_iter{};
 
     static void check_params()
     {
@@ -83,6 +94,20 @@ struct ah_finder_params_t
         {
             ah_finder_pp.error("cfl_factor", "must be > 0");
         }
+
+        int max_iter = 200;
+        ah_finder_pp.queryAdd("max_iter", max_iter);
+        if (max_iter <= 0)
+        {
+            ah_finder_pp.error("max_iter", "must be > 0");
+        }
+
+        int max_stall_iter = 50;
+        ah_finder_pp.queryAdd("max_stall_iter", max_stall_iter);
+        if (max_stall_iter <= 0)
+        {
+            ah_finder_pp.error("max_stall_iter", "must be > 0");
+        }
     }
 
     void fill_params()
@@ -94,6 +119,8 @@ struct ah_finder_params_t
         ah_finder_pp.get("tolerance", tolerance);
         ah_finder_pp.get("r", r);
         ah_finder_pp.get("cfl_factor", cfl_factor);
+        ah_finder_pp.get("max_iter", max_iter);
+        ah_finder_pp.get("max_stall_iter", max_stall_iter);
     }
 };
 

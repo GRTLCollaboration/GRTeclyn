@@ -66,7 +66,9 @@ particle_interpolator.verbosity = false
 
 # The surface radius h is evolved as a damped wave,
 #   h_dot = v - eta * h,  v_dot = -c^2 * Theta,
-# until the inf-norm of the expansion Theta falls below the tolerance.
+# until the inf-norm of the expansion Theta falls below the tolerance (or
+# max_iter iterations have been taken, or dt has sat at its minimum for
+# max_stall_iter consecutive iterations).
 
 # Damping coefficient
 ah_finder.eta = 3.0
@@ -80,3 +82,8 @@ ah_finder.r = 1.15
 # Safety factor on the CFL cap: dt <= cfl_factor * (smallest spacing between
 # neighbouring points on the ring grid)
 ah_finder.cfl_factor = 7.0
+# Maximum number of pseudo-time iterations before giving up
+ah_finder.max_iter = 1000
+# Maximum number of consecutive iterations at the minimum pseudo-timestep
+# before the solve is treated as stalled
+ah_finder.max_stall_iter = 50
