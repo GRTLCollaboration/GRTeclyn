@@ -144,6 +144,43 @@ void run_coordinate_transformations_test()
         check_tensor(Mij_cart_UU_check, Mij_cart_UU,
                      "spherical_to_cartesian_UU");
 
+        // Test the symmetric transformations on a generic symmetric tensor
+        // with non-zero off-diagonal components (the flat metric above is
+        // diagonal in both coordinate systems so cannot detect errors in the
+        // off-diagonal components). Compare against the full Rank2
+        // transformations which compute the same contraction.
+        Tensor::Sym12Rank2 Nij{};
+        Nij(0, 0) = 1.3;
+        Nij(0, 1) = 0.7;
+        Nij(0, 2) = -0.4;
+        Nij(1, 1) = 2.1;
+        Nij(1, 2) = 0.9;
+        Nij(2, 2) = 1.6;
+
+        auto to_full = [](const Tensor::Sym12Rank2 &sym)
+        {
+            Tensor::Rank2 full{};
+            FOR (i, j)
+            {
+                full(i, j) = sym(i, j);
+            }
+            return full;
+        };
+        const Tensor::Rank2 Nij_full = to_full(Nij);
+
+        check_tensor(to_full(spherical_to_cartesian_LL(Nij, x, y, z)),
+                     transform_tensor_LL(Nij_full, jac),
+                     "spherical_to_cartesian_LL (generic)");
+        check_tensor(to_full(spherical_to_cartesian_UU(Nij, x, y, z)),
+                     transform_tensor_UU(Nij_full, inv_jac),
+                     "spherical_to_cartesian_UU (generic)");
+        check_tensor(to_full(cartesian_to_spherical_LL(Nij, x, y, z)),
+                     transform_tensor_LL(Nij_full, inv_jac),
+                     "cartesian_to_spherical_LL (generic)");
+        check_tensor(to_full(cartesian_to_spherical_UU(Nij, x, y, z)),
+                     transform_tensor_UU(Nij_full, jac),
+                     "cartesian_to_spherical_UU (generic)");
+
         // Test vector transformations
         Tensor::Rank1 si_cart{};
         si_cart(0) = x / r;

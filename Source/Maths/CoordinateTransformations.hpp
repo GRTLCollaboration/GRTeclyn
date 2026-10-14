@@ -100,7 +100,7 @@ spherical_to_cartesian_LL(const Tensor::Sym12Rank2 &spherical_g,
     Tensor::Rank2 jac = spherical_jacobian(x, y, z);
 
     // Convert the Tensor to cartesian coords
-    FOR (i, j)
+    FOR2_SYM(i, j)
     {
         FOR (k, l)
         {
@@ -126,7 +126,7 @@ spherical_to_cartesian_UU(const Tensor::Sym12Rank2 &spherical_g_UU,
     Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
 
     // Convert the Tensor to cartesian coords
-    FOR (i, j)
+    FOR2_SYM(i, j)
     {
         FOR (k, l)
         {
@@ -153,7 +153,7 @@ cartesian_to_spherical_LL(const Tensor::Sym12Rank2 &cartesian_g,
     Tensor::Rank2 inv_jac = inverse_spherical_jacobian(x, y, z);
 
     // Convert the Tensor to spherical coords
-    FOR (i, j)
+    FOR2_SYM(i, j)
     {
         FOR (k, l)
         {
@@ -179,7 +179,7 @@ cartesian_to_spherical_UU(const Tensor::Sym12Rank2 &cartesian_g_UU,
     Tensor::Rank2 jac = spherical_jacobian(x, y, z);
 
     // Convert the Tensor to spherical coords
-    FOR (i, j)
+    FOR2_SYM(i, j)
     {
         FOR (k, l)
         {
