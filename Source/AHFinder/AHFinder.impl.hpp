@@ -169,11 +169,11 @@ inline void AHFinder::find()
 
     // Report the converged surface's area and irreducible mass
     // (Christodoulou formula: M = sqrt(A / 16 pi)).
-    const amrex::Real area = m_geometry.area();
-    amrex::AllPrint() << " AHFinder surface area = " << area << "\n";
+    const amrex::Real area = m_geometry.area(m_start, m_n_local);
+    amrex::Print() << " AHFinder surface area = " << area << "\n";
 
     const amrex::Real mass = std::sqrt(area / (16.0 * M_PI));
-    amrex::AllPrint() << " AHFinder irreducible mass = " << mass << "\n";
+    amrex::Print() << " AHFinder irreducible mass = " << mass << "\n";
 }
 
 inline void AHFinder::init_particle_vals()

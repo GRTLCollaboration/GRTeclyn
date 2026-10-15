@@ -12,6 +12,8 @@
 
 #include "TensorAlgebra.hpp"
 
+#include <AMReX_ParallelDescriptor.H>
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -360,7 +362,7 @@ inline amrex::Real AHGeometry::root_det_q(int i, int j) const
 
 // integrtes : Area = integral dA
 // dA = root_q * dtheta * dphi
-inline amrex::Real AHGeometry::area()
+inline amrex::Real AHGeometry::area(int start, int count)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         m_h != nullptr && m_gamma_LL != nullptr,
@@ -370,14 +372,13 @@ inline amrex::Real AHGeometry::area()
     // vectors below can't be built from a stale surface
     set_h_gradients();
 
+    // Sum this rank's points, then add up the contributions from all ranks
     amrex::Real total = 0.0;
-    for (int i = 0; i < m_n_rings; ++i)
+    for (int idx = start; idx < start + count; ++idx)
     {
-        for (int j = 0; j < m_ring_size; ++j)
-        {
-            total += root_det_q(i, j);
-        }
+        total += root_det_q(idx / m_ring_size, idx % m_ring_size);
     }
+    amrex::ParallelDescriptor::ReduceRealSum(total);
 
     return total * d_theta() * d_phi();
 }

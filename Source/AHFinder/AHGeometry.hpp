@@ -201,10 +201,12 @@ class AHGeometry
     [[nodiscard]] amrex::Real root_det_q(int i, int j) const;
 
     // Total proper area of the surface: the sum of
-    // root_det_q(i, j) * dtheta * dphi over the whole ring grid.
+    // root_det_q(i, j) * dtheta * dphi over the whole ring grid. Each rank
+    // sums over its own points and the partial sums are
+    // reduced across ranks.
     // Not const: refreshes m_dh_dtheta / m_dh_dphi from the currently
     // bound h first, so they can never be read stale.
-    amrex::Real area();
+    amrex::Real area(int start, int count);
 };
 
 #include "AHGeometry.impl.hpp"
