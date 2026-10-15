@@ -40,6 +40,10 @@ struct ah_finder_params_t
     // dt by r * theta_old / theta_new, clamped to [m_dt_shrink, m_dt_grow].
     amrex::Real r{};
 
+    // Pseudo-timestep used for the first step of each find(). Subsequent
+    // steps adapt it as above.
+    amrex::Real initial_dt{};
+
     // Safety factor on the CFL cap: dt is never allowed above
     // cfl_factor * (smallest coordinate spacing between neighbouring points
     // on the ring grid). Larger values let dt grow further before the cap
@@ -88,6 +92,13 @@ struct ah_finder_params_t
             ah_finder_pp.error("r", "must be > 0");
         }
 
+        amrex::Real initial_dt = 1e-2;
+        ah_finder_pp.queryAdd("initial_dt", initial_dt);
+        if (initial_dt <= 0.0)
+        {
+            ah_finder_pp.error("initial_dt", "must be > 0");
+        }
+
         amrex::Real cfl_factor = 7.0;
         ah_finder_pp.queryAdd("cfl_factor", cfl_factor);
         if (cfl_factor <= 0.0)
@@ -118,6 +129,7 @@ struct ah_finder_params_t
         ah_finder_pp.get("c", c);
         ah_finder_pp.get("tolerance", tolerance);
         ah_finder_pp.get("r", r);
+        ah_finder_pp.get("initial_dt", initial_dt);
         ah_finder_pp.get("cfl_factor", cfl_factor);
         ah_finder_pp.get("max_iter", max_iter);
         ah_finder_pp.get("max_stall_iter", max_stall_iter);

@@ -30,7 +30,7 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     int m_start;
 
     // Pseudo-timestepping parameters read from the "ah_finder" scope of the
-    // input file (eta, c, tolerance, r, cfl_factor, max_iter,
+    // input file (eta, c, tolerance, r, initial_dt, cfl_factor, max_iter,
     // max_stall_iter). Filled by init().
     ah_finder_params_t m_params{};
 

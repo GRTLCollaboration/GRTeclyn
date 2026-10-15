@@ -21,9 +21,9 @@
 
 inline void AHFinder::init(GRAmr *gramr_ptr)
 {
-    // eta, c, tolerance, r, cfl_factor, max_iter and max_stall_iter come from
-    // the "ah_finder" scope of the input file; see AHFinderParameters.hpp for
-    // defaults and meaning.
+    // eta, c, tolerance, r, initial_dt, cfl_factor, max_iter and
+    // max_stall_iter come from the "ah_finder" scope of the input file; see
+    // AHFinderParameters.hpp for defaults and meaning.
     m_params.fill_params();
 
     m_min_dt      = 1e-4;
@@ -62,8 +62,8 @@ inline void AHFinder::find()
 
     double theta_old = inf_norm(m_theta_vals);
 
-    // Global pseudo-timeste
-    amrex::Real dt = 1e-2;
+    // Global pseudo-timestep
+    amrex::Real dt = m_params.initial_dt;
 
     const bool io_proc = amrex::ParallelDescriptor::IOProcessor();
 
