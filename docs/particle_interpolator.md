@@ -128,6 +128,8 @@ For example, schematically:
 my_interpolator.interp(query, "Weyl4", time);
 ```
 
+By default, every call to `interp()` for state variables fills the ghost cells of the queried components with `FillPatch`. If you interpolate repeatedly on a grid that does not change between calls (e.g. the AHFinder, which iterates on a frozen grid), you can pass `a_fill_ghosts = false` to reuse the ghost cells filled by an earlier call. Levels that have not been filled since the last call with `a_fill_ghosts = true` are still filled.
+
 See the definition of [`ParticleInterpolator::interp()`](https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Source/ParticleInterpolator/ParticleInterpolator.impl.hpp#L306) for the complete set of arguments.
 
 For a minimal working example, see the [`ParticleInterpolatorUnitTest`](https://github.com/GRTLCollaboration/GRTeclyn/blob/2bfd19eacba91645fc8675709732a800fc2a3454/Tests/ParticleInterpolatorUnitTest/ParticleInterpolatorUnitTest.cpp).

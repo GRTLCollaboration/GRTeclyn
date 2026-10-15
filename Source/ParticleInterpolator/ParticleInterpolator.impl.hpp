@@ -351,7 +351,8 @@ void ParticleInterpolator<num_components>::interpolate_to_particle(
 template <int num_components>
 void ParticleInterpolator<num_components>::interp(
     const InterpolationQueryParticle &query, bool a_refresh_particles,
-    const std::string &name_derived, amrex::Real time_derived /*=0.0*/)
+    const std::string &name_derived, amrex::Real time_derived /*=0.0*/,
+    bool a_fill_ghosts /*=true*/)
 {
     AMREX_ASSERT(m_initialized);
 
@@ -411,6 +412,20 @@ void ParticleInterpolator<num_components>::interp(
     {
         const auto &unique_comps = query.uniqueComps();
 
+        // If always filling cells, intialise new filled vector
+        // to track which levels have had their ghost cells filled.
+        // If not, resize the filled vector reusing the existing values
+        // in case a new level has been added.
+        const int num_levels = m_gr_amr_ptr->finestLevel() + 1;
+        if (a_fill_ghosts)
+        {
+            m_level_ghosts_filled.assign(num_levels, false);
+        }
+        else
+        {
+            m_level_ghosts_filled.resize(num_levels, false);
+        }
+
         for (int lev = 0; lev <= m_gr_amr_ptr->finestLevel(); ++lev)
         {
             if (this->NumberOfParticlesAtLevel(lev) == 0)
@@ -429,11 +444,16 @@ void ParticleInterpolator<num_components>::interp(
             // issue here: https://github.com/AMReX-Codes/amrex/issues/391
             // We fill one component at a time so that we do not rely on the
             // queried comps being contiguous
-            for (const int comp : unique_comps)
+            if (!m_level_ghosts_filled[lev])
             {
-                AMREX_ALWAYS_ASSERT(comp >= 0 && comp < state.nComp());
-                amrex::AmrLevel::FillPatch(level, state, s_num_ghosts, cur_time,
-                                           state_index, comp, 1, comp);
+                for (const int comp : unique_comps)
+                {
+                    AMREX_ALWAYS_ASSERT(comp >= 0 && comp < state.nComp());
+                    amrex::AmrLevel::FillPatch(level, state, s_num_ghosts,
+                                               cur_time, state_index, comp, 1,
+                                               comp);
+                }
+                m_level_ghosts_filled[lev] = true;
             }
 
             interpolate_to_particle(lev, state, geom, query);

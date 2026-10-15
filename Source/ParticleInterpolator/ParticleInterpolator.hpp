@@ -68,6 +68,11 @@ class ParticleInterpolator
                                   // of values stored for all levels)
     bool m_need_redistribute{true};
 
+    // Levels whose state ghost cells have been filled since the last call to
+    // interp() with a_fill_ghosts = true. Lets calls with a_fill_ghosts =
+    // false still fill levels that particles have only just moved onto.
+    std::vector<bool> m_level_ghosts_filled;
+
     // dx on level 0
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_coarsest_dx{};
 
@@ -149,9 +154,15 @@ class ParticleInterpolator
     // final interpolation routine exposed to the users
     // a_refresh_particles flag allows to "refresh" the particles, if e.g. the
     // user opts to change the query in the interpolation
+    // a_fill_ghosts = false skips FillPatch for state variables, reusing the
+    // ghost cells filled by a previous call (levels not filled since the last
+    // a_fill_ghosts = true call are still filled). This is only valid if the
+    // grid data and the queried comps have not changed since that call (e.g.
+    // repeated interpolation on a frozen grid). Derived variables always
+    // have their ghosts filled by derive(), so the flag has no effect there.
     void interp(const InterpolationQueryParticle &query,
                 bool a_refresh_particles, const std::string &name_derived = "",
-                amrex::Real time_derived = 0.0);
+                amrex::Real time_derived = 0.0, bool a_fill_ghosts = true);
 
     void ensure_redistributed();
 

@@ -53,6 +53,10 @@ inline void AHFinder::find()
 
     int n_iter = 0;
 
+    // The grid may have evolved since the last find(), so refill the ghost
+    // cells on the first interpolation
+    m_fill_ghosts = true;
+
     this->set_particle_positions(m_state.h);
     compute_theta(m_state.h);
 
@@ -325,8 +329,10 @@ inline void AHFinder::compute_theta(const std::vector<double> &h)
 
     m_theta_vals.assign(m_num_particles, 0.0);
 
-    // Particle positions move with h, so refresh them on every call
-    this->interp(m_metric_query, true);
+    // Particle positions move with h, so refresh them on every call. The
+    // grid is frozen during find(), so only fill the ghost cells once.
+    this->interp(m_metric_query, true, "", 0.0, m_fill_ghosts);
+    m_fill_ghosts = false;
 
     amrex::GpuArray<const double *, 14> state_ptr;
     for (int c = 0; c < 14; ++c)

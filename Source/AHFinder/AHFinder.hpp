@@ -80,6 +80,11 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
 
     std::vector<double> m_theta_vals{};
 
+    // Whether the state's ghost cells have been filled during the current
+    // find(). The grid is frozen while find() runs, so FillPatch is only
+    // needed for the first interpolation of each find().
+    bool m_fill_ghosts{true};
+
     static int local_count(int num_particles)
     {
         const int nprocs = amrex::ParallelDescriptor::NProcs();
