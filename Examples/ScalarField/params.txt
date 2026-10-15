@@ -121,3 +121,12 @@ rho_line_extraction.enabled = true
 rho_line_extraction.end = 28.86751345948129 28.86751345948129 28.86751345948129
 # path defaults to <grteclyn.output_path>/extraction_data/
 rho_line_extraction.file_prefix = rho_profile_
+
+#################################################
+# Sphere extraction parameters
+madm_sphere_extraction.enabled = true
+madm_sphere_extraction.num_radii = 1
+madm_sphere_extraction.radii = 20.0
+madm_sphere_extraction.num_points_theta = 65
+madm_sphere_extraction.num_points_phi = 64
+madm_sphere_extraction.integral_file_prefix = ADM_mass
