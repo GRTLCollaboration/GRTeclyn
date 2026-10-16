@@ -46,20 +46,19 @@ template <class matter_t>
 AMREX_FORCE_INLINE amrex::Real
 SpectralWishes<matter_t>::compute(GRAmr *gramr_ptr)
 {
-    amrex::Real result;
+    amrex::Real result{0.};
 
-    if (m_operation == "Mean")
+    // No default case so the compiler warns (-Wswitch) if a new
+    // SpectralWishOperation is added without being handled here. Invalid
+    // parameter values are already rejected in fill_params().
+    switch (m_operation)
     {
+    case SpectralWishOperation::Mean:
         result = compute_mean(gramr_ptr);
-    }
-    else if (m_operation == "Variance")
-    {
+        break;
+    case SpectralWishOperation::Variance:
         result = compute_variance(gramr_ptr);
-    }
-    else
-    {
-        amrex::Abort("SpectralWishes: Selected option not found. Valid options "
-                     "are \"Mean\" or \"Variance\".\n");
+        break;
     }
 
     return result;

@@ -13,12 +13,14 @@
 
 #include "GRParmParse.hpp"
 
+//! The operations SpectralWishes can perform. Declared outside the class
+//! template so the type does not depend on matter_t. Parameter values are
+//! matched case-insensitively (e.g. "mean", "Mean" and "MEAN" all work).
+AMREX_ENUM(SpectralWishOperation, Mean, Variance);
+
 template <class matter_t> class SpectralWishes
 {
   public:
-
-    //    AMREX_ENUM_IN_CLASS(Options, Mean, Variance);
-
     //! Constructor
     SpectralWishes(int state_index, const amrex::Real time, int lev, int ngrow)
         : m_time(time), m_lev(lev), m_state_index(state_index), m_ngrow(ngrow)
@@ -30,7 +32,8 @@ template <class matter_t> class SpectralWishes
     {
         GRParmParse spectral_wishes_pp("spectral_wishes");
 
-        spectral_wishes_pp.query("operation", m_operation);
+        // Throws if the value does not match any SpectralWishOperation
+        spectral_wishes_pp.get_enum_case_insensitive("operation", m_operation);
         spectral_wishes_pp.query("variable_name", m_var_name);
     };
     //! Main compute function wrapper (that calls specific compute function)
@@ -53,8 +56,9 @@ template <class matter_t> class SpectralWishes
     const int
         m_ngrow; // Number of ghost cells to use in Spectral Wish calculation,
                  // should match what is used in the state MF in most cases.
-    std::string m_var_name;  // The variable you wish to operate on
-    std::string m_operation; // The operation e.g. mean, variance.
+    std::string m_var_name; // The variable you wish to operate on
+    // The operation e.g. mean, variance.
+    SpectralWishOperation m_operation{SpectralWishOperation::Mean};
 };
 
 #include "SpectralWishes.impl.hpp"

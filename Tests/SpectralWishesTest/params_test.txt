@@ -43,6 +43,6 @@ evolution.nan_check = true
 #################################################
 # Spectral Wishes parameters
 
-spectral_wishes.operation = Mean
+spectral_wishes.operation = mean
 spectral_wishes.variable_name = Mom2
 
