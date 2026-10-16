@@ -22,6 +22,7 @@
 #include "EMTensorTest.hpp"
 #include "ParticleInterpolatorUnitTest.hpp"
 #include "PositiveChiAndLapseUnitTest.hpp"
+#include "PunctureTaggerUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
 #include "SmallDataIOTest.hpp"
 #include "SphericalExtractionTest.hpp"
@@ -70,6 +71,8 @@ TEST_CASE("EMTensor"
 }
 
 TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
+
+TEST_CASE("PunctureTagger") { run_puncture_tagger_unit_test(); }
 
 TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
 
