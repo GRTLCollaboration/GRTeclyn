@@ -90,7 +90,10 @@ void BinaryBHLevel::initData()
 #endif
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
+    // This loop is always CPU work (even in GPU builds, where we interpolate
+    // onto a host MultiFab and copy to the device afterwards), so unlike
+    // elsewhere we do not guard this with Gpu::notInLaunchRegion() here.
+#pragma omp parallel
 #endif
     for (amrex::MFIter mfi(state_new, amrex::TilingIfNotGPU()); mfi.isValid();
          ++mfi)
