@@ -31,10 +31,14 @@ amr.derive_plot_vars = constraints
 # scalar_field.scalar_mass = 1.0
 
 
-# Global quantities computed on level 0 after each coarse timestep: each
-# operation (case-insensitive) is paired with the variable in the same position
+# Global quantities computed on level 0 and written to
+# <path><file_prefix>.dat every interval coarse timesteps. Each operation
+# (case-insensitive) is paired with the variable in the same position.
 spectral_wishes.operations = Mean Variance
 spectral_wishes.variables  = Ham  Ham
+spectral_wishes.interval = 1 # -1 disables writing
+# spectral_wishes.path = <grteclyn.output_path>/data/
+# spectral_wishes.file_prefix = spectral_wishes
 
 #################################################
 # Grid parameters

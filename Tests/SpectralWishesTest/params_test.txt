@@ -48,3 +48,7 @@ evolution.nan_check = true
 spectral_wishes.operations = mean Variance MEAN variance Mean variance
 spectral_wishes.variables  = Mom2 Mom2     Ham  Ham      Pi   Pi
 
+# Write the wishes to ./spectral_wishes_test.dat (deleted by the test)
+spectral_wishes.interval = 1
+spectral_wishes.path = ./
+spectral_wishes.file_prefix = spectral_wishes_test

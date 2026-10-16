@@ -11,7 +11,9 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
 
+#include "FilesystemTools.hpp"
 #include "GRParmParse.hpp"
+#include "SmallDataIO.hpp"
 
 #include <map>
 #include <memory>
@@ -32,6 +34,13 @@ AMREX_ENUM(SpectralWishOperation, Mean, Variance);
  *
  * The two lists must have the same length. Each variable is derived only once
  * per call to compute(), however many wishes use it.
+ *
+ * write() appends the wishes to <path><file_prefix>.dat every interval steps
+ * of the level (-1 disables writing), with one column per wish:
+ *
+ *     spectral_wishes.interval    = 1                  # default
+ *     spectral_wishes.path        = <grteclyn.output_path>/data/ # default
+ *     spectral_wishes.file_prefix = spectral_wishes    # default
  */
 template <class matter_t> class SpectralWishes
 {
@@ -69,6 +78,23 @@ template <class matter_t> class SpectralWishes
     //! A label for each wish, e.g. "Mean_Ham"
     [[nodiscard]] amrex::Vector<std::string> get_labels() const;
 
+    //! Whether write() writes on this step of the level
+    [[nodiscard]] bool is_write_step(int a_step) const
+    {
+        return !m_wishes.empty() && m_interval > 0 && a_step % m_interval == 0;
+    }
+
+    //! Compute every wish and append them to the output file if this is a
+    //! write step. Call after the level has been advanced (e.g. in
+    //! specific_post_timestep) on every rank.
+    void write(GRAmr *gramr_ptr);
+
+    //! The output file name without the .dat extension
+    [[nodiscard]] std::string get_file_prefix() const
+    {
+        return m_data_path + m_file_prefix;
+    }
+
   protected:
     //! Find which MultiFab (source) and component a variable lives in
     [[nodiscard]] wish_t make_wish(SpectralWishOperation a_operation,
@@ -90,6 +116,9 @@ template <class matter_t> class SpectralWishes
         m_ngrow; // Number of ghost cells to use in Spectral Wish calculation,
                  // should match what is used in the state MF in most cases.
     amrex::Vector<wish_t> m_wishes; // The wishes from the parameter file
+    int m_interval{1};              // Steps between writes, -1 disables
+    std::string m_data_path;        // Directory of the output file
+    std::string m_file_prefix;      // Output file name without extension
 };
 
 #include "SpectralWishes.impl.hpp"

@@ -18,10 +18,13 @@
 #include "ScalarField.hpp"
 
 #include "InitialData.hpp"
+#include "SmallDataIO.hpp"
 #include "SpectralWishes.hpp"
 
 #include "AMReX_GpuParallelReduce.H"
 #include "AMReX_ParallelDescriptor.H"
+
+#include <filesystem>
 
 /// Evolution level for a real scalar field minimally coupled to gravity.
 class SpectralWishesTestLevel : public GRAmrLevel
@@ -179,6 +182,41 @@ class SpectralWishesTestLevel : public GRAmrLevel
             INFO("Spectral wish: ", labels[iwish]);
             CHECK(spectral_wishes_results[iwish] ==
                   doctest::Approx(direct_calc).epsilon(1e-12));
+        }
+
+        // Write the wishes to file and check they can be read back
+        REQUIRE(
+            my_spectral_wishes.is_write_step(gr_amr_ptr->levelSteps(level)));
+        my_spectral_wishes.write(gr_amr_ptr);
+
+        const std::string filename =
+            my_spectral_wishes.get_file_prefix() + ".dat";
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            {
+                SmallDataIO reader(my_spectral_wishes.get_file_prefix());
+
+                std::vector<std::string> header;
+                reader.get_header_strings(header, 0);
+                std::vector<std::string> expected_header{"time"};
+                expected_header.insert(expected_header.end(), labels.begin(),
+                                       labels.end());
+                CHECK(header == expected_header);
+
+                // Aborts if there is no line for this time
+                std::vector<amrex::Real> file_data;
+                reader.get_specific_data_line(file_data, current_time);
+                REQUIRE(file_data.size() == spectral_wishes_results.size());
+                for (amrex::Long iwish = 0; iwish < wishes.size(); ++iwish)
+                {
+                    INFO("Spectral wish in file: ", labels[iwish]);
+                    // SmallDataIO writes 10 significant figures by default
+                    CHECK(file_data[iwish] ==
+                          doctest::Approx(spectral_wishes_results[iwish])
+                              .epsilon(1e-9));
+                }
+            }
+            std::filesystem::remove(filename);
         }
     };
 

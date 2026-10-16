@@ -56,6 +56,56 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
 
         m_wishes.push_back(make_wish(operation, variables[iwish]));
     }
+
+    // Output file parameters
+    spectral_wishes_pp.query("interval", m_interval);
+
+    GRParmParse grteclyn_pp("grteclyn");
+    std::string output_path{"."};
+    grteclyn_pp.query("output_path", output_path);
+    m_data_path = output_path + "/data/";
+    spectral_wishes_pp.query("path", m_data_path);
+
+    m_file_prefix = "spectral_wishes";
+    spectral_wishes_pp.query("file_prefix", m_file_prefix);
+}
+
+template <class matter_t> void SpectralWishes<matter_t>::write(GRAmr *gramr_ptr)
+{
+    AMREX_ASSERT(gramr_ptr != nullptr);
+
+    // In post_timestep the step count has already been incremented, so the
+    // first step of a run is 1
+    const int step = gramr_ptr->levelSteps(m_lev);
+    if (!is_write_step(step))
+    {
+        return;
+    }
+
+    const bool first_step          = (step == m_interval);
+    const amrex::Real restart_time = gramr_ptr->get_restart_time();
+    // SmallDataIO uses this to recognise the first write after a restart so
+    // it must be the time between writes rather than the timestep
+    const amrex::Real write_dt = m_interval * gramr_ptr->dtLevel(m_lev);
+
+    if (first_step || m_time < restart_time + 1.5 * write_dt)
+    {
+        FilesystemTools::ensure_directory_exists(m_data_path);
+    }
+
+    // All ranks take part in the computation but only the IO processor
+    // writes
+    const auto results = compute(gramr_ptr);
+
+    SmallDataIO output_file(get_file_prefix(), write_dt, m_time, restart_time,
+                            SmallDataIO::APPEND, first_step);
+    // Remove any data from a previous run beyond the restart time
+    output_file.remove_duplicate_time_data();
+    if (first_step)
+    {
+        output_file.write_header_line(get_labels());
+    }
+    output_file.write_time_data_line(results);
 }
 
 template <class matter_t>
