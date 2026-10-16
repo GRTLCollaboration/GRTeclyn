@@ -156,6 +156,37 @@ class SpectralWishesTestLevel : public GRAmrLevel
             variance /= num_cells - 1.0;
         }
 
+        // Volume weighted mean of every component of derive_mf: multiply
+        // each component by sqrt(gamma) = chi^(-3/2) and store sqrt(gamma)
+        // itself in the last component so its sum is the total volume
+        amrex::MultiFab weighted_mf{derive_mf.boxArray(),
+                                    derive_mf.DistributionMap(),
+                                    num_comp_total + 1, 0};
+        const auto &weighted_arrays     = weighted_mf.arrays();
+        const auto &derive_const_arrays = derive_mf.const_arrays();
+        amrex::ParallelFor(
+            weighted_mf,
+            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
+            {
+                const amrex::Real chi =
+                    derive_const_arrays[ibox](ix, iy, iz, c_chi);
+                const amrex::Real sqrt_gamma = std::pow(chi, -1.5);
+                for (int component = 0; component < num_comp_total; ++component)
+                {
+                    weighted_arrays[ibox](ix, iy, iz, component) =
+                        derive_const_arrays[ibox](ix, iy, iz, component) *
+                        sqrt_gamma;
+                }
+                weighted_arrays[ibox](ix, iy, iz, num_comp_total) = sqrt_gamma;
+            });
+        amrex::Vector<amrex::Real> volume_mean_direct_calc = sum_powers(
+            weighted_mf, amrex::Vector<amrex::Real>(num_comp_total + 1), 1);
+        const amrex::Real total_volume = volume_mean_direct_calc.back();
+        for (auto &volume_mean : volume_mean_direct_calc)
+        {
+            volume_mean /= total_volume;
+        }
+
         // Compare every wish with the direct calculation of the same
         // quantity
         for (amrex::Long iwish = 0; iwish < wishes.size(); ++iwish)
@@ -171,6 +202,9 @@ class SpectralWishesTestLevel : public GRAmrLevel
                 break;
             case SpectralWishOperation::Variance:
                 direct_calc = variance_direct_calc[comp];
+                break;
+            case SpectralWishOperation::VolumeMean:
+                direct_calc = volume_mean_direct_calc[comp];
                 break;
             }
 

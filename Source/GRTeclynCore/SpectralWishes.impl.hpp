@@ -54,6 +54,16 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
                                   "\". Valid options are:" + valid_options);
         }
 
+        int chi_state_index{0};
+        int chi_comp{0};
+        if (operation == SpectralWishOperation::VolumeMean &&
+            !amrex::AmrLevel::isStateVariable(s_chi_name, chi_state_index,
+                                              chi_comp))
+        {
+            spectral_wishes_pp.error("operations",
+                                     "VolumeMean needs the state variable chi");
+        }
+
         m_wishes.push_back(make_wish(operation, variables[iwish]));
     }
 
@@ -176,16 +186,19 @@ SpectralWishes<matter_t>::compute(GRAmr *gramr_ptr)
     // Derive each source once, however many wishes use it (e.g. Ham and Mom1
     // both come from the same constraints calculation)
     std::map<std::string, std::unique_ptr<amrex::MultiFab>> derived;
+    auto get_source = [&](const std::string &a_source) -> amrex::MultiFab &
+    {
+        auto &source_mf = derived[a_source];
+        if (source_mf == nullptr)
+        {
+            source_mf = gramr_ptr->derive(a_source, m_time, m_lev, m_ngrow);
+        }
+        return *source_mf;
+    };
 
     for (const auto &wish : m_wishes)
     {
-        auto &source_mf = derived[wish.source];
-        if (source_mf == nullptr)
-        {
-            source_mf = gramr_ptr->derive(wish.source, m_time, m_lev, m_ngrow);
-        }
-
-        const amrex::Real mean = compute_mean(*source_mf, wish.comp, num_cells);
+        const amrex::MultiFab &source_mf = get_source(wish.source);
 
         amrex::Real result{0.};
 
@@ -195,10 +208,16 @@ SpectralWishes<matter_t>::compute(GRAmr *gramr_ptr)
         switch (wish.operation)
         {
         case SpectralWishOperation::Mean:
-            result = mean;
+            result = compute_mean(source_mf, wish.comp, num_cells);
             break;
         case SpectralWishOperation::Variance:
-            result = compute_variance(*source_mf, wish.comp, num_cells, mean);
+            result =
+                compute_variance(source_mf, wish.comp, num_cells,
+                                 compute_mean(source_mf, wish.comp, num_cells));
+            break;
+        case SpectralWishOperation::VolumeMean:
+            result = compute_volume_mean(source_mf, wish.comp,
+                                         get_source(s_chi_name));
             break;
         }
 
@@ -242,6 +261,42 @@ SpectralWishes<matter_t>::compute_variance(const amrex::MultiFab &a_mf,
                                   amrex::ParallelDescriptor::Communicator());
 
     return sum_sq / static_cast<amrex::Real>(a_num_cells - 1);
+}
+
+template <class matter_t>
+amrex::Real SpectralWishes<matter_t>::compute_volume_mean(
+    const amrex::MultiFab &a_mf, int a_comp, const amrex::MultiFab &a_chi_mf)
+{
+    // Both come from derive() on the same level so share their layout
+    AMREX_ALWAYS_ASSERT(a_mf.boxArray() == a_chi_mf.boxArray() &&
+                        a_mf.DistributionMap() == a_chi_mf.DistributionMap());
+
+    const auto &mf_arrays  = a_mf.const_arrays();
+    const auto &chi_arrays = a_chi_mf.const_arrays();
+
+    // Sums of value * sqrt(gamma) and of sqrt(gamma) over valid cells. The
+    // coordinate cell volume is the same for every cell on a level so it
+    // cancels in the ratio.
+    const auto sums = amrex::ParReduce(
+        amrex::TypeList<amrex::ReduceOpSum, amrex::ReduceOpSum>{},
+        amrex::TypeList<amrex::Real, amrex::Real>{}, a_mf, amrex::IntVect(0),
+        [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k) noexcept
+            -> amrex::GpuTuple<amrex::Real, amrex::Real>
+        {
+            // chi = det(gamma)^(-1/3) so sqrt(gamma) = chi^(-3/2)
+            const amrex::Real chi        = chi_arrays[ibox](i, j, k);
+            const amrex::Real sqrt_gamma = 1.0 / (chi * std::sqrt(chi));
+            return {mf_arrays[ibox](i, j, k, a_comp) * sqrt_gamma, sqrt_gamma};
+        });
+
+    // ParReduce only reduces over this rank's boxes
+    std::array<amrex::Real, 2> global_sums{amrex::get<0>(sums),
+                                           amrex::get<1>(sums)};
+    amrex::ParallelAllReduce::Sum(global_sums.data(),
+                                  static_cast<int>(global_sums.size()),
+                                  amrex::ParallelDescriptor::Communicator());
+
+    return global_sums[0] / global_sums[1];
 }
 
 #endif /* SPECTRALWISHES_IMPL_HPP_ */

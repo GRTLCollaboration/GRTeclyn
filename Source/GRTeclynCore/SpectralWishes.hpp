@@ -15,6 +15,7 @@
 #include "GRParmParse.hpp"
 #include "SmallDataIO.hpp"
 
+#include <array>
 #include <map>
 #include <memory>
 #include <string>
@@ -22,7 +23,11 @@
 //! The operations SpectralWishes can perform. Declared outside the class
 //! template so the type does not depend on matter_t. Parameter values are
 //! matched case-insensitively (e.g. "mean", "Mean" and "MEAN" all work).
-AMREX_ENUM(SpectralWishOperation, Mean, Variance);
+//!   Mean:       coordinate average, sum(f) / N
+//!   Variance:   sum((f - Mean)^2) / (N - 1)
+//!   VolumeMean: average weighted by the proper volume,
+//!               sum(f sqrt(gamma)) / sum(sqrt(gamma)), sqrt(gamma) = chi^-3/2
+AMREX_ENUM(SpectralWishOperation, Mean, Variance, VolumeMean);
 
 /*!
  * Computes global quantities (e.g. the mean or variance) of state or derived
@@ -107,6 +112,13 @@ template <class matter_t> class SpectralWishes
     static amrex::Real compute_variance(const amrex::MultiFab &a_mf, int a_comp,
                                         amrex::Long a_num_cells,
                                         amrex::Real a_mean);
+
+    static amrex::Real compute_volume_mean(const amrex::MultiFab &a_mf,
+                                           int a_comp,
+                                           const amrex::MultiFab &a_chi_mf);
+
+    //! State variable holding the conformal factor used for volume weights
+    static constexpr const char *s_chi_name = "chi";
 
     matter_t m_matter;        //!< The matter object, e.g. a scalar field
     const amrex::Real m_time; // Time as measured by AmrLevel
