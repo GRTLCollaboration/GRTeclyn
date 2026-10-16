@@ -14,6 +14,8 @@
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 
+#include "SphericalExtractionParameters.hpp"
+
 class SimulationParameters
 {
   public:
@@ -31,6 +33,7 @@ class SimulationParameters
         Potential::params_t::check_params();
         line_extraction_params_t::check_params("phi_line_extraction");
         line_extraction_params_t::check_params("rho_line_extraction");
+        spherical_extraction_params_t::check_params("madm_sphere_extraction");
     }
 };
 
