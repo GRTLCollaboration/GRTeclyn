@@ -31,8 +31,10 @@ amr.derive_plot_vars = constraints
 # scalar_field.scalar_mass = 1.0
 
 
-spectral_wishes.operation = Variance
-spectral_wishes.variable_name = Ham
+# Global quantities computed on level 0 after each coarse timestep: each
+# operation (case-insensitive) is paired with the variable in the same position
+spectral_wishes.operations = Mean Variance
+spectral_wishes.variables  = Ham  Ham
 
 #################################################
 # Grid parameters

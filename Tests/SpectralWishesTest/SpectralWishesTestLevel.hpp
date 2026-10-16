@@ -99,13 +99,18 @@ class SpectralWishesTestLevel : public GRAmrLevel
     { // Set up the Spectral Wishes
 
         amrex::MultiFab &state   = get_new_data(state_index);
-        const auto &state_arrays = state.arrays();
         amrex::Real current_time = get_state_data(state_index).curTime();
         auto *gr_amr_ptr         = get_gr_amr_ptr();
         SpectralWishes<DefaultScalarField> my_spectral_wishes(
             state_index, current_time, level, state.nGrow());
-        const amrex::Real mean_spectral_wishes =
+        const auto spectral_wishes_results =
             my_spectral_wishes.compute(gr_amr_ptr);
+        const auto &wishes = my_spectral_wishes.get_wishes();
+        const auto labels  = my_spectral_wishes.get_labels();
+
+        // Make sure the parameter file actually asks for something to test
+        CHECK(!wishes.empty());
+        CHECK(spectral_wishes_results.size() == wishes.size());
 
         // Calculate the Wishes directly from the MultiFabs for comparison
 
@@ -130,32 +135,121 @@ class SpectralWishesTestLevel : public GRAmrLevel
             derive_mf, dcomp, num_comp_constraints, state, geom, current_time,
             bcrec, level);
 
-        // Host vector to hold mean values of derive_mf
-        amrex::Vector<amrex::Real> mean_direct_calc(derive_mf.nComp());
-        std::ranges::fill(mean_direct_calc.begin(), mean_direct_calc.end(),
-                          0.0);
+        const auto num_cells = static_cast<amrex::Real>(countCells());
+
+        // Mean of every component of derive_mf
+        amrex::Vector<amrex::Real> mean_direct_calc = sum_powers(
+            derive_mf, amrex::Vector<amrex::Real>(num_comp_total), 1);
+        for (auto &mean : mean_direct_calc)
+        {
+            mean /= num_cells;
+        }
+
+        // Variance of every component of derive_mf
+        amrex::Vector<amrex::Real> variance_direct_calc =
+            sum_powers(derive_mf, mean_direct_calc, 2);
+        for (auto &variance : variance_direct_calc)
+        {
+            variance /= num_cells - 1.0;
+        }
+
+        // Compare every wish with the direct calculation of the same
+        // quantity
+        for (amrex::Long iwish = 0; iwish < wishes.size(); ++iwish)
+        {
+            const auto &wish = wishes[iwish];
+            const int comp   = derive_mf_comp(wish.variable, dcomp);
+
+            amrex::Real direct_calc{0.};
+            switch (wish.operation)
+            {
+            case SpectralWishOperation::Mean:
+                direct_calc = mean_direct_calc[comp];
+                break;
+            case SpectralWishOperation::Variance:
+                direct_calc = variance_direct_calc[comp];
+                break;
+            }
+
+            amrex::Print() << labels[iwish] << " (spectral wishes): "
+                           << spectral_wishes_results[iwish] << "\n";
+            amrex::Print() << labels[iwish]
+                           << " (direct calculation): " << direct_calc << "\n";
+
+            INFO("Spectral wish: ", labels[iwish]);
+            CHECK(spectral_wishes_results[iwish] ==
+                  doctest::Approx(direct_calc).epsilon(1e-12));
+        }
+    };
+
+    //! Position of a variable in derive_mf: the state variables come first,
+    //! followed by the constraints starting at a_constraints_comp
+    static int derive_mf_comp(const std::string &a_variable,
+                              int a_constraints_comp)
+    {
+        int state_type{0};
+        int state_comp{0};
+        if (amrex::AmrLevel::isStateVariable(a_variable, state_type,
+                                             state_comp))
+        {
+            REQUIRE(state_comp < a_constraints_comp);
+            return state_comp;
+        }
+
+        const auto *derive_rec =
+            amrex::AmrLevel::get_derive_lst().get(a_variable);
+        REQUIRE(derive_rec != nullptr);
+        for (int icomp = 0; icomp < derive_rec->numDerive(); ++icomp)
+        {
+            if (derive_rec->variableName(icomp) == a_variable)
+            {
+                return a_constraints_comp + icomp;
+            }
+        }
+
+        FAIL("Variable ", a_variable, " not found in derive_mf");
+        return -1;
+    }
+
+    //! For every component, the sum over all cells (and MPI ranks) of
+    //! (value - a_shift[component])^a_power
+    static amrex::Vector<amrex::Real>
+    sum_powers(const amrex::MultiFab &a_mf,
+               const amrex::Vector<amrex::Real> &a_shift, int a_power)
+    {
+        const int num_comps = a_mf.nComp();
 
         // Use a GPU safe data container to transfer data from host to device
         // and vice versa
-        amrex::Gpu::DeviceVector<amrex::Real> device_vec(derive_mf.nComp(),
-                                                         0.0);
+        amrex::Gpu::DeviceVector<amrex::Real> device_sums(num_comps, 0.0);
+        amrex::Gpu::DeviceVector<amrex::Real> device_shift(num_comps);
+        amrex::Gpu::copy(amrex::Gpu::hostToDevice, a_shift.begin(),
+                         a_shift.end(), device_shift.begin());
 
-        auto *device_vec_data_ptr = device_vec.dataPtr();
+        auto *device_sums_ptr        = device_sums.dataPtr();
+        const auto *device_shift_ptr = device_shift.dataPtr();
 
-        const auto &derive_mf_arrays = derive_mf.arrays();
+        const auto &mf_arrays = a_mf.const_arrays();
 
-        // Sum over all cell values of derive_mf
+        // Sum over all cell values of a_mf
         amrex::ParallelFor(
-            derive_mf,
+            a_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
             {
-                const amrex::CellData<amrex::Real> cell =
-                    derive_mf_arrays[ibox].cellData(ix, iy, iz);
-
-                for (int component = 0; component < num_comp_total; ++component)
+                for (int component = 0; component < num_comps; ++component)
                 {
-                    amrex::Gpu::Atomic::AddNoRet<amrex::Real>(
-                        &device_vec_data_ptr[component], cell[component]);
+                    const amrex::Real deviation =
+                        mf_arrays[ibox](ix, iy, iz, component) -
+                        device_shift_ptr[component];
+                    amrex::Real term{1.};
+                    for (int ipower = 0; ipower < a_power; ++ipower)
+                    {
+                        term *= deviation;
+                    }
+                    // Unlike Gpu::Atomic this is also atomic on the host
+                    // when using OpenMP
+                    amrex::HostDevice::Atomic::Add(&device_sums_ptr[component],
+                                                   term);
                 }
             });
         // GPU barrier
@@ -164,43 +258,17 @@ class SpectralWishesTestLevel : public GRAmrLevel
         // Copy back from device (ParallelFor kernel) to host
         // This is blocking - ok because the result is immediately being used
         // otherwise use Gpu::AsyncCopy
+        amrex::Vector<amrex::Real> sums(num_comps);
+        amrex::Gpu::copy(amrex::Gpu::deviceToHost, device_sums.begin(),
+                         device_sums.end(), sums.begin());
 
-        amrex::Gpu::copy(amrex::Gpu::deviceToHost, device_vec.begin(),
-                         device_vec.end(), mean_direct_calc.begin());
-
-        // Divide by number of cells
         // If running with MPI each rank will hold a different portion of
-        // derive_mf so need to reduce (sum) into a single value for the overall
-        // mean across all grids
+        // a_mf so need to reduce (sum) into a single value across all grids
+        amrex::ParallelAllReduce::Sum(
+            sums.data(), num_comps, amrex::ParallelDescriptor::Communicator());
 
-        for (int component = 0; component < derive_mf.nComp(); ++component)
-        {
-            mean_direct_calc[component] /=
-                static_cast<amrex::Real>(countCells());
-            // 	  mean_direct_calc[component] =
-            // derive_mf.sum(component)/static_cast<amrex::Real>(countCells());
-            amrex::ParallelAllReduce::Sum(
-                mean_direct_calc[component],
-                amrex::ParallelDescriptor::Communicator());
-            //	    amrex::Print() << mean_direct_calc[component] << "\n";
-        }
-
-        // GPU barrier
-        amrex::Gpu::streamSynchronize();
-
-        // TODO: Get rid of magic number!
-        // Check every value of mean_direct_calc when SpectralWishes has been
-        // enhanced to calculate more than one value at at time
-
-        amrex::Print() << "Mean (spectral wishes): " << mean_spectral_wishes
-                       << "\n";
-
-        amrex::Print() << "Mean (direct calculation): " << mean_direct_calc[29]
-                       << "\n";
-
-        CHECK(mean_direct_calc[29] ==
-              doctest::Approx(mean_spectral_wishes).epsilon(1e-12));
-    };
+        return sums;
+    }
 
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final {};

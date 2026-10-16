@@ -13,14 +13,41 @@
 
 #include "GRParmParse.hpp"
 
+#include <map>
+#include <memory>
+#include <string>
+
 //! The operations SpectralWishes can perform. Declared outside the class
 //! template so the type does not depend on matter_t. Parameter values are
 //! matched case-insensitively (e.g. "mean", "Mean" and "MEAN" all work).
 AMREX_ENUM(SpectralWishOperation, Mean, Variance);
 
+/*!
+ * Computes global quantities (e.g. the mean or variance) of state or derived
+ * variables on one AMR level. Each wish is an (operation, variable) pair read
+ * from the parameter file, e.g.
+ *
+ *     spectral_wishes.operations = Mean Variance Mean
+ *     spectral_wishes.variables  = Ham  Ham      chi
+ *
+ * The two lists must have the same length. Each variable is derived only once
+ * per call to compute(), however many wishes use it.
+ */
 template <class matter_t> class SpectralWishes
 {
   public:
+    //! A single (operation, variable) pair
+    struct wish_t
+    {
+        SpectralWishOperation operation;
+        std::string variable;
+        //! Name passed to derive(): the variable itself for a state
+        //! variable or the name of its derive record for a derived variable
+        std::string source;
+        //! Component of the variable within the MultiFab derive() returns
+        int comp;
+    };
+
     //! Constructor
     SpectralWishes(int state_index, const amrex::Real time, int lev, int ngrow)
         : m_time(time), m_lev(lev), m_state_index(state_index), m_ngrow(ngrow)
@@ -28,27 +55,33 @@ template <class matter_t> class SpectralWishes
         fill_params();
     };
 
-    void fill_params(void)
+    void fill_params();
+
+    //! Compute every wish, in the order given in the parameter file
+    AMREX_FORCE_INLINE amrex::Vector<amrex::Real> compute(GRAmr *gramr_ptr);
+
+    //! The wishes, in the order given in the parameter file
+    [[nodiscard]] const amrex::Vector<wish_t> &get_wishes() const
     {
-        GRParmParse spectral_wishes_pp("spectral_wishes");
+        return m_wishes;
+    }
 
-        // Throws if the value does not match any SpectralWishOperation
-        spectral_wishes_pp.get_enum_case_insensitive("operation", m_operation);
-        spectral_wishes_pp.query("variable_name", m_var_name);
-    };
-    //! Main compute function wrapper (that calls specific compute function)
-    AMREX_FORCE_INLINE amrex::Real compute(GRAmr *gramr_ptr);
-
-    //! Compute members
-
-    AMREX_FORCE_INLINE amrex::Real compute_mean(GRAmr *gramr_ptr);
-
-    AMREX_FORCE_INLINE amrex::Real compute_variance(GRAmr *gramr_ptr);
-
-    //! Helper function for derived quantities
-    AMREX_FORCE_INLINE amrex::Real get_ncomp();
+    //! A label for each wish, e.g. "Mean_Ham"
+    [[nodiscard]] amrex::Vector<std::string> get_labels() const;
 
   protected:
+    //! Find which MultiFab (source) and component a variable lives in
+    [[nodiscard]] wish_t make_wish(SpectralWishOperation a_operation,
+                                   const std::string &a_variable) const;
+
+    //! Compute members
+    static amrex::Real compute_mean(const amrex::MultiFab &a_mf, int a_comp,
+                                    amrex::Long a_num_cells);
+
+    static amrex::Real compute_variance(const amrex::MultiFab &a_mf, int a_comp,
+                                        amrex::Long a_num_cells,
+                                        amrex::Real a_mean);
+
     matter_t m_matter;        //!< The matter object, e.g. a scalar field
     const amrex::Real m_time; // Time as measured by AmrLevel
     const int m_lev;          // AMR level
@@ -56,9 +89,7 @@ template <class matter_t> class SpectralWishes
     const int
         m_ngrow; // Number of ghost cells to use in Spectral Wish calculation,
                  // should match what is used in the state MF in most cases.
-    std::string m_var_name; // The variable you wish to operate on
-    // The operation e.g. mean, variance.
-    SpectralWishOperation m_operation{SpectralWishOperation::Mean};
+    amrex::Vector<wish_t> m_wishes; // The wishes from the parameter file
 };
 
 #include "SpectralWishes.impl.hpp"

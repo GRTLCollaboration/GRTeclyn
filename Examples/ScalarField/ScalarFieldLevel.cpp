@@ -89,10 +89,15 @@ void ScalarFieldLevel::specific_post_timestep()
 
         SpectralWishes<ScalarFieldLevel::ScalarFieldWithPotential<>>
             my_spectral_wishes(state_index, time, Level(), state_new.nGrow());
-        const amrex::Real result =
+        const auto results =
             my_spectral_wishes.compute(get_scalar_field_amr_ptr());
+        const auto labels = my_spectral_wishes.get_labels();
 
-        amrex::Print() << "Spectral Wishes result: " << result << "\n";
+        for (amrex::Long iwish = 0; iwish < results.size(); ++iwish)
+        {
+            amrex::Print() << "Spectral Wishes " << labels[iwish] << " = "
+                           << results[iwish] << "\n";
+        }
     }
 }
 
