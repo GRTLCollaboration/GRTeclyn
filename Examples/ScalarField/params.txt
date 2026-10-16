@@ -35,7 +35,7 @@ amr.derive_plot_vars = constraints
 
 # This octant domain corresponds to a 64^3 full domain of side length 64.
 amr.n_cell = 32 32 32
-geometry.prob_extent = 32 32 32
+geometry.prob_extent = 256 256 256
 # geometry.center = 0 0 0 # defaults based on the domain and boundaries
 
 amr.max_level = 1 # there are max_level + 1 levels
@@ -72,7 +72,7 @@ boundary.lo_condition = "REFLECTIVE_BC" "REFLECTIVE_BC" "REFLECTIVE_BC"
 
 # dt is dx * dt_multiplier on each grid level
 evolution.dt_multiplier = 0.1
-evolution.stop_time = 10.0
+evolution.stop_time = 1000.0
 # evolution.max_steps = 1000000
 
 # Spatial derivative order (only affects the CCZ4 RHS)
@@ -125,8 +125,8 @@ rho_line_extraction.file_prefix = rho_profile_
 #################################################
 # Sphere extraction parameters
 madm_sphere_extraction.enabled = true
-madm_sphere_extraction.num_radii = 1
-madm_sphere_extraction.radii = 20.0
+madm_sphere_extraction.num_radii = 3
+madm_sphere_extraction.radii = 100.0 150.0 200.0
 madm_sphere_extraction.num_points_theta = 65
 madm_sphere_extraction.num_points_phi = 64
 madm_sphere_extraction.integral_file_prefix = ADM_mass
