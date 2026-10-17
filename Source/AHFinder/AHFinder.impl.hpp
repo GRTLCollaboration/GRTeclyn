@@ -36,7 +36,7 @@ void AHFinder<num_components>::init(GRAmr *gramr_ptr)
     // Set up interpolator
     this->setup(gramr_ptr);
 
-    m_geometry.set_surface_data(&m_state.h, &m_gamma_LL);
+    m_geometry.set_surface_data(&m_state.h, &m_gamma_LL, &m_K_LL, &m_K);
 
     // Initialise h, v and dt values for particles, then place the particles
     this->init_particle_vals();
@@ -148,6 +148,11 @@ template <int num_components> void AHFinder<num_components>::find()
 
     const amrex::Real mass = std::sqrt(area / (16.0 * M_PI));
     amrex::AllPrint() << " AHFinder irreducible mass = " << mass << "\n";
+
+    // Report the converged surface's ADM-type linear momentum.
+    const Tensor::Rank1 momentum = m_geometry.momentum();
+    amrex::AllPrint() << " AHFinder momentum = (" << momentum(0) << ", "
+                      << momentum(1) << ", " << momentum(2) << ")\n";
 }
 
 template <int num_components>
@@ -158,7 +163,7 @@ void AHFinder<num_components>::init_particle_vals()
     // The initial surface is the sphere r = guess_radius
     m_state.h.assign(m_num_particles, r0);
 
-    // Since h = v - eta * h, start velocity at eta * h so we don't
+    // Since dh/dt = v - eta * h, start velocity at eta * h so we don't
     // immediately collapse inwards
     m_state.v.assign(m_num_particles, m_params.eta * r0);
 }
@@ -342,12 +347,13 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
         double r   = h_ptr[ip];
         double chi = state_ptr[c_chi][ip];
         double K   = state_ptr[c_K][ip];
+        m_K[ip]    = K;
 
         // Physical metric and extrinsic curvature from CCZ4
         // variables: gamma_ij = h_ij/chi,
-        // K_ij = (A_ij + (1/3) h_ij K)/chi. gamma_ij is written directly
-        // into the persistent m_gamma_LL[ip], shared with AHGeometry.
-        Tensor::Rank2 K_LL;
+        // K_ij = (A_ij + (1/3) h_ij K)/chi. gamma_ij and K_ij are written
+        // directly into the persistent m_gamma_LL[ip]/m_K_LL[ip], shared
+        // with AHGeometry.
         FOR (i, j)
         {
             int h_comp           = sym_var_idx(c_h11, i, j);
@@ -355,7 +361,7 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
             double h_ij          = state_ptr[h_comp][ip];
             double A_ij          = state_ptr[A_comp][ip];
             m_gamma_LL[ip](i, j) = h_ij / chi;
-            K_LL(i, j)           = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
+            m_K_LL[ip](i, j)     = (A_ij + (1.0 / 3.0) * h_ij * K) / chi;
         }
         Tensor::Rank2 gamma_UU = compute_inverse(m_gamma_LL[ip]);
 
@@ -479,7 +485,7 @@ void AHFinder<num_components>::compute_theta(const std::vector<double> &h)
         amrex::Real s_K_s = 0.0;
         FOR (i, j)
         {
-            s_K_s += s_U(i) * s_U(j) * K_LL(i, j);
+            s_K_s += s_U(i) * s_U(j) * m_K_LL[ip](i, j);
         }
 
         // Theta = D_i s^i - K + s^i s^j K_ij

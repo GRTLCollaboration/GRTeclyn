@@ -76,12 +76,15 @@ class AHGeometry
     std::vector<amrex::Real> m_dh_dtheta{};
     std::vector<amrex::Real> m_dh_dphi{};
 
-    // Pointers to AHFinder's persistent surface radius h and physical
-    // 3-metric gamma_ij (same flat indexing as above). Not owned by
-    // AHGeometry: set once by set_surface_data() and read fresh each time
-    // they're needed, so they always reflect AHFinder's latest values.
+    // Pointers to AHFinder's persistent surface radius h, physical
+    // 3-metric gamma_ij, extrinsic curvature K_ij, and its trace K (same
+    // flat indexing as above). Not owned by AHGeometry: set once by
+    // set_surface_data() and read fresh each time they're needed, so they
+    // always reflect AHFinder's latest values.
     const std::vector<double> *m_h               = nullptr;
     const std::vector<Tensor::Rank2> *m_gamma_LL = nullptr;
+    const std::vector<Tensor::Rank2> *m_K_LL     = nullptr;
+    const std::vector<double> *m_K               = nullptr;
 
     // Number of latitude rings: the divisor of num_particles closest to
     // sqrt(num_particles / 2), i.e. aiming for ~twice as many longitudes
@@ -186,12 +189,34 @@ class AHGeometry
 
     // Geometric diagnostics
 
-    // Point AHGeometry at AHFinder's persistent surface radius h and
-    // physical 3-metric. Called once, from AHFinder::init(); both are read
-    // through these pointers, so no repeated calls are needed to keep pace
-    // with AHFinder's per-step state.
+    // Point AHGeometry at AHFinder's persistent surface radius h, physical
+    // 3-metric, extrinsic curvature, and its trace. Called once, from
+    // AHFinder::init(); all are read through these pointers, so no
+    // repeated calls are needed to keep pace with AHFinder's per-step
+    // state.
     void set_surface_data(const std::vector<double> *h,
-                          const std::vector<Tensor::Rank2> *gamma_LL);
+                          const std::vector<Tensor::Rank2> *gamma_LL,
+                          const std::vector<Tensor::Rank2> *K_LL,
+                          const std::vector<double> *K);
+
+    // Outward unit conormal s_i = F_i / lambda at flat index idx, where
+    // F_i = n_i - (grad h)_i is the (un-normalised) level-set gradient of
+    // the surface and lambda = sqrt(gamma^ij F_i F_j) normalises it w.r.t.
+    // the physical metric. Same construction AHFinder::compute_theta()
+    // uses internally for Theta, rebuilt here from direction()/grad_h()
+    // rather than shared with it.
+    [[nodiscard]] Tensor::Rank1 s_L(int idx) const;
+
+    // Outward unit normal s^i = gamma^ij s_L(idx)_j at flat index idx --
+    // the form needed to contract against a lower-index tensor like
+    // K_ij or pi_ij = K_ij - K gamma_ij.
+    [[nodiscard]] Tensor::Rank1 s_U(int idx) const;
+
+    // pi_ij = K_ij - K gamma_ij at flat index idx: the momentum-density
+    // tensor used to build both linear and angular momentum surface
+    // integrals -- contracting it with a translational xi^i gives linear
+    // momentum, with a rotational xi^i gives angular momentum (spin).
+    [[nodiscard]] Tensor::Rank2 pi_LL(int idx) const;
 
     // Induced 2-metric q_ab of the surface at ring-grid point (i, j), with
     // a, b indexing {theta, phi}: q_ab = gamma_ij e_a^i e_b^j.
@@ -205,6 +230,13 @@ class AHGeometry
     // Not const: refreshes m_dh_dtheta / m_dh_dphi from the currently
     // bound h first, so they can never be read stale.
     amrex::Real area();
+
+    // ADM-type linear momentum of the surface: for each Cartesian
+    // direction k, P_k = (1/8pi) * integral pi_kj s^j dA, dA = root_q *
+    // dtheta * dphi, using the constant translation vector
+    // xi_(k)^i = delta_k^i (so pi_ij xi_(k)^i s^j reduces to pi_kj s^j).
+    // Not const, for the same reason as area().
+    [[nodiscard]] Tensor::Rank1 momentum();
 };
 
 #include "AHGeometry.impl.hpp"
