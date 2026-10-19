@@ -22,19 +22,20 @@ amr.plot_int = 50
 amr.plot_vars = Weyl4_Re Weyl4_Im
 amr.derive_plot_vars = constraints
 
-# Write the volume-weighted L2 norms of the Hamiltonian and momentum
-# constraints to <grteclyn.output_path>/diagnostics/constraint_norms.dat after
-# each coarse timestep.
-diagnostic.store_constraint_norms = true
-
-# The same diagnostics with SpectralWishes, written to
-# <grteclyn.output_path>/data/spectral_wishes.dat
-spectral_wishes.operations = L2Norm L2Norm    Min
-spectral_wishes.variables  = Ham    Mom1:Mom3 chi
-spectral_wishes.max_level  = -1 # all levels, as AMRReductions
-# The equivalent of diagnostic.constraint_norms_boundary_cells_to_exclude = N,
-# which only applies to the Sommerfeld (here high) faces
-# spectral_wishes.exclude_hi = N N N
+# Volume-weighted L2 norms of the Hamiltonian and momentum constraints and the
+# minimum of chi over all levels, written every coarse step to
+# <grteclyn.output_path>/data/constraint_norms.dat and min_chi.dat
+# (interval = -1 disables a file)
+constraint_norms.operations = L2Norm L2Norm
+constraint_norms.variables  = Ham    Mom1:Mom3
+constraint_norms.max_level  = -1
+min_chi.operations = Min
+min_chi.variables  = chi
+min_chi.max_level  = -1
+# To leave out N cells next to the Sommerfeld (here high) faces, e.g. those
+# whose evolution the boundary condition replaces:
+# constraint_norms.exclude_hi = N N N
+# min_chi.exclude_hi = N N N
 
 #################################################
 # Teukolsky Wave parameters

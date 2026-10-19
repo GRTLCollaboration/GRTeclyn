@@ -5,20 +5,16 @@
 
 #include "TeukolskyWaveLevel.hpp"
 
-#include "AMRReductions.hpp"
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHS.hpp"
 #include "Constraints.hpp"
 #include "EppleyPacket.hpp"
-#include "FilesystemTools.hpp"
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "GRParmParse.hpp"
 #include "GammaCalculator.hpp"
 #include "IntegratedMovingPunctureGauge.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
-#include "SmallDataIO.hpp"
 #include "SpectralWishes.hpp"
 #include "StateTypes.hpp"
 #include "TeukolskyWaveInitialData.hpp"
@@ -82,85 +78,17 @@ void TeukolskyWaveLevel::specific_post_timestep()
             my_extraction.execute_query(&get_tw_amr_ptr()->m_weyl_interpolator);
         }
     }
-    GRParmParse pp;
-    bool store_constraint_norms = false;
-    pp.query("diagnostic.store_constraint_norms", store_constraint_norms);
-    if (store_constraint_norms && Level() == 0)
-    {
-        const amrex::Real time         = get_state_data(state_index).curTime();
-        const amrex::Real dt           = get_gr_amr_ptr()->dtLevel(Level());
-        const amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
-        const bool first_step          = (time <= dt);
 
-        // Derive the constraints (Ham, Mom1-3) and chi into a single
-        // hierarchy, so that all reductions below are computed in one pass
-        // over the grid.
-        auto &amr = *get_gr_amr_ptr();
-        const AMRReductions::DerivedHierarchy diagnostics(
-            amr, time, {Constraints::name, "chi"});
-
-        // Optionally exclude a layer of cells next to the faces with a
-        // Sommerfeld boundary condition, e.g. to check whether the cells whose
-        // evolution equation it replaces dominate the norm. Reflective faces
-        // are symmetry planes, evolved like the interior, so are kept.
-        int boundary_cells_to_exclude = 0;
-        pp.query("diagnostic.constraint_norms_boundary_cells_to_exclude",
-                 boundary_cells_to_exclude);
-        AMRReductions::BoundaryExclusion exclusion;
-        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
-        {
-            const auto is_sommerfeld = [&](amrex::Orientation::Side a_side)
-            {
-                return m_boundaries.get_boundary_condition(amrex::Orientation(
-                           dir, a_side)) == BoundaryConditions::SOMMERFELD_BC;
-            };
-            if (is_sommerfeld(amrex::Orientation::low))
-            {
-                exclusion.lo[dir] = boundary_cells_to_exclude;
-            }
-            if (is_sommerfeld(amrex::Orientation::high))
-            {
-                exclusion.hi[dir] = boundary_cells_to_exclude;
-            }
-        }
-
-        // The momentum constraint components Mom1-3 (which are consecutive)
-        // are combined into a single Mom L2 norm.
-        const AMRReductions::AMRReducer reducer(amr, exclusion);
-        const auto [ham_l2_norm, mom_l2_norm, chi_min] = reducer.compute(
-            diagnostics.data(),
-            AMRReductions::L2Norm{.comp = diagnostics.comp("Ham")},
-            AMRReductions::L2Norm{.comp      = diagnostics.comp("Mom1"),
-                                  .num_comps = AMREX_SPACEDIM},
-            AMRReductions::Min{.comp = diagnostics.comp("chi")});
-
-        std::string output_path;
-        pp.get("grteclyn.output_path", output_path);
-        const std::string diagnostics_path = output_path + "/diagnostics";
-        FilesystemTools::ensure_directory_exists(diagnostics_path);
-
-        SmallDataIO constraints_file(diagnostics_path + "/constraint_norms", dt,
-                                     time, restart_time, SmallDataIO::APPEND,
-                                     first_step);
-        SmallDataIO min_chi_file(diagnostics_path + "/min_chi", dt, time,
-                                 restart_time, SmallDataIO::APPEND, first_step);
-        if (first_step)
-        {
-            constraints_file.write_header_line({"L2_Ham", "L2_Mom"});
-            min_chi_file.write_header_line({"min_chi"});
-        }
-        constraints_file.write_time_data_line(
-            std::vector<amrex::Real>{ham_l2_norm, mom_l2_norm});
-        min_chi_file.write_time_data_line(std::vector<amrex::Real>{chi_min});
-    }
-
-    // The same diagnostics computed with SpectralWishes, set up in params.txt
-    // with the spectral_wishes prefix
+    // The L2 norms of the constraints and the minimum of chi over all levels,
+    // set up in params.txt with the constraint_norms and min_chi prefixes
     if (Level() == 0)
     {
         const amrex::Real time = get_state_data(state_index).curTime();
-        SpectralWishes<> spectral_wishes(state_index, time, Level(), 0);
-        spectral_wishes.write(get_gr_amr_ptr());
+        for (const char *prefix : {"constraint_norms", "min_chi"})
+        {
+            SpectralWishes<> diagnostics(state_index, time, Level(), 0, prefix);
+            diagnostics.write(get_gr_amr_ptr());
+        }
     }
 }
 
