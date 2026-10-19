@@ -148,12 +148,12 @@ class SpectralWishesTestLevel : public GRAmrLevel
             mean /= num_cells;
         }
 
-        // Variance of every component of derive_mf
+        // (Population) variance of every component of derive_mf
         amrex::Vector<amrex::Real> variance_direct_calc =
             sum_powers(derive_mf, mean_direct_calc, 2);
         for (auto &variance : variance_direct_calc)
         {
-            variance /= num_cells - 1.0;
+            variance /= num_cells;
         }
 
         // Volume weighted mean of every component of derive_mf: multiply

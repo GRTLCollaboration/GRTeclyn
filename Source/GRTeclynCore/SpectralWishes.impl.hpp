@@ -10,8 +10,6 @@
 
 #include "SpectralWishes.hpp"
 
-#include <AMReX_ParReduce.H>
-
 template <class matter_t> void SpectralWishes<matter_t>::fill_params()
 {
     GRParmParse spectral_wishes_pp("spectral_wishes");
@@ -65,6 +63,17 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
         }
 
         m_wishes.push_back(make_wish(operation, variables[iwish]));
+    }
+
+    // Everything to derive: each wish's source and chi for volume weights
+    m_sources.clear();
+    for (const auto &wish : m_wishes)
+    {
+        add_source(wish.source);
+        if (wish.operation == SpectralWishOperation::VolumeMean)
+        {
+            add_source(s_chi_name);
+        }
     }
 
     // Output file parameters
@@ -123,13 +132,17 @@ typename SpectralWishes<matter_t>::wish_t
 SpectralWishes<matter_t>::make_wish(SpectralWishOperation a_operation,
                                     const std::string &a_variable) const
 {
-    wish_t wish{a_operation, a_variable, a_variable, 0};
+    wish_t wish{.operation   = a_operation,
+                .variable    = a_variable,
+                .source      = a_variable,
+                .source_comp = 0,
+                .num_comps   = 1};
 
     int state_index{0};
     int state_comp{0};
     if (amrex::AmrLevel::isStateVariable(a_variable, state_index, state_comp))
     {
-        // derive() returns a single component copy of a state variable
+        // derive() gives a single component copy of a state variable
         AMREX_ALWAYS_ASSERT(state_index == m_state_index);
         return wish;
     }
@@ -138,14 +151,14 @@ SpectralWishes<matter_t>::make_wish(SpectralWishOperation a_operation,
     const auto *derive_rec = amrex::AmrLevel::get_derive_lst().get(a_variable);
     if (derive_rec != nullptr)
     {
-        // derive() returns every component of the derive record so find
+        // derive() gives every component of the derive record so find
         // this variable's position in it
         for (int icomp = 0; icomp < derive_rec->numDerive(); ++icomp)
         {
             if (derive_rec->variableName(icomp) == a_variable)
             {
-                wish.source = derive_rec->name();
-                wish.comp   = icomp;
+                wish.source      = derive_rec->name();
+                wish.source_comp = icomp;
                 return wish;
             }
         }
@@ -173,32 +186,124 @@ amrex::Vector<std::string> SpectralWishes<matter_t>::get_labels() const
 }
 
 template <class matter_t>
-AMREX_FORCE_INLINE amrex::Vector<amrex::Real>
-SpectralWishes<matter_t>::compute(GRAmr *gramr_ptr)
+void SpectralWishes<matter_t>::add_source(const std::string &a_source)
+{
+    for (const auto &source : m_sources)
+    {
+        if (source.name == a_source)
+        {
+            return;
+        }
+    }
+
+    int num_comps{1};
+    int state_index{0};
+    int state_comp{0};
+    if (!amrex::AmrLevel::isStateVariable(a_source, state_index, state_comp))
+    {
+        const auto *derive_rec =
+            amrex::AmrLevel::get_derive_lst().get(a_source);
+        AMREX_ALWAYS_ASSERT(derive_rec != nullptr);
+        num_comps = derive_rec->numDerive();
+    }
+    m_sources.push_back({.name = a_source, .num_comps = num_comps});
+}
+
+template <class matter_t>
+int SpectralWishes<matter_t>::source_start(const std::string &a_source) const
+{
+    int start{0};
+    for (const auto &source : m_sources)
+    {
+        if (source.name == a_source)
+        {
+            return start;
+        }
+        start += source.num_comps;
+    }
+    amrex::Abort("SpectralWishes: " + a_source + " has not been derived");
+    return -1;
+}
+
+template <class matter_t>
+amrex::Vector<amrex::MultiFab>
+SpectralWishes<matter_t>::derive_sources(GRAmr *gramr_ptr, int a_min_level,
+                                         int a_max_level) const
+{
+    int num_comps{0};
+    for (const auto &source : m_sources)
+    {
+        num_comps += source.num_comps;
+    }
+
+    amrex::Vector<amrex::MultiFab> hierarchy;
+    hierarchy.reserve(a_max_level - a_min_level + 1);
+    for (int level = a_min_level; level <= a_max_level; ++level)
+    {
+        // No ghost cells as the reductions only use valid cells
+        auto &level_data = hierarchy.emplace_back(
+            gramr_ptr->boxArray(level), gramr_ptr->DistributionMap(level),
+            num_comps, 0);
+
+        int dcomp{0};
+        for (const auto &source : m_sources)
+        {
+            gramr_ptr->getLevel(level).derive(source.name, m_time, level_data,
+                                              dcomp);
+            dcomp += source.num_comps;
+        }
+    }
+    return hierarchy;
+}
+
+template <class matter_t>
+amrex::Vector<amrex::Real> SpectralWishes<matter_t>::compute(GRAmr *gramr_ptr)
 {
     AMREX_ASSERT(gramr_ptr != nullptr);
+    return compute_on_levels(gramr_ptr, m_lev, m_lev);
+}
 
+template <class matter_t>
+amrex::Vector<amrex::Real>
+SpectralWishes<matter_t>::compute_on_levels(GRAmr *gramr_ptr, int a_min_level,
+                                            int a_max_level) const
+{
     amrex::Vector<amrex::Real> results;
+    if (m_wishes.empty())
+    {
+        return results;
+    }
     results.reserve(m_wishes.size());
 
-    const amrex::Long num_cells = gramr_ptr->CountCells(m_lev);
+    const auto hierarchy = derive_sources(gramr_ptr, a_min_level, a_max_level);
+    const auto data      = amrex::GetVecOfConstPtrs(hierarchy);
 
-    // Derive each source once, however many wishes use it (e.g. Ham and Mom1
-    // both come from the same constraints calculation)
-    std::map<std::string, std::unique_ptr<amrex::MultiFab>> derived;
-    auto get_source = [&](const std::string &a_source) -> amrex::MultiFab &
+    amrex::Vector<amrex::Geometry> geometry;
+    amrex::Vector<amrex::IntVect> refinement_ratios;
+    for (int level = a_min_level; level <= a_max_level; ++level)
     {
-        auto &source_mf = derived[a_source];
-        if (source_mf == nullptr)
+        geometry.push_back(gramr_ptr->Geom(level));
+        if (level < a_max_level)
         {
-            source_mf = gramr_ptr->derive(a_source, m_time, m_lev, m_ngrow);
+            refinement_ratios.push_back(gramr_ptr->refRatio(level));
         }
-        return *source_mf;
-    };
+    }
+    const AMRReductions::AMRReducer reducer(std::move(geometry),
+                                            std::move(refinement_ratios));
+
+    // AMRReducer::compute takes a fixed list of reductions while the wishes
+    // are only known at run time, so integrate one moment at a time
+    const auto integrate = [&](const SpectralWishMoment &a_moment)
+    { return reducer.compute(data, a_moment)[0]; };
+
+    const amrex::Real volume = integrate({.power = 0});
+    std::optional<amrex::Real> proper_volume;
 
     for (const auto &wish : m_wishes)
     {
-        const amrex::MultiFab &source_mf = get_source(wish.source);
+        const SpectralWishMoment first_moment{
+            .comp      = source_start(wish.source) + wish.source_comp,
+            .num_comps = wish.num_comps};
 
         amrex::Real result{0.};
 
@@ -208,95 +313,35 @@ SpectralWishes<matter_t>::compute(GRAmr *gramr_ptr)
         switch (wish.operation)
         {
         case SpectralWishOperation::Mean:
-            result = compute_mean(source_mf, wish.comp, num_cells);
+            result = integrate(first_moment) / volume;
             break;
         case SpectralWishOperation::Variance:
-            result =
-                compute_variance(source_mf, wish.comp, num_cells,
-                                 compute_mean(source_mf, wish.comp, num_cells));
+        {
+            // Two passes, as the mean can be much larger than the deviations
+            auto second_moment  = first_moment;
+            second_moment.power = 2;
+            second_moment.shift = integrate(first_moment) / volume;
+            result              = integrate(second_moment) / volume;
             break;
+        }
         case SpectralWishOperation::VolumeMean:
-            result = compute_volume_mean(source_mf, wish.comp,
-                                         get_source(s_chi_name));
+        {
+            const int chi_comp = source_start(s_chi_name);
+            if (!proper_volume)
+            {
+                proper_volume = integrate({.power = 0, .chi_comp = chi_comp});
+            }
+            auto weighted_moment     = first_moment;
+            weighted_moment.chi_comp = chi_comp;
+            result = integrate(weighted_moment) / *proper_volume;
             break;
+        }
         }
 
         results.push_back(result);
     }
 
     return results;
-};
-
-template <class matter_t>
-amrex::Real SpectralWishes<matter_t>::compute_mean(const amrex::MultiFab &a_mf,
-                                                   int a_comp,
-                                                   amrex::Long a_num_cells)
-{
-    // MultiFab::sum only sums valid cells and reduces over MPI ranks
-    return a_mf.sum(a_comp) / static_cast<amrex::Real>(a_num_cells);
-}
-
-template <class matter_t>
-amrex::Real
-SpectralWishes<matter_t>::compute_variance(const amrex::MultiFab &a_mf,
-                                           int a_comp, amrex::Long a_num_cells,
-                                           amrex::Real a_mean)
-{
-    const auto &mf_arrays = a_mf.const_arrays();
-
-    // Sum of squared deviations over valid cells without modifying a_mf
-    amrex::Real sum_sq = amrex::ParReduce(
-        amrex::TypeList<amrex::ReduceOpSum>{}, amrex::TypeList<amrex::Real>{},
-        a_mf, amrex::IntVect(0),
-        [=] AMREX_GPU_DEVICE(int ibox, int i, int j,
-                             int k) noexcept -> amrex::GpuTuple<amrex::Real>
-        {
-            const amrex::Real deviation =
-                mf_arrays[ibox](i, j, k, a_comp) - a_mean;
-            return {deviation * deviation};
-        });
-
-    // ParReduce only reduces over this rank's boxes
-    amrex::ParallelAllReduce::Sum(sum_sq,
-                                  amrex::ParallelDescriptor::Communicator());
-
-    return sum_sq / static_cast<amrex::Real>(a_num_cells - 1);
-}
-
-template <class matter_t>
-amrex::Real SpectralWishes<matter_t>::compute_volume_mean(
-    const amrex::MultiFab &a_mf, int a_comp, const amrex::MultiFab &a_chi_mf)
-{
-    // Both come from derive() on the same level so share their layout
-    AMREX_ALWAYS_ASSERT(a_mf.boxArray() == a_chi_mf.boxArray() &&
-                        a_mf.DistributionMap() == a_chi_mf.DistributionMap());
-
-    const auto &mf_arrays  = a_mf.const_arrays();
-    const auto &chi_arrays = a_chi_mf.const_arrays();
-
-    // Sums of value * sqrt(gamma) and of sqrt(gamma) over valid cells. The
-    // coordinate cell volume is the same for every cell on a level so it
-    // cancels in the ratio.
-    const auto sums = amrex::ParReduce(
-        amrex::TypeList<amrex::ReduceOpSum, amrex::ReduceOpSum>{},
-        amrex::TypeList<amrex::Real, amrex::Real>{}, a_mf, amrex::IntVect(0),
-        [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k) noexcept
-            -> amrex::GpuTuple<amrex::Real, amrex::Real>
-        {
-            // chi = det(gamma)^(-1/3) so sqrt(gamma) = chi^(-3/2)
-            const amrex::Real chi        = chi_arrays[ibox](i, j, k);
-            const amrex::Real sqrt_gamma = 1.0 / (chi * std::sqrt(chi));
-            return {mf_arrays[ibox](i, j, k, a_comp) * sqrt_gamma, sqrt_gamma};
-        });
-
-    // ParReduce only reduces over this rank's boxes
-    std::array<amrex::Real, 2> global_sums{amrex::get<0>(sums),
-                                           amrex::get<1>(sums)};
-    amrex::ParallelAllReduce::Sum(global_sums.data(),
-                                  static_cast<int>(global_sums.size()),
-                                  amrex::ParallelDescriptor::Communicator());
-
-    return global_sums[0] / global_sums[1];
 }
 
 #endif /* SPECTRALWISHES_IMPL_HPP_ */
