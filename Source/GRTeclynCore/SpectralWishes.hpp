@@ -134,8 +134,11 @@ struct SpectralWishMoment
  *     spectral_wishes.interval    = 1                  # default
  *     spectral_wishes.path        = <grteclyn.output_path>/data/ # default
  *     spectral_wishes.file_prefix = <prefix>           # default
+ *
+ * The matter_t template parameter is not used (the variables are looked up by
+ * name) and can be left out, e.g. SpectralWishes<> in vacuum.
  */
-template <class matter_t> class SpectralWishes
+template <class matter_t = void> class SpectralWishes
 {
   public:
     //! A single (operation, variable) pair
@@ -256,7 +259,6 @@ template <class matter_t> class SpectralWishes
     //! State variable holding the conformal factor used for volume weights
     static constexpr const char *s_chi_name = "chi";
 
-    matter_t m_matter;        //!< The matter object, e.g. a scalar field
     const amrex::Real m_time; // Time as measured by AmrLevel
     const int m_lev;          // AMR level
     int m_state_index;
