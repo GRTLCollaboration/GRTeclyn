@@ -67,3 +67,18 @@ wishes_fine.operations = Mean Variance Integral Min Max
 wishes_fine.variables  = Pi   Pi       phi      Pi  Pi
 wishes_fine.min_level  = 1
 wishes_fine.max_level  = 1
+
+# Both levels without 2 level-0 cells (1.0) next to every face
+wishes_excluded.operations = Integral Mean Min Max
+wishes_excluded.variables  = phi      Pi   Pi  Pi
+wishes_excluded.max_level  = -1
+wishes_excluded.exclude_lo = 2 2 2
+wishes_excluded.exclude_hi = 2 2 2
+
+# The fine level only (x from 2) without 5 level-0 cells (2.5) next to the
+# low x face, i.e. 10 fine cells
+wishes_fine_excluded.operations = Integral Min
+wishes_fine_excluded.variables  = phi      Pi
+wishes_fine_excluded.min_level  = 1
+wishes_fine_excluded.max_level  = 1
+wishes_fine_excluded.exclude_lo = 5 0 0

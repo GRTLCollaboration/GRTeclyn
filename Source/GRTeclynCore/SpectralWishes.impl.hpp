@@ -110,6 +110,29 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
     m_level_mode = to_enum<SpectralWishLevelMode>(spectral_wishes_pp,
                                                   "level_mode", level_mode);
 
+    // Layers next to the faces of the domain to leave out
+    for (const char *side : {"exclude_lo", "exclude_hi"})
+    {
+        // queryarr does not shrink a vector that is too long, so count the
+        // values to catch too few of them
+        std::vector<int> widths(AMREX_SPACEDIM, 0);
+        const int num_widths = spectral_wishes_pp.countval(side);
+        if (num_widths > 0)
+        {
+            spectral_wishes_pp.getarr(side, widths);
+        }
+        if ((num_widths > 0 && num_widths != AMREX_SPACEDIM) ||
+            *std::min_element(widths.begin(), widths.end()) < 0)
+        {
+            spectral_wishes_pp.error(
+                side, "must be " + std::to_string(AMREX_SPACEDIM) +
+                          " non-negative numbers of cells");
+        }
+        auto &exclusion = (std::string(side) == "exclude_lo") ? m_exclusion.lo
+                                                              : m_exclusion.hi;
+        exclusion       = amrex::IntVect(widths.data());
+    }
+
     // Output file parameters
     spectral_wishes_pp.query("interval", m_interval);
 
@@ -418,8 +441,18 @@ SpectralWishes<matter_t>::compute_on_levels(GRAmr *gramr_ptr, int a_min_level,
             refinement_ratios.push_back(gramr_ptr->refRatio(level));
         }
     }
-    const AMRReductions::AMRReducer reducer(std::move(geometry),
-                                            std::move(refinement_ratios));
+
+    // AMRReducer counts the excluded layers in cells of its coarsest level
+    // so convert them from level-0 cells
+    amrex::IntVect ratio_to_min_level(1);
+    for (int level = 0; level < a_min_level; ++level)
+    {
+        ratio_to_min_level *= gramr_ptr->refRatio(level);
+    }
+    const AMRReductions::AMRReducer reducer(
+        std::move(geometry), std::move(refinement_ratios),
+        {.lo = m_exclusion.lo * ratio_to_min_level,
+         .hi = m_exclusion.hi * ratio_to_min_level});
 
     // AMRReducer::compute takes a fixed list of reductions while the wishes
     // are only known at run time, so integrate one moment at a time

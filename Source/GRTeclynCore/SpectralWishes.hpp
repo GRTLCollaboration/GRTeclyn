@@ -119,6 +119,14 @@ struct SpectralWishMoment
  * Levels that do not exist (yet) give NaN. Coarser levels than the calling
  * level cannot be used as they are not at the same time.
  *
+ * Layers of cells next to the faces of the domain can be left out, e.g. those
+ * whose evolution is replaced by an outer boundary condition. The widths are
+ * in level-0 cells for each direction (faces in periodic directions are never
+ * excluded):
+ *
+ *     spectral_wishes.exclude_lo = 0 0 0 # default
+ *     spectral_wishes.exclude_hi = 0 0 0 # default
+ *
  * write() appends the wishes to <path><file_prefix>.dat every interval steps
  * of the calling level (-1 disables writing), with one column per wish (and
  * level in Each mode, e.g. Mean_Ham_lev1):
@@ -261,6 +269,8 @@ template <class matter_t> class SpectralWishes
     int m_min_level{0};                // Coarsest level used
     int m_max_level{0};                // Finest level used
     SpectralWishLevelMode m_level_mode{SpectralWishLevelMode::Composite};
+    // Level-0 cells to leave out next to the low and high faces
+    AMRReductions::BoundaryExclusion m_exclusion;
     int m_interval{1};         // Steps between writes, -1 disables
     std::string m_data_path;   // Directory of the output file
     std::string m_file_prefix; // Output file name without extension

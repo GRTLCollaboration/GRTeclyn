@@ -176,6 +176,26 @@ class SpectralWishesAMRTestLevel : public GRAmrLevel
         check_wishes("wishes_fine",
                      {fine_mean, fine_variance, s_phi * fine_volume, fine_min_x,
                       fine_max_x});
+
+        // Leaving out a layer of width 1 (2 coarse cells) next to every face,
+        // which only covers coarse cells
+        const amrex::Real excluded_width  = 2 * coarse_dx;
+        const amrex::Real included_length = length - 2 * excluded_width;
+        check_wishes("wishes_excluded",
+                     {s_phi * std::pow(included_length, 3), mean,
+                      excluded_width + 0.5 * coarse_dx,
+                      length - excluded_width - 0.5 * coarse_dx});
+
+        // On the fine level, leaving out x < 2.5 (5 coarse cells, so 10 fine
+        // cells), which would not remove anything if the width were not
+        // converted to fine cells
+        const amrex::Real fine_excluded_x = 5 * coarse_dx;
+        REQUIRE(fine_excluded_x > fine_min_x);
+        check_wishes("wishes_fine_excluded",
+                     {s_phi * fine_volume *
+                          (fine_max_x + 0.5 * fine_dx - fine_excluded_x) /
+                          (fine_max_x - fine_min_x + fine_dx),
+                      fine_excluded_x + 0.5 * fine_dx});
     };
 
   protected:
