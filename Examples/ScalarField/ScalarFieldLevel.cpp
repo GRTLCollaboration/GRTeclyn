@@ -83,7 +83,10 @@ void ScalarFieldLevel::specific_post_timestep()
         const LineExtraction<1> rho_extraction("rho_line_extraction", 0, dt,
                                                time, restart_time, first_step);
         const LineExtraction<1>::derived_vars_t rho_vars{
-            ScalarFieldEnergyDensity::name, {"rho"}, {BCParity::even}};
+            .name            = ScalarFieldEnergyDensity::name,
+            .component_names = {"rho"},
+            .parities        = {BCParity::even},
+        };
 
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);

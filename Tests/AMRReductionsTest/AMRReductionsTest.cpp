@@ -37,6 +37,32 @@ enum
 
 constexpr amrex::Real constant_value = -2.0;
 
+} // namespace
+
+// Fills a_data with the test fields. CUDA does not allow device lambdas in
+// constructors, so this is a free function rather than part of TestHierarchy.
+void fill_amr_reductions_test_data(amrex::MultiFab &a_data,
+                                   const amrex::Geometry &a_geometry)
+{
+    a_data.setVal(1e30);
+    const auto dx      = a_geometry.CellSizeArray();
+    const auto &arrays = a_data.arrays();
+    amrex::ParallelFor(
+        a_data,
+        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept
+        {
+            const auto &cell             = arrays[box_no];
+            cell(ix, iy, iz, c_x)        = (ix + 0.5) * dx[0];
+            cell(ix, iy, iz, c_constant) = constant_value;
+            cell(ix, iy, iz, c_vector_0) = 3.0;
+            cell(ix, iy, iz, c_vector_1) = 4.0;
+        });
+    amrex::Gpu::streamSynchronize();
+}
+
+namespace
+{
 /* Builds a two-level hierarchy on the unit cube with num_coarse_cells^3
  * coarse cells. The fine level (refinement ratio 2) covers the corner
  * [0.5, 1]^3. Ghost cells are filled with a huge value that would spoil
@@ -77,24 +103,8 @@ struct TestHierarchy
 
         for (int level = 0; level < data.size(); ++level)
         {
-            auto &level_data = *data[level];
-            level_data.setVal(1e30);
-            const auto dx      = geometry[level].CellSizeArray();
-            const auto &arrays = level_data.arrays();
-            amrex::ParallelFor(
-                level_data,
-                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-                [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy,
-                                     int iz) noexcept
-                {
-                    const auto &cell             = arrays[box_no];
-                    cell(ix, iy, iz, c_x)        = (ix + 0.5) * dx[0];
-                    cell(ix, iy, iz, c_constant) = constant_value;
-                    cell(ix, iy, iz, c_vector_0) = 3.0;
-                    cell(ix, iy, iz, c_vector_1) = 4.0;
-                });
+            fill_amr_reductions_test_data(*data[level], geometry[level]);
         }
-        amrex::Gpu::streamSynchronize();
     }
 };
 } // namespace
@@ -210,14 +220,20 @@ void run_amr_reductions_test()
             const auto together = reducer.compute(
                 data, Integral{.comp = c_x}, Min{.comp = c_x}, l3_norm,
                 Max{.comp = c_x}, L2Norm{.comp = c_vector_0, .num_comps = 2});
+            // Not exact equality: on GPUs the compiler may fuse multiply-adds
+            // differently in kernels with different lists of reductions
+            const auto agrees = [](amrex::Real a_separately)
+            { return doctest::Approx(a_separately).epsilon(1e-12); };
             CHECK(together[0] ==
-                  reducer.compute(data, Integral{.comp = c_x})[0]);
-            CHECK(together[1] == reducer.compute(data, Min{.comp = c_x})[0]);
-            CHECK(together[2] == reducer.compute(data, l3_norm)[0]);
-            CHECK(together[3] == reducer.compute(data, Max{.comp = c_x})[0]);
+                  agrees(reducer.compute(data, Integral{.comp = c_x})[0]));
+            CHECK(together[1] ==
+                  agrees(reducer.compute(data, Min{.comp = c_x})[0]));
+            CHECK(together[2] == agrees(reducer.compute(data, l3_norm)[0]));
+            CHECK(together[3] ==
+                  agrees(reducer.compute(data, Max{.comp = c_x})[0]));
             CHECK(together[4] ==
-                  reducer.compute(
-                      data, L2Norm{.comp = c_vector_0, .num_comps = 2})[0]);
+                  agrees(reducer.compute(
+                      data, L2Norm{.comp = c_vector_0, .num_comps = 2})[0]));
         }
     }
     amrex::Finalize();
