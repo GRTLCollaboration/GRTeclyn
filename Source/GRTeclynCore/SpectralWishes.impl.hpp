@@ -382,6 +382,7 @@ SpectralWishes<matter_t>::derive_sources(GRAmr *gramr_ptr, int a_min_level,
 template <class matter_t>
 amrex::Vector<amrex::Real> SpectralWishes<matter_t>::compute(GRAmr *gramr_ptr)
 {
+    BL_PROFILE("SpectralWishes::compute()");
     AMREX_ASSERT(gramr_ptr != nullptr);
 
     // Levels finer than the finest level present have no data (yet), but

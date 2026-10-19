@@ -27,6 +27,15 @@ amr.derive_plot_vars = constraints
 # each coarse timestep.
 diagnostic.store_constraint_norms = true
 
+# The same diagnostics with SpectralWishes, written to
+# <grteclyn.output_path>/data/spectral_wishes.dat
+spectral_wishes.operations = L2Norm L2Norm    Min
+spectral_wishes.variables  = Ham    Mom1:Mom3 chi
+spectral_wishes.max_level  = -1 # all levels, as AMRReductions
+# The equivalent of diagnostic.constraint_norms_boundary_cells_to_exclude = N,
+# which only applies to the Sommerfeld (here high) faces
+# spectral_wishes.exclude_hi = N N N
+
 #################################################
 # Teukolsky Wave parameters
 

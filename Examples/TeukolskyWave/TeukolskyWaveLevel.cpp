@@ -19,6 +19,7 @@
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
 #include "SmallDataIO.hpp"
+#include "SpectralWishes.hpp"
 #include "StateTypes.hpp"
 #include "TeukolskyWaveInitialData.hpp"
 #include "Weyl4.hpp"
@@ -151,6 +152,15 @@ void TeukolskyWaveLevel::specific_post_timestep()
         constraints_file.write_time_data_line(
             std::vector<amrex::Real>{ham_l2_norm, mom_l2_norm});
         min_chi_file.write_time_data_line(std::vector<amrex::Real>{chi_min});
+    }
+
+    // The same diagnostics computed with SpectralWishes, set up in params.txt
+    // with the spectral_wishes prefix
+    if (Level() == 0)
+    {
+        const amrex::Real time = get_state_data(state_index).curTime();
+        SpectralWishes<> spectral_wishes(state_index, time, Level(), 0);
+        spectral_wishes.write(get_gr_amr_ptr());
     }
 }
 
