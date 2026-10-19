@@ -187,25 +187,87 @@ class SpectralWishesTestLevel : public GRAmrLevel
             volume_mean /= total_volume;
         }
 
+        // Every cell on the level has the same coordinate volume
+        const auto dx                 = Geom().CellSizeArray();
+        const amrex::Real cell_volume = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
+
+        // Sums of squares and of absolute values of every component
+        const amrex::Vector<amrex::Real> sum_squares = sum_powers(
+            derive_mf, amrex::Vector<amrex::Real>(num_comp_total), 2);
+        amrex::MultiFab abs_mf{derive_mf.boxArray(),
+                               derive_mf.DistributionMap(), num_comp_total, 0};
+        const auto &abs_arrays = abs_mf.arrays();
+        amrex::ParallelFor(
+            abs_mf, amrex::IntVect(0), num_comp_total,
+            [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz, int icomp)
+            {
+                abs_arrays[ibox](ix, iy, iz, icomp) =
+                    std::abs(derive_const_arrays[ibox](ix, iy, iz, icomp));
+            });
+        const amrex::Vector<amrex::Real> sum_abs =
+            sum_powers(abs_mf, amrex::Vector<amrex::Real>(num_comp_total), 1);
+
         // Compare every wish with the direct calculation of the same
         // quantity
         for (amrex::Long iwish = 0; iwish < wishes.size(); ++iwish)
         {
             const auto &wish = wishes[iwish];
-            const int comp   = derive_mf_comp(wish.variable, dcomp);
+
+            // A magnitude first:last covers the components first to last,
+            // which are consecutive in derive_mf too
+            const auto colon = wish.variable.find(':');
+            const int comp =
+                derive_mf_comp(wish.variable.substr(0, colon), dcomp);
+            const int last_comp =
+                (colon == std::string::npos)
+                    ? comp
+                    : derive_mf_comp(wish.variable.substr(colon + 1), dcomp);
 
             amrex::Real direct_calc{0.};
-            switch (wish.operation)
+            if (last_comp != comp)
             {
-            case SpectralWishOperation::Mean:
-                direct_calc = mean_direct_calc[comp];
-                break;
-            case SpectralWishOperation::Variance:
-                direct_calc = variance_direct_calc[comp];
-                break;
-            case SpectralWishOperation::VolumeMean:
-                direct_calc = volume_mean_direct_calc[comp];
-                break;
+                // Only the L2 norm of magnitudes follows from the sums above
+                REQUIRE(wish.operation == SpectralWishOperation::L2Norm);
+                for (int icomp = comp; icomp <= last_comp; ++icomp)
+                {
+                    direct_calc += sum_squares[icomp];
+                }
+                direct_calc = std::sqrt(direct_calc / num_cells);
+            }
+            else
+            {
+                switch (wish.operation)
+                {
+                case SpectralWishOperation::Mean:
+                    direct_calc = mean_direct_calc[comp];
+                    break;
+                case SpectralWishOperation::Variance:
+                    direct_calc = variance_direct_calc[comp];
+                    break;
+                case SpectralWishOperation::VolumeMean:
+                    direct_calc = volume_mean_direct_calc[comp];
+                    break;
+                case SpectralWishOperation::Integral:
+                    direct_calc =
+                        mean_direct_calc[comp] * num_cells * cell_volume;
+                    break;
+                case SpectralWishOperation::VolumeIntegral:
+                    direct_calc = volume_mean_direct_calc[comp] * total_volume *
+                                  cell_volume;
+                    break;
+                case SpectralWishOperation::Min:
+                    direct_calc = derive_mf.min(comp);
+                    break;
+                case SpectralWishOperation::Max:
+                    direct_calc = derive_mf.max(comp);
+                    break;
+                case SpectralWishOperation::L1Norm:
+                    direct_calc = sum_abs[comp] / num_cells;
+                    break;
+                case SpectralWishOperation::L2Norm:
+                    direct_calc = std::sqrt(sum_squares[comp] / num_cells);
+                    break;
+                }
             }
 
             amrex::Print() << labels[iwish] << " (spectral wishes): "

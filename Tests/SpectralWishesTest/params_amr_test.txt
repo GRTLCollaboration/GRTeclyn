@@ -51,8 +51,8 @@ wishes_default.operations = Mean Variance
 wishes_default.variables  = Pi   Pi
 
 # Both levels as one composite hierarchy
-wishes_composite.operations = Mean Variance VolumeMean
-wishes_composite.variables  = Pi   Pi       Pi
+wishes_composite.operations = Mean Variance VolumeMean Integral VolumeIntegral Min Max L1Norm L2Norm Max
+wishes_composite.variables  = Pi   Pi       Pi         phi      phi            Pi  Pi  Pi     phi    phi:Pi
 wishes_composite.max_level  = -1
 
 # Each level on its own
@@ -63,7 +63,7 @@ wishes_each.max_level  = 1
 wishes_each.level_mode = each
 
 # The fine level only
-wishes_fine.operations = Mean Variance
-wishes_fine.variables  = Pi   Pi
+wishes_fine.operations = Mean Variance Integral Min Max
+wishes_fine.variables  = Pi   Pi       phi      Pi  Pi
 wishes_fine.min_level  = 1
 wishes_fine.max_level  = 1

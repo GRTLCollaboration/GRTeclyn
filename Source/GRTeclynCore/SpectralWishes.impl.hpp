@@ -53,34 +53,27 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
 
     m_wishes.clear();
     m_wishes.reserve(static_cast<amrex::Long>(operations.size()));
+    m_sources.clear();
 
     for (std::size_t iwish = 0; iwish < operations.size(); ++iwish)
     {
         const auto operation = to_enum<SpectralWishOperation>(
             spectral_wishes_pp, "operations", operations[iwish]);
 
-        int chi_state_index{0};
-        int chi_comp{0};
-        if (operation == SpectralWishOperation::VolumeMean &&
-            !amrex::AmrLevel::isStateVariable(s_chi_name, chi_state_index,
-                                              chi_comp))
+        if (uses_proper_volume(operation))
         {
-            spectral_wishes_pp.error("operations",
-                                     "VolumeMean needs the state variable chi");
+            const auto chi = find_variable(s_chi_name);
+            if (!chi || !chi->is_state)
+            {
+                spectral_wishes_pp.error("operations",
+                                         amrex::getEnumNameString(operation) +
+                                             " needs the state variable chi");
+            }
+            add_source(
+                {.name = s_chi_name, .num_comps = 1, .state_comp = chi->comp});
         }
 
         m_wishes.push_back(make_wish(operation, variables[iwish]));
-    }
-
-    // Everything to derive: each wish's source and chi for volume weights
-    m_sources.clear();
-    for (const auto &wish : m_wishes)
-    {
-        add_source(wish.source);
-        if (wish.operation == SpectralWishOperation::VolumeMean)
-        {
-            add_source(s_chi_name);
-        }
     }
 
     // Levels: by default only the calling level. Coarser levels are not at
@@ -169,23 +162,18 @@ template <class matter_t> void SpectralWishes<matter_t>::write(GRAmr *gramr_ptr)
 }
 
 template <class matter_t>
-typename SpectralWishes<matter_t>::wish_t
-SpectralWishes<matter_t>::make_wish(SpectralWishOperation a_operation,
-                                    const std::string &a_variable) const
+std::optional<typename SpectralWishes<matter_t>::variable_t>
+SpectralWishes<matter_t>::find_variable(const std::string &a_variable) const
 {
-    wish_t wish{.operation   = a_operation,
-                .variable    = a_variable,
-                .source      = a_variable,
-                .source_comp = 0,
-                .num_comps   = 1};
-
     int state_index{0};
     int state_comp{0};
     if (amrex::AmrLevel::isStateVariable(a_variable, state_index, state_comp))
     {
-        // derive() gives a single component copy of a state variable
         AMREX_ALWAYS_ASSERT(state_index == m_state_index);
-        return wish;
+        return variable_t{.is_state         = true,
+                          .source           = a_variable,
+                          .comp             = state_comp,
+                          .source_num_comps = 1};
     }
 
     // Not a state variable so get the component number from the derive list
@@ -198,19 +186,77 @@ SpectralWishes<matter_t>::make_wish(SpectralWishOperation a_operation,
         {
             if (derive_rec->variableName(icomp) == a_variable)
             {
-                wish.source      = derive_rec->name();
-                wish.source_comp = icomp;
-                return wish;
+                return variable_t{.is_state         = false,
+                                  .source           = derive_rec->name(),
+                                  .comp             = icomp,
+                                  .source_num_comps = derive_rec->numDerive()};
             }
         }
     }
+    return std::nullopt;
+}
 
+template <class matter_t>
+typename SpectralWishes<matter_t>::wish_t
+SpectralWishes<matter_t>::make_wish(SpectralWishOperation a_operation,
+                                    const std::string &a_variable)
+{
     GRParmParse spectral_wishes_pp(m_param_prefix);
-    spectral_wishes_pp.error("variables",
-                             "\"" + a_variable +
-                                 "\" is not a state variable or a single "
-                                 "component of a derived variable");
-    return wish;
+    const auto get_variable = [&](const std::string &a_name)
+    {
+        auto variable = find_variable(a_name);
+        if (!variable)
+        {
+            spectral_wishes_pp.error("variables",
+                                     "\"" + a_name +
+                                         "\" is not a state variable or a "
+                                         "single component of a derived "
+                                         "variable");
+        }
+        return *variable;
+    };
+
+    // Either a single variable or the magnitude of first:last
+    const auto colon    = a_variable.find(':');
+    const auto first    = get_variable(a_variable.substr(0, colon));
+    const auto last     = (colon == std::string::npos)
+                              ? first
+                              : get_variable(a_variable.substr(colon + 1));
+    const bool in_order = first.is_state == last.is_state &&
+                          (first.is_state || first.source == last.source) &&
+                          first.comp <= last.comp;
+    if (!in_order)
+    {
+        spectral_wishes_pp.error(
+            "variables", "\"" + a_variable +
+                             "\" must be first:last with first and last both "
+                             "state variables or both components of the same "
+                             "derived variable, and first before last");
+    }
+    const int num_comps = last.comp - first.comp + 1;
+
+    if (first.is_state)
+    {
+        // State variables are copied as one block so a magnitude's
+        // components are consecutive
+        add_source({.name       = a_variable,
+                    .num_comps  = num_comps,
+                    .state_comp = first.comp});
+        return {.operation   = a_operation,
+                .variable    = a_variable,
+                .source      = a_variable,
+                .source_comp = 0,
+                .num_comps   = num_comps};
+    }
+
+    add_source({.name       = first.source,
+                .num_comps  = first.source_num_comps,
+                .state_comp = -1});
+    return {.operation   = a_operation,
+            .variable    = a_variable,
+            .source      = first.source,
+            .source_comp = first.comp,
+            .num_comps   = num_comps};
 }
 
 template <class matter_t>
@@ -242,27 +288,16 @@ amrex::Vector<std::string> SpectralWishes<matter_t>::get_labels() const
 }
 
 template <class matter_t>
-void SpectralWishes<matter_t>::add_source(const std::string &a_source)
+void SpectralWishes<matter_t>::add_source(const source_t &a_source)
 {
     for (const auto &source : m_sources)
     {
-        if (source.name == a_source)
+        if (source.name == a_source.name)
         {
             return;
         }
     }
-
-    int num_comps{1};
-    int state_index{0};
-    int state_comp{0};
-    if (!amrex::AmrLevel::isStateVariable(a_source, state_index, state_comp))
-    {
-        const auto *derive_rec =
-            amrex::AmrLevel::get_derive_lst().get(a_source);
-        AMREX_ALWAYS_ASSERT(derive_rec != nullptr);
-        num_comps = derive_rec->numDerive();
-    }
-    m_sources.push_back({.name = a_source, .num_comps = num_comps});
+    m_sources.push_back(a_source);
 }
 
 template <class matter_t>
@@ -301,11 +336,20 @@ SpectralWishes<matter_t>::derive_sources(GRAmr *gramr_ptr, int a_min_level,
             gramr_ptr->boxArray(level), gramr_ptr->DistributionMap(level),
             num_comps, 0);
 
+        auto &amr_level = gramr_ptr->getLevel(level);
         int dcomp{0};
         for (const auto &source : m_sources)
         {
-            gramr_ptr->getLevel(level).derive(source.name, m_time, level_data,
-                                              dcomp);
+            if (source.state_comp >= 0)
+            {
+                amrex::AmrLevel::FillPatch(amr_level, level_data, 0, m_time,
+                                           m_state_index, source.state_comp,
+                                           source.num_comps, dcomp);
+            }
+            else
+            {
+                amr_level.derive(source.name, m_time, level_data, dcomp);
+            }
             dcomp += source.num_comps;
         }
     }
@@ -383,7 +427,22 @@ SpectralWishes<matter_t>::compute_on_levels(GRAmr *gramr_ptr, int a_min_level,
     { return reducer.compute(data, a_moment)[0]; };
 
     const amrex::Real volume = integrate({.power = 0});
+
+    // Weight a moment by the proper volume
+    const auto proper = [&](SpectralWishMoment a_moment)
+    {
+        a_moment.chi_comp = source_start(s_chi_name);
+        return a_moment;
+    };
     std::optional<amrex::Real> proper_volume;
+    const auto get_proper_volume = [&]
+    {
+        if (!proper_volume)
+        {
+            proper_volume = integrate(proper({.power = 0}));
+        }
+        return *proper_volume;
+    };
 
     for (const auto &wish : m_wishes)
     {
@@ -411,17 +470,43 @@ SpectralWishes<matter_t>::compute_on_levels(GRAmr *gramr_ptr, int a_min_level,
             break;
         }
         case SpectralWishOperation::VolumeMean:
-        {
-            const int chi_comp = source_start(s_chi_name);
-            if (!proper_volume)
-            {
-                proper_volume = integrate({.power = 0, .chi_comp = chi_comp});
-            }
-            auto weighted_moment     = first_moment;
-            weighted_moment.chi_comp = chi_comp;
-            result = integrate(weighted_moment) / *proper_volume;
+            result = integrate(proper(first_moment)) / get_proper_volume();
             break;
-        }
+        case SpectralWishOperation::Integral:
+            result = integrate(first_moment);
+            break;
+        case SpectralWishOperation::VolumeIntegral:
+            result = integrate(proper(first_moment));
+            break;
+        case SpectralWishOperation::Min:
+            result = reducer.compute(
+                data,
+                AMRReductions::Min{.comp      = first_moment.comp,
+                                   .num_comps = first_moment.num_comps})[0];
+            break;
+        case SpectralWishOperation::Max:
+            result = reducer.compute(
+                data,
+                AMRReductions::Max{.comp      = first_moment.comp,
+                                   .num_comps = first_moment.num_comps})[0];
+            break;
+        // Normalised by the volume computed over rather than the domain
+        case SpectralWishOperation::L1Norm:
+            result = reducer.compute(data,
+                                     AMRReductions::L1Norm{
+                                         .comp      = first_moment.comp,
+                                         .num_comps = first_moment.num_comps,
+                                         .normalize_by_volume = false})[0] /
+                     volume;
+            break;
+        case SpectralWishOperation::L2Norm:
+            result = reducer.compute(data,
+                                     AMRReductions::L2Norm{
+                                         .comp      = first_moment.comp,
+                                         .num_comps = first_moment.num_comps,
+                                         .normalize_by_volume = false})[0] /
+                     std::sqrt(volume);
+            break;
         }
 
         results.push_back(result);

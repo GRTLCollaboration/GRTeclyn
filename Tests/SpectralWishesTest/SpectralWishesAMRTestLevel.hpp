@@ -118,6 +118,9 @@ class SpectralWishesAMRTestLevel : public GRAmrLevel
             }
         }
         const amrex::Real fine_volume = fine_num_cells * std::pow(fine_dx, 3);
+        const amrex::Box fine_box     = fine_box_array.minimalBox();
+        const amrex::Real fine_min_x  = (fine_box.smallEnd(0) + 0.5) * fine_dx;
+        const amrex::Real fine_max_x  = (fine_box.bigEnd(0) + 0.5) * fine_dx;
         const amrex::Real fine_mean   = fine_sum_x / fine_num_cells;
         const amrex::Real fine_variance =
             fine_sum_x2 / fine_num_cells - fine_mean * fine_mean;
@@ -151,8 +154,16 @@ class SpectralWishesAMRTestLevel : public GRAmrLevel
         // Mean Variance of Pi on the calling level (default)
         check_wishes("wishes_default", {coarse_mean, coarse_variance});
 
-        // The same over both levels
-        check_wishes("wishes_composite", {mean, composite_variance, mean});
+        // Over both levels: Mean Variance VolumeMean of Pi, Integral
+        // VolumeIntegral of phi (= 1, with sqrt(gamma) = chi^-3/2 = 8), Min Max
+        // L1Norm of Pi, L2Norm of phi and Max of the magnitude phi:Pi. The
+        // extreme values of x are on the coarse level next to the boundary.
+        const amrex::Real sqrt_gamma = std::pow(s_chi, -1.5);
+        const amrex::Real max_x      = length - 0.5 * coarse_dx;
+        check_wishes("wishes_composite",
+                     {mean, composite_variance, mean, s_phi * volume,
+                      s_phi * sqrt_gamma * volume, 0.5 * coarse_dx, max_x, mean,
+                      s_phi, std::sqrt(s_phi * s_phi + max_x * max_x)});
 
         // Mean Variance of Pi on each level
         check_wishes("wishes_each",
@@ -160,8 +171,11 @@ class SpectralWishesAMRTestLevel : public GRAmrLevel
                      {"Mean_Pi_lev0", "Variance_Pi_lev0", "Mean_Pi_lev1",
                       "Variance_Pi_lev1"});
 
-        // Mean Variance of Pi on the fine level only
-        check_wishes("wishes_fine", {fine_mean, fine_variance});
+        // Mean Variance of Pi, Integral of phi and Min Max of Pi on the fine
+        // level only
+        check_wishes("wishes_fine",
+                     {fine_mean, fine_variance, s_phi * fine_volume, fine_min_x,
+                      fine_max_x});
     };
 
   protected:

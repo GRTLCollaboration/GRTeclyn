@@ -46,8 +46,9 @@ evolution.nan_check = true
 # Operations are case-insensitive. Pi checks a state variable that is not the
 # first component and Ham/Mom2 check that one derive serves several wishes.
 # VolumeMean of chi checks the variable and its weight sharing a derive.
-spectral_wishes.operations = mean Variance MEAN variance Mean variance VolumeMean volumemean VOLUMEMEAN
-spectral_wishes.variables  = Mom2 Mom2     Ham  Ham      Pi   Pi       Ham        Pi         chi
+# Mom1:Mom3 and phi:Pi are magnitudes of derived and state components.
+spectral_wishes.operations = mean Variance MEAN variance Mean variance VolumeMean volumemean VOLUMEMEAN Integral VolumeIntegral Min Max  L1Norm L2Norm L2Norm    L2Norm
+spectral_wishes.variables  = Mom2 Mom2     Ham  Ham      Pi   Pi       Ham        Pi         chi Ham      Ham            Pi  Mom2 Ham    Ham    Mom1:Mom3 phi:Pi
 
 # Write the wishes to ./spectral_wishes_test.dat (deleted by the test)
 spectral_wishes.interval = 1

@@ -24,14 +24,21 @@
 //! The operations SpectralWishes can perform. Declared outside the class
 //! template so the type does not depend on matter_t. Parameter values are
 //! matched case-insensitively (e.g. "mean", "Mean" and "MEAN" all work).
-//!   Mean:       coordinate average, int f dV / V
-//!   Variance:   int (f - Mean)^2 dV / V
-//!   VolumeMean: average weighted by the proper volume,
-//!               int f sqrt(gamma) dV / int sqrt(gamma) dV,
-//!               sqrt(gamma) = chi^-3/2
+//!   Mean:           coordinate average, int f dV / V
+//!   Variance:       int (f - Mean)^2 dV / V
+//!   VolumeMean:     average weighted by the proper volume,
+//!                   int f sqrt(gamma) dV / int sqrt(gamma) dV,
+//!                   sqrt(gamma) = chi^-3/2
+//!   Integral:       int f dV
+//!   VolumeIntegral: integral over the proper volume, int f sqrt(gamma) dV
+//!   Min, Max:       minimum and maximum over the cells
+//!   L1Norm:         int |f| dV / V
+//!   L2Norm:         sqrt(int f^2 dV / V)
 //! where V is the volume the wishes are computed over. On a single level every
-//! cell has the same dV so e.g. Mean = sum(f) / N.
-AMREX_ENUM(SpectralWishOperation, Mean, Variance, VolumeMean);
+//! cell has the same dV so e.g. Mean = sum(f) / N. For a magnitude variable
+//! (first:last) f is sqrt(sum_c f_c^2) over the components first to last.
+AMREX_ENUM(SpectralWishOperation, Mean, Variance, VolumeMean, Integral,
+           VolumeIntegral, Min, Max, L1Norm, L2Norm);
 
 //! How the levels in [min_level, max_level] are used (case-insensitive):
 //!   Composite: one result per wish over all the levels, counting each point
@@ -96,8 +103,11 @@ struct SpectralWishMoment
  *     spectral_wishes.operations = Mean Variance Mean
  *     spectral_wishes.variables  = Ham  Ham      chi
  *
- * The two lists must have the same length. Each variable is derived only once
- * per call to compute(), however many wishes use it.
+ * The two lists must have the same length. A variable is a state variable, a
+ * component of a derived variable (e.g. Ham or Mom1) or the magnitude of
+ * consecutive state variables or components of one derived variable, written
+ * first:last (e.g. Mom1:Mom3). Each variable is derived only once per call to
+ * compute(), however many wishes use it.
  *
  * By default the wishes are computed on the level SpectralWishes is called
  * from. Finer levels can be included with
@@ -125,8 +135,8 @@ template <class matter_t> class SpectralWishes
     {
         SpectralWishOperation operation;
         std::string variable;
-        //! Name passed to derive(): the variable itself for a state
-        //! variable or the name of its derive record for a derived variable
+        //! Key of the variable's source in m_sources: the name of its derive
+        //! record for a derived variable or the variable itself otherwise
         std::string source;
         //! Component of the variable within what derive() gives for source
         int source_comp;
@@ -177,11 +187,25 @@ template <class matter_t> class SpectralWishes
     }
 
   protected:
-    //! A name passed to derive() and the number of components it gives
+    //! Data to derive: a derive record (state_comp < 0) or the state
+    //! components [state_comp, state_comp + num_comps)
     struct source_t
     {
         std::string name;
         int num_comps;
+        int state_comp;
+    };
+
+    //! Where a single (not first:last) variable lives
+    struct variable_t
+    {
+        bool is_state;
+        //! The variable for a state variable, else its derive record's name
+        std::string source;
+        //! The state component, or the component within the derive record
+        int comp;
+        //! Number of components of source
+        int source_num_comps;
     };
 
     //! Convert a parameter value to an AMREX_ENUM (case-insensitively), with
@@ -190,12 +214,23 @@ template <class matter_t> class SpectralWishes
     static enum_t to_enum(const GRParmParse &a_pp, const char *a_name,
                           const std::string &a_value);
 
-    //! Find which source and component a variable lives in
-    [[nodiscard]] wish_t make_wish(SpectralWishOperation a_operation,
-                                   const std::string &a_variable) const;
+    //! Where a single variable lives, if it exists
+    [[nodiscard]] std::optional<variable_t>
+    find_variable(const std::string &a_variable) const;
 
-    //! Add a_source to m_sources unless it is already there
-    void add_source(const std::string &a_source);
+    //! Make a wish and add what it needs to m_sources
+    wish_t make_wish(SpectralWishOperation a_operation,
+                     const std::string &a_variable);
+
+    //! Whether the operation needs chi for the proper volume
+    static bool uses_proper_volume(SpectralWishOperation a_operation)
+    {
+        return a_operation == SpectralWishOperation::VolumeMean ||
+               a_operation == SpectralWishOperation::VolumeIntegral;
+    }
+
+    //! Add a_source to m_sources unless one with the same name is there
+    void add_source(const source_t &a_source);
 
     //! First component of a_source in the data from derive_sources()
     [[nodiscard]] int source_start(const std::string &a_source) const;
