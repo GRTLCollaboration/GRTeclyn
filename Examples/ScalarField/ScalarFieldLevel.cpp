@@ -5,18 +5,22 @@
 
 #include "ScalarFieldLevel.hpp"
 
+#include "AMRReductions.hpp"
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHSWithMatter.hpp"
 #include "ConstraintsWithMatter.hpp"
 #include "EMTensor.hpp"
+#include "FilesystemTools.hpp"
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GRParmParse.hpp"
 #include "GammaCalculator.hpp"
 #include "IntegratedMovingPunctureGauge.hpp"
 #include "LineExtraction.hpp"
 #include "OscillatonInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
+#include "SmallDataIO.hpp"
 #include "StateTypes.hpp"
 
 #include <type_traits>
@@ -83,7 +87,60 @@ void ScalarFieldLevel::specific_post_timestep()
 
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);
+
+        GRParmParse pp;
+        bool store_reductions = false;
+        pp.query("diagnostic.store_reductions", store_reductions);
+        if (store_reductions)
+        {
+            write_reductions(time, dt, restart_time, first_step);
+        }
     }
+}
+
+void ScalarFieldLevel::write_reductions(amrex::Real a_time, amrex::Real a_dt,
+                                        amrex::Real a_restart_time,
+                                        bool a_first_step)
+{
+    BL_PROFILE("ScalarFieldLevel::write_reductions()");
+
+    // Derive the constraints (Ham, Mom1-3) and phi into a single hierarchy,
+    // so that all reductions are computed in one pass over the whole hierarchy.
+    auto &amr = *get_gr_amr_ptr();
+    const AMRReductions::DerivedHierarchy diagnostics(
+        amr, a_time, {Constraints::name, "phi"});
+
+    const AMRReductions::AMRReducer reducer(amr);
+    const auto [ham_l2_norm, mom_l2_norm, phi_max_abs] =
+        reducer.compute(diagnostics.data(),
+                        AMRReductions::L2Norm{.comp = diagnostics.comp("Ham")},
+                        AMRReductions::L2Norm{
+                            .comp      = diagnostics.comp("Mom1"),
+                            .num_comps = AMREX_SPACEDIM,
+                        },
+                        AMRReductions::MaxAbs{.comp = diagnostics.comp("phi")});
+
+    GRParmParse pp;
+    std::string output_path;
+    pp.get("grteclyn.output_path", output_path);
+    const std::string diagnostics_path = output_path + "/diagnostics";
+    FilesystemTools::ensure_directory_exists(diagnostics_path);
+
+    SmallDataIO constraints_file(diagnostics_path + "/constraint_norms", a_dt,
+                                 a_time, a_restart_time, SmallDataIO::APPEND,
+                                 a_first_step);
+    SmallDataIO phi_max_abs_file(diagnostics_path + "/max_abs_phi", a_dt,
+                                 a_time, a_restart_time, SmallDataIO::APPEND,
+                                 a_first_step);
+    if (a_first_step)
+    {
+        constraints_file.write_header_line({"L2_Ham", "L2_Mom"});
+        phi_max_abs_file.write_header_line({"max_abs_phi"});
+    }
+    constraints_file.write_time_data_line(
+        std::vector<amrex::Real>{ham_l2_norm, mom_l2_norm});
+    phi_max_abs_file.write_time_data_line(
+        std::vector<amrex::Real>{phi_max_abs});
 }
 
 void ScalarFieldLevel::initData()
