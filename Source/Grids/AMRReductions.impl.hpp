@@ -68,16 +68,13 @@ template <class ReduceOp> void all_reduce(amrex::Real &a_value)
     }
 }
 
-// One amrex::Real per reduction
-template <class T> using real_t = amrex::Real;
-
 /* The per-cell work of compute(). This is a functor rather than a lambda so
  * that operator() can be force-inlined into the reduction loop: the compiler
  * would otherwise be free to call it out of line for every cell, which makes
  * the reduction several times slower. */
 template <Reduction... ReductionTypes> struct ReductionKernel
 {
-    using tuple_t = amrex::GpuTuple<real_t<ReductionTypes>...>;
+    using tuple_t = amrex::GpuTuple<typename ReductionTypes::real_t...>;
 
     amrex::GpuTuple<ReductionTypes...> reductions;
     //! What a skipped cell returns (see identity())
@@ -253,7 +250,7 @@ AMRReducer::compute(const amrex::Vector<const amrex::MultiFab *> &a_data,
     // As in amrex::volumeWeightedSum(), a single ReduceData accumulates the
     // reductions over all levels
     amrex::ReduceOps<typename ReductionTypes::reduce_op_t...> reduce_ops;
-    amrex::ReduceData<detail::real_t<ReductionTypes>...> reduce_data(
+    amrex::ReduceData<typename ReductionTypes::real_t...> reduce_data(
         reduce_ops);
 
     for (int level = 0; level < a_data.size(); ++level)

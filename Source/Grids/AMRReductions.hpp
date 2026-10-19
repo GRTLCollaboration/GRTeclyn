@@ -51,7 +51,7 @@ value(const amrex::Array4<amrex::Real const> &a_cell, int ix, int iy, int iz,
  * components [comp, comp + num_comps), e.g. to combine the momentum
  * constraint components into a single quantity.
  *
- * A reduction provides
+ * A reduction derives from ReductionBase and provides
  * - reduce_op_t: how the values of different cells are combined
  *   (amrex::ReduceOpSum, amrex::ReduceOpMin or amrex::ReduceOpMax)
  * - cell_value(): the value of a single cell
@@ -60,8 +60,17 @@ value(const amrex::Array4<amrex::Real const> &a_cell, int ix, int iy, int iz,
  *
  * Further reductions can be added by writing a similar struct. */
 
+//! The common base of all reductions
+struct ReductionBase
+{
+    //! The type of the value of a cell and of the result. Always amrex::Real,
+    //! but needed so that a pack of reductions can be expanded into one
+    //! amrex::Real per reduction (see ReductionKernel::tuple_t and compute()).
+    using real_t = amrex::Real;
+};
+
 //! Minimum over all cells
-struct Min
+struct Min : ReductionBase
 {
     int comp      = 0;
     int num_comps = 1;
@@ -83,7 +92,7 @@ struct Min
 };
 
 //! Maximum over all cells
-struct Max
+struct Max : ReductionBase
 {
     int comp      = 0;
     int num_comps = 1;
@@ -107,7 +116,7 @@ struct Max
 //! Maximum of the absolute value over all cells, e.g. the amplitude of an
 //! oscillating field. (For num_comps > 1 this is the same as Max, as the
 //! magnitude is already non-negative.)
-struct MaxAbs
+struct MaxAbs : ReductionBase
 {
     int comp      = 0;
     int num_comps = 1;
@@ -129,7 +138,7 @@ struct MaxAbs
 };
 
 //! Volume integral
-struct Integral
+struct Integral : ReductionBase
 {
     int comp      = 0;
     int num_comps = 1;
@@ -154,7 +163,7 @@ struct Integral
 /** Volume-weighted p-norm, (int |f|^p dV [/ V])^(1/p). The exponent p is a
  *  template parameter so that the common cases (see L1Norm and L2Norm below)
  *  need no runtime branching or std::pow in every cell. */
-template <int p> struct PNorm
+template <int p> struct PNorm : ReductionBase
 {
     static_assert(p >= 1, "PNorm needs p >= 1");
 
@@ -183,7 +192,10 @@ template <int p> struct PNorm
             }
             else
             {
-                return a_cell_volume * std::pow(abs_value, p);
+                // pow(double, double), which unlike pow(double, int) is
+                // available in GPU code
+                return a_cell_volume *
+                       std::pow(abs_value, static_cast<amrex::Real>(p));
             }
         }
     }
@@ -220,6 +232,7 @@ concept Reduction =
              const amrex::Array4<amrex::Real const> &a_cell, amrex::Real a_real)
 {
     typename T::reduce_op_t;
+    typename T::real_t;
     {a_reduction.comp}->std::convertible_to<int>;
     {a_reduction.num_comps}->std::convertible_to<int>;
     {a_reduction.cell_value(a_cell, 0, 0, 0, a_real)}
