@@ -14,9 +14,12 @@
 #include "GRParmParse.hpp"
 #include "SmallDataIO.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 #include <optional>
 #include <string>
+#include <utility>
 
 //! The operations SpectralWishes can perform. Declared outside the class
 //! template so the type does not depend on matter_t. Parameter values are
@@ -29,6 +32,12 @@
 //! where V is the volume the wishes are computed over. On a single level every
 //! cell has the same dV so e.g. Mean = sum(f) / N.
 AMREX_ENUM(SpectralWishOperation, Mean, Variance, VolumeMean);
+
+//! How the levels in [min_level, max_level] are used (case-insensitive):
+//!   Composite: one result per wish over all the levels, counting each point
+//!              once with the finest data available there
+//!   Each:      one result per wish and level, over that level alone
+AMREX_ENUM(SpectralWishLevelMode, Composite, Each);
 
 /*!
  * An AMRReductions reduction for the integrals SpectralWishes needs,
@@ -79,8 +88,10 @@ struct SpectralWishMoment
 
 /*!
  * Computes global quantities (e.g. the mean or variance) of state or derived
- * variables with AMRReductions. Each wish is an (operation, variable) pair
- * read from the parameter file, e.g.
+ * variables over one or more AMR levels with AMRReductions. The parameters
+ * are read with a prefix (spectral_wishes by default, so several independent
+ * sets of wishes can be used in one run). Each wish is an (operation,
+ * variable) pair, e.g.
  *
  *     spectral_wishes.operations = Mean Variance Mean
  *     spectral_wishes.variables  = Ham  Ham      chi
@@ -88,12 +99,23 @@ struct SpectralWishMoment
  * The two lists must have the same length. Each variable is derived only once
  * per call to compute(), however many wishes use it.
  *
+ * By default the wishes are computed on the level SpectralWishes is called
+ * from. Finer levels can be included with
+ *
+ *     spectral_wishes.min_level  = <calling level> # default
+ *     spectral_wishes.max_level  = <calling level> # default, -1 = finest
+ *     spectral_wishes.level_mode = Composite       # default, or Each
+ *
+ * Levels that do not exist (yet) give NaN. Coarser levels than the calling
+ * level cannot be used as they are not at the same time.
+ *
  * write() appends the wishes to <path><file_prefix>.dat every interval steps
- * of the level (-1 disables writing), with one column per wish:
+ * of the calling level (-1 disables writing), with one column per wish (and
+ * level in Each mode, e.g. Mean_Ham_lev1):
  *
  *     spectral_wishes.interval    = 1                  # default
  *     spectral_wishes.path        = <grteclyn.output_path>/data/ # default
- *     spectral_wishes.file_prefix = spectral_wishes    # default
+ *     spectral_wishes.file_prefix = <prefix>           # default
  */
 template <class matter_t> class SpectralWishes
 {
@@ -112,16 +134,19 @@ template <class matter_t> class SpectralWishes
         int num_comps;
     };
 
-    //! Constructor
-    SpectralWishes(int state_index, const amrex::Real time, int lev, int ngrow)
-        : m_time(time), m_lev(lev), m_state_index(state_index), m_ngrow(ngrow)
+    //! Constructor. The parameters are read from a_param_prefix.<name>.
+    SpectralWishes(int state_index, const amrex::Real time, int lev, int ngrow,
+                   std::string a_param_prefix = "spectral_wishes")
+        : m_time(time), m_lev(lev), m_state_index(state_index), m_ngrow(ngrow),
+          m_param_prefix(std::move(a_param_prefix))
     {
         fill_params();
     };
 
     void fill_params();
 
-    //! Compute every wish, in the order given in the parameter file
+    //! Compute every wish, in the order given in the parameter file (for each
+    //! level in turn in Each mode)
     amrex::Vector<amrex::Real> compute(GRAmr *gramr_ptr);
 
     //! The wishes, in the order given in the parameter file
@@ -130,7 +155,8 @@ template <class matter_t> class SpectralWishes
         return m_wishes;
     }
 
-    //! A label for each wish, e.g. "Mean_Ham"
+    //! A label for each result of compute(), e.g. "Mean_Ham", or
+    //! "Mean_Ham_lev1" in Each mode
     [[nodiscard]] amrex::Vector<std::string> get_labels() const;
 
     //! Whether write() writes on this step of the level
@@ -157,6 +183,12 @@ template <class matter_t> class SpectralWishes
         std::string name;
         int num_comps;
     };
+
+    //! Convert a parameter value to an AMREX_ENUM (case-insensitively), with
+    //! an error listing the valid options if there is no match
+    template <class enum_t>
+    static enum_t to_enum(const GRParmParse &a_pp, const char *a_name,
+                          const std::string &a_value);
 
     //! Find which source and component a variable lives in
     [[nodiscard]] wish_t make_wish(SpectralWishOperation a_operation,
@@ -185,14 +217,18 @@ template <class matter_t> class SpectralWishes
     const amrex::Real m_time; // Time as measured by AmrLevel
     const int m_lev;          // AMR level
     int m_state_index;
+    const std::string m_param_prefix; // Prefix of the parameters
     // Unused: the reductions only use valid cells so the variables are
     // derived without ghost cells. Kept so existing callers do not change.
     const int m_ngrow;
     amrex::Vector<wish_t> m_wishes;    // The wishes from the parameter file
     amrex::Vector<source_t> m_sources; // What to derive for the wishes
-    int m_interval{1};                 // Steps between writes, -1 disables
-    std::string m_data_path;           // Directory of the output file
-    std::string m_file_prefix;         // Output file name without extension
+    int m_min_level{0};                // Coarsest level used
+    int m_max_level{0};                // Finest level used
+    SpectralWishLevelMode m_level_mode{SpectralWishLevelMode::Composite};
+    int m_interval{1};         // Steps between writes, -1 disables
+    std::string m_data_path;   // Directory of the output file
+    std::string m_file_prefix; // Output file name without extension
 };
 
 #include "SpectralWishes.impl.hpp"

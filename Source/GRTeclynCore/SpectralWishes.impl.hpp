@@ -10,9 +10,32 @@
 
 #include "SpectralWishes.hpp"
 
+template <class matter_t>
+template <class enum_t>
+enum_t SpectralWishes<matter_t>::to_enum(const GRParmParse &a_pp,
+                                         const char *a_name,
+                                         const std::string &a_value)
+{
+    try
+    {
+        return amrex::getEnumCaseInsensitive<enum_t>(a_value);
+    }
+    catch (const std::runtime_error &)
+    {
+        std::string valid_options;
+        for (const auto &name : amrex::getEnumNameStrings<enum_t>())
+        {
+            valid_options += " " + name;
+        }
+        a_pp.error(a_name, "unknown option \"" + a_value +
+                               "\". Valid options are:" + valid_options);
+    }
+    return enum_t{};
+}
+
 template <class matter_t> void SpectralWishes<matter_t>::fill_params()
 {
-    GRParmParse spectral_wishes_pp("spectral_wishes");
+    GRParmParse spectral_wishes_pp(m_param_prefix);
 
     std::vector<std::string> operations;
     std::vector<std::string> variables;
@@ -24,8 +47,8 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
         // Report against a parameter that exists so its value is printed
         spectral_wishes_pp.error(
             variables.empty() ? "operations" : "variables",
-            "spectral_wishes.operations and spectral_wishes.variables must "
-            "have the same number of entries");
+            "operations and variables must have the same number of "
+            "entries");
     }
 
     m_wishes.clear();
@@ -33,24 +56,8 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
 
     for (std::size_t iwish = 0; iwish < operations.size(); ++iwish)
     {
-        SpectralWishOperation operation{};
-        try
-        {
-            operation = amrex::getEnumCaseInsensitive<SpectralWishOperation>(
-                operations[iwish]);
-        }
-        catch (const std::runtime_error &)
-        {
-            std::string valid_options;
-            for (const auto &name :
-                 amrex::getEnumNameStrings<SpectralWishOperation>())
-            {
-                valid_options += " " + name;
-            }
-            spectral_wishes_pp.error(
-                "operations", "unknown operation \"" + operations[iwish] +
-                                  "\". Valid options are:" + valid_options);
-        }
+        const auto operation = to_enum<SpectralWishOperation>(
+            spectral_wishes_pp, "operations", operations[iwish]);
 
         int chi_state_index{0};
         int chi_comp{0};
@@ -76,6 +83,40 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
         }
     }
 
+    // Levels: by default only the calling level. Coarser levels are not at
+    // the same time as the calling level after it has been advanced.
+    int amr_max_level{0};
+    GRParmParse amr_pp("amr");
+    amr_pp.query("max_level", amr_max_level);
+
+    m_min_level = m_lev;
+    spectral_wishes_pp.query("min_level", m_min_level);
+    if (m_min_level < m_lev || m_min_level > amr_max_level)
+    {
+        spectral_wishes_pp.error(
+            "min_level", "must be between the level the wishes are computed "
+                         "from (" +
+                             std::to_string(m_lev) + ") and amr.max_level");
+    }
+
+    m_max_level = m_lev;
+    spectral_wishes_pp.query("max_level", m_max_level);
+    if (m_max_level < 0)
+    {
+        m_max_level = amr_max_level;
+    }
+    if (m_max_level < m_min_level || m_max_level > amr_max_level)
+    {
+        spectral_wishes_pp.error("max_level",
+                                 "must be -1 (the finest level) or between "
+                                 "min_level and amr.max_level");
+    }
+
+    std::string level_mode{"Composite"};
+    spectral_wishes_pp.query("level_mode", level_mode);
+    m_level_mode = to_enum<SpectralWishLevelMode>(spectral_wishes_pp,
+                                                  "level_mode", level_mode);
+
     // Output file parameters
     spectral_wishes_pp.query("interval", m_interval);
 
@@ -85,7 +126,7 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
     m_data_path = output_path + "/data/";
     spectral_wishes_pp.query("path", m_data_path);
 
-    m_file_prefix = "spectral_wishes";
+    m_file_prefix = m_param_prefix;
     spectral_wishes_pp.query("file_prefix", m_file_prefix);
 }
 
@@ -164,7 +205,7 @@ SpectralWishes<matter_t>::make_wish(SpectralWishOperation a_operation,
         }
     }
 
-    GRParmParse spectral_wishes_pp("spectral_wishes");
+    GRParmParse spectral_wishes_pp(m_param_prefix);
     spectral_wishes_pp.error("variables",
                              "\"" + a_variable +
                                  "\" is not a state variable or a single "
@@ -176,11 +217,26 @@ template <class matter_t>
 amrex::Vector<std::string> SpectralWishes<matter_t>::get_labels() const
 {
     amrex::Vector<std::string> labels;
-    labels.reserve(m_wishes.size());
-    for (const auto &wish : m_wishes)
+    const auto add_labels = [&](const std::string &a_suffix)
     {
-        labels.push_back(amrex::getEnumNameString(wish.operation) + "_" +
-                         wish.variable);
+        for (const auto &wish : m_wishes)
+        {
+            labels.push_back(amrex::getEnumNameString(wish.operation) + "_" +
+                             wish.variable + a_suffix);
+        }
+    };
+
+    switch (m_level_mode)
+    {
+    case SpectralWishLevelMode::Composite:
+        add_labels("");
+        break;
+    case SpectralWishLevelMode::Each:
+        for (int level = m_min_level; level <= m_max_level; ++level)
+        {
+            add_labels("_lev" + std::to_string(level));
+        }
+        break;
     }
     return labels;
 }
@@ -260,7 +316,37 @@ template <class matter_t>
 amrex::Vector<amrex::Real> SpectralWishes<matter_t>::compute(GRAmr *gramr_ptr)
 {
     AMREX_ASSERT(gramr_ptr != nullptr);
-    return compute_on_levels(gramr_ptr, m_lev, m_lev);
+
+    // Levels finer than the finest level present have no data (yet), but
+    // still give a result so the output has the same columns at every step
+    const int finest_level        = gramr_ptr->finestLevel();
+    const auto compute_if_present = [&](int a_min_level, int a_max_level)
+    {
+        if (a_min_level > finest_level)
+        {
+            return amrex::Vector<amrex::Real>(
+                m_wishes.size(), std::numeric_limits<amrex::Real>::quiet_NaN());
+        }
+        return compute_on_levels(gramr_ptr, a_min_level,
+                                 std::min(a_max_level, finest_level));
+    };
+
+    amrex::Vector<amrex::Real> results;
+    switch (m_level_mode)
+    {
+    case SpectralWishLevelMode::Composite:
+        results = compute_if_present(m_min_level, m_max_level);
+        break;
+    case SpectralWishLevelMode::Each:
+        for (int level = m_min_level; level <= m_max_level; ++level)
+        {
+            const auto level_results = compute_if_present(level, level);
+            results.insert(results.end(), level_results.begin(),
+                           level_results.end());
+        }
+        break;
+    }
+    return results;
 }
 
 template <class matter_t>

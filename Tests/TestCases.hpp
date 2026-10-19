@@ -81,6 +81,8 @@ TEST_CASE("SmallDataIO") { run_small_data_io_test(); }
 
 TEST_CASE("SpectralWishes") { run_spectral_wishes_test(); }
 
+TEST_CASE("SpectralWishesAMR") { run_spectral_wishes_amr_test(); }
+
 TEST_CASE("SphericalExtraction") { run_spherical_extraction_test(); }
 
 TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }

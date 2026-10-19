@@ -7,6 +7,7 @@
 #include "doctest.h"
 
 // Test header
+#include "SpectralWishesAMRTestLevel.hpp"
 #include "SpectralWishesTest.hpp"
 #include "SpectralWishesTestLevel.hpp"
 
@@ -28,13 +29,19 @@
 #include <iostream>
 #include <string>
 
-void run_spectral_wishes_test()
+namespace
+{
+// Evolve a GRAmr with levels of type level_t using the parameter file
+// a_params_name in the same directory as this file. The checks are done by
+// level_t::specific_post_timestep.
+template <class level_t>
+void run_spectral_wishes_level(const char *a_params_name)
 {
     // Use an input file that is in the same directory as this file for the
     // second argument
     std::filesystem::path this_file(__FILE__);
     std::filesystem::path input_file =
-        this_file.parent_path() / std::filesystem::path("params_test.txt");
+        this_file.parent_path() / std::filesystem::path(a_params_name);
     char *input_file_c_str = strdup(input_file.c_str());
 
     auto new_args = doctest::cli_args;
@@ -53,7 +60,7 @@ void run_spectral_wishes_test()
     {
         GRParmParse pp; // NOLINT(readability-identifier-length)
 
-        DefaultLevelBld<SpectralWishesTestLevel> level_factory;
+        DefaultLevelBld<level_t> level_factory;
 
         GRAmr gr_amr(&level_factory);
         double stop_time{};
@@ -71,6 +78,12 @@ void run_spectral_wishes_test()
         }
     }
     amrex::Finalize();
+}
+} // namespace
+
+void run_spectral_wishes_test()
+{
+    run_spectral_wishes_level<SpectralWishesTestLevel>("params_test.txt");
     // constexpr int num_cells  = 32;
     // constexpr int num_ghosts = 3;
     // constexpr amrex::Real dx = 0.5 / (num_cells - 1);
@@ -132,4 +145,10 @@ void run_spectral_wishes_test()
     // const auto &out_fab_array = out_fab.array();
 
     // CHECK(!out_mf.contains_nan());
+}
+
+void run_spectral_wishes_amr_test()
+{
+    run_spectral_wishes_level<SpectralWishesAMRTestLevel>(
+        "params_amr_test.txt");
 }

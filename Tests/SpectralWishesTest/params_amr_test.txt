@@ -1,0 +1,69 @@
+#################################################
+# AMReX parameters
+
+amrex.the_arena_init_size = 0 # avoid preallocating most of the device memory
+
+#################################################
+# Filesystem parameters
+
+amr.verbose = 0
+amrex.verbose = 1
+
+# Number of level-0 time steps between checkpoint files; -1 disables output
+amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
+amr.plot_int = -1
+
+#################################################
+# Grid parameters
+
+amr.n_cell = 32 32 32
+geometry.prob_extent = 16 16 16
+# FixedGridsTagger refines half the distance from the center to each boundary,
+# so an off-centre center gives a fine level that is not centred in the domain
+geometry.center = 4 4 4
+
+amr.max_level = 1
+amr.regrid_int = 0
+amr.max_grid_size = 16
+amr.blocking_factor = 8
+amr.n_error_buf = 0
+amr.grid_eff = 1.0
+
+#################################################
+# Boundary condition parameters
+
+geometry.is_periodic = 0 0 0
+boundary.hi_condition = "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC"
+boundary.lo_condition = "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC"
+
+#################################################
+# Evolution parameters
+
+evolution.max_steps = 1
+evolution.nan_check = true
+
+#################################################
+# Spectral Wishes parameters, one prefix per set of wishes
+
+# The calling level (0) only
+wishes_default.operations = Mean Variance
+wishes_default.variables  = Pi   Pi
+
+# Both levels as one composite hierarchy
+wishes_composite.operations = Mean Variance VolumeMean
+wishes_composite.variables  = Pi   Pi       Pi
+wishes_composite.max_level  = -1
+
+# Each level on its own
+wishes_each.operations = Mean Variance
+wishes_each.variables  = Pi   Pi
+wishes_each.min_level  = 0
+wishes_each.max_level  = 1
+wishes_each.level_mode = each
+
+# The fine level only
+wishes_fine.operations = Mean Variance
+wishes_fine.variables  = Pi   Pi
+wishes_fine.min_level  = 1
+wishes_fine.max_level  = 1

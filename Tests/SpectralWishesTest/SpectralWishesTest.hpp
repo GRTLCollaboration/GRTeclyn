@@ -7,5 +7,6 @@
 #define SPECTRALWISHESTEST_HPP_
 
 void run_spectral_wishes_test();
+void run_spectral_wishes_amr_test();
 
 #endif /* SPECTRALWISHESTEST_HPP_ */
