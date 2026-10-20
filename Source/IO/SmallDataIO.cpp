@@ -213,7 +213,9 @@ void SmallDataIO::write_header_line(
         }
         for (const std::string &header_item : a_header_strings)
         {
-            m_file << std::setw(m_data_width) << header_item;
+            // Always leave a space so that items as wide as the column (or
+            // wider) stay separate; shorter ones are aligned as before
+            m_file << " " << std::setw(m_data_width - 1) << header_item;
         }
         m_file << "\n";
     }

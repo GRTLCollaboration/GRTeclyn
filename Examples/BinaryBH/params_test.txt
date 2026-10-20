@@ -172,3 +172,33 @@ weyl_extraction.num_points_theta = 37
 
 puncture_tracking.enabled = true
 # puncture_tracking.level = 0 # defaults to amr.max_level
+
+#################################################
+# Spectral wishes parameters
+
+# Global diagnostics over all levels, written every coarse step, one file per
+# group in <grteclyn.output_path>/data/spectral_wishes_<group>.dat. Settings
+# directly under spectral_wishes. are shared by every group.
+spectral_wishes.max_level = -1
+spectral_wishes.groups    = everywhere interior per_level radiation
+
+# Constraint norms, and the minima of chi and the lapse, over the whole grid
+spectral_wishes.everywhere.operations = L2Norm L2Norm    Min Min
+spectral_wishes.everywhere.variables  = Ham    Mom1:Mom3 chi lapse
+
+# The same norms without 2 level-0 cells next to the Sommerfeld faces
+# (all but z-low, which is reflective)
+spectral_wishes.interior.operations = L2Norm L2Norm
+spectral_wishes.interior.variables  = Ham    Mom1:Mom3
+spectral_wishes.interior.exclude_lo = 2 2 0
+spectral_wishes.interior.exclude_hi = 2 2 2
+
+# L2 norm of Ham on each level separately (one column per level)
+spectral_wishes.per_level.operations = L2Norm
+spectral_wishes.per_level.variables  = Ham
+spectral_wishes.per_level.level_mode = Each
+
+# |Psi4| = |Weyl4_Re + i Weyl4_Im| over the grid. It is largest near the black
+# holes; the waves far away are measured by the Weyl extraction above.
+spectral_wishes.radiation.operations = Max               L2Norm
+spectral_wishes.radiation.variables  = Weyl4_Re:Weyl4_Im Weyl4_Re:Weyl4_Im

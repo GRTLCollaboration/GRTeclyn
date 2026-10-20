@@ -1,0 +1,96 @@
+#################################################
+# AMReX parameters
+
+amrex.the_arena_init_size = 0 # avoid preallocating most of the device memory
+
+#################################################
+# Filesystem parameters
+
+amr.verbose = 0
+amrex.verbose = 1
+
+# Number of level-0 time steps between checkpoint files; -1 disables output
+amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
+amr.plot_int = -1
+
+#################################################
+# Grid parameters
+
+amr.n_cell = 32 32 32
+geometry.prob_extent = 16 16 16
+# FixedGridsTagger refines half the distance from the center to each boundary,
+# so an off-centre center gives a fine level that is not centred in the domain
+geometry.center = 4 4 4
+
+amr.max_level = 1
+amr.regrid_int = 0
+amr.max_grid_size = 16
+amr.blocking_factor = 8
+amr.n_error_buf = 0
+amr.grid_eff = 1.0
+
+#################################################
+# Boundary condition parameters
+
+geometry.is_periodic = 0 0 0
+boundary.hi_condition = "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC"
+boundary.lo_condition = "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC" "FIRST_ORDER_EXTRAPOLATION_BC"
+
+#################################################
+# Evolution parameters
+
+evolution.max_steps = 1
+evolution.nan_check = true
+
+#################################################
+# Spectral Wishes parameters, one prefix per set of wishes
+
+# The calling level (0) only
+wishes_default.operations = Mean Variance
+wishes_default.variables  = Pi   Pi
+
+# Both levels as one composite hierarchy
+wishes_composite.operations = Mean Variance VolumeMean Integral VolumeIntegral Min Max L1Norm L2Norm Max
+wishes_composite.variables  = Pi   Pi       Pi         phi      phi            Pi  Pi  Pi     phi    phi:Pi
+wishes_composite.max_level  = -1
+
+# Each level on its own
+wishes_each.operations = Mean Variance
+wishes_each.variables  = Pi   Pi
+wishes_each.min_level  = 0
+wishes_each.max_level  = 1
+wishes_each.level_mode = each
+
+# The fine level only
+wishes_fine.operations = Mean Variance Integral Min Max
+wishes_fine.variables  = Pi   Pi       phi      Pi  Pi
+wishes_fine.min_level  = 1
+wishes_fine.max_level  = 1
+
+# Both levels without 2 level-0 cells (1.0) next to every face
+wishes_excluded.operations = Integral Mean Min Max
+wishes_excluded.variables  = phi      Pi   Pi  Pi
+wishes_excluded.max_level  = -1
+wishes_excluded.exclude_lo = 2 2 2
+wishes_excluded.exclude_hi = 2 2 2
+
+# The fine level only (x from 2) without 5 level-0 cells (2.5) next to the
+# low x face, i.e. 10 fine cells
+wishes_fine_excluded.operations = Integral Min
+wishes_fine_excluded.variables  = phi      Pi
+wishes_fine_excluded.min_level  = 1
+wishes_fine_excluded.max_level  = 1
+wishes_fine_excluded.exclude_lo = 5 0 0
+
+# Groups: every group inherits max_level and path from wishes_groups.*;
+# interior also leaves out 2 level-0 cells next to every face
+wishes_groups.max_level = -1
+wishes_groups.path      = ./
+wishes_groups.groups    = whole interior
+wishes_groups.whole.operations    = Integral Mean
+wishes_groups.whole.variables     = phi      Pi
+wishes_groups.interior.operations = Integral Mean
+wishes_groups.interior.variables  = phi      Pi
+wishes_groups.interior.exclude_lo = 2 2 2
+wishes_groups.interior.exclude_hi = 2 2 2

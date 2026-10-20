@@ -85,14 +85,9 @@ void ScalarFieldLevel::specific_post_timestep()
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);
 
-        amrex::MultiFab &state_new = get_new_data(state_index);
-
-        SpectralWishes<ScalarFieldLevel::ScalarFieldWithPotential<>>
-            my_spectral_wishes(state_index, time, Level(), state_new.nGrow());
-        const amrex::Real result =
-            my_spectral_wishes.compute(get_scalar_field_amr_ptr());
-
-        amrex::Print() << "Spectral Wishes result: " << result << "\n";
+        // The spectral wishes (spectral_wishes.* in params.txt)
+        SpectralWishes<>::write_groups(state_index, time, Level(),
+                                       get_scalar_field_amr_ptr());
     }
 }
 

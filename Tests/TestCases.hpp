@@ -13,6 +13,7 @@
 #include <AMReX.H>
 
 // Test cases
+#include "AMRReductionsTest.hpp"
 #include "BSSNMatterTest.hpp"
 #include "CCZ4GeometryUnitTest.hpp"
 #include "CCZ4RHSTest.hpp"
@@ -29,6 +30,8 @@
 #include "SphericalHarmonicTest.hpp"
 #include "Weyl4Test.hpp"
 #include "Weyl4WithMatterTest.hpp"
+
+TEST_CASE("AMRReductions") { run_amr_reductions_test(); }
 
 TEST_CASE("BSSNMatter"
 #ifndef AMREX_USE_HDF5
@@ -77,6 +80,8 @@ TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
 TEST_CASE("SmallDataIO") { run_small_data_io_test(); }
 
 TEST_CASE("SpectralWishes") { run_spectral_wishes_test(); }
+
+TEST_CASE("SpectralWishesAMR") { run_spectral_wishes_amr_test(); }
 
 TEST_CASE("SphericalExtraction") { run_spherical_extraction_test(); }
 
