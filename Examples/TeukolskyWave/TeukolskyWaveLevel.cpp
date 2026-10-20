@@ -80,12 +80,12 @@ void TeukolskyWaveLevel::specific_post_timestep()
     }
 
     // The L2 norms of the constraints and the minimum of chi over all levels,
-    // set up in params.txt (spectral_wishes.*)
+    // set up in params.txt (spectral_wishes.*), one file per group
     if (Level() == 0)
     {
-        const amrex::Real time = get_state_data(state_index).curTime();
-        SpectralWishes<> spectral_wishes(state_index, time, Level(), 0);
-        spectral_wishes.write(get_gr_amr_ptr());
+        SpectralWishes<>::write_groups(state_index,
+                                       get_state_data(state_index).curTime(),
+                                       Level(), get_gr_amr_ptr());
     }
 }
 
