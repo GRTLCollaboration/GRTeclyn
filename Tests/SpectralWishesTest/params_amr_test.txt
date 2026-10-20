@@ -82,3 +82,15 @@ wishes_fine_excluded.variables  = phi      Pi
 wishes_fine_excluded.min_level  = 1
 wishes_fine_excluded.max_level  = 1
 wishes_fine_excluded.exclude_lo = 5 0 0
+
+# Groups: every group inherits max_level and path from wishes_groups.*;
+# interior also leaves out 2 level-0 cells next to every face
+wishes_groups.max_level = -1
+wishes_groups.path      = ./
+wishes_groups.groups    = whole interior
+wishes_groups.whole.operations    = Integral Mean
+wishes_groups.whole.variables     = phi      Pi
+wishes_groups.interior.operations = Integral Mean
+wishes_groups.interior.variables  = phi      Pi
+wishes_groups.interior.exclude_lo = 2 2 2
+wishes_groups.interior.exclude_hi = 2 2 2

@@ -33,22 +33,71 @@ enum_t SpectralWishes<matter_t>::to_enum(const GRParmParse &a_pp,
     return enum_t{};
 }
 
+template <class matter_t>
+GRParmParse SpectralWishes<matter_t>::pp_for(const char *a_name) const
+{
+    if (!m_group.empty())
+    {
+        GRParmParse group_pp(m_param_prefix + "." + m_group);
+        if (group_pp.contains(a_name))
+        {
+            return group_pp;
+        }
+    }
+    return GRParmParse(m_param_prefix);
+}
+
+template <class matter_t>
+void SpectralWishes<matter_t>::write_groups(int a_state_index,
+                                            amrex::Real a_time, int a_lev,
+                                            GRAmr *gramr_ptr,
+                                            const std::string &a_param_prefix)
+{
+    GRParmParse spectral_wishes_pp(a_param_prefix);
+    std::vector<std::string> groups;
+    spectral_wishes_pp.queryarr("groups", groups);
+
+    if (groups.empty())
+    {
+        SpectralWishes wishes(a_state_index, a_time, a_lev, 0, a_param_prefix);
+        wishes.write(gramr_ptr);
+        return;
+    }
+
+    for (auto group = groups.begin(); group != groups.end(); ++group)
+    {
+        if (std::find(groups.begin(), group, *group) != group)
+        {
+            spectral_wishes_pp.error(
+                "groups", "\"" + *group + "\" is listed more than once");
+        }
+        SpectralWishes wishes(a_state_index, a_time, a_lev, 0, a_param_prefix,
+                              *group);
+        // Most likely a misspelt group name
+        if (wishes.get_wishes().empty())
+        {
+            spectral_wishes_pp.error("groups", "group \"" + *group +
+                                                   "\" has no operations");
+        }
+        wishes.write(gramr_ptr);
+    }
+}
+
 template <class matter_t> void SpectralWishes<matter_t>::fill_params()
 {
-    GRParmParse spectral_wishes_pp(m_param_prefix);
 
     std::vector<std::string> operations;
     std::vector<std::string> variables;
-    spectral_wishes_pp.queryarr("operations", operations);
-    spectral_wishes_pp.queryarr("variables", variables);
+    pp_for("operations").queryarr("operations", operations);
+    pp_for("variables").queryarr("variables", variables);
 
     if (operations.size() != variables.size())
     {
         // Report against a parameter that exists so its value is printed
-        spectral_wishes_pp.error(
-            variables.empty() ? "operations" : "variables",
-            "operations and variables must have the same number of "
-            "entries");
+        const char *name = variables.empty() ? "operations" : "variables";
+        pp_for(name).error(
+            name, "operations and variables must have the same number of "
+                  "entries");
     }
 
     m_wishes.clear();
@@ -58,15 +107,15 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
     for (std::size_t iwish = 0; iwish < operations.size(); ++iwish)
     {
         const auto operation = to_enum<SpectralWishOperation>(
-            spectral_wishes_pp, "operations", operations[iwish]);
+            pp_for("operations"), "operations", operations[iwish]);
 
         if (uses_proper_volume(operation))
         {
             const auto chi = find_variable(s_chi_name);
             if (!chi || !chi->is_state)
             {
-                spectral_wishes_pp.error("operations",
-                                         amrex::getEnumNameString(operation) +
+                pp_for("operations")
+                    .error("operations", amrex::getEnumNameString(operation) +
                                              " needs the state variable chi");
             }
             add_source(
@@ -83,31 +132,32 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
     amr_pp.query("max_level", amr_max_level);
 
     m_min_level = m_lev;
-    spectral_wishes_pp.query("min_level", m_min_level);
+    pp_for("min_level").query("min_level", m_min_level);
     if (m_min_level < m_lev || m_min_level > amr_max_level)
     {
-        spectral_wishes_pp.error(
-            "min_level", "must be between the level the wishes are computed "
-                         "from (" +
-                             std::to_string(m_lev) + ") and amr.max_level");
+        pp_for("min_level")
+            .error("min_level",
+                   "must be between the level the wishes are computed "
+                   "from (" +
+                       std::to_string(m_lev) + ") and amr.max_level");
     }
 
     m_max_level = m_lev;
-    spectral_wishes_pp.query("max_level", m_max_level);
+    pp_for("max_level").query("max_level", m_max_level);
     if (m_max_level < 0)
     {
         m_max_level = amr_max_level;
     }
     if (m_max_level < m_min_level || m_max_level > amr_max_level)
     {
-        spectral_wishes_pp.error("max_level",
-                                 "must be -1 (the finest level) or between "
-                                 "min_level and amr.max_level");
+        pp_for("max_level")
+            .error("max_level", "must be -1 (the finest level) or between "
+                                "min_level and amr.max_level");
     }
 
     std::string level_mode{"Composite"};
-    spectral_wishes_pp.query("level_mode", level_mode);
-    m_level_mode = to_enum<SpectralWishLevelMode>(spectral_wishes_pp,
+    pp_for("level_mode").query("level_mode", level_mode);
+    m_level_mode = to_enum<SpectralWishLevelMode>(pp_for("level_mode"),
                                                   "level_mode", level_mode);
 
     // Layers next to the faces of the domain to leave out
@@ -115,18 +165,18 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
     {
         // queryarr does not shrink a vector that is too long, so count the
         // values to catch too few of them
+        const GRParmParse side_pp = pp_for(side);
         std::vector<int> widths(AMREX_SPACEDIM, 0);
-        const int num_widths = spectral_wishes_pp.countval(side);
+        const int num_widths = side_pp.countval(side);
         if (num_widths > 0)
         {
-            spectral_wishes_pp.getarr(side, widths);
+            side_pp.getarr(side, widths);
         }
         if ((num_widths > 0 && num_widths != AMREX_SPACEDIM) ||
             *std::min_element(widths.begin(), widths.end()) < 0)
         {
-            spectral_wishes_pp.error(
-                side, "must be " + std::to_string(AMREX_SPACEDIM) +
-                          " non-negative numbers of cells");
+            side_pp.error(side, "must be " + std::to_string(AMREX_SPACEDIM) +
+                                    " non-negative numbers of cells");
         }
         auto &exclusion = (std::string(side) == "exclude_lo") ? m_exclusion.lo
                                                               : m_exclusion.hi;
@@ -134,16 +184,18 @@ template <class matter_t> void SpectralWishes<matter_t>::fill_params()
     }
 
     // Output file parameters
-    spectral_wishes_pp.query("interval", m_interval);
+    pp_for("interval").query("interval", m_interval);
 
     GRParmParse grteclyn_pp("grteclyn");
     std::string output_path{"."};
     grteclyn_pp.query("output_path", output_path);
     m_data_path = output_path + "/data/";
-    spectral_wishes_pp.query("path", m_data_path);
+    pp_for("path").query("path", m_data_path);
 
-    m_file_prefix = m_param_prefix;
-    spectral_wishes_pp.query("file_prefix", m_file_prefix);
+    // One file per group
+    m_file_prefix =
+        m_group.empty() ? m_param_prefix : m_param_prefix + "_" + m_group;
+    pp_for("file_prefix").query("file_prefix", m_file_prefix);
 }
 
 template <class matter_t> void SpectralWishes<matter_t>::write(GRAmr *gramr_ptr)
@@ -224,8 +276,8 @@ typename SpectralWishes<matter_t>::wish_t
 SpectralWishes<matter_t>::make_wish(SpectralWishOperation a_operation,
                                     const std::string &a_variable)
 {
-    GRParmParse spectral_wishes_pp(m_param_prefix);
-    const auto get_variable = [&](const std::string &a_name)
+    const GRParmParse spectral_wishes_pp = pp_for("variables");
+    const auto get_variable              = [&](const std::string &a_name)
     {
         auto variable = find_variable(a_name);
         if (!variable)

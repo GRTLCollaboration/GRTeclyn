@@ -96,9 +96,8 @@ struct SpectralWishMoment
 /*!
  * Computes global quantities (e.g. the mean or variance) of state or derived
  * variables over one or more AMR levels with AMRReductions. The parameters
- * are read with a prefix (spectral_wishes by default, so several independent
- * sets of wishes can be used in one run). Each wish is an (operation,
- * variable) pair, e.g.
+ * are read with a prefix, spectral_wishes by default. Each wish is an
+ * (operation, variable) pair, e.g.
  *
  *     spectral_wishes.operations = Mean Variance Mean
  *     spectral_wishes.variables  = Ham  Ham      chi
@@ -135,6 +134,23 @@ struct SpectralWishMoment
  *     spectral_wishes.path        = <grteclyn.output_path>/data/ # default
  *     spectral_wishes.file_prefix = <prefix>           # default
  *
+ * Several groups of wishes, each written to its own file, can be listed and
+ * computed with write_groups(), e.g. the same norms with and without the
+ * boundary cells:
+ *
+ *     spectral_wishes.max_level = -1           # shared by every group
+ *     spectral_wishes.groups    = everywhere interior
+ *     spectral_wishes.everywhere.operations = L2Norm
+ *     spectral_wishes.everywhere.variables  = Ham
+ *     spectral_wishes.interior.operations   = L2Norm
+ *     spectral_wishes.interior.variables    = Ham
+ *     spectral_wishes.interior.exclude_hi   = 3 3 3
+ *
+ * A group reads each parameter from spectral_wishes.<group>.<name> if set and
+ * otherwise from spectral_wishes.<name>, and writes to
+ * <path>spectral_wishes_<group>.dat by default. Without groups, write_groups()
+ * writes the single set of wishes in spectral_wishes.<name>.
+ *
  * The matter_t template parameter is not used (the variables are looked up by
  * name) and can be left out, e.g. SpectralWishes<> in vacuum.
  */
@@ -155,14 +171,27 @@ template <class matter_t = void> class SpectralWishes
         int num_comps;
     };
 
-    //! Constructor. The parameters are read from a_param_prefix.<name>.
+    //! Constructor. The parameters are read from a_param_prefix.<name> or,
+    //! for a group, from a_param_prefix.<a_group>.<name> if that is set and
+    //! a_param_prefix.<name> otherwise.
     SpectralWishes(int state_index, const amrex::Real time, int lev, int ngrow,
-                   std::string a_param_prefix = "spectral_wishes")
-        : m_time(time), m_lev(lev), m_state_index(state_index), m_ngrow(ngrow),
-          m_param_prefix(std::move(a_param_prefix))
+                   std::string a_param_prefix = "spectral_wishes",
+                   std::string a_group        = "")
+        : m_time(time), m_lev(lev), m_state_index(state_index),
+          m_param_prefix(std::move(a_param_prefix)),
+          m_group(std::move(a_group)), m_ngrow(ngrow)
     {
         fill_params();
     };
+
+    //! Write every group listed in a_param_prefix.groups, each to its own
+    //! file, or the single set of wishes in a_param_prefix if there are no
+    //! groups. Call after the level has been advanced (e.g. in
+    //! specific_post_timestep) on every rank.
+    static void
+    write_groups(int a_state_index, amrex::Real a_time, int a_lev,
+                 GRAmr *gramr_ptr,
+                 const std::string &a_param_prefix = "spectral_wishes");
 
     void fill_params();
 
@@ -198,6 +227,10 @@ template <class matter_t = void> class SpectralWishes
     }
 
   protected:
+    //! The parameters holding a_name: the group's if it sets it, otherwise
+    //! the shared ones (a_param_prefix.<a_name>)
+    [[nodiscard]] GRParmParse pp_for(const char *a_name) const;
+
     //! Data to derive: a derive record (state_comp < 0) or the state
     //! components [state_comp, state_comp + num_comps)
     struct source_t
@@ -262,7 +295,8 @@ template <class matter_t = void> class SpectralWishes
     const amrex::Real m_time; // Time as measured by AmrLevel
     const int m_lev;          // AMR level
     int m_state_index;
-    const std::string m_param_prefix; // Prefix of the parameters
+    const std::string m_param_prefix; // Prefix of the (shared) parameters
+    const std::string m_group;        // Group name, empty if not in a group
     // Unused: the reductions only use valid cells so the variables are
     // derived without ghost cells. Kept so existing callers do not change.
     const int m_ngrow;

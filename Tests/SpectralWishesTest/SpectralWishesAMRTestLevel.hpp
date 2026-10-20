@@ -16,6 +16,7 @@
 #include "ScalarField.hpp"
 #include "SpectralWishes.hpp"
 
+#include <filesystem>
 #include <string>
 
 /*!
@@ -196,22 +197,53 @@ class SpectralWishesAMRTestLevel : public GRAmrLevel
                           (fine_max_x + 0.5 * fine_dx - fine_excluded_x) /
                           (fine_max_x - fine_min_x + fine_dx),
                       fine_excluded_x + 0.5 * fine_dx});
+
+        // Groups inherit max_level = -1 from wishes_groups (otherwise the
+        // mean would be the coarse one, not exactly L/2) and interior adds
+        // its own exclusion
+        check_wishes("wishes_groups", {s_phi * volume, mean}, {}, "whole");
+        check_wishes("wishes_groups",
+                     {s_phi * std::pow(included_length, 3), mean}, {},
+                     "interior");
+
+        // write_groups writes one file per group (the path ./ is inherited)
+        SpectralWishes<>::write_groups(
+            state_index, get_state_data(state_index).curTime(), Level(),
+            get_gr_amr_ptr(), "wishes_groups");
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            for (const std::string group : {"whole", "interior"})
+            {
+                const std::string filename =
+                    "./wishes_groups_" + group + ".dat";
+                INFO("Group file ", filename);
+                CHECK(std::filesystem::exists(filename));
+                std::filesystem::remove(filename);
+            }
+        }
     };
 
   protected:
-    //! Compute the wishes with prefix a_prefix and compare them (and
-    //! optionally their labels) with the expected values
+    //! Compute the wishes with prefix a_prefix (and group a_group if not
+    //! empty) and compare them (and optionally their labels) with the
+    //! expected values
     void check_wishes(const std::string &a_prefix,
                       const amrex::Vector<amrex::Real> &a_expected,
-                      const amrex::Vector<std::string> &a_expected_labels = {})
+                      const amrex::Vector<std::string> &a_expected_labels = {},
+                      const std::string &a_group                          = "")
     {
         const amrex::Real time = get_state_data(state_index).curTime();
         SpectralWishes<DefaultScalarField> wishes(state_index, time, Level(), 0,
-                                                  a_prefix);
+                                                  a_prefix, a_group);
         const auto results = wishes.compute(get_gr_amr_ptr());
         const auto labels  = wishes.get_labels();
 
-        INFO("Spectral wishes with prefix ", a_prefix);
+        INFO("Spectral wishes with prefix ", a_prefix, " and group ", a_group);
+        if (!a_group.empty())
+        {
+            // One file per group, named after it
+            CHECK(wishes.get_file_prefix().ends_with(a_prefix + "_" + a_group));
+        }
         REQUIRE(results.size() == a_expected.size());
         if (!a_expected_labels.empty())
         {
