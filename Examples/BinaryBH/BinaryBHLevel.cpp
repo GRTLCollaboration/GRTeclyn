@@ -16,6 +16,7 @@
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 #include "SixthOrderDerivatives.hpp"
+#include "SpectralWishes.hpp"
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
@@ -435,5 +436,16 @@ void BinaryBHLevel::specific_post_timestep()
                                          first_step, restart_time);
             my_extraction.execute_query(&get_bh_amr_ptr()->m_weyl_interpolator);
         }
+    }
+
+    // The spectral wishes (spectral_wishes.* in the params file). Called once
+    // per coarse step, after level 0 has advanced, which is when every level
+    // is at the same time; the levels used are set by
+    // spectral_wishes.max_level etc., not by this check.
+    if (Level() == 0)
+    {
+        SpectralWishes<>::write_groups(state_index,
+                                       get_state_data(state_index).curTime(),
+                                       Level(), get_gr_amr_ptr());
     }
 }
