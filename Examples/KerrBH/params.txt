@@ -22,8 +22,8 @@ amr.check_int = 20
 # Number of level-0 time steps between plot files; -1 disables output
 amr.plot_int = 5
 
-amr.plot_vars = chi lapse phi Pi
-amr.derive_plot_vars = constraints
+# amr.plot_vars = ALL
+amr.derive_plot_vars = ALL
 
 #################################################
 # Kerr BH Initial Data parameters
@@ -32,17 +32,12 @@ kerr.spin = 0.5
 kerr.spin_direction = 0.1 0.1 0.0
 
 #################################################
-# TwoPunctures initial data parameters
-
-two_punctures.verbose = false
-
-#################################################
 # Grid parameters
 
 # Number of cells and physical domain extent on the coarsest level
 amr.n_cell = 64 64 64
 geometry.prob_extent = 128 128 128
-# geometry.center = 512 512 0 # defaults based on the domain and boundaries
+# geometry.center = 64 64 64 # defaults based on the domain and boundaries
 
 amr.max_level = 4 # there are max_level + 1 levels
 
@@ -55,7 +50,7 @@ tagging.threshold = 0.014
 # extraction_tagging.level_separation = 1.5
 
 # Maximum number of cells along each side of a grid box
-amr.max_grid_size = 16
+amr.max_grid_size = 32
 # Grid box side lengths must be divisible by this value
 amr.blocking_factor = 16
 # Minimum fraction of tagged cells required in generated grids
@@ -75,7 +70,7 @@ geometry.is_periodic = 0 0 0
 # Options are currently FIRST_ORDER_EXTRAPOLATION_BC, SOMMERFELD_BC,
 # or REFLECTIVE_BC
 boundary.hi_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
-boundary.lo_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "REFLECTIVE_BC"
+boundary.lo_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
 
 #################################################
 # Evolution parameters
@@ -86,7 +81,7 @@ evolution.stop_time = 20.0
 # evolution.max_steps = 1
 
 # Spatial derivative order (only affects the CCZ4 RHS)
-evolution.spatial_derivative_order = 6
+evolution.spatial_derivative_order = 4
 
 # evolution.nan_check = true
 
