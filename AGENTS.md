@@ -28,7 +28,7 @@ The code is structured as follows:
 - external: Contains vendored external dependencies such as `doctest`.
 - docs: Documentation lives here.
 - .github: Contains GitHub specific configuration files such as GitHub actions workflows responsible for running CI/CD on GitHub. Also contains comparison data for CI/CD.
-- .gitlab: The repository is also mirrored to a GitLab instance in order to run the GitLab pipeline that runs the unit and regression tests using GPUs on the A100 partition on the CSD3 HPC system.
+- .gitlab: The repository is also mirrored to a GitLab instance in order to run the GitLab pipeline for the unit and regression tests using GPUs on the A100 partition on the CSD3 HPC system. GitLab specific files reside here.
 
 ### Source Sub-directories
  - `GRTeclynCore` — the boundary between GRTeclyn and AMReX. The derived classes of
@@ -78,11 +78,15 @@ make run <AMReX build arguments>
 from the top level `GRTeclyn` directory.
 
 Notes:
-- `COMP` is system dependent. The default is `gnu` if nothing is specified. This is an AMReX setting.
-- There are three GPU build options: `USE_CUDA`, `USE_HIP` and `USE_SYCL`. Set only one of these to be true per build as appropriate to the target system's GPU architecture. By default these are set to `FALSE`. This is an AMReX setting.
+- You may need to add the build argument `COMP`, to specify a toolchain. The default is `gnu` if nothing is specified. An appropriate choice depends on system you are running on and what modules have been loaded. Check the documentation in `docs/example_configs.md` to see if there are recommended setups for the user's environment. This is an AMReX setting.
+- There are three GPU build options: `USE_CUDA`, `USE_HIP` and `USE_SYCL`. Set only one of these to be true per build as appropriate to the target system's GPU architecture. It may not be necessary to set `COMP` at the same time; check the recommended setups for the user's environment in the documentation. By default these are set to `FALSE`. This is an AMReX setting.
 - Some tests need to be built against HDF5 using the build argument `USE_HDF5=TRUE` as `h5diff` is used to compare with trusted outputs either from GRChombo or a tagged version of GRTeclyn. If `USE_HDF5=FALSE` is set (the default option) then the tests requiring HDF5 will be skipped. If both `USE_MPI=TRUE` and `USE_HDF5=TRUE` are set, the HDF5 library will need to have been built with parallel HDF5 enabled.
-- The CI running on GitHub Actions has a test matrix for the values of `DEBUG`, `USE_MPI` and `USE_OMP`. Any of these values can be set to either (`TRUE` or `FALSE`). `COMP` can also be varied between `gnu` and `llvm` but this will depend on what compilers you can access. It is not necessary to test all combinations locally as these will be tested in CI on push to the remote if the code makes changes to files in `Source`, `.github`, `Tools/GNUMake/`, `Tests/`, `external/doctest` or `Examples/`.
+- The CI running on GitHub Actions has a test matrix for the values of `DEBUG`, `USE_MPI` and `USE_OMP`. Any of these values can be set to either (`TRUE` or `FALSE`). `COMP` can also be varied between `gnu` and `llvm` but this will depend on what compilers you can access. It is not necessary to test all combinations locally as these will be tested in CI on push to the remote if the conditions are met in `.github/workflows/check-changes.yml`.
 - If on a login node for a HPC cluster, do not attempt to run the tests directly. Prefer to submit a job to the job scheduler to run the tests on a compute node. Some modules may need to be loaded depending on the target partition. Check `docs/example_configs.md` to see if there are modules and build configs for the system that you are on. If in doubt, ask the user directly.
+
+#### Adding a Unit Test
+
+A unit test should be added to accompany each new addition to the code that covers its typical use case, preferably with a known result from e.g. analytics, GRChombo, or an external calculation, for comparison. Initial data for the CCZ4 and BSSN variables, the scalar field, $phi$, and its first derivative, $Pi$, can be found in the `Tests/Common` directory. It may be necessary to setup an isolated simulation with no RHS solve to use the `AmrLevel` object as in e.g. `PunctureTrackerTest` and `SphericalExtractionTest`. New tests can be added by creating a new subdirectory in the `Tests` directory with the word `Test` appended to the end of the class/function name and adding a new `TEST_CASE` to `Tests/TestCases.hpp` in which the test function is called. The test function should live in a `.cpp` source file that calls `amrex::Initialize` at the beginning and `amrex::Finalize` at the end and include the `doctest` headers, `doctest.h` and `doctestCLIArgs.hpp`. The header file should only have the test function declaration and header guard. For example a class called `MyClass` should have a subdirectory inside `Tests` called `MyClassTest` and call the test using `TEST_CASE("MyClass"){run_my_class_test();}` from `Tests/TestCases.hpp`. `run_my_class_test` needs to be declared in `Tests/MyClassTest/MyClassTest.hpp` and defined in `Tests/MyClassTest/MyClassTest.cpp`.
 
 ### Examples
 
@@ -95,6 +99,8 @@ Notes:
 - The BinaryBH and Klein-Gordon examples also have a regression test with `params_test.txt` as the parameter file for each directory. Test it manually by building `fcompare.<build config>.ex` in the `${AMREX_HOME}/Tools/Plotfile` directory and run it against the outputs stored in `.github/workflows/data/`. For example: `${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex --abs_tol 1e-10 --rel_tol 1e-10 ../../.github/workflows/data/BinaryBH/plt00008_compare plots/plt00008`.
 - `params_test.txt` should be small enough to be run on a local machine without MPI. Prefer this when running with limited resources e.g. on a laptop.
 
+#### Adding a Regression Test
+Adding a new example also requires a regression test to cover that example. The tests involve running a small simulation for a few timesteps (currently hardcoded to 8) and comparing the output with known data stored in `.github/workflows/data`. The regression tests are run remotely on the GitHub server and on Nvidia A100 GPUs using a GitLab instance hosted on CSD3. All materials related to the GitHub regression testing is stored in `.github/workflows` and the GitLab regression test is contained in `.gitlab-ci.yml` with additional helper scripts/files in `.gitlab`. For the GitHub action, common actions such as checking out the repositories and installing dependencies are kept in `.github/workflows/regression-tests-setup/action.yml`. These steps should be reused as much as possible to avoid duplication. The new example should be added to the matrix of test cases in `.github/workflows/regression-tests.yml`, which uses the example template, `.github/workflows/regression-tests-examples-template.yml` to run the code and compare the output with an earlier trusted result using the `fcompare` tool supplied by AMReX. It will also test particle positions (if any) and whether the code can restart from a checkpoint cleanly. For the GitLab pipeline, you will need to add steps to build the example in `.gitlab-ci.yml` and add another line to the Slurm script, `.gitlab/run-examples.sh` to run the new example. In both instances, the test data are stored in `.github/workflows/data`. New data may be added here for comparison with `fcompare`.
 
 ## Recommended workflow
 
@@ -102,10 +108,11 @@ When setting up new users to the code or on a new system/HPC cluster:
 
 - Install [pre-commit](https://pre-commit.com/) according to the docs.
 - Always format code with clang-format. Follow the rules in .clang-format.
-- Git clone AMReX if not already present on user's system.
+- Git clone the `development` branch of AMReX if not already present on user's system.
 - Git clone GRTeclyn if not already present on user's system. Prefer the GRTeclyn directory to live next to the AMReX directory not as a sub-directory or vice versa.
 - Fetch the latest version before making a new branch for changes, preferably from `main` if appropriate.
 - Refer to the coding conventions in the documentation.
+- Linters are used to enforce good coding practices. There is a C++ linter contained in `.github/workflows/lint.yml` that is triggered by pushes and pull requests to the GitHub repo. Refer to the workflow for the version number and the `.clang-tidy` file for the rules that we bypass. A commonly flagged issue by the linter is `bugprone-easily-swappable-parameters` which is acceptable to bypass. The unit test `.cpp` file needs `// NOLINTNEXTLINE(bugprone-casting-through-void)` before `amrex::Initialize` for Open MPI builds. There are also linters that are pre-commit hooks e.g. `yamllint` and `shfmt` for `yaml` and shell scripts respectively.
 - Prefer to manually run the unit and regression tests after each commit. Use git diff to see whether a unit test run is appropriate, e.g. run the puncture tracker test if changes to PunctureTracker.impl.hpp, PunctureTracker.hpp, or any of the files in Tests/PunctureTrackerTest are made. If the changes involve the entire example pipeline or are not covered by the unit test, run the regression test. Note that passing the unit and regression tests does not mean that the code is bug free as the tests do not have 100% coverage.
 
 
