@@ -129,9 +129,3 @@ weyl_extraction.num_points_phi = 160
 weyl_extraction.num_points_theta = 81
 # weyl_extraction.num_modes = 3
 # weyl_extraction.modes = 2 0  2 1  2 2
-
-#################################################
-# Puncture tracking parameters
-
-puncture_tracking.enabled = false
-# puncture_tracking.level = 5

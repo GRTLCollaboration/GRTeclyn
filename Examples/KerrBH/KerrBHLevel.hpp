@@ -45,20 +45,6 @@ class KerrBHLevel : public GRAmrLevel
     /// Tag cells for regridding
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;
-
-    //! Things to do after a restart
-    void specific_post_restart() override;
-
-    //! Things to do after init
-    void specific_post_init() override;
-
-    //! Things to do after writing a plotfile
-    void specific_post_plotfile(const std::string &a_dir,
-                                std::ostream & /*a_os*/) override;
-
-    //! Things to do after writing a checkpoint
-    void specific_post_checkpoint(const std::string &a_dir,
-                                  std::ostream & /*a_os*/) override;
 };
 
 #endif /* KERRBHLEVEL_HPP_ */

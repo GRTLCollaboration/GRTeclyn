@@ -250,28 +250,6 @@ void KerrBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
-void KerrBHLevel::specific_post_init()
-{
-    BL_PROFILE("KerrBHLevel::specific_post_init()");
-}
-
-void KerrBHLevel::specific_post_restart()
-{
-    BL_PROFILE("KerrBHLevel::specific_post_restart()");
-}
-
-void KerrBHLevel::specific_post_plotfile(const std::string &a_dir,
-                                         std::ostream &a_os)
-{
-    BL_PROFILE("KerrBHLevel::specific_post_plotfile()");
-}
-
-void KerrBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
-                                           std::ostream & /*a_os*/)
-{
-    BL_PROFILE("KerrBHLevel::specific_post_checkpoint()");
-}
-
 void KerrBHLevel::specific_post_timestep()
 {
     BL_PROFILE("KerrBHLevel::specific_post_timestep");
