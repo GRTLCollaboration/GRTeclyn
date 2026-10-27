@@ -70,7 +70,7 @@ KerrBHInitialData::KerrBHInitialData(amrex::Real a_dx) : m_dx(a_dx)
     Tensor::Rank1 spin_dir = {m_params.spin_direction[0],
                               m_params.spin_direction[1],
                               m_params.spin_direction[2]};
-    m_R = CoordinateTransformations::rotation_matrix(spin_dir, z_dir);
+    m_rotation_matrix = CoordinateTransformations::rotation_matrix(spin_dir, z_dir);
 }
 
 // Unpack symmetric 6-element array into a full 3x3 matrix for TensorAlgebra
@@ -108,7 +108,7 @@ KerrBHInitialData::operator()(int ix, int iy, int iz,
                          coords.y - m_params.center[1],
                          coords.z - m_params.center[2]};
 
-    xyz = transform_vector(xyz, m_R);
+    xyz = transform_vector(xyz, m_rotation_matrix);
 
     // Compute the components in spherical coords as per 1401.1548
     compute_kerr(spherical_g, spherical_K, spherical_shift, kerr_lapse, xyz);
@@ -125,9 +125,9 @@ KerrBHInitialData::operator()(int ix, int iy, int iz,
     auto cartesian_shift = spherical_to_cartesian_U(spherical_shift, x, y, z);
 
     // Rotate symmetric tensors back to original coordinates
-    auto h_sym = transform_sym_tensor_LL(cartesian_h_sym, m_R);
-    auto A_sym = transform_sym_tensor_LL(cartesian_K_sym, m_R);
-    auto shift = transform_vector(cartesian_shift, m_R);
+    auto h_sym = transform_sym_tensor_LL(cartesian_h_sym, m_rotation_matrix);
+    auto A_sym = transform_sym_tensor_LL(cartesian_K_sym, m_rotation_matrix);
+    auto shift = transform_vector(cartesian_shift, m_rotation_matrix);
 
     // Unpack Sym12Rank2 into Rank2 for trace and determinant operations
     Tensor::Rank2 h = to_rank2(h_sym);

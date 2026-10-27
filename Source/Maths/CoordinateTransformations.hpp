@@ -11,6 +11,8 @@
 
 #include <cmath>
 
+#include <AMReX_Math.H>
+
 using namespace amrex::literals;
 
 namespace CoordinateTransformations
@@ -444,16 +446,15 @@ rotation_matrix(const Tensor::Rank1 &origin, const Tensor::Rank1 &destination)
         origin(2) * destination(0) - origin(0) * destination(2),
         origin(0) * destination(1) - origin(1) * destination(0)};
 
-    static const amrex::Real eps = 1.e-13;
+    constexpr amrex::Real eps = 1.e-13;
     if (std::abs(axis(0)) < eps && std::abs(axis(1)) < eps &&
         std::abs(axis(2)) < eps)
     {
         return rotation_matrix({0., 0., 0.}, 1.);
     }
 
-    amrex::Real norm_inv =
-        1.0 /
-        std::sqrt(axis(0) * axis(0) + axis(1) * axis(1) + axis(2) * axis(2));
+    amrex::Real norm_inv = amrex::Math::rsqrt(
+        axis(0) * axis(0) + axis(1) * axis(1) + axis(2) * axis(2));
 
     axis(0) *= norm_inv;
     axis(1) *= norm_inv;

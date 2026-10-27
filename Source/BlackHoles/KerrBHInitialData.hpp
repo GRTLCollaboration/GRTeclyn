@@ -36,7 +36,7 @@ class KerrBHInitialData
   protected:
     amrex::Real m_dx;
     params_t m_params;
-    Tensor::Rank2 m_R;
+    Tensor::Rank2 m_rotation_matrix;
 
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
