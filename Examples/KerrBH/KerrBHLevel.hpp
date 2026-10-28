@@ -40,9 +40,6 @@ class KerrBHLevel : public GRAmrLevel
     // to do post each time step on every level
     void specific_post_timestep() override;
 
-    /// Things to do before tagging cells for regridding
-    void pre_tag_cells() final;
-
     /// Tag cells for regridding
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;

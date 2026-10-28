@@ -11,6 +11,7 @@
 
 // Problem specific includes:
 #include "CCZ4RHS.hpp"
+#include "FixedGridsTagger.hpp"
 #include "KerrBHInitialData.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "PunctureTracker.hpp"
@@ -27,6 +28,7 @@ class SimulationParameters
 
         CCZ4_params_t::check_params();
         MovingPunctureGauge<FourthOrderDerivatives>::params_t::check_params();
+        FixedGridsTagger::check_params();
         puncture_tracker_params_t::check_params();
 
         KerrBHInitialData::params_t::check_params();

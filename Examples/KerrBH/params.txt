@@ -44,8 +44,7 @@ amr.max_level = 4 # there are max_level + 1 levels
 # Regridding interval in level timesteps; -1 disables regridding
 # Supply one shared value or max_level values, one per coarse-to-fine
 # transition
-amr.regrid_int = 50   25   5   5   5   0   0   0   0
-tagging.threshold = 0.014
+amr.regrid_int = -1
 
 # Maximum number of cells along each side of a grid box
 amr.max_grid_size = 32

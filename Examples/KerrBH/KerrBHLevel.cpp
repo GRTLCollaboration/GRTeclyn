@@ -7,8 +7,8 @@
 
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHS.hpp"
-#include "ChiTagger.hpp"
 #include "Constraints.hpp"
+#include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "KerrBHInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
@@ -203,38 +203,18 @@ void KerrBHLevel::specific_update_ode(amrex::MultiFab &a_soln)
     amrex::Gpu::streamSynchronize();
 }
 
-void KerrBHLevel::pre_tag_cells()
-{
-    amrex::MultiFab &state_new = get_new_data(state_index);
-    const auto current_time    = get_state_data(state_index).curTime();
-
-    // Fill ghosts for chi to calculate second derivatives
-    // 4th-order d2 requires 2 ghost cells
-    const int num_ghosts = 2;
-    const int num_comps  = 1;
-
-    FillPatch(*this, state_new, num_ghosts, current_time, state_index, c_chi,
-              num_comps);
-}
-
 void KerrBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
-                            amrex::Real a_regrid_threshold)
+                            amrex::Real /*a_regrid_threshold*/)
 {
     BL_PROFILE("KerrBHLevel::tag_cells()");
-    amrex::MultiFab &state_new = get_new_data(state_index);
 
-    const auto &tag_arrays         = a_tag_box_array.arrays();
-    const auto &state_const_arrays = state_new.const_arrays();
+    const auto &tag_arrays = a_tag_box_array.arrays();
 
-    ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
+    const FixedGridsTagger tagger(Geom().CellSize(0), Level());
 
-    amrex::ParallelFor(state_new, amrex::IntVect(0),
+    amrex::ParallelFor(a_tag_box_array,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
-                       {
-                           chi_tagger(ix, iy, iz, tag_arrays[box_no],
-                                      state_const_arrays[box_no]);
-                       });
-
+                       { tagger(ix, iy, iz, tag_arrays[box_no]); });
     amrex::Gpu::streamSynchronize();
 }
 
