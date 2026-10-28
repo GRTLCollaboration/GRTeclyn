@@ -225,6 +225,62 @@ make_symmetric(Tensor::GeneralRank<2, size, size> &tensor_LL)
     }
 }
 
+/// Converts a Tensor with symmetric indices into a general Tensor
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
+make_general_from_symmetric(const Tensor::Sym12Rank2 &tensor_sym)
+{
+    Tensor::Rank2 tensor{};
+    FOR (i, j)
+    {
+        tensor(i, j) = tensor_sym(i, j);
+    }
+    return tensor;
+}
+
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank3
+make_general_from_symmetric(const Tensor::Sym12Rank3 &tensor_sym)
+{
+    Tensor::Rank3 tensor{};
+    FOR (i, j, k)
+    {
+        tensor(i, j, k) = tensor_sym(i, j, k);
+    }
+    return tensor;
+}
+
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank3
+make_general_from_symmetric(const Tensor::Sym23Rank3 &tensor_sym)
+{
+    Tensor::Rank3 tensor{};
+    FOR (i, j, k)
+    {
+        tensor(i, j, k) = tensor_sym(i, j, k);
+    }
+    return tensor;
+}
+
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank4
+make_general_from_symmetric(const Tensor::Sym34Rank4 &tensor_sym)
+{
+    Tensor::Rank4 tensor{};
+    FOR (i, j, k, l)
+    {
+        tensor(i, j, k, l) = tensor_sym(i, j, k, l);
+    }
+    return tensor;
+}
+
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank4
+make_general_from_symmetric(const Tensor::Sym12Sym34Rank4 &tensor_sym)
+{
+    Tensor::Rank4 tensor{};
+    FOR (i, j, k, l)
+    {
+        tensor(i, j, k, l) = tensor_sym(i, j, k, l);
+    }
+    return tensor;
+}
+
 /// Raises the index of a covector
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 raise_all(const Tensor::Rank1 &tensor_L, const Tensor::Rank2 &inverse_metric)

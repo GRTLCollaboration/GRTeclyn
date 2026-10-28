@@ -73,15 +73,6 @@ KerrBHInitialData::KerrBHInitialData(amrex::Real a_dx) : m_dx(a_dx)
     m_rotation_matrix = CoordinateTransformations::rotation_matrix(spin_dir, z_dir);
 }
 
-// Unpack symmetric 6-element array into a full 3x3 matrix for TensorAlgebra
-AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor::Rank2
-KerrBHInitialData::to_rank2(const Tensor::Sym12Rank2 &sym) const
-{
-    Tensor::Rank2 r2;
-    FOR2_SYM(i, j) { r2(i, j) = r2(j, i) = sym(i, j); }
-    return r2;
-}
-
 // Computes semi-isotropic Kerr solution as detailed in Liu, Etienne and Shapiro
 // 2010, arxiv gr-qc/1001.4077
 AMREX_FORCE_INLINE AMREX_GPU_DEVICE void
@@ -129,15 +120,15 @@ KerrBHInitialData::operator()(int ix, int iy, int iz,
     auto shift = transform_vector(cartesian_shift, m_rotation_matrix);
 
     // Unpack Sym12Rank2 into Rank2 for trace and determinant operations
-    Tensor::Rank2 h = to_rank2(h_sym);
-    Tensor::Rank2 A = to_rank2(A_sym);
+    Tensor::Rank2 h = make_general_from_symmetric(h_sym);
+    Tensor::Rank2 A = make_general_from_symmetric(A_sym);
 
     // Convert to BSSN vars
     amrex::Real deth = compute_determinant(h);
     auto h_UU_sym    = compute_inverse_sym(h_sym);
 
     // Unpack Inverse to Rank2
-    Tensor::Rank2 h_UU = to_rank2(h_UU_sym);
+    Tensor::Rank2 h_UU = make_general_from_symmetric(h_UU_sym);
 
     amrex::Real chi = pow(deth, -1. / 3.);
 

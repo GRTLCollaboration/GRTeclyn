@@ -26,6 +26,7 @@
 #include "SmallDataIOTest.hpp"
 #include "SphericalExtractionTest.hpp"
 #include "SphericalHarmonicTest.hpp"
+#include "TensorAlgebraTest.hpp"
 #include "Weyl4Test.hpp"
 #include "Weyl4WithMatterTest.hpp"
 
@@ -78,6 +79,8 @@ TEST_CASE("SmallDataIO") { run_small_data_io_test(); }
 TEST_CASE("SphericalExtraction") { run_spherical_extraction_test(); }
 
 TEST_CASE("SphericalHarmonics") { run_spherical_harmonic_test(); }
+
+TEST_CASE("TensorAlgebra") { run_tensor_algebra_test(); }
 
 TEST_CASE("Weyl4"
 #ifndef AMREX_USE_HDF5
