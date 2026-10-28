@@ -26,8 +26,8 @@ class KerrBHInitialData
         std::array<amrex::Real, AMREX_SPACEDIM>
             center{};       //!< The center of the Kerr BH
         amrex::Real spin{}; //!< The spin param a = J/M, so 0 <= |a| <= M
-        std::array<amrex::Real, AMREX_SPACEDIM> spin_direction = {
-            0., 0., 1.}; // default to 'z' axis;
+        // default to 'z' axis
+        std::array<amrex::Real, AMREX_SPACEDIM> spin_direction = {0., 0., 1.};
 
         static void check_params();
         inline void fill_params();
@@ -56,8 +56,8 @@ class KerrBHInitialData
         Tensor::Sym12Rank2
             &spherical_K, //!<< The extrinsic curvature in spherical coords
         Tensor::Rank1
-            &spherical_shift,    //!<< The spherical components of the shift
-        amrex::Real &kerr_lapse, //!<< The lapse for the kerr solution
+            &spherical_shift,     //!<< The spherical components of the shift
+        amrex::Real &kerr_lapse,  //!<< The lapse for the kerr solution
         const Coordinates &coords //!<< Coords of current cell (spin frame)
     ) const;
 };

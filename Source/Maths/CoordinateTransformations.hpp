@@ -294,7 +294,8 @@ cartesian_to_spherical_L(const Tensor::Rank1 &cartesian_v_L, amrex::Real x,
                          amrex::Real y, amrex::Real z)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    return transform_covector(cartesian_v_L, inverse_spherical_jacobian(x, y, z));
+    return transform_covector(cartesian_v_L,
+                              inverse_spherical_jacobian(x, y, z));
 }
 
 // The area element of a sphere
@@ -312,8 +313,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 rotation_matrix(const Tensor::Rank1 &axis, amrex::Real cos_angle)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    amrex::Real sine =
-        std::sqrt(std::max(0._rt, 1. - cos_angle * cos_angle));
+    amrex::Real sine = std::sqrt(std::max(0._rt, 1. - cos_angle * cos_angle));
     amrex::Real one_minus_cos = 1. - cos_angle;
 
     Tensor::Rank2 rotation;
@@ -341,7 +341,8 @@ rotation_matrix(const Tensor::Rank1 &origin, const Tensor::Rank1 &destination)
     Tensor::Rank1 axis = {
         origin(1) * destination(2) - origin(2) * destination(1),
         origin(2) * destination(0) - origin(0) * destination(2),
-        origin(0) * destination(1) - origin(1) * destination(0)};
+        origin(0) * destination(1) - origin(1) * destination(0),
+    };
 
     // Calculate angle of rotation
     amrex::Real norm_origin = std::sqrt(
@@ -378,9 +379,11 @@ rotation_matrix(const Tensor::Rank1 &origin, const Tensor::Rank1 &destination)
         }
         Tensor::Rank1 e_k = {0., 0., 0.};
         e_k(k)            = 1.;
-        axis              = {origin(1) * e_k(2) - origin(2) * e_k(1),
-                             origin(2) * e_k(0) - origin(0) * e_k(2),
-                             origin(0) * e_k(1) - origin(1) * e_k(0)};
+        axis              = {
+            origin(1) * e_k(2) - origin(2) * e_k(1),
+            origin(2) * e_k(0) - origin(0) * e_k(2),
+            origin(0) * e_k(1) - origin(1) * e_k(0),
+        };
         axis_norm2 = axis(0) * axis(0) + axis(1) * axis(1) + axis(2) * axis(2);
         cos_angle  = -1.;
     }

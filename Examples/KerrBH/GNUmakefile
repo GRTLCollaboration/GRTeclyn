@@ -17,7 +17,6 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
-GRTECLYN_HOME = $(realpath ../..)
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 # Name all directories for relevant source and header files

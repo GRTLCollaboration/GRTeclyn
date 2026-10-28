@@ -72,9 +72,11 @@ void check_vector(const Tensor::Rank1 &vector,
 
 // Check that rotation is a proper rotation (R^T R = I and det R = 1) which
 // maps the direction of origin onto the direction of destination
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void check_rotation(const Tensor::Rank2 &rotation, const Tensor::Rank1 &origin,
                     const Tensor::Rank1 &destination,
                     const std::string &test_name)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real norm_origin = std::sqrt(
         origin(0) * origin(0) + origin(1) * origin(1) + origin(2) * origin(2));
@@ -88,9 +90,9 @@ void check_rotation(const Tensor::Rank2 &rotation, const Tensor::Rank1 &origin,
         origin_hat(i) = origin(i) / norm_origin;
         dest_hat(i)   = destination(i) / norm_dest;
     }
-    check_vector(CoordinateTransformations::transform_vector(origin_hat,
-                                                             rotation),
-                 dest_hat, test_name + " (R origin = destination)");
+    check_vector(
+        CoordinateTransformations::transform_vector(origin_hat, rotation),
+        dest_hat, test_name + " (R origin = destination)");
 
     Tensor::Rank2 identity{};
     Tensor::Rank2 rotation_T_rotation{};
@@ -274,15 +276,14 @@ void run_coordinate_transformations_test()
 
         // rotation about a generic axis leaves the axis unchanged
         const amrex::Real norm_123 = std::sqrt(14.);
-        Tensor::Rank1 axis_123     = {1. / norm_123, 2. / norm_123,
-                                      3. / norm_123};
+        Tensor::Rank1 axis_123 = {1. / norm_123, 2. / norm_123, 3. / norm_123};
         check_rotation(rotation_matrix(axis_123, 0.3), axis_123, axis_123,
                        "rotation_matrix (generic axis)");
 
         // Test rotation_matrix(origin, destination)
-        auto check_rotation_between =
-            [](const Tensor::Rank1 &origin, const Tensor::Rank1 &destination,
-               const std::string &test_name)
+        auto check_rotation_between = [](const Tensor::Rank1 &origin,
+                                         const Tensor::Rank1 &destination,
+                                         const std::string &test_name)
         {
             check_rotation(rotation_matrix(origin, destination), origin,
                            destination, test_name);

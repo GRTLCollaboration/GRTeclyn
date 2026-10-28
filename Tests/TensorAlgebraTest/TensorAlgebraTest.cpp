@@ -49,8 +49,8 @@ void check_tensor(const Tensor::Rank4 &tensor,
 {
     FOR (i, j, k, l)
     {
-        INFO(test_name << ": component [" << i << "][" << j << "][" << k
-                       << "][" << l << "]");
+        INFO(test_name << ": component [" << i << "][" << j << "][" << k << "]["
+                       << l << "]");
         CHECK(tensor(i, j, k, l) == correct_tensor(i, j, k, l));
     }
 }
@@ -74,10 +74,10 @@ void run_tensor_algebra_test()
         Tensor::Rank2 correct_rank2{};
         FOR2_SYM(i, j)
         {
-            value += 1.;
-            sym12_rank2(i, j)   = value;
-            correct_rank2(i, j) = value;
-            correct_rank2(j, i) = value;
+            value               += 1.;
+            sym12_rank2(i, j)    = value;
+            correct_rank2(i, j)  = value;
+            correct_rank2(j, i)  = value;
         }
         check_tensor(make_general_from_symmetric(sym12_rank2), correct_rank2,
                      "make_general_from_symmetric(Sym12Rank2)");
@@ -89,10 +89,10 @@ void run_tensor_algebra_test()
         {
             FOR2_SYM(i, j)
             {
-                value += 1.;
-                sym12_rank3(i, j, k)   = value;
-                correct_rank3(i, j, k) = value;
-                correct_rank3(j, i, k) = value;
+                value                  += 1.;
+                sym12_rank3(i, j, k)    = value;
+                correct_rank3(i, j, k)  = value;
+                correct_rank3(j, i, k)  = value;
             }
         }
         check_tensor(make_general_from_symmetric(sym12_rank3), correct_rank3,
@@ -104,10 +104,10 @@ void run_tensor_algebra_test()
         {
             FOR2_SYM(j, k)
             {
-                value += 1.;
-                sym23_rank3(i, j, k)   = value;
-                correct_rank3(i, j, k) = value;
-                correct_rank3(i, k, j) = value;
+                value                  += 1.;
+                sym23_rank3(i, j, k)    = value;
+                correct_rank3(i, j, k)  = value;
+                correct_rank3(i, k, j)  = value;
             }
         }
         check_tensor(make_general_from_symmetric(sym23_rank3), correct_rank3,
@@ -120,10 +120,10 @@ void run_tensor_algebra_test()
         {
             FOR2_SYM(k, l)
             {
-                value += 1.;
-                sym34_rank4(i, j, k, l)   = value;
-                correct_rank4(i, j, k, l) = value;
-                correct_rank4(i, j, l, k) = value;
+                value                     += 1.;
+                sym34_rank4(i, j, k, l)    = value;
+                correct_rank4(i, j, k, l)  = value;
+                correct_rank4(i, j, l, k)  = value;
             }
         }
         check_tensor(make_general_from_symmetric(sym34_rank4), correct_rank4,
@@ -135,12 +135,12 @@ void run_tensor_algebra_test()
         {
             FOR2_SYM(k, l)
             {
-                value += 1.;
-                sym12_sym34_rank4(i, j, k, l) = value;
-                correct_rank4(i, j, k, l)     = value;
-                correct_rank4(j, i, k, l)     = value;
-                correct_rank4(i, j, l, k)     = value;
-                correct_rank4(j, i, l, k)     = value;
+                value                         += 1.;
+                sym12_sym34_rank4(i, j, k, l)  = value;
+                correct_rank4(i, j, k, l)      = value;
+                correct_rank4(j, i, k, l)      = value;
+                correct_rank4(i, j, l, k)      = value;
+                correct_rank4(j, i, l, k)      = value;
             }
         }
         check_tensor(make_general_from_symmetric(sym12_sym34_rank4),

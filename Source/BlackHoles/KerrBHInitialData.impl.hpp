@@ -70,7 +70,8 @@ KerrBHInitialData::KerrBHInitialData(amrex::Real a_dx) : m_dx(a_dx)
     Tensor::Rank1 spin_dir = {m_params.spin_direction[0],
                               m_params.spin_direction[1],
                               m_params.spin_direction[2]};
-    m_rotation_matrix = CoordinateTransformations::rotation_matrix(spin_dir, z_dir);
+    m_rotation_matrix =
+        CoordinateTransformations::rotation_matrix(spin_dir, z_dir);
 }
 
 // Computes semi-isotropic Kerr solution as detailed in Liu, Etienne and Shapiro
