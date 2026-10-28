@@ -157,27 +157,22 @@ void run_coordinate_transformations_test()
         Nij(1, 2) = 0.9;
         Nij(2, 2) = 1.6;
 
-        auto to_full = [](const Tensor::Sym12Rank2 &sym)
-        {
-            Tensor::Rank2 full{};
-            FOR (i, j)
-            {
-                full(i, j) = sym(i, j);
-            }
-            return full;
-        };
-        const Tensor::Rank2 Nij_full = to_full(Nij);
+        const Tensor::Rank2 Nij_full = make_general_from_symmetric(Nij);
 
-        check_tensor(to_full(spherical_to_cartesian_LL(Nij, x, y, z)),
+        check_tensor(make_general_from_symmetric(
+                         spherical_to_cartesian_LL(Nij, x, y, z)),
                      transform_tensor_LL(Nij_full, jac),
                      "spherical_to_cartesian_LL (generic)");
-        check_tensor(to_full(spherical_to_cartesian_UU(Nij, x, y, z)),
+        check_tensor(make_general_from_symmetric(
+                         spherical_to_cartesian_UU(Nij, x, y, z)),
                      transform_tensor_UU(Nij_full, inv_jac),
                      "spherical_to_cartesian_UU (generic)");
-        check_tensor(to_full(cartesian_to_spherical_LL(Nij, x, y, z)),
+        check_tensor(make_general_from_symmetric(
+                         cartesian_to_spherical_LL(Nij, x, y, z)),
                      transform_tensor_LL(Nij_full, inv_jac),
                      "cartesian_to_spherical_LL (generic)");
-        check_tensor(to_full(cartesian_to_spherical_UU(Nij, x, y, z)),
+        check_tensor(make_general_from_symmetric(
+                         cartesian_to_spherical_UU(Nij, x, y, z)),
                      transform_tensor_UU(Nij_full, jac),
                      "cartesian_to_spherical_UU (generic)");
 
