@@ -19,9 +19,9 @@
 
 struct chris_t
 {
-    Tensor::Rank3 ULL{};
-    Tensor::Rank3 LLL{};
-    Tensor::Rank1 contracted{};
+    Tensor::Rank3 ULL;
+    Tensor::Rank3 LLL;
+    Tensor::Rank1 contracted;
 };
 
 namespace TensorAlgebra
@@ -199,8 +199,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 // NOLINTEND
 
 {
-    auto trace                       = compute_trace(tensor_LL, inverse_metric);
-    amrex::Real one_over_gr_spacedim = 1. / ((amrex::Real)GR_SPACEDIM);
+    auto trace = compute_trace(tensor_LL, inverse_metric);
+    amrex::Real one_over_gr_spacedim =
+        1. / static_cast<amrex::Real>(GR_SPACEDIM);
     FOR (i, j)
     {
         tensor_LL(i, j) -= one_over_gr_spacedim * metric(i, j) * trace;

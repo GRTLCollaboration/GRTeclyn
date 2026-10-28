@@ -367,22 +367,24 @@ rotation_matrix(const Tensor::Rank1 &origin, const Tensor::Rank1 &destination)
         {
             return rotation_matrix({0., 0., 0.}, 1.);
         }
-        // anti-parallel: rotate by pi about any axis orthogonal to origin,
-        // e.g. origin x e_k with e_k the cartesian axis least aligned with it
-        int k = 0;
+        // anti-parallel: rotating by pi about any axis orthogonal to origin
+        // maps origin onto -origin. Get such an axis from origin x e_min,
+        // where e_min is the cartesian axis along which origin has its
+        // smallest component (so the cross product cannot vanish)
+        int min_dir = 0;
         for (int i = 1; i < AMREX_SPACEDIM; ++i)
         {
-            if (std::abs(origin(i)) < std::abs(origin(k)))
+            if (std::abs(origin(i)) < std::abs(origin(min_dir)))
             {
-                k = i;
+                min_dir = i;
             }
         }
-        Tensor::Rank1 e_k = {0., 0., 0.};
-        e_k(k)            = 1.;
-        axis              = {
-            origin(1) * e_k(2) - origin(2) * e_k(1),
-            origin(2) * e_k(0) - origin(0) * e_k(2),
-            origin(0) * e_k(1) - origin(1) * e_k(0),
+        Tensor::Rank1 e_min = {0., 0., 0.};
+        e_min(min_dir)      = 1.;
+        axis                = {
+            origin(1) * e_min(2) - origin(2) * e_min(1),
+            origin(2) * e_min(0) - origin(0) * e_min(2),
+            origin(0) * e_min(1) - origin(1) * e_min(0),
         };
         axis_norm2 = axis(0) * axis(0) + axis(1) * axis(1) + axis(2) * axis(2);
         cos_angle  = -1.;

@@ -6,7 +6,7 @@
 # triggering the .lint-ignore PR reminder workflow.
 
 # These files don't make sense on their own
-lint-only: *.impl.hpp
+lint-only: **/*.impl.hpp
 Tests/CCZ4GeometryUnitTests/CCZ4GeometryExpectedValues.hpp
 external/*
 

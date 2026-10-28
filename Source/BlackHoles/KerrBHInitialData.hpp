@@ -41,7 +41,7 @@ class KerrBHInitialData
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_FORCE_INLINE
-    KerrBHInitialData(amrex::Real a_dx);
+    explicit KerrBHInitialData(amrex::Real a_dx);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     AMREX_GPU_DEVICE void
