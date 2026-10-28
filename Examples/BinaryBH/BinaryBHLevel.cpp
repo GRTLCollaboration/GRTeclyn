@@ -6,6 +6,7 @@
 #include "BinaryBHLevel.hpp"
 
 #include "AlgebraicConstraintsEnforcer.hpp"
+#include "BHMovingPunctureGauge.hpp"
 #include "BinaryBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
 #include "ChiTagger.hpp"
@@ -135,10 +136,11 @@ void BinaryBHLevel::initData()
 #endif
     amrex::Gpu::streamSynchronize();
 
-    if (get_bh_amr_ptr()->puncture_tracking_enabled() && Level() == 0)
+    if (Level() == 0)
     {
-        // need to set the puncture coordinates as we use it for the puncture
-        // tagging
+        // Store the initial puncture data in one place for the gauge and
+        // puncture tagging. The tracker updates the coordinates during the
+        // evolution when tracking is enabled.
         BoostedBHInitialData::params_t bh1_params(1);
         BoostedBHInitialData::params_t bh2_params(2);
 #ifdef USE_TWOPUNCTURES
@@ -151,6 +153,8 @@ void BinaryBHLevel::initData()
         get_puncture_tracker().set_puncture_coords(
             {bh1_params.center[0], bh1_params.center[1], bh1_params.center[2],
              bh2_params.center[0], bh2_params.center[1], bh2_params.center[2]});
+        get_puncture_tracker().set_puncture_masses(
+            {bh1_params.mass, bh2_params.mass});
         // can't call start_from_initial_punctures() because we need the full
         // AMR grid first
     }
@@ -172,6 +176,9 @@ void BinaryBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
     AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
     PositiveChiAndLapse positive_chi_lapse;
 
+    const auto &puncture_masses = get_puncture_tracker().get_puncture_masses();
+    const auto &puncture_coords = get_puncture_tracker().get_puncture_coords();
+
     // Enforce positive chi and lapse, det(h)=1 and trace free A
     amrex::ParallelFor(a_soln, soln_ghosts,
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -185,8 +192,8 @@ void BinaryBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
     if (m_evolution_spatial_derivative_order == 4)
     {
         CCZ4RHS<FourthOrderDerivatives> ccz4rhs(Geom().CellSize(0));
-        MovingPunctureGauge<FourthOrderDerivatives> moving_puncture_gauge(
-            Geom().CellSize(0));
+        BHMovingPunctureGauge<FourthOrderDerivatives> moving_puncture_gauge(
+            Geom().CellSize(0), puncture_masses, puncture_coords);
 
         // NB: These are split up to avoid having to pre-compute all the
         //  first and second derivatives in memory on the GPU at once.
@@ -221,8 +228,8 @@ void BinaryBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
     else if (m_evolution_spatial_derivative_order == 6)
     {
         CCZ4RHS<SixthOrderDerivatives> ccz4rhs(Geom().CellSize(0));
-        MovingPunctureGauge<SixthOrderDerivatives> moving_puncture_gauge(
-            Geom().CellSize(0));
+        BHMovingPunctureGauge<SixthOrderDerivatives> moving_puncture_gauge(
+            Geom().CellSize(0), puncture_masses, puncture_coords);
 
         // NB: These are split up to avoid having to pre-compute all the
         //  first and second derivatives in memory on the GPU at once.
@@ -300,35 +307,19 @@ void BinaryBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
 
-    GRParmParse pp;
     spherical_extraction_params_t extraction_params("weyl_extraction");
     extraction_params.fill_params();
     ExtractionTagger extraction_tagger(Geom().CellSize(0), Level(),
                                        extraction_params);
 
-    constexpr auto num_puncture_coords =
-        static_cast<std::size_t>(AMREX_SPACEDIM * num_punctures);
-    std::array<amrex::Real, num_puncture_coords> puncture_coords{};
     const bool puncture_tracking_enabled =
         get_bh_amr_ptr()->puncture_tracking_enabled();
-
-    if (puncture_tracking_enabled)
-    {
-        puncture_coords = get_puncture_tracker().get_puncture_coords();
-    }
-
-#ifdef USE_TWOPUNCTURES
-    TwoPuncturesInitialData two_punctures_initial_data(Geom().CellSize(0));
-    two_punctures_initial_data.add_bh_mass_params();
-#endif
-    amrex::Real bh1_mass{};
-    amrex::Real bh2_mass{};
-    pp.get("bh1.mass", bh1_mass);
-    pp.get("bh2.mass", bh2_mass);
+    const auto &puncture_coords = get_puncture_tracker().get_puncture_coords();
+    const auto &puncture_masses = get_puncture_tracker().get_puncture_masses();
 
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gr_amr_ptr()->maxLevel(),
-        puncture_coords, {bh1_mass, bh2_mass});
+        puncture_coords, puncture_masses);
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
