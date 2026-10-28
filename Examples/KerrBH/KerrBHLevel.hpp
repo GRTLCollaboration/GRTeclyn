@@ -20,6 +20,7 @@ class KerrBHLevel : public GRAmrLevel
 
     static constexpr int num_punctures = 0;
 
+    //! Kept for the apparent horizon finder (to be added in a follow-up PR)
     BHAmr<num_punctures> *get_bh_amr_ptr();
 
     /// Things to do at every full timestep

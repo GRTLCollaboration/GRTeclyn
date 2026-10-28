@@ -47,8 +47,6 @@ amr.max_level = 4 # there are max_level + 1 levels
 amr.regrid_int = 50   25   5   5   5   0   0   0   0
 tagging.threshold = 0.014
 
-# extraction_tagging.level_separation = 1.5
-
 # Maximum number of cells along each side of a grid box
 amr.max_grid_size = 32
 # Grid box side lengths must be divisible by this value
@@ -111,16 +109,3 @@ evolution.sigma = 0.3
 
 # ccz4.min_chi = 1.e-4
 # ccz4.min_lapse = 1.e-4
-
-#################################################
-# Extraction parameters
-
-# weyl_extraction.center = 4 4 0 # defaults to geometry.center in all cases
-weyl_extraction.enabled = true
-weyl_extraction.num_radii = 2
-weyl_extraction.radii = 20.0 10.0
-weyl_extraction.levels = 3 2
-weyl_extraction.num_points_phi = 160
-weyl_extraction.num_points_theta = 81
-# weyl_extraction.num_modes = 3
-# weyl_extraction.modes = 2 0  2 1  2 2

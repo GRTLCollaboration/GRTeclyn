@@ -9,13 +9,10 @@
 #include "CCZ4RHS.hpp"
 #include "ChiTagger.hpp"
 #include "Constraints.hpp"
-#include "ExtractionTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "KerrBHInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
-#include "Weyl4.hpp"
-#include "WeylExtraction.hpp"
 
 BHAmr<KerrBHLevel::num_punctures> *KerrBHLevel::get_bh_amr_ptr()
 {
@@ -30,8 +27,6 @@ void KerrBHLevel::variableSetUp()
     state_variable_set_up();
 
     Constraints::set_up(state_index);
-
-    Weyl4::set_up(state_index);
 }
 
 // Things to do during the advance step after RK4 steps
@@ -233,18 +228,11 @@ void KerrBHLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     ChiTagger chi_tagger(Geom().CellSize(0), a_regrid_threshold);
 
-    spherical_extraction_params_t extraction_params("weyl_extraction");
-    extraction_params.fill_params();
-    ExtractionTagger extraction_tagger(Geom().CellSize(0), Level(),
-                                       extraction_params);
-
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
                        {
                            chi_tagger(ix, iy, iz, tag_arrays[box_no],
                                       state_const_arrays[box_no]);
-
-                           extraction_tagger(ix, iy, iz, tag_arrays[box_no]);
                        });
 
     amrex::Gpu::streamSynchronize();
@@ -254,24 +242,5 @@ void KerrBHLevel::specific_post_timestep()
 {
     BL_PROFILE("KerrBHLevel::specific_post_timestep");
 
-    spherical_extraction_params_t extraction_params("weyl_extraction");
-    extraction_params.fill_params();
-
-    if (extraction_params.enabled)
-    {
-        const int min_level = extraction_params.min_extraction_level();
-        bool calculate_weyl = at_level_timestep_multiple(min_level);
-
-        if (calculate_weyl && Level() == min_level)
-        {
-            amrex::Real m_time       = get_state_data(state_index).curTime();
-            amrex::Real m_dt         = get_gr_amr_ptr()->dtLevel(Level());
-            amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
-            bool first_step          = (m_time <= m_dt);
-
-            WeylExtraction my_extraction(extraction_params, m_dt, m_time,
-                                         first_step, restart_time);
-            my_extraction.execute_query(&get_bh_amr_ptr()->m_weyl_interpolator);
-        }
-    }
+    // Add post-timestep diagnostics here
 }
