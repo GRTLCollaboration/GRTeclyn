@@ -312,7 +312,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 rotation_matrix(const Tensor::Rank1 &axis, amrex::Real cos_angle)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    amrex::Real sine          = std::sqrt(1. - cos_angle * cos_angle);
+    amrex::Real sine =
+        std::sqrt(std::max(0._rt, 1. - cos_angle * cos_angle));
     amrex::Real one_minus_cos = 1. - cos_angle;
 
     Tensor::Rank2 rotation;
@@ -330,7 +331,8 @@ rotation_matrix(const Tensor::Rank1 &axis, amrex::Real cos_angle)
 }
 
 // cartesian coordinates rotation matrix from origin vector to destination
-// vector NOLINTBEGIN(bugprone-easily-swappable-parameters)
+// vector
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 rotation_matrix(const Tensor::Rank1 &origin, const Tensor::Rank1 &destination)
 // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -340,20 +342,6 @@ rotation_matrix(const Tensor::Rank1 &origin, const Tensor::Rank1 &destination)
         origin(1) * destination(2) - origin(2) * destination(1),
         origin(2) * destination(0) - origin(0) * destination(2),
         origin(0) * destination(1) - origin(1) * destination(0)};
-
-    constexpr amrex::Real eps = 1.e-13;
-    if (std::abs(axis(0)) < eps && std::abs(axis(1)) < eps &&
-        std::abs(axis(2)) < eps)
-    {
-        return rotation_matrix({0., 0., 0.}, 1.);
-    }
-
-    amrex::Real norm_inv = amrex::Math::rsqrt(
-        axis(0) * axis(0) + axis(1) * axis(1) + axis(2) * axis(2));
-
-    axis(0) *= norm_inv;
-    axis(1) *= norm_inv;
-    axis(2) *= norm_inv;
 
     // Calculate angle of rotation
     amrex::Real norm_origin = std::sqrt(
@@ -366,6 +354,42 @@ rotation_matrix(const Tensor::Rank1 &origin, const Tensor::Rank1 &destination)
                              origin(1) * destination(1) +
                              origin(2) * destination(2);
     cos_angle             /= (norm_origin * norm_dest);
+
+    // origin and destination are (anti-)parallel so the axis is undefined
+    constexpr amrex::Real eps = 1.e-13;
+    amrex::Real axis_norm2 =
+        axis(0) * axis(0) + axis(1) * axis(1) + axis(2) * axis(2);
+    if (axis_norm2 <
+        eps * eps * norm_origin * norm_origin * norm_dest * norm_dest)
+    {
+        if (cos_angle > 0.)
+        {
+            return rotation_matrix({0., 0., 0.}, 1.);
+        }
+        // anti-parallel: rotate by pi about any axis orthogonal to origin,
+        // e.g. origin x e_k with e_k the cartesian axis least aligned with it
+        int k = 0;
+        for (int i = 1; i < AMREX_SPACEDIM; ++i)
+        {
+            if (std::abs(origin(i)) < std::abs(origin(k)))
+            {
+                k = i;
+            }
+        }
+        Tensor::Rank1 e_k = {0., 0., 0.};
+        e_k(k)            = 1.;
+        axis              = {origin(1) * e_k(2) - origin(2) * e_k(1),
+                             origin(2) * e_k(0) - origin(0) * e_k(2),
+                             origin(0) * e_k(1) - origin(1) * e_k(0)};
+        axis_norm2 = axis(0) * axis(0) + axis(1) * axis(1) + axis(2) * axis(2);
+        cos_angle  = -1.;
+    }
+
+    amrex::Real norm_inv = amrex::Math::rsqrt(axis_norm2);
+
+    axis(0) *= norm_inv;
+    axis(1) *= norm_inv;
+    axis(2) *= norm_inv;
 
     return rotation_matrix(axis, cos_angle);
 }
