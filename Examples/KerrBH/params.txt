@@ -1,4 +1,5 @@
-# GRTeclyn Parameter File for KerrBH (CCZ4 Formulation)
+# GRTeclyn Kerr black hole example
+# Commented parameters show default or suggested values
 
 #################################################
 # Filesystem parameters
@@ -22,14 +23,15 @@ amr.check_int = 20
 # Number of level-0 time steps between plot files; -1 disables output
 amr.plot_int = 5
 
-# amr.plot_vars = ALL
-amr.derive_plot_vars = ALL
+amr.plot_vars = chi lapse
+amr.derive_plot_vars = constraints
 
 #################################################
 # Kerr BH Initial Data parameters
 kerr.mass = 1.0
 kerr.spin = 0.5
 kerr.spin_direction = 0.1 0.1 0.0
+# kerr.offset = 0 0 0 # offset of the BH from geometry.center
 
 #################################################
 # Grid parameters
@@ -98,9 +100,9 @@ gauge.eta = 1.0 # typically O(1/M_ADM)
 
 # CCZ4 parameters
 ccz4.formulation = 0 # 1 for BSSN, 0 for CCZ4
-# ccz4.kappa1 = 0.0
+# ccz4.kappa1 = 0.1
 # ccz4.kappa2 = 0.0
-# ccz4.kappa3 = 0.0
+# ccz4.kappa3 = 1.0
 ccz4.covariantZ4 = true # replace kappa1 with kappa1/lapse
 
 # Coefficient for KO numerical dissipation
