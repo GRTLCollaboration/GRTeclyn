@@ -83,7 +83,7 @@ ah_finder.r = 1.15
 ah_finder.initial_dt = 1e-2
 # Safety factor on the CFL cap: dt <= cfl_factor * (smallest spacing between
 # neighbouring points on the ring grid)
-ah_finder.cfl_factor = 7.0
+ah_finder.cfl_factor = 3.5
 # Maximum number of pseudo-time iterations before giving up
 ah_finder.max_iter = 1000
 # Maximum number of consecutive iterations at the minimum pseudo-timestep

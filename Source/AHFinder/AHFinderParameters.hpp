@@ -99,7 +99,7 @@ struct ah_finder_params_t
             ah_finder_pp.error("initial_dt", "must be > 0");
         }
 
-        amrex::Real cfl_factor = 7.0;
+        amrex::Real cfl_factor = 3.5;
         ah_finder_pp.queryAdd("cfl_factor", cfl_factor);
         if (cfl_factor <= 0.0)
         {

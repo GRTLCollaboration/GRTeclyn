@@ -102,8 +102,8 @@ class AHGeometry
     // Fills m_dhdx/m_dhdy/m_dhdz from h. Called by set_h_derivatives().
     void h_derivs(const std::vector<double> &h);
 
-    // Fills m_d2h_* by differentiating m_dhdx/m_dhdy/m_dhdz, so must run
-    // after h_derivs(). Called by set_h_derivatives().
+    // Fills m_d2h_* directly from h with a compact stencil over the 8
+    // surrounding particles.
     void h_hessian(const std::vector<double> &h);
 
     // Fills m_dh_dtheta, m_dh_dphi at every ring-grid point via a central
@@ -146,12 +146,9 @@ class AHGeometry
     }
     [[nodiscard]] amrex::Real phi(int j) const { return j * d_phi(); }
 
-    // Flat indices of the 4 ring-grid neighbours of the point at flat
-    // index idx, ordered {north, south, east, west}. phi wraps
-    // periodically, and at the pole-adjacent rings (where no north/south
-    // ring exists) the missing neighbour is replaced by the point opposite
-    // on the same ring
-    [[nodiscard]] amrex::GpuArray<int, 4> neighbours(int idx) const;
+    // Flat indices of the 8 ring-grid neighbours of idx, ordered
+    // {N, S, E, W, NE, NW, SE, SW}
+    [[nodiscard]] amrex::GpuArray<int, 8> neighbours(int idx) const;
 
     // Surface parameterisation
 

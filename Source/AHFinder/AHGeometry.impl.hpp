@@ -76,44 +76,58 @@ inline void AHGeometry::set_directions()
     }
 }
 
-inline amrex::GpuArray<int, 4> AHGeometry::neighbours(int idx) const
+inline amrex::GpuArray<int, 8> AHGeometry::neighbours(int idx) const
 {
-    // Get the 4 neighbours of a particle (north, south, east and west).
-    // If we are at the top/bottom ring, we can take the north/south
-    // neighbour respectively as the opposite point on the same ring
+    // Get the 8 neighbours of a particle (N, S, E, W, NE, NW, SE, SW).
+    // At the top/bottom ring, the ring across the pole is the same ring
+    // rotated by half a turn
     int ring_num = idx / m_ring_size;
     int ring_pos = idx % m_ring_size;
 
-    int opposite_point =
-        ring_num * m_ring_size + (ring_pos + m_ring_size / 2) % m_ring_size;
+    int half_turn = m_ring_size / 2;
 
-    int north, south, east, west;
+    int north_ring, north_shift, south_ring, south_shift;
 
-    // North/south neighbours are next ring above/below.
     if (ring_num > 0)
     {
-        north = (ring_num - 1) * m_ring_size + ring_pos;
+        north_ring  = (ring_num - 1) * m_ring_size;
+        north_shift = 0;
     }
     else
     {
-        north = opposite_point;
+        north_ring  = ring_num * m_ring_size;
+        north_shift = half_turn;
     }
 
     if (ring_num < m_n_rings - 1)
     {
-        south = (ring_num + 1) * m_ring_size + ring_pos;
+        south_ring  = (ring_num + 1) * m_ring_size;
+        south_shift = 0;
     }
     else
     {
-        south = opposite_point;
+        south_ring  = ring_num * m_ring_size;
+        south_shift = half_turn;
     }
 
-    // East/west neighbours are adjacent in the same ring
-    // Modulo to wrap around
-    east = ring_num * m_ring_size + (ring_pos + 1) % m_ring_size;
-    west = ring_num * m_ring_size + (ring_pos - 1 + m_ring_size) % m_ring_size;
+    int this_ring = ring_num * m_ring_size;
 
-    return {north, south, east, west};
+    // Modulo to wrap around
+    auto wrap = [&](int ns_offset, int ew_offset)
+    { return (ring_pos + ns_offset + ew_offset + m_ring_size) % m_ring_size; };
+
+    int north = north_ring + wrap(north_shift, 0);
+    int south = south_ring + wrap(south_shift, 0);
+    int east  = this_ring + wrap(0, 1);
+    int west  = this_ring + wrap(0, -1);
+
+    int north_east = north_ring + wrap(north_shift, 1);
+    int north_west = north_ring + wrap(north_shift, -1);
+    int south_east = south_ring + wrap(south_shift, 1);
+    int south_west = south_ring + wrap(south_shift, -1);
+
+    return {north,      south,      east,       west,
+            north_east, north_west, south_east, south_west};
 }
 
 inline Tensor::Rank1 AHGeometry::direction(int idx) const
@@ -127,7 +141,7 @@ AHGeometry::ring_gradient(const double *field_ptr, int idx, double r) const
     // Perform finite differences with a particle and its
     // neighbours in spherical (theta/phi) coordinates and convert
     // them to cartesian (x/y/z)
-    const amrex::GpuArray<int, 4> nb = neighbours(idx);
+    const amrex::GpuArray<int, 8> nb = neighbours(idx);
 
     amrex::Real d_dtheta =
         (field_ptr[nb[1]] - field_ptr[nb[0]]) / (2.0 * d_theta());
@@ -177,11 +191,7 @@ inline void AHGeometry::h_derivs(const std::vector<double> &h)
 inline void AHGeometry::h_hessian(const std::vector<double> &h)
 {
     // Calculate the Hessian of h
-    // Must be called after h_derivs() has populated m_dhdx/m_dhdy/m_dhdz.
-    const double *h_ptr    = h.data();
-    const double *dhdx_ptr = m_dhdx.data();
-    const double *dhdy_ptr = m_dhdy.data();
-    const double *dhdz_ptr = m_dhdz.data();
+    const double *h_ptr = h.data();
 
     double *d2h_xx_ptr = m_d2h_xx.data();
     double *d2h_yy_ptr = m_d2h_yy.data();
@@ -190,25 +200,67 @@ inline void AHGeometry::h_hessian(const std::vector<double> &h)
     double *d2h_xz_ptr = m_d2h_xz.data();
     double *d2h_yz_ptr = m_d2h_yz.data();
 
+    const double dtheta = d_theta();
+    const double dphi   = d_phi();
+
     for (int id = 0; id < m_num_particles; ++id)
     {
-        const double r = h_ptr[id];
+        const int i = id / m_ring_size;
+        const int j = id % m_ring_size;
 
-        // d/dx_j(dh/dx), d/dx_j(dh/dy), d/dx_j(dh/dz)
-        const amrex::GpuArray<amrex::Real, 3> grad_x =
-            ring_gradient(dhdx_ptr, id, r);
-        const amrex::GpuArray<amrex::Real, 3> grad_y =
-            ring_gradient(dhdy_ptr, id, r);
-        const amrex::GpuArray<amrex::Real, 3> grad_z =
-            ring_gradient(dhdz_ptr, id, r);
+        const amrex::GpuArray<int, 8> nb = neighbours(id);
 
-        d2h_xx_ptr[id] = grad_x[0];
-        d2h_yy_ptr[id] = grad_y[1];
-        d2h_zz_ptr[id] = grad_z[2];
+        const double c  = h_ptr[id];
+        const double n  = h_ptr[nb[0]];
+        const double s  = h_ptr[nb[1]];
+        const double e  = h_ptr[nb[2]];
+        const double w  = h_ptr[nb[3]];
+        const double ne = h_ptr[nb[4]];
+        const double nw = h_ptr[nb[5]];
+        const double se = h_ptr[nb[6]];
+        const double sw = h_ptr[nb[7]];
 
-        d2h_xy_ptr[id] = 0.5 * (grad_x[1] + grad_y[0]);
-        d2h_xz_ptr[id] = 0.5 * (grad_x[2] + grad_z[0]);
-        d2h_yz_ptr[id] = 0.5 * (grad_y[2] + grad_z[1]);
+        const double h_t  = (s - n) / (2.0 * dtheta);
+        const double h_p  = (e - w) / (2.0 * dphi);
+        const double h_tt = (n - 2.0 * c + s) / (dtheta * dtheta);
+        const double h_pp = (e - 2.0 * c + w) / (dphi * dphi);
+        const double h_tp = (se - sw - ne + nw) / (4.0 * dtheta * dphi);
+
+        const double r         = c;
+        const double sin_theta = std::sin(theta(i));
+        const double cos_theta = std::cos(theta(i));
+        const double sin_phi   = std::sin(phi(j));
+        const double cos_phi   = std::cos(phi(j));
+
+        const double n_L[3]  = {sin_theta * cos_phi, sin_theta * sin_phi,
+                                cos_theta};
+        const double et_L[3] = {cos_theta * cos_phi, cos_theta * sin_phi,
+                                -sin_theta};
+        const double ep_L[3] = {-sin_phi, cos_phi, 0.0};
+
+        // Chain rule from (theta, phi) to Cartesian
+        auto hess = [&](int a, int b)
+        {
+            const double sym_tp  = et_L[a] * ep_L[b] + ep_L[a] * et_L[b];
+            const double sym_nt  = n_L[a] * et_L[b] + et_L[a] * n_L[b];
+            const double sym_np  = n_L[a] * ep_L[b] + ep_L[a] * n_L[b];
+            const double pp      = ep_L[a] * ep_L[b];
+            const double d2theta = -sym_nt + cos_theta / sin_theta * pp;
+            const double d2phi   = -(sin_theta * sym_np + cos_theta * sym_tp) /
+                                   (sin_theta * sin_theta);
+
+            return (h_tt * et_L[a] * et_L[b] + h_tp * sym_tp / sin_theta +
+                    h_pp * pp / (sin_theta * sin_theta) + h_t * d2theta +
+                    h_p * d2phi) /
+                   (r * r);
+        };
+
+        d2h_xx_ptr[id] = hess(0, 0);
+        d2h_yy_ptr[id] = hess(1, 1);
+        d2h_zz_ptr[id] = hess(2, 2);
+        d2h_xy_ptr[id] = hess(0, 1);
+        d2h_xz_ptr[id] = hess(0, 2);
+        d2h_yz_ptr[id] = hess(1, 2);
     }
 }
 
@@ -270,7 +322,7 @@ inline void AHGeometry::set_h_gradients()
         {
             const int ij = i * m_ring_size + j;
 
-            const amrex::GpuArray<int, 4> nb = neighbours(ij);
+            const amrex::GpuArray<int, 8> nb = neighbours(ij);
             const int north                  = nb[0];
             const int south                  = nb[1];
             const int east                   = nb[2];
