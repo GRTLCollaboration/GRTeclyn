@@ -58,7 +58,8 @@ class KerrBHInitialData
         Tensor::Rank1
             &spherical_shift,    //!<< The spherical components of the shift
         amrex::Real &kerr_lapse, //!<< The lapse for the kerr solution
-        const Tensor::Rank1 &coords) const;
+        const Coordinates &coords //!<< Coords of current cell (spin frame)
+    ) const;
 
     //! Helper function to unpack a Sym12Rank2 into a full 3x3 Rank2
     [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE Tensor::Rank2

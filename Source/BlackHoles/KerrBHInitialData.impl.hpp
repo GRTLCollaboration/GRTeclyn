@@ -102,27 +102,26 @@ KerrBHInitialData::operator()(int ix, int iy, int iz,
     // The cartesian variables and coords
     const amrex::CellData<amrex::Real> &state_cell_data =
         state.cellData(ix, iy, iz);
-    Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx);
+    Coordinates coords(amrex::IntVect(ix, iy, iz), m_dx, m_params.center);
 
-    Tensor::Rank1 xyz = {coords.x - m_params.center[0],
-                         coords.y - m_params.center[1],
-                         coords.z - m_params.center[2]};
-
-    xyz = transform_vector(xyz, m_rotation_matrix);
+    // Rotate the coordinates so that the spin is along the z-axis
+    const Tensor::Rank1 rotated_coords =
+        transform_vector({coords.x, coords.y, coords.z}, m_rotation_matrix);
+    coords.x = rotated_coords(0);
+    coords.y = rotated_coords(1);
+    coords.z = rotated_coords(2);
 
     // Compute the components in spherical coords as per 1401.1548
-    compute_kerr(spherical_g, spherical_K, spherical_shift, kerr_lapse, xyz);
-
-    // work out where we are on the grid
-    amrex::Real x = xyz(0);
-    amrex::Real y = xyz(1);
-    amrex::Real z = xyz(2);
+    compute_kerr(spherical_g, spherical_K, spherical_shift, kerr_lapse, coords);
 
     // Convert spherical components to cartesian components using coordinate
     // transforms
-    auto cartesian_h_sym = spherical_to_cartesian_LL(spherical_g, x, y, z);
-    auto cartesian_K_sym = spherical_to_cartesian_LL(spherical_K, x, y, z);
-    auto cartesian_shift = spherical_to_cartesian_U(spherical_shift, x, y, z);
+    auto cartesian_h_sym =
+        spherical_to_cartesian_LL(spherical_g, coords.x, coords.y, coords.z);
+    auto cartesian_K_sym =
+        spherical_to_cartesian_LL(spherical_K, coords.x, coords.y, coords.z);
+    auto cartesian_shift =
+        spherical_to_cartesian_U(spherical_shift, coords.x, coords.y, coords.z);
 
     // Rotate symmetric tensors back to original coordinates
     auto h_sym = transform_sym_tensor_LL(cartesian_h_sym, m_rotation_matrix);
@@ -181,16 +180,16 @@ KerrBHInitialData::operator()(int ix, int iy, int iz,
 AMREX_FORCE_INLINE AMREX_GPU_DEVICE void KerrBHInitialData::compute_kerr(
     Tensor::Sym12Rank2 &spherical_g, Tensor::Sym12Rank2 &spherical_K,
     Tensor::Rank1 &spherical_shift, amrex::Real &kerr_lapse,
-    const Tensor::Rank1 &coords) const
+    const Coordinates &coords) const
 {
     // Kerr black hole params - mass M and spin a
     amrex::Real M = m_params.mass;
     amrex::Real a = m_params.spin;
 
     // work out where we are on the grid
-    amrex::Real x = coords(0);
-    amrex::Real y = coords(1);
-    amrex::Real z = coords(2);
+    amrex::Real x = coords.x;
+    amrex::Real y = coords.y;
+    amrex::Real z = coords.z;
 
     // the radius, subject to a floor
     amrex::Real r2_raw = x * x + y * y + z * z;
