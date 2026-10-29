@@ -6,6 +6,9 @@ XTRA_CPPFLAGS += -DGRTECLYN_VERSION=\"$(GRTECLYN_VERSION)\"
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
+# LAPACK (dgbsv) is used by the AHFinder's implicit solve
+LIBRARIES += -llapack -lblas
+
 ifeq ($(USE_TWOPUNCTURES),TRUE)
   $(info Loading $(GRTECLYN_HOME)/Tools/GNUMake/packages/Make.twopunctures...)
   include        $(GRTECLYN_HOME)/Tools/GNUMake/packages/Make.twopunctures

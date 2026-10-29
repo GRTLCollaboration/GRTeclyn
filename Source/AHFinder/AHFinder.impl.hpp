@@ -16,49 +16,47 @@
 #include "ParticleInterpolator.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
+#include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 
 inline void AHFinder::init(GRAmr *gramr_ptr)
 {
-    // eta, c, tolerance, r, initial_dt, cfl_factor, max_iter and
-    // max_stall_iter come from the "ah_finder" scope of the input file; see
+    // tolerance, r, initial_dt, max_iter and max_stall_iter come
+    // from the "ah_finder" scope of the input file; see
     // AHFinderParameters.hpp for defaults and meaning.
     m_params.fill_params();
 
-    m_min_dt      = 1e-4;
-    m_dt_shrink   = 0.8;
-    m_dt_grow     = 1.25;
-    m_theta_floor = 1e-12;
+    m_min_dt    = 1e-4;
+    m_dt_shrink = 0.5;
+    m_fd_sigma  = 1.0;
 
     this->setup_metric_query();
 
     // Set up interpolator
     this->setup(gramr_ptr);
 
-    m_geometry.set_surface_data(&m_state.h, &m_gamma_LL);
+    m_geometry.set_surface_data(&m_h, &m_gamma_LL);
 
-    // Initialise h, v and dt values for particles, then place the particles
+    this->setup_jacobian();
+
+    // Initialise h for particles, then place the particles
     this->init_particle_vals();
-    this->set_particle_positions(m_state.h);
+    this->set_particle_positions(m_h);
 }
 
 inline void AHFinder::find()
 {
-    // Create amrex time integrator
-    // Allows for different (explicit) time stepping methods
-    m_integrator = std::make_unique<amrex::TimeIntegrator<AHState>>(m_state);
-    m_integrator->set_rhs([this](AHState &rhs, AHState &state, amrex::Real time)
-                          { this->compute_rhs(rhs, state, time); });
-
     int n_iter = 0;
 
     // The grid may have evolved since the last find(), so refill the ghost
     // cells on the first interpolation
     m_fill_ghosts = true;
 
-    this->set_particle_positions(m_state.h);
-    compute_theta(m_state.h);
+    this->set_particle_positions(m_h);
+    interp_metric();
+    theta_from_metric(m_h, m_theta_vals);
 
     double theta_old = inf_norm(m_theta_vals);
 
@@ -99,21 +97,34 @@ inline void AHFinder::find()
     };
     write_particles(n_iter);
 
-    AHState new_state = m_state;
+    std::vector<double> delta_h(m_num_particles);
+    std::vector<double> jacobian(static_cast<std::size_t>(m_ldab) *
+                                 m_num_particles);
 
     // Number of consecutive iterations with dt at its minimum
     int n_stall = 0;
 
     while (theta_old > m_params.tolerance && n_iter < m_params.max_iter)
     {
-        // Advance one pseudo-time step with the AMReX integrator.
-        m_integrator->set_time_step(dt);
-        m_integrator->advance(m_state, new_state, n_iter * dt, dt);
-        std::swap(m_state, new_state);
+        // One pseudo-transient continuation step of h_dot = -Theta:
+        // solve (J + I/dt) delta_h = -Theta.
+        assemble_jacobian(jacobian);
+        if (!lapack_solve(jacobian, dt, delta_h))
+        {
+            amrex::Print() << "\n AHFinder: banded LU factorisation of "
+                              "J + I/dt failed\n";
+            break;
+        }
+
+        for (int id = 0; id < m_num_particles; ++id)
+        {
+            m_h[id] += delta_h[id];
+        }
 
         // Evaluate Theta at the new state
-        this->set_particle_positions(m_state.h);
-        compute_theta(m_state.h);
+        this->set_particle_positions(m_h);
+        interp_metric();
+        theta_from_metric(m_h, m_theta_vals);
 
         double theta_new = inf_norm(m_theta_vals);
 
@@ -124,7 +135,7 @@ inline void AHFinder::find()
         amrex::Print() << "-------------------------\n";
 
         // Adapt the global timestep for the next step.
-        dt = update_dt(dt, theta_old, theta_new, m_state.h);
+        dt = update_dt(dt, theta_old, theta_new);
         amrex::Print() << "dt = " << dt << "\n";
 
         n_stall = (dt <= m_min_dt) ? n_stall + 1 : 0;
@@ -181,11 +192,7 @@ inline void AHFinder::init_particle_vals()
     const double r0 = m_geometry.guess_radius();
 
     // The initial surface is the sphere r = guess_radius
-    m_state.h.assign(m_num_particles, r0);
-
-    // Since h = v - eta * h, start velocity at eta * h so we don't
-    // immediately collapse inwards
-    m_state.v.assign(m_num_particles, m_params.eta * r0);
+    m_h.assign(m_num_particles, r0);
 }
 
 inline void AHFinder::set_particle_positions(const std::vector<double> &h)
@@ -208,47 +215,19 @@ inline void AHFinder::set_particle_positions(const std::vector<double> &h)
     }
 }
 
-inline void AHFinder::compute_rhs(AHState &rhs, AHState &state,
-                                  amrex::Real /* time */)
-{
-    this->set_particle_positions(state.h);
-
-    // Calculate Theta
-    compute_theta(state.h);
-
-    //   h_dot = v - eta * h
-    //   v_dot = -c^2 * Theta
-    rhs.h.assign(m_num_particles, 0.0);
-    rhs.v.assign(m_num_particles, 0.0);
-    for (int id = 0; id < m_num_particles; ++id)
-    {
-        rhs.h[id] = state.v[id] - m_params.eta * state.h[id];
-        rhs.v[id] = -std::pow(m_params.c, 2) * m_theta_vals[id];
-    }
-}
-
 inline amrex::Real AHFinder::update_dt(amrex::Real dt, double theta_old,
-                                       double theta_new,
-                                       const std::vector<double> &h) const
+                                       double theta_new) const
 {
-    // Update dt based on ratio of improvement of theta
-
-    // Limit timestep by CFL condition of closest pair of particles
-    const double max_dt = m_params.cfl_factor * m_geometry.min_ring_spacing(h);
-
-    // Update time step based on ratio of old to new theta
-    // Ensure it doesn't grow or shrink too fast.
-    double ratio = (std::abs(theta_new) > m_theta_floor)
-                       ? m_params.r * theta_old / theta_new
-                       : m_params.r;
-    ratio        = std::max(ratio, m_dt_shrink);
-    ratio        = std::min(ratio, m_dt_grow);
+    // Switched evolution relaxation: grow dt as Theta improves, so the
+    // implicit step tends to a Newton step near convergence.
+    double ratio = m_params.r * theta_old / theta_new;
+    // Limit shrinking of timestep
+    ratio = std::max(ratio, m_dt_shrink);
 
     dt *= ratio;
 
-    // Ensure the timestep doesn't grow too large or small.
+    // Ensure the timestep doesn't get too small.
     dt = std::max(dt, m_min_dt);
-    dt = std::min(dt, max_dt);
 
     return dt;
 }
@@ -322,17 +301,20 @@ inline void AHFinder::setup_metric_query()
     }
 }
 
-inline void AHFinder::compute_theta(const std::vector<double> &h)
+inline void AHFinder::interp_metric()
 {
-
-    m_geometry.set_h_derivatives(h);
-
-    m_theta_vals.assign(m_num_particles, 0.0);
-
     // Particle positions move with h, so refresh them on every call. The
     // grid is frozen during find(), so only fill the ghost cells once.
     this->interp(m_metric_query, true, "", 0.0, m_fill_ghosts);
     m_fill_ghosts = false;
+}
+
+inline void AHFinder::theta_from_metric(const std::vector<double> &h,
+                                        std::vector<double> &theta)
+{
+    m_geometry.set_h_derivatives(h);
+
+    theta.assign(m_num_particles, 0.0);
 
     amrex::GpuArray<const double *, 14> state_ptr;
     for (int c = 0; c < 14; ++c)
@@ -349,7 +331,7 @@ inline void AHFinder::compute_theta(const std::vector<double> &h)
 
     const double *h_ptr = h.data();
 
-    double *theta_ptr = m_theta_vals.data();
+    double *theta_ptr = theta.data();
 
     for (int ip = m_start; ip < m_start + m_n_local; ++ip)
     {
@@ -418,8 +400,10 @@ inline void AHFinder::compute_theta(const std::vector<double> &h)
 
         // Level-set gradient F_i = n_i - (grad h)_i, with n_i the flat
         // radial covector (x_i - center_i)/r -- which is exactly the
-        // grid point's unit direction, since set_particle_positions()
-        // built x_i as center_i + r * dir_i from this same h.
+        // grid point's unit direction, since the surface point is
+        // center_i + r * dir_i. Taken from the direction rather than the
+        // particle position so it stays consistent with h when the metric
+        // is frozen at a different h (assemble_jacobian()).
         const Tensor::Rank1 n_L      = m_geometry.direction(ip);
         const Tensor::Rank1 grad_h_L = m_geometry.grad_h(ip);
         Tensor::Rank1 F_L;
@@ -502,8 +486,219 @@ inline void AHFinder::compute_theta(const std::vector<double> &h)
         theta_ptr[ip] = div_s + s_dot_dlnsqrtgamma - K + s_K_s;
     }
 
-    amrex::ParallelDescriptor::ReduceRealSum(m_theta_vals.data(),
-                                             m_num_particles);
+    amrex::ParallelDescriptor::ReduceRealSum(theta.data(), m_num_particles);
+}
+
+inline void AHFinder::setup_jacobian()
+{
+    const int n         = m_num_particles;
+    const int ring_size = m_geometry.ring_size();
+    const int n_rings   = m_geometry.n_rings();
+
+    // Rows each column appears in: the transpose of derivative_stencil()
+    std::vector<std::vector<int>> rows_of(n);
+    for (int i = 0; i < n; ++i)
+    {
+        const amrex::GpuArray<int, 9> stencil =
+            m_geometry.derivative_stencil(i);
+        for (int s = 0; s < 9; ++s)
+        {
+            rows_of[stencil[s]].push_back(i);
+        }
+    }
+
+    // Greedy colouring: give each column the lowest colour not already used
+    // by a column it shares a row with. used[c] == j marks colour c as taken
+    // while colouring column j.
+    m_colour.assign(n, -1);
+    m_n_colours = 0;
+    std::vector<int> used;
+    for (int j = 0; j < n; ++j)
+    {
+        for (const int i : rows_of[j])
+        {
+            const amrex::GpuArray<int, 9> stencil =
+                m_geometry.derivative_stencil(i);
+            for (int s = 0; s < 9; ++s)
+            {
+                const int c = m_colour[stencil[s]];
+                if (c >= 0)
+                {
+                    used[c] = j;
+                }
+            }
+        }
+
+        int c = 0;
+        while (c < m_n_colours && used[c] == j)
+        {
+            ++c;
+        }
+        if (c == m_n_colours)
+        {
+            ++m_n_colours;
+            used.push_back(-1);
+        }
+        m_colour[j] = c;
+    }
+
+    // Lookup table: the one column of each colour that each row depends on
+    m_colour_column.assign(static_cast<std::size_t>(n) * m_n_colours, -1);
+    for (int i = 0; i < n; ++i)
+    {
+        const amrex::GpuArray<int, 9> stencil =
+            m_geometry.derivative_stencil(i);
+        for (int s = 0; s < 9; ++s)
+        {
+            const int j                                    = stencil[s];
+            m_colour_column[i * m_n_colours + m_colour[j]] = j;
+        }
+    }
+
+    // Band ordering: fold each ring (0, n-1, 1, n-2, ...) so neighbours
+    // across the periodic seam sit close together
+    m_band_order.resize(n);
+    m_band_index.resize(n);
+    for (int ring = 0; ring < n_rings; ++ring)
+    {
+        for (int p = 0; p < ring_size; ++p)
+        {
+            const int fold = (p % 2 == 0) ? p / 2 : ring_size - 1 - p / 2;
+            const int k    = ring * ring_size + p;
+            const int idx  = ring * ring_size + fold;
+
+            m_band_order[k]   = idx;
+            m_band_index[idx] = k;
+        }
+    }
+
+    // Bandwidths of the sparsity pattern in the band ordering
+    m_kl = 0;
+    m_ku = 0;
+    for (int i = 0; i < n; ++i)
+    {
+        const amrex::GpuArray<int, 9> stencil =
+            m_geometry.derivative_stencil(i);
+        for (int s = 0; s < 9; ++s)
+        {
+            const int d = m_band_index[i] - m_band_index[stencil[s]];
+            m_kl        = std::max(m_kl, d);
+            m_ku        = std::max(m_ku, -d);
+        }
+    }
+    m_ldab = 2 * m_kl + m_ku + 1;
+
+    amrex::Print() << "AHFinder Jacobian: " << m_n_colours
+                   << " colours, bandwidths kl = " << m_kl << ", ku = " << m_ku
+                   << " (ring size " << ring_size << ")\n";
+}
+
+inline void AHFinder::assemble_jacobian(std::vector<double> &jacobian)
+{
+    const int n = m_num_particles;
+
+    // Finite-difference step at each point, scaled to h
+    const double sqrt_eps = std::sqrt(std::numeric_limits<double>::epsilon());
+    std::vector<double> fd_eps(n);
+    for (int j = 0; j < n; ++j)
+    {
+        fd_eps[j] = m_fd_sigma * sqrt_eps * (1.0 + std::abs(m_h[j]));
+    }
+
+    // Perturbed h and the Theta evaluated there
+    std::vector<double> h_pert(n);
+    std::vector<double> theta_pert(n);
+
+    std::fill(jacobian.begin(), jacobian.end(), 0.0);
+
+    // Perturb all points of one colour at once and update the
+    // points in the jacobian they contribute to
+    for (int c = 0; c < m_n_colours; ++c)
+    {
+        for (int j = 0; j < n; ++j)
+        {
+            h_pert[j] = (m_colour[j] == c) ? m_h[j] + fd_eps[j] : m_h[j];
+        }
+
+        theta_from_metric(h_pert, theta_pert);
+
+        for (int i = 0; i < n; ++i)
+        {
+            const int j = m_colour_column[i * m_n_colours + c];
+            if (j >= 0)
+            {
+                jacobian[band_offset(i, j)] =
+                    (theta_pert[i] - m_theta_vals[i]) / fd_eps[j];
+            }
+        }
+    }
+
+    // Perturb all points, interpolate and calculate new value of
+    // Theta, calculate delta Theta with finite difference and apply
+    // resulting update to the diagonal of the jacobian
+    for (int j = 0; j < n; ++j)
+    {
+        h_pert[j] = m_h[j] + fd_eps[j];
+    }
+    this->set_particle_positions(h_pert);
+    interp_metric();
+
+    theta_from_metric(m_h, theta_pert);
+
+    for (int i = 0; i < n; ++i)
+    {
+        jacobian[band_offset(i, i)] +=
+            (theta_pert[i] - m_theta_vals[i]) / fd_eps[i];
+    }
+}
+
+inline bool AHFinder::lapack_solve(std::vector<double> &jacobian,
+                                   amrex::Real dt, std::vector<double> &delta_h)
+{
+    const int n    = m_num_particles;
+    const int root = amrex::ParallelDescriptor::IOProcessorNumber();
+    int info       = 0;
+
+    // Every rank holds the full J and Theta, but only one does the solve;
+    // the result is then broadcast to the others
+    if (amrex::ParallelDescriptor::MyProc() == root)
+    {
+        const int nrhs = 1;
+        std::vector<int> ipiv(n);
+        std::vector<double> rhs(n);
+
+        // Apply pseudo timestep to diagonal
+        for (int k = 0; k < n; ++k)
+        {
+            jacobian[m_kl + m_ku + k * m_ldab] += 1.0 / dt;
+        }
+
+        for (int k = 0; k < n; ++k)
+        {
+            rhs[k] = -m_theta_vals[m_band_order[k]];
+        }
+
+        dgbsv_(&n, &m_kl, &m_ku, &nrhs, jacobian.data(), &m_ldab, ipiv.data(),
+               rhs.data(), &n, &info);
+
+        if (info == 0)
+        {
+            for (int k = 0; k < n; ++k)
+            {
+                delta_h[m_band_order[k]] = rhs[k];
+            }
+        }
+    }
+
+    amrex::ParallelDescriptor::Bcast(&info, 1, root);
+    if (info != 0)
+    {
+        return false;
+    }
+
+    amrex::ParallelDescriptor::Bcast(delta_h.data(), n, root);
+
+    return true;
 }
 
 #endif /* AHFINDER_IMPL_HPP_ */

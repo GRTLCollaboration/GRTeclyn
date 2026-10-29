@@ -25,7 +25,7 @@ bh2.momentum = 0.0 0.0 0.0
 #################################################
 # Grid parameters
 
-amr.n_cell = 64 64 64
+amr.n_cell = 256 256 256
 geometry.prob_extent = 8.0 8.0 8.0
 
 # We only need the first timestep's data, so never regrid
@@ -51,29 +51,17 @@ boundary.nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 evolution.max_steps = 1
 
 #################################################
-# AH finder pseudo-time integrator (AMReX TimeIntegrator)
-# type: ForwardEuler or RungeKutta
-integration.type = RungeKutta
-# Butcher tableau for RungeKutta (2=Trapezoid, 3=SSPRK3, 4=RK4); ignored for
-# ForwardEuler.
-integration.rk.type = 4
-
-#################################################
 # AH finder parameters
 
-test.num_particles = 64
+test.num_particles = 2048
 particle_interpolator.verbosity = false
 
-# The surface radius h is evolved as a damped wave,
-#   h_dot = v - eta * h,  v_dot = -c^2 * Theta,
+# The surface radius h is evolved by implicit pseudo-transient continuation of
+#   h_dot = -Theta,  i.e. (J + I/dt) delta_h = -Theta each step,
 # until the inf-norm of the expansion Theta falls below the tolerance (or
 # max_iter iterations have been taken, or dt has sat at its minimum for
 # max_stall_iter consecutive iterations).
 
-# Damping coefficient
-ah_finder.eta = 3.0
-# Wave speed
-ah_finder.c = 1.0
 # Convergence threshold on the inf-norm of Theta
 ah_finder.tolerance = 1e-4
 # Target growth factor of the adaptive pseudo-timestep: dt is scaled each step
@@ -81,9 +69,6 @@ ah_finder.tolerance = 1e-4
 ah_finder.r = 1.15
 # Pseudo-timestep for the first step; adapted thereafter
 ah_finder.initial_dt = 1e-2
-# Safety factor on the CFL cap: dt <= cfl_factor * (smallest spacing between
-# neighbouring points on the ring grid)
-ah_finder.cfl_factor = 3.5
 # Maximum number of pseudo-time iterations before giving up
 ah_finder.max_iter = 1000
 # Maximum number of consecutive iterations at the minimum pseudo-timestep

@@ -130,6 +130,13 @@ inline amrex::GpuArray<int, 8> AHGeometry::neighbours(int idx) const
             north_east, north_west, south_east, south_west};
 }
 
+inline amrex::GpuArray<int, 9> AHGeometry::derivative_stencil(int idx) const
+{
+    const amrex::GpuArray<int, 8> nb = neighbours(idx);
+
+    return {idx, nb[0], nb[1], nb[2], nb[3], nb[4], nb[5], nb[6], nb[7]};
+}
+
 inline Tensor::Rank1 AHGeometry::direction(int idx) const
 {
     return {m_dir_x[idx], m_dir_y[idx], m_dir_z[idx]};

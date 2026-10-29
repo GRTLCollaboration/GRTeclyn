@@ -5,16 +5,19 @@
 #include <AMReX_ParIter.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Particles.H>
-#include <AMReX_TimeIntegrator.H>
 #include <algorithm>
 #include <array>
-#include <memory>
+#include <vector>
 
 #include "AHFinderParameters.hpp"
-#include "AHFinderState.hpp"
 #include "AHGeometry.hpp"
 #include "ParticleInterpolator.hpp"
 #include "Tensor.hpp"
+
+// LAPACK banded LU solve
+extern "C" void dgbsv_(const int *n, const int *kl, const int *ku,
+                       const int *nrhs, double *ab, const int *ldab, int *ipiv,
+                       double *b, const int *ldb, int *info);
 
 // Number of components (including derivatives) the AHFinder needs to
 // interpolate to calculate the expansion
@@ -30,29 +33,28 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     int m_start;
 
     // Pseudo-timestepping parameters read from the "ah_finder" scope of the
-    // input file (eta, c, tolerance, r, initial_dt, cfl_factor, max_iter,
-    // max_stall_iter). Filled by init().
+    // input file (tolerance, r, initial_dt, max_iter, max_stall_iter).
+    // Filled by init().
     ah_finder_params_t m_params{};
 
-    // Smallest permitted pseudo-timestep, bounds on the per-iteration change
-    // in dt, and the magnitude of theta below which the SER ratio is not
-    // trusted. Not input parameters: these are guard rails on the adaptive
-    // timestep rather than knobs to tune per run.
-    amrex::Real m_min_dt;
-    amrex::Real m_dt_shrink;
-    amrex::Real m_dt_grow;
-    amrex::Real m_theta_floor;
+    // trusted, and the
+    // Smallest permitted pseudo-timestep
+    amrex::Real m_min_dt{};
+    // Largest allowed per-iteration reduction in dt
+    amrex::Real m_dt_shrink{};
+    // scale sigma of the finite-difference steps used to
+    // build the Jacobian.
+    amrex::Real m_fd_sigma{};
 
     // Coords for particleinterpolator query
     std::vector<double> interp_coords_x{};
     std::vector<double> interp_coords_y{};
     std::vector<double> interp_coords_z{};
 
-    // State storing h and v values for all particles. Stored off particles
-    // since we need h from other particles to compute its derivative, and
-    // this cannot be accessed from another particle if they are not on the
-    // same tile
-    AHState m_state{};
+    // Surface radius h for all particles. Stored off particles since we
+    // need h from other particles to compute its derivative, and this cannot
+    // be accessed from another particle if they are not on the same tile
+    std::vector<double> m_h{};
 
     // Owns the ring (latitude x longitude) grid: the per-particle
     // directions, the finite-difference stencil, the derivatives of h, and
@@ -61,12 +63,9 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
 
     // Physical 3-metric gamma_ij at each particle (flat-indexed as
     // i * m_geometry.ring_size() + j), computed each step in
-    // compute_theta(). AHGeometry is given a pointer to this in init(), so
+    // theta_from_metric(). AHGeometry is given a pointer to this in init(), so
     // it always reads the latest values without a separate copy.
     std::vector<Tensor::Rank2> m_gamma_LL{};
-
-    // AMReX time integrator for evolution of h and v.
-    std::unique_ptr<amrex::TimeIntegrator<AHState>> m_integrator;
 
     // Output arrays for interpolation queries
     std::array<std::vector<double>, 14> m_metric_state{};
@@ -79,6 +78,30 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     InterpolationQueryParticle m_metric_query;
 
     std::vector<double> m_theta_vals{};
+
+    // Sparsity, colouring and band layout of the Jacobian J = dTheta/dh,
+
+    // Colour of each column (point) j: no row of J contains two columns of
+    // the same colour, so all points of one colour can be perturbed at once.
+    std::vector<int> m_colour{};
+    int m_n_colours{};
+
+    // m_colour_column[i * m_n_colours + c] is the one column of colour c
+    // that row i depends on, or -1 if there is none.
+    std::vector<int> m_colour_column{};
+
+    // Band ordering: each ring is folded (0, n-1, 1, n-2, ...) so points
+    // either side of the periodic phi seam sit close together.
+    // m_band_order[k] is the flat point index at band position k and
+    // m_band_index is its inverse.
+    std::vector<int> m_band_order{};
+    std::vector<int> m_band_index{};
+
+    // Lower and upper bandwidths of J in the band ordering, and the leading
+    // dimension of its LAPACK band storage (2 * kl + ku + 1).
+    int m_kl{};
+    int m_ku{};
+    int m_ldab{};
 
     // Whether the state's ghost cells have been filled during the current
     // find(). The grid is frozen while find() runs, so FillPatch is only
@@ -108,16 +131,46 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     // Set particles' coordinates according to their distance from the centre
     void set_particle_positions(const std::vector<double> &h);
 
-    // RHS function to allow amrex time integrator to update h and v
-    void compute_rhs(AHState &rhs, AHState &state, amrex::Real time);
-
     // Update pseudo-timestep based on ratio of improvement of Theta between
-    // steps, capped by a CFL condition on the ring-grid spacing
-    amrex::Real update_dt(amrex::Real dt, double theta_old, double theta_new,
-                          const std::vector<double> &h) const;
+    // steps.
+    amrex::Real update_dt(amrex::Real dt, double theta_old,
+                          double theta_new) const;
 
     void setup_metric_query();
-    void compute_theta(const std::vector<double> &h);
+
+    // Interpolate the metric to the current particle positions
+    void interp_metric();
+
+    // Theta at every point for surface radius h with no interpolation. Each
+    // rank fills its own points and the result is summed across ranks into
+    // theta.
+    void theta_from_metric(const std::vector<double> &h,
+                           std::vector<double> &theta);
+
+    // Build the stencil colouring, colour lookup table and band ordering of
+    // the Jacobian, and measure its bandwidths.
+    void setup_jacobian();
+
+    // Position of J(row, col) (flat point indices) in the band storage
+    [[nodiscard]] int band_offset(int row, int col) const
+    {
+        const int r = m_band_index[row];
+        const int c = m_band_index[col];
+        return m_kl + m_ku + r - c + c * m_ldab;
+    }
+
+    // Fill jacobian (LAPACK band storage, m_ldab x m_num_particles,
+    // column-major) with J = dTheta/dh at m_h by coloured finite
+    // differences. Leaves the particles, the interpolated metric and
+    // m_gamma_LL at the perturbed positions m_h + eps, so reposition and
+    // reinterpolate before evaluating Theta again.
+    void assemble_jacobian(std::vector<double> &jacobian);
+
+    // Solve (J + I/dt) delta_h = -Theta for the pseudo-transient
+    // continuation step, using m_theta_vals. dgbsv factorises jacobian in
+    // place, so it must be reassembled before the next solve.
+    bool lapack_solve(std::vector<double> &jacobian, amrex::Real dt,
+                      std::vector<double> &delta_h);
     double inf_norm(std::vector<double>);
 
   public:
@@ -133,9 +186,7 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
         : m_num_particles(num_particles), m_n_local(local_count(num_particles)),
           m_start(local_start(num_particles)), interp_coords_x(num_particles),
           interp_coords_y(num_particles), interp_coords_z(num_particles),
-          m_state(std::vector<double>(num_particles),
-                  std::vector<double>(num_particles)),
-          m_geometry(num_particles, center, guess_radius),
+          m_h(num_particles), m_geometry(num_particles, center, guess_radius),
           m_gamma_LL(num_particles), m_metric_query(m_n_local),
           m_theta_vals(num_particles)
     {

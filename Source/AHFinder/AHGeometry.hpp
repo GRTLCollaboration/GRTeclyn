@@ -33,8 +33,8 @@ using QAB = Tensor::GeneralRank<2, 2, 2>;
 // pointers by the area diagnostics, so they always see AHFinder's latest
 // values without a copy. The evolution-facing entry points
 // (set_h_derivatives(), min_ring_spacing()) instead take h by argument,
-// because the AMReX time integrator evaluates them on temporary states
-// that are not AHFinder's m_state.h.
+// because the Jacobian assembly evaluates them on perturbed copies of h
+// that are not AHFinder's m_h.
 class AHGeometry
 {
   private:
@@ -150,6 +150,11 @@ class AHGeometry
     // {N, S, E, W, NE, NW, SE, SW}
     [[nodiscard]] amrex::GpuArray<int, 8> neighbours(int idx) const;
 
+    // Flat indices of the 9 ring-grid points whose h values enter grad_h()
+    // and hess_h() at idx: idx itself followed by neighbours(idx). Row idx
+    // of dTheta/dh can only be nonzero in these columns.
+    [[nodiscard]] amrex::GpuArray<int, 9> derivative_stencil(int idx) const;
+
     // Surface parameterisation
 
     [[nodiscard]] const std::array<double, AMREX_SPACEDIM> &center() const
@@ -167,7 +172,7 @@ class AHGeometry
 
     // Recomputes the Cartesian gradient and Hessian of h over the whole
     // ring grid. Must be called before grad_h() / hess_h() are read for a
-    // given h; AHFinder::compute_theta() does so on every evaluation.
+    // given h; AHFinder::theta_from_metric() does so on every evaluation.
     void set_h_derivatives(const std::vector<double> &h);
 
     // (dh/dx, dh/dy, dh/dz) at flat index idx, from the last
