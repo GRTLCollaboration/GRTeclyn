@@ -6,13 +6,12 @@
 # triggering the .lint-ignore PR reminder workflow.
 
 # These files don't make sense on their own
-lint-only: *.impl.hpp
+lint-only: **/*.impl.hpp
 Tests/CCZ4GeometryUnitTests/CCZ4GeometryExpectedValues.hpp
 external/*
 
 # These directories/files have yet to be ported to AMReX
 lint-only: Source/CCZ4/IntegratedMovingPunctureGauge.hpp
-Source/BlackHoles/KerrBH*
 Source/IO/MultiLevelTask.hpp
 
 # These are old files we don't want to change
