@@ -8,15 +8,14 @@
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHSWithMatter.hpp"
 #include "ConstraintsWithMatter.hpp"
+#include "Derivatives.hpp"
 #include "EMTensor.hpp"
 #include "FixedGridsTagger.hpp"
-#include "FourthOrderDerivatives.hpp"
 #include "GammaCalculator.hpp"
 #include "IntegratedMovingPunctureGauge.hpp"
 #include "LineExtraction.hpp"
 #include "OscillatonInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
-#include "SixthOrderDerivatives.hpp"
 #include "StateTypes.hpp"
 
 #include <type_traits>

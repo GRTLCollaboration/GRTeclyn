@@ -8,7 +8,7 @@
 
 #include "CCZ4Geometry.hpp"
 #include "CCZ4RHSWithMatter.hpp"
-#include "FourthOrderDerivatives.hpp"
+#include "Derivatives.hpp"
 #include "Interval.hpp"
 
 // AMReX Includes

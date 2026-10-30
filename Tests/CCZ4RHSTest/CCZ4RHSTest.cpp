@@ -15,7 +15,7 @@
 
 // GRTeclyn headers
 #include "CCZ4RHS.hpp"
-#include "FourthOrderDerivatives.hpp"
+#include "Derivatives.hpp"
 
 // Old GRTeclyn headers for comparison
 #include "CCZ4RHS-fdf5a7a.hpp"
