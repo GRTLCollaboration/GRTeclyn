@@ -7,12 +7,11 @@
 #define SCALARFIELDLEVEL_HPP_
 
 #include "DefaultLevelBld.hpp"
-#include "FourthOrderDerivatives.hpp"
+#include "Derivatives.hpp"
 #include "GRAmrLevel.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 #include "ScalarFieldAmr.hpp"
-#include "SixthOrderDerivatives.hpp"
 
 /// Evolution level for a real scalar field minimally coupled to gravity.
 class ScalarFieldLevel : public GRAmrLevel
