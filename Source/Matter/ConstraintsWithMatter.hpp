@@ -8,7 +8,7 @@
 
 #include "CCZ4Geometry.hpp"
 #include "Constraints.hpp"
-#include "FourthOrderDerivatives.hpp"
+#include "Derivatives.hpp"
 #include "GRInterval.hpp"
 #include <array>
 
