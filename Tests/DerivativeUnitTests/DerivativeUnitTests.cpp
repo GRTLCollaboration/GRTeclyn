@@ -21,8 +21,7 @@
 
 // Our includes
 #include "DerivativeTestsCompute.hpp"
-#include "FourthOrderDerivatives.hpp"
-#include "SixthOrderDerivatives.hpp"
+#include "Derivatives.hpp"
 
 // Helper function to validate derivative results for different orders
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)

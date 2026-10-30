@@ -7,8 +7,8 @@
 #define CHITAGGER_HPP_
 
 #include "Coordinates.hpp"
+#include "Derivatives.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives.hpp"
 #include "SphericalExtraction.hpp"
 #include "Tensor.hpp"
 
