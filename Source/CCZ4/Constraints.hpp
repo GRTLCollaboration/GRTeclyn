@@ -11,8 +11,8 @@
 // GRTeclyn includes
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
+#include "Derivatives.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives.hpp"
 #include "GRInterval.hpp"
 #include "Interval.hpp"
 

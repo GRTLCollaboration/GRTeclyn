@@ -8,10 +8,9 @@
 
 #include "CCZ4Vars.hpp"
 #include "Coordinates.hpp"
+#include "Derivatives.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
-#include "SixthOrderDerivatives.hpp"
 #include <AMReX_Array.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>
