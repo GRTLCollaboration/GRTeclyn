@@ -9,7 +9,7 @@
 #include "CCZ4Geometry.hpp"
 #include "CCZ4RHS.hpp"
 #include "CCZ4Vars.hpp"
-#include "FourthOrderDerivatives.hpp"
+#include "Derivatives.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "TensorAlgebra.hpp"
 

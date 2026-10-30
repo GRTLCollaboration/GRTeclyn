@@ -9,8 +9,7 @@
 #include "CCZ4Geometry.hpp"
 #include "CCZ4Vars.hpp"
 #include "Coordinates.hpp"
-#include "FourthOrderDerivatives.hpp"
-#include "SixthOrderDerivatives.hpp"
+#include "Derivatives.hpp"
 #include "StateVariables.hpp"
 
 template <class deriv_t = FourthOrderDerivatives> class GammaCalculator
