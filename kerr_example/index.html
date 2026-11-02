@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Running the Kerr black hole example - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Running the Kerr black hole example";
+        var mkdocs_page_input_path = "kerr_example.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../img/grteclyn-logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Running and modifying examples</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../bbh_example/">Running the binary black hole example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../sf_example/">Running the scalar field example</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Running the Kerr black hole example</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#physical-scenario">Physical scenario</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#initial-data">Initial data</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#diagnostics">Diagnostics</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#computational-set-up">Computational set up</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#checking-the-outputs">Checking the outputs</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#viewing-3d-data-and-2d-slices">Viewing 3D data and 2D slices</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../visualising_outputs/">Visualising outputs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../kg_example/">Testing with the Klein Gordon example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../parameters/">Parameters guide</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../tagging/">Tagging criteria</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developing code</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../gauge_classes/">Gauge classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../updating_docs/">Updating the docs</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Other features and tools</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../two_punctures/">TwoPunctures</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../extraction/">Extraction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Misc resources</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Running and modifying examples</li>
+      <li class="breadcrumb-item active">Running the Kerr black hole example</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="running-the-kerr-black-hole-example">Running the Kerr black hole example</h1>
+<p>Here we explain the Kerr black hole example found in the code, which evolves a single rotating black hole.</p>
+<p>The example provides a good starting point for simulations of spinning black holes. The Kerr spacetime is stationary, so nothing physical should change during the evolution: the black hole should stay at the centre of the grid, and the evolution comes from the gauge adjusting (e.g. the lapse starts from a pre-collapsed value rather than its stationary one) and from numerical error. This also makes it a cheaper test of black hole evolution than the <a href="../bbh_example/"><strong>Binary BH example</strong></a>.</p>
+<h2 id="physical-scenario">Physical scenario</h2>
+<p>This page describes running the KerrBH example using the parameters found in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/KerrBH/params.txt">this parameter file</a>.</p>
+<h3 id="initial-data">Initial data</h3>
+<p>The initial data is set in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/BlackHoles/KerrBHInitialData.hpp"><code>KerrBHInitialData.hpp</code></a>. Note that this lives in <code>Source/BlackHoles</code> rather than in the example folder, so that it can be reused by other examples.</p>
+<p>We use the Kerr metric in puncture form with the radial coordinate <span class="arithmatex">\(r\)</span> introduced by <a href="https://arxiv.org/abs/1001.4077">Liu, Etienne and Shapiro</a>, which is related to the Boyer-Lindquist radius <span class="arithmatex">\(r_{BL}\)</span> by</p>
+<div class="arithmatex">\[ r_{BL} = r \left( 1 + \frac{r_+}{4r} \right)^2, \quad r_\pm = M \pm \sqrt{M^2 - a^2} \]</div>
+<p>where <span class="arithmatex">\(M\)</span> and <span class="arithmatex">\(a\)</span> are the mass and spin parameter of the black hole, set by <code>kerr.mass</code> and <code>kerr.spin</code> (with <span class="arithmatex">\(|a| \le M\)</span>). The horizon is then at <span class="arithmatex">\(r = r_+/4\)</span>. Note that unlike the quasi-isotropic radial coordinate, where the horizon radius shrinks to zero as <span class="arithmatex">\(|a| \to M\)</span>, here it stays finite (<span class="arithmatex">\(r = M/4\)</span> in the extreme Kerr limit), which makes it more accurate for rapidly spinning black holes.</p>
+<p>The direction of the spin is set by <code>kerr.spin_direction</code>, which can be any non-zero vector. The solution is calculated in coordinates rotated so that the spin lies along the z-axis, and the tensors are then rotated back to the grid coordinates. By default the black hole is placed at <code>geometry.center</code>, and one can move it with <code>kerr.offset</code>.</p>
+<p>The CCZ4 variables are <code>chi</code><span class="arithmatex">\(= det(\gamma)^{-1/3}\)</span> and <code>h</code><span class="arithmatex">\(= \chi \gamma_{ij}\)</span>. In the coordinates where the spin is along the z-axis, only the <span class="arithmatex">\(r\phi\)</span> and <span class="arithmatex">\(\theta\phi\)</span> components of the extrinsic curvature <span class="arithmatex">\(K_{ij}\)</span> are non-zero, so its trace <code>K</code> is zero and <code>A</code><span class="arithmatex">\(=\tilde A_{ij}\)</span> is only non-zero because of the rotation. In these coordinates the shift <code>shift</code><span class="arithmatex">\(=\beta^i\)</span> also only has a <span class="arithmatex">\(\phi\)</span> component. Note that we do not use the analytic Kerr lapse, but a pre-collapsed lapse <code>lapse</code><span class="arithmatex">\(= \sqrt{\chi}\)</span> instead.</p>
+<p>The conformal connection <code>Gamma</code><span class="arithmatex">\(=\tilde{\Gamma}^i\)</span> is non-zero since the conformal metric is not flat. This is calculated numerically from <code>h</code> using <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/CCZ4/GammaCalculator.hpp"><code>GammaCalculator</code></a> once the rest of the initial data has been set (see <code>initData()</code> in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/KerrBH/KerrBHLevel.cpp"><code>KerrBHLevel.cpp</code></a>).</p>
+<p>We currently impose a fixed hierarchy of 2:1 refinement grids centred on the black hole using the <code>FixedGridsTagger</code> (see <a href="../tagging/">Tagging criteria</a>). Since the black hole should not move, regridding is turned off with <code>amr.regrid_int = -1</code>.</p>
+<h3 id="diagnostics">Diagnostics</h3>
+<p>The Hamiltonian and momentum constraints, <code>Ham</code> and <code>Mom1</code>, <code>Mom2</code>, <code>Mom3</code>, are output in the plot files by setting <code>amr.derive_plot_vars = constraints</code>. These are diagnostics, so they are only calculated when a plot file is written (see <a href="../diagnostics/">Diagnostics</a> for more details).</p>
+<h2 id="computational-set-up">Computational set up</h2>
+<p>Please read the <a href="../performance_optimisation/">Performance Optimisation</a> guide to understand how to divide the domain into boxes that are shared over the MPI ranks, as this is crucial for obtaining good performance on HPC systems. When GRTeclyn regrids (with these parameters only at the first step), it will output the grid setup to the output file. This tells you how many boxes are on each level, and what their sizes are.</p>
+<p>The parameters should be mostly self explanatory if you are familiar with NR, but you can look at the <a href="../parameters/"><strong>Parameters</strong></a> guide for more details.</p>
+<p>The coarsest level has <span class="arithmatex">\(64^3\)</span> cells and the domain is <span class="arithmatex">\(128M\)</span> on each side. There are 4 refined levels, so the finest resolution is <span class="arithmatex">\(\Delta x = M/8\)</span>. With <code>amr.max_grid_size = 32</code>, the coarsest level is divided into <span class="arithmatex">\((64/32)^3 = 8\)</span> boxes and each refined level, which has <span class="arithmatex">\(96^3\)</span> cells, into <span class="arithmatex">\((96/32)^3 = 27\)</span> boxes, so there are 116 boxes in total.</p>
+<p>Note that Sommerfeld boundary conditions are used on all faces. This is because a black hole whose spin is tilted away from the z-axis is not symmetric under <span class="arithmatex">\(z \to -z\)</span>, so one cannot use a reflective boundary. The smaller <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/KerrBH/params_test.txt"><code>params_test.txt</code></a>, which is used for the regression test, has the spin along the z-axis, so there it is fine to use a reflective boundary on the lower z face and only half of the domain.</p>
+<p>On an M1 MacBook Pro with no MPI, we obtain a speed of around 12 M/hr with the provided parameters. With this speed, the run to <code>evolution.stop_time = 20</code> takes about two hours. If you are getting speeds much lower than this, something is wrong. Each plot file is around 175 MB, and each checkpoint file is several times larger since it holds all the evolved variables, so make sure you have a few GB of disk space free.</p>
+<h2 id="checking-the-outputs">Checking the outputs</h2>
+<h3 id="viewing-3d-data-and-2d-slices">Viewing 3D data and 2D slices</h3>
+<p>See <a href="../visualising_outputs/"><strong>Visualising Outputs</strong></a> for details on visualising. Note that checkpoint files are not viewable with AMReX, only plot files are.</p>
+<p>One can check the conformal factor <code>chi</code>, which goes to zero at the centre of the black hole, and the <code>lapse</code>. These are written to the plot files together with the constraints.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../sf_example/" class="btn btn-neutral float-left" title="Running the scalar field example"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../visualising_outputs/" class="btn btn-neutral float-right" title="Visualising outputs">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../sf_example/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../visualising_outputs/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+      <script src="../javascripts/katex-render.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

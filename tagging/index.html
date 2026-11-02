@@ -68,6 +68,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../sf_example/">Running the scalar field example</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../kerr_example/">Running the Kerr black hole example</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../visualising_outputs/">Visualising outputs</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../kg_example/">Testing with the Klein Gordon example</a>
@@ -99,7 +101,7 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../gauge_classes/">Gauge Classes</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../gauge_classes/">Gauge classes</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
                   </li>
@@ -187,7 +189,7 @@ r_{\mathrm{tag}} =
 <p>Larger values place coarser refinement boundaries farther from the extraction surface.</p>
 <h2 id="fixedgridstagger"><code>FixedGridsTagger</code></h2>
 <p><code>FixedGridsTagger</code> creates a fixed hierarchy of nested boxes centred on <code>geometry.center</code>. The linear size of the tagged region is halved on each successive level and does not depend on the evolved fields.</p>
-<p>This tagger is used by the <code>KleinGordon</code> and <code>ScalarField</code> examples. It has no tagger-specific parameters; its placement and extent are determined by <code>geometry.center</code> and <code>geometry.prob_extent</code>.</p>
+<p>This tagger is used by the <code>KerrBH</code>, <code>KleinGordon</code> and <code>ScalarField</code> examples. It has no tagger-specific parameters; its placement and extent are determined by <code>geometry.center</code> and <code>geometry.prob_extent</code>.</p>
               
             </div>
           </div><footer>
