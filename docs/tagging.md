@@ -43,4 +43,4 @@ Larger values place coarser refinement boundaries farther from the extraction su
 
 `FixedGridsTagger` creates a fixed hierarchy of nested boxes centred on `geometry.center`. The linear size of the tagged region is halved on each successive level and does not depend on the evolved fields.
 
-This tagger is used by the `KleinGordon` and `ScalarField` examples. It has no tagger-specific parameters; its placement and extent are determined by `geometry.center` and `geometry.prob_extent`.
+This tagger is used by the `KerrBH`, `KleinGordon` and `ScalarField` examples. It has no tagger-specific parameters; its placement and extent are determined by `geometry.center` and `geometry.prob_extent`.

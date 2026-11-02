@@ -25,3 +25,6 @@ srun ./BinaryBH3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt amr.plot_file=${OUTPUT
 
 cd ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon
 srun ./KleinGordon3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt amr.plot_file=${OUTPUT_DIR}/KleinGordon_
+
+cd ${HOME}/${CI_PROJECT_DIR}/Examples/KerrBH
+srun ./KerrBH3d.gnu.DEBUG.MPI.CUDA.ex ./params_test.txt amr.plot_file=${OUTPUT_DIR}/KerrBH_

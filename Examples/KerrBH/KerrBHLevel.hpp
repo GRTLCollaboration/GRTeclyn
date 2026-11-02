@@ -1,0 +1,48 @@
+/* GRTeclyn
+ * Copyright 2022 The GRTL collaboration.
+ * Please refer to LICENSE in GRTeclyn's root directory.
+ */
+
+#ifndef KERRBHLEVEL_HPP_
+#define KERRBHLEVEL_HPP_
+
+#include "BHAmr.hpp"
+#include "DefaultLevelBld.hpp"
+#include "GRAmrLevel.hpp"
+
+class KerrBHLevel : public GRAmrLevel
+{
+  public:
+    static void variableSetUp();
+
+    // Inherit the contructors from GRAmrLevel
+    using GRAmrLevel::GRAmrLevel;
+
+    static constexpr int num_punctures = 0;
+
+    //! Kept for the apparent horizon finder (to be added in a follow-up PR)
+    BHAmr<num_punctures> *get_bh_amr_ptr();
+
+    /// Things to do at every full timestep
+    ///(might include several substeps, e.g. in RK4)
+    void specific_advance() override;
+
+    /// Initial data calculation
+    void initData() override;
+
+    /// Calculation of the right hand side for the time stepping
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                           const amrex::Real a_time) override;
+
+    /// Things to do after dt*rhs has been added to the solution
+    void specific_update_ode(amrex::MultiFab &a_soln) override;
+
+    // to do post each time step on every level
+    void specific_post_timestep() override;
+
+    /// Tag cells for regridding
+    void tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                   amrex::Real a_regrid_threshold) final;
+};
+
+#endif /* KERRBHLEVEL_HPP_ */

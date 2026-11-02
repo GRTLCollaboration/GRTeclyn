@@ -28,6 +28,7 @@ Note that GRTeclyn is designed as a research tool, not a black box. Users are en
 * The **BinaryBH** example is fully functional. The code uses an approximate solution for zero spin binaries, or the TwoPunctures code for fully general initial momenta and spins.
 * Puncture positions are tracked and recorded throughout the simulation using particle methods.
 * Weyl extraction and modes are calculated using particle methods.
+* The **KerrBH** example evolves a single rotating black hole from analytic Kerr initial data, with any spin direction.
 
 ### Scalar fields on dynamical backgrounds
 
@@ -91,6 +92,7 @@ The following features have been developed internally or in GRChombo and are exp
 | Checkpointing & Restart                  | ✅ Ported       |
 | Moving puncture gauge                    | ✅ Ported       |
 | BinaryBH example                         | ✅ Ported       |
+| KerrBH example                           | ✅ Ported       |
 | TwoPunctures initial data                | ✅ Ported       |
 | Diagnostic variables                     | ✅ Ported       |
 | AMReX GPU offload                        | ✅ Ported       |

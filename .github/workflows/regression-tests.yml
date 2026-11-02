@@ -78,6 +78,10 @@ jobs:
             example_name: KleinGordon
             use_twopunctures: false
             compare_subdir: KleinGordon
+          - name: KerrBH
+            example_name: KerrBH
+            use_twopunctures: false
+            compare_subdir: KerrBH
     uses: ./.github/workflows/regression-tests-examples-template.yml
     with:
       gcc_version: 14

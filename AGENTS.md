@@ -23,7 +23,7 @@ The code is structured as follows:
 
 - Source: This is where the main code is located. It is not specific to a particular physical scenario. Nothing is built until the file has been included into an example; it is almost library like in effect. See the subdirectory map below.
 - Tests: These are the unit tests run via [doctest](https://github.com/doctest/doctest). There is one unit test per directory, except for the `Common` directory which contains definitions used across tests. Create a new directory for testing new features here with the directory name ending in Tests or Test and add a `TEST_CASE` entry to `Tests/TestCases.hpp`. Refer to `Building and Running` in the documentation for more information.
-- Examples: These are specific physics examples using the underlying code. BinaryBH runs a binary black hole merger. ScalarField runs an oscillaton. KleinGordon solves the Klein-Gordon equation without GR. Refer to `Building and Running` for more information.
+- Examples: These are specific physics examples using the underlying code. BinaryBH runs a binary black hole merger. KerrBH evolves a single rotating black hole. ScalarField runs an oscillaton. KleinGordon solves the Klein-Gordon equation without GR. Refer to `Building and Running` for more information.
 - Tools: Contains doxygen documentation (not used), the default top-level Makefiles required when compiling the examples (including the dependencies required by TwoPunctures), the tool to print out quotes following a compilation (StoicQuotes) and the copyright info of the repo.
 - external: Contains vendored external dependencies such as `doctest`.
 - docs: Documentation lives here.
@@ -96,7 +96,7 @@ Notes:
 - Take note of the first two points from the Tests section as they are still valid AMReX options when building the examples.
 - Check the requirements in the documentation. By default `USE_MPI=TRUE` so you either need access to an MPI library or set this to false manually.
 - When adding a new example to solve a specific physics problem, prefer to create a child class for the `AmrLevel` object named as `SpecificPhysicsLevel` with `GRAmrLevel` as the parent class.
-- The BinaryBH and Klein-Gordon examples also have a regression test with `params_test.txt` as the parameter file for each directory. Test it manually by building `fcompare.<build config>.ex` in the `${AMREX_HOME}/Tools/Plotfile` directory and run it against the outputs stored in `.github/workflows/data/`. For example: `${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex --abs_tol 1e-10 --rel_tol 1e-10 ../../.github/workflows/data/BinaryBH/plt00008_compare plots/plt00008`.
+- The BinaryBH, KerrBH and Klein-Gordon examples also have a regression test with `params_test.txt` as the parameter file for each directory. Test it manually by building `fcompare.<build config>.ex` in the `${AMREX_HOME}/Tools/Plotfile` directory and run it against the outputs stored in `.github/workflows/data/`. For example: `${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex --abs_tol 1e-10 --rel_tol 1e-10 ../../.github/workflows/data/BinaryBH/plt00008_compare plots/plt00008`.
 - `params_test.txt` should be small enough to be run on a local machine without MPI. Prefer this when running with limited resources e.g. on a laptop.
 
 #### Adding a Regression Test
