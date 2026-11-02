@@ -8,8 +8,8 @@
 
 #include "CCZ4Geometry.hpp"
 #include "DefaultPotential.hpp"
+#include "Derivatives.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives.hpp"
 #include "GRParmParse.hpp"
 #include "ScalarFieldVars.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
