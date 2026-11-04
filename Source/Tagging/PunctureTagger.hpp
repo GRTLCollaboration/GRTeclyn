@@ -11,12 +11,19 @@
 #include "GRParmParse.hpp"
 
 #include <AMReX_Array4.H>
+#include <AMReX_BLassert.H>
 #include <AMReX_TagBox.H>
+
+#include <algorithm>
+#include <array>
 
 //! This class tags cells near the punctures so that the BH apparent horizons
 //! are covered
 template <unsigned int num_punctures> class PunctureTagger
 {
+    static_assert(num_punctures > 0,
+                  "PunctureTagger requires at least one puncture");
+
   protected:
     amrex::Real m_dx;
     int m_level;
@@ -25,6 +32,7 @@ template <unsigned int num_punctures> class PunctureTagger
         AMREX_SPACEDIM * num_punctures;
     std::array<amrex::Real, num_punctures> m_puncture_masses;
     std::array<amrex::Real, num_puncture_coords> m_puncture_coords;
+    std::array<int, num_punctures> m_puncture_max_levels{};
     amrex::Real m_level_separation{1.5};
     amrex::Real m_finest_level_factor{2.0};
 
@@ -81,7 +89,39 @@ template <unsigned int num_punctures> class PunctureTagger
         GRParmParse puncture_tagging_pp("puncture_tagging");
         puncture_tagging_pp.get("level_separation", m_level_separation);
         puncture_tagging_pp.get("finest_level_factor", m_finest_level_factor);
+
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            m_max_level >= 0,
+            "The maximum refinement level cannot be negative");
+        amrex::Real minimum_mass = m_puncture_masses[0];
+        for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
+        {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                m_puncture_masses[ipuncture] > 0.0,
+                "Puncture masses must be greater than zero");
+            minimum_mass = std::min(minimum_mass, m_puncture_masses[ipuncture]);
+        }
+
+        for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
+        {
+            int level_reduction          = 0;
+            amrex::Real next_mass_cutoff = 2.0 * minimum_mass;
+            while (level_reduction < m_max_level &&
+                   m_puncture_masses[ipuncture] >= next_mass_cutoff)
+            {
+                ++level_reduction;
+                next_mass_cutoff *= 2.0;
+            }
+            m_puncture_max_levels[ipuncture] = m_max_level - level_reduction;
+        }
     };
+
+    //! The finest level requested for a particular puncture
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE int
+    get_puncture_max_level(const int a_puncture) const
+    {
+        return m_puncture_max_levels[a_puncture];
+    }
 
     AMREX_GPU_DEVICE void
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
@@ -89,22 +129,21 @@ template <unsigned int num_punctures> class PunctureTagger
                const amrex::Array4<amrex::TagBox::TagType> &tags) const
     // NOLINTEND(bugprone-easily-swappable-parameters)
     {
-        // ensure that the horizons of the punctures are covered
-        // by the max level - for this we need
-        // only check the puncture locations on the top 2 levels
-        // which regrid (ie, max_level - 1 to max_level - 2)
-        // (just the top level would be ok, but doing two ensures
-        // the top levels are well spaced)
-
-        // we want each level to be level_separation times the finer level
-        // above
-        const int exponent       = m_max_level - m_level - 1;
-        const amrex::Real factor = std::pow(m_level_separation, exponent);
-
         amrex::IntVect current_cell(AMREX_D_DECL(ix, iy, iz));
         // loop over puncture masses
         for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
         {
+            const int puncture_max_level = get_puncture_max_level(ipuncture);
+            if (m_level >= puncture_max_level)
+            {
+                continue;
+            }
+
+            // Each coarser level has a larger tagged region, providing a
+            // buffer between successive refinement boundaries.
+            const int exponent       = puncture_max_level - m_level - 1;
+            const amrex::Real factor = std::pow(m_level_separation, exponent);
+
             std::array<amrex::Real, AMREX_SPACEDIM> current_puncture_coords = {
                 AMREX_D_DECL(
                     m_puncture_coords[ipuncture * AMREX_SPACEDIM + 0],

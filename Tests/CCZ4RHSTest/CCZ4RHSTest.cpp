@@ -14,6 +14,7 @@
 #include "doctestCLIArgs.hpp"
 
 // GRTeclyn headers
+#include "BHMovingPunctureGauge.hpp"
 #include "CCZ4RHS.hpp"
 #include "FourthOrderDerivatives.hpp"
 
@@ -178,6 +179,23 @@ void run_ccz4_rhs_test()
                                << current_out_array(max_diff_index, ivar));
             CHECK(max_diff == doctest::Approx(0.0).epsilon(test_threshold));
         }
+
+        using gauge_t = BHMovingPunctureGauge<FourthOrderDerivatives>;
+        const gauge_t::puncture_masses_t puncture_masses{2.0, 1.0};
+        const gauge_t::puncture_coords_t puncture_coords{0.5, 0.5, 0.5,
+                                                         4.5, 0.5, 0.5};
+        const gauge_t puncture_gauge(1.0, puncture_masses, puncture_coords);
+
+        amrex::Real eta_at_first_puncture{};
+        amrex::Real eta_at_midpoint{};
+        amrex::Real eta_at_second_puncture{};
+        puncture_gauge.compute_eta(eta_at_first_puncture, 0, 0, 0);
+        puncture_gauge.compute_eta(eta_at_midpoint, 2, 0, 0);
+        puncture_gauge.compute_eta(eta_at_second_puncture, 4, 0, 0);
+
+        CHECK(eta_at_first_puncture == doctest::Approx(0.25));
+        CHECK(eta_at_midpoint == doctest::Approx(0.375));
+        CHECK(eta_at_second_puncture == doctest::Approx(0.5));
 
         // GPU barrier
         amrex::Gpu::streamSynchronize();

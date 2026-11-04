@@ -50,6 +50,14 @@ void PunctureTrackerLevel::initData()
         puncture_tracking_pp.get("initial_coords", initial_puncture_coords);
 
         get_puncture_tracker().set_puncture_coords(initial_puncture_coords);
+
+        amrex::Real fake_bh1_mass{};
+        amrex::Real fake_bh2_mass{};
+        GRParmParse test_pp("test");
+        test_pp.get("fake_bh1_mass", fake_bh1_mass);
+        test_pp.get("fake_bh2_mass", fake_bh2_mass);
+        get_puncture_tracker().set_puncture_masses(
+            {fake_bh1_mass, fake_bh2_mass});
         // can't call start_from_initial_punctures() because we need the full
         // AMR grid first
     }
@@ -77,16 +85,11 @@ void PunctureTrackerLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 
     puncture_coords = get_puncture_tracker().get_puncture_coords();
 
-    amrex::Real fake_bh1_mass{};
-    amrex::Real fake_bh2_mass{};
-
-    GRParmParse test_pp("test");
-    test_pp.get("fake_bh1_mass", fake_bh1_mass);
-    test_pp.get("fake_bh2_mass", fake_bh2_mass);
+    const auto &puncture_masses = get_puncture_tracker().get_puncture_masses();
 
     PunctureTagger<num_punctures> puncture_tagger(
         Geom().CellSize(0), Level(), get_gr_amr_ptr()->maxLevel(),
-        puncture_coords, {fake_bh1_mass, fake_bh2_mass});
+        puncture_coords, puncture_masses);
 
     amrex::ParallelFor(state_new, amrex::IntVect(0),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
@@ -130,15 +133,7 @@ void PunctureTrackerLevel::check_puncture_tagging()
     const int num_points_theta = 8;
     const int num_points_phi   = 8;
 
-    amrex::Real fake_bh1_mass{};
-    amrex::Real fake_bh2_mass{};
-
-    GRParmParse test_pp("test");
-    test_pp.get("fake_bh1_mass", fake_bh1_mass);
-    test_pp.get("fake_bh2_mass", fake_bh2_mass);
-
-    std::array<amrex::Real, num_punctures> fake_masses{fake_bh1_mass,
-                                                       fake_bh2_mass};
+    const auto &puncture_masses = get_puncture_tracker().get_puncture_masses();
     GRParmParse puncture_tagging_pp("puncture_tagging");
     amrex::Real level_separation{};
     puncture_tagging_pp.get("level_separation", level_separation);
@@ -167,14 +162,14 @@ void PunctureTrackerLevel::check_puncture_tagging()
                 amrex::Real phi = 2.0 * M_PI * static_cast<amrex::Real>(iphi) /
                                   num_points_phi;
 
-                amrex::Real sphere_x = factor * fake_masses[ipuncture] *
+                amrex::Real sphere_x = factor * puncture_masses[ipuncture] *
                                            std::sin(theta) * std::cos(phi) +
                                        puncture_coords[ipuncture + 0];
-                amrex::Real sphere_y = factor * fake_masses[ipuncture] *
+                amrex::Real sphere_y = factor * puncture_masses[ipuncture] *
                                            std::sin(theta) * std::sin(phi) +
                                        puncture_coords[ipuncture + 1];
                 amrex::Real sphere_z =
-                    factor * fake_masses[ipuncture] * std::cos(theta) +
+                    factor * puncture_masses[ipuncture] * std::cos(theta) +
                     puncture_coords[ipuncture + 2];
 
                 amrex::RealVect sphere_coords{sphere_x, sphere_y, sphere_z};
