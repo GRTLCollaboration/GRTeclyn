@@ -26,6 +26,11 @@ amr.plot_int = 5
 amr.plot_vars = chi lapse
 amr.derive_plot_vars = constraints
 
+# Write the volume-weighted L2 norms of the Hamiltonian and momentum
+# constraints over the whole AMR hierarchy to
+# diagnostics/constraint_norms.dat every level-0 timestep.
+diagnostic.store_constraint_norms = true
+
 #################################################
 # Kerr BH Initial Data parameters
 kerr.mass = 1.0
