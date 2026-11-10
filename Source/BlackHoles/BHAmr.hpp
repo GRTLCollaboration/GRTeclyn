@@ -28,7 +28,7 @@ template <int num_punctures> class BHAmr : public GRAmr
     ParticleInterpolator<weyl_num_components>
         m_weyl_interpolator; // interpolator object
 
-    BHAmr(amrex::LevelBld *a_levelbld) : GRAmr(a_levelbld)
+    explicit BHAmr(amrex::LevelBld *a_levelbld) : GRAmr(a_levelbld)
     {
         m_puncture_tracker.configure();
         if (m_puncture_tracker.is_enabled())

@@ -11,12 +11,13 @@
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"
 #include <array>
+#include "AMReX_Array4.H"
 
 enum Lapse
 {
     ONE,
     PRE_COLLAPSED,
-    CHI
+    CHI,
 };
 
 class BinaryBHInitialData
@@ -30,8 +31,8 @@ class BinaryBHInitialData
   public:
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_FORCE_INLINE
-    BinaryBHInitialData(amrex::Real a_dx,
-                        int a_initial_lapse = Lapse::PRE_COLLAPSED);
+    explicit BinaryBHInitialData(amrex::Real a_dx,
+                                 int a_initial_lapse = Lapse::PRE_COLLAPSED);
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     AMREX_GPU_DEVICE void

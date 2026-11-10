@@ -106,10 +106,10 @@ template <unsigned int num_punctures> class PunctureTagger
         for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
         {
             std::array<amrex::Real, AMREX_SPACEDIM> current_puncture_coords = {
-                AMREX_D_DECL(
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 0],
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 1],
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 2])};
+                AMREX_D_DECL(m_puncture_coords[ipuncture * AMREX_SPACEDIM + 0],
+                             m_puncture_coords[ipuncture * AMREX_SPACEDIM + 1],
+                             m_puncture_coords[ipuncture * AMREX_SPACEDIM + 2]),
+            };
 
             const Coordinates coords(current_cell, m_dx,
                                      current_puncture_coords);

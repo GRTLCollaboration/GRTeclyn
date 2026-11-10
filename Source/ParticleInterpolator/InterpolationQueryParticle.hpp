@@ -27,8 +27,9 @@ class InterpolationQueryParticle
         int comp{};
         amrex::ParticleReal *out_data_ptr{};
         BCParity parity{
-            BCParity::undefined}; // default parity is undefined, but should be
-                                  // set for diagnostic variables
+            BCParity::undefined,
+        }; // default parity is undefined, but should be
+           // set for diagnostic variables
     };
 
     using comp_map_t = std::map<Derivative, std::vector<out_t>>;
@@ -47,7 +48,10 @@ class InterpolationQueryParticle
         false; // flag to check whether var type has been set
 
   public:
-    InterpolationQueryParticle(int num_points) : m_num_points(num_points) {}
+    explicit InterpolationQueryParticle(int num_points)
+        : m_num_points(num_points)
+    {
+    }
 
     // Returns the pointer that was passed to setCoords
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)

@@ -52,19 +52,19 @@ class GRParmParse : public amrex::ParmParse
         std::string value_string;
         if (values.size() > 1)
         {
-            value_string += "[";
+            value_string += '[';
         }
         for (std::size_t ivalue = 0; ivalue < values.size(); ++ivalue)
         {
             if (ivalue > 0)
             {
-                value_string += " ";
+                value_string += ' ';
             }
             value_string += values[ivalue];
         }
         if (values.size() > 1)
         {
-            value_string += "]";
+            value_string += ']';
         }
 
         return std::string(a_diagnostic_type) + " from parameter " +

@@ -21,11 +21,14 @@ void KleinGordonLevel::variableSetUp()
     //  for phi and Pi
 
     const std::string &comp_type                = {"analytic_soln"};
-    const amrex::Vector<std::string> comp_names = {"phi_analytic",
-                                                   "Pi_analytic"};
+    const amrex::Vector<std::string> comp_names = {
+        "phi_analytic",
+        "Pi_analytic",
+    };
 
     int ncomp_analytic{
-        static_cast<int>(comp_names.size())}; // how many derived variables
+        static_cast<int>(comp_names.size()),
+    }; // how many derived variables
 
     derive_lst.add(
         comp_type, amrex::IndexType::TheCellType(), ncomp_analytic, comp_names,
@@ -53,7 +56,7 @@ void KleinGordonLevel::variableSetUp()
             &amrex::cell_quartic_interp);
     }
 
-    if (model.find("SineGordon") == 0)
+    if (model.starts_with("SineGordon"))
     {
         derive_lst.add(
             "rho", amrex::IndexType::TheCellType(), ncomp_rho,
@@ -83,9 +86,10 @@ void KleinGordonLevel::initData()
 
     int dcomp{0};
     const amrex::Real current_time{
-        0.0}; // initial time is an internal parameter
-              // to the model class so the actual
-              // simulation time is what we want here
+        0.0,
+    }; // initial time is an internal parameter
+       // to the model class so the actual
+       // simulation time is what we want here
 
     // NB: the analytic solutions are defined in InitialConditions.cpp
     // The functions below are defined in DerivedVariables.cpp

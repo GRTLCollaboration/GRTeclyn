@@ -32,7 +32,7 @@ enum class EMTensorOptions
 template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
 {
   public:
-    using Vars = typename matter_t::Vars;
+    using Vars = matter_t::Vars;
 
     /// derive record name
     static inline const std::string name = "EMTensor";

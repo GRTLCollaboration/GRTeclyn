@@ -30,6 +30,7 @@ namespace TensorAlgebra
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_determinant_sym(const Tensor::Sym12Rank2 &matrix)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     amrex::Real det = matrix(0, 0) * matrix(1, 1) * matrix(2, 2) +
                       2 * matrix(0, 1) * matrix(0, 2) * matrix(1, 2) -
                       matrix(0, 0) * matrix(1, 2) * matrix(1, 2) -
@@ -50,7 +51,9 @@ compute_determinant(const Tensor::Rank2 &matrix)
         matrix(0, 1) *
             (matrix(2, 2) * matrix(1, 0) - matrix(1, 2) * matrix(2, 0)) +
         matrix(0, 2) *
-            (matrix(1, 0) * matrix(2, 1) - matrix(1, 1) * matrix(2, 0));
+            (matrix(1, 0) * matrix(2, 1) -
+             matrix(1, 1) *
+                 matrix(2, 0)); // NOLINT(cppcoreguidelines-init-variables),
     return det;
 }
 
@@ -58,8 +61,10 @@ compute_determinant(const Tensor::Rank2 &matrix)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
 compute_inverse_sym(const Tensor::Sym12Rank2 &matrix)
 {
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     amrex::Real deth         = compute_determinant_sym(matrix);
     amrex::Real deth_inverse = 1. / deth;
+    // NOLINTEND(cppcoreguidelines-init-variables)
     Tensor::Sym12Rank2 h_UU{};
     h_UU(0, 0) = (matrix(1, 1) * matrix(2, 2) - matrix(1, 2) * matrix(1, 2)) *
                  deth_inverse;
@@ -82,8 +87,10 @@ compute_inverse_sym(const Tensor::Sym12Rank2 &matrix)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 compute_inverse(const Tensor::Rank2 &matrix)
 {
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     amrex::Real deth         = compute_determinant(matrix);
     amrex::Real deth_inverse = 1. / deth;
+    // NOLINTEND(cppcoreguidelines-init-variables)
     Tensor::Rank2 h_UU{};
     h_UU(0, 0) = (matrix(1, 1) * matrix(2, 2) - matrix(1, 2) * matrix(2, 1)) *
                  deth_inverse;
@@ -109,10 +116,12 @@ compute_inverse(const Tensor::Rank2 &matrix)
 
 /// Computes the trace of a 2-Tensor with lower indices given an inverse metric.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 compute_trace(const Tensor::Rank2 &tensor_LL,
               const Tensor::Rank2 &inverse_metric)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    amrex::Real trace = 0.;
+    amrex::Real trace = 0.; // NOLINT(cppcoreguidelines-init-variables)
     FOR (i, j)
     {
         trace += inverse_metric(i, j) * tensor_LL(i, j);
@@ -121,10 +130,12 @@ compute_trace(const Tensor::Rank2 &tensor_LL,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 compute_trace(const Tensor::Rank2 &tensor_LL,
               const Tensor::Sym12Rank2 &sym_inverse_metric)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    amrex::Real trace = 0.;
+    amrex::Real trace = 0.; // NOLINT(cppcoreguidelines-init-variables)
     FOR (i, j)
     {
         trace += sym_inverse_metric(i, j) * tensor_LL(i, j);
@@ -136,7 +147,7 @@ compute_trace(const Tensor::Rank2 &tensor_LL,
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace(const Tensor::Rank2 &tensor_UL)
 {
-    amrex::Real trace = 0.;
+    amrex::Real trace = 0.; // NOLINT(cppcoreguidelines-init-variables)
     FOR (i)
         trace += tensor_UL(i, i);
     return trace;
@@ -144,10 +155,12 @@ compute_trace(const Tensor::Rank2 &tensor_UL)
 
 /// Computes dot product of a vector and a covector (no metric required)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 compute_dot_product(const Tensor::Rank1 &vector_U,
                     const Tensor::Rank1 &covector_L)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    amrex::Real dot_product = 0.;
+    amrex::Real dot_product = 0.; // NOLINT(cppcoreguidelines-init-variables)
     FOR (i)
         dot_product += vector_U(i) * covector_L(i);
     return dot_product;
@@ -156,11 +169,13 @@ compute_dot_product(const Tensor::Rank1 &vector_U,
 /// Computes dot product of two covectors given an inverse metric or
 /// the dot product of two vectors given a metric.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 compute_dot_product(const Tensor::Rank1 &covector1_L,
                     const Tensor::Rank1 &covector2_L,
                     const Tensor::Rank2 &inverse_metric)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    amrex::Real dot_product = 0.;
+    amrex::Real dot_product = 0.; // NOLINT(cppcoreguidelines-init-variables)
     FOR (m, n)
     {
         dot_product += inverse_metric(m, n) * covector1_L(m) * covector2_L(n);
@@ -170,12 +185,14 @@ compute_dot_product(const Tensor::Rank1 &covector1_L,
 
 /// Computes dot product of two covectors given an inverse metric or
 /// the dot product of two vectors given a (symmetric) metric.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_dot_product(const Tensor::Rank1 &covector1_L,
                     const Tensor::Rank1 &covector2_L,
                     const Tensor::Sym12Rank2 &inverse_metric_sym)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
-    amrex::Real dot_product = 0.;
+    amrex::Real dot_product = 0.; // NOLINT(cppcoreguidelines-init-variables)
     FOR (m, n)
     {
         dot_product +=
@@ -200,6 +217,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 
 {
     auto trace = compute_trace(tensor_LL, inverse_metric);
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     amrex::Real one_over_gr_spacedim =
         1. / static_cast<amrex::Real>(GR_SPACEDIM);
     FOR (i, j)
@@ -284,7 +302,9 @@ make_general_from_symmetric(const Tensor::Sym12Sym34Rank4 &tensor_sym)
 
 /// Raises the index of a covector
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 raise_all(const Tensor::Rank1 &tensor_L, const Tensor::Rank2 &inverse_metric)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank1 tensor_U{};
 
@@ -302,7 +322,9 @@ raise_all(const Tensor::Rank1 &tensor_L, const Tensor::Rank2 &inverse_metric)
 
 /// Raises the indices of a 2-Tensor
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 raise_all(const Tensor::Rank2 &tensor_LL, const Tensor::Rank2 &inverse_metric)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank2 tensor_UU{};
 

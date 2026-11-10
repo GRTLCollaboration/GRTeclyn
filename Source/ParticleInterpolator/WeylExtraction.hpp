@@ -95,7 +95,8 @@ class WeylExtraction : public SphericalExtraction<2>
             std::vector<std::vector<amrex::ParticleReal>>
                 integrals_for_writing = {
                     std::move(mode_integrals[imode].first),
-                    std::move(mode_integrals[imode].second)};
+                    std::move(mode_integrals[imode].second),
+            };
             std::vector<std::string> labels = {"integral Re", "integral Im"};
             this->write_integrals(integrals_filename, integrals_for_writing,
                                   labels);

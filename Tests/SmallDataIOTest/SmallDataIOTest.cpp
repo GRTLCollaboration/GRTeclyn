@@ -100,7 +100,12 @@ test_small_data_io_reader(const int a_min_col, const int a_max_col)
     // If we know the data structure already we can pass it in like so:
 
     const SmallDataIO::file_structure_t test_file_structure{
-        1, {0}, {1}, {100}, {4}};
+        .num_blocks       = 1,
+        .block_starts     = {0},
+        .num_header_rows  = {1},
+        .num_data_rows    = {100},
+        .num_data_columns = {4},
+    };
 
     SmallDataIO test_reader("test_000000", &test_file_structure);
 

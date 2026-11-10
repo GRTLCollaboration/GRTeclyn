@@ -139,7 +139,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
                    vars.h(k, l) * dlapse_dot_dchi);
     }
 
-    auto A_UU = CCZ4Geometry::compute_A_UU(state_cell_data, h_UU);
+    auto A_UU = CCZ4Geometry::compute_A_UU(vars, h_UU);
 
     Tensor::Rank2 Adot_TF;
     FOR (i, j)
@@ -147,7 +147,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         Adot_TF(i, j) =
             -covd2lapse(i, j) + vars.chi() * vars.lapse() * ricci.LL(i, j);
     }
-    CCZ4Geometry::make_trace_free(Adot_TF, state_cell_data, h_UU);
+    CCZ4Geometry::make_trace_free(Adot_TF, vars, h_UU);
 
     Tensor::Rank1 shift_vector({vars.shift(0), vars.shift(1), vars.shift(2)});
 
@@ -175,7 +175,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     // Theta specific parts
 
     amrex::Real Aij_squared =
-        CCZ4Geometry::compute_Aij_squared_with_A_UU(state_cell_data, A_UU);
+        CCZ4Geometry::compute_Aij_squared_with_A_UU(vars, A_UU);
 
     amrex::Real advec_K =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_K);

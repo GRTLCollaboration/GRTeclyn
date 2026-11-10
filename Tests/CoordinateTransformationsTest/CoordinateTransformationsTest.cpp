@@ -28,10 +28,11 @@ using namespace amrex::literals;
 
 namespace
 {
-constexpr int ulp = 15; // units in the last place
-constexpr amrex::Real real_epsilon =
-    std::numeric_limits<amrex::Real>::epsilon();
+constexpr int ulp                  = 15; // units in the last place
+constexpr amrex::Real real_epsilon = std::numeric_limits<
+    amrex::Real>::epsilon(); // NOLINT(cppcoreguidelines-init-variables)
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void check_tensor(const Tensor::Rank2 &tensor,
                   const Tensor::Rank2 &correct_tensor,
                   const std::string &test_name)
@@ -72,14 +73,15 @@ void check_vector(const Tensor::Rank1 &vector,
 
 // Check that rotation is a proper rotation (R^T R = I and det R = 1) which
 // maps the direction of origin onto the direction of destination
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void check_rotation(const Tensor::Rank2 &rotation, const Tensor::Rank1 &origin,
                     const Tensor::Rank1 &destination,
                     const std::string &test_name)
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     amrex::Real norm_origin = std::sqrt(
         origin(0) * origin(0) + origin(1) * origin(1) + origin(2) * origin(2));
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     amrex::Real norm_dest = std::sqrt(destination(0) * destination(0) +
                                       destination(1) * destination(1) +
                                       destination(2) * destination(2));
@@ -120,6 +122,7 @@ void run_coordinate_transformations_test()
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(amrex_argc, amrex_argv);
     {
+        // NOLINTBEGIN(cppcoreguidelines-init-variables)
         const amrex::Real dx = 0.1;
         amrex::IntVect iv{1, 2, 3};
 
@@ -130,6 +133,7 @@ void run_coordinate_transformations_test()
         const amrex::Real r     = coords.get_radius();
         amrex::Real rho2        = std::max(x * x + y * y, 1e-12_rt);
         amrex::Real r2sin2theta = rho2;
+        // NOLINTEND(cppcoreguidelines-init-variables)
 
         /* for debugging
         std::cout << "x " << x << std::endl;
@@ -250,7 +254,9 @@ void run_coordinate_transformations_test()
         check_vector(si_cart_L_check, si_cart, "spherical_to_cartesian_L");
 
         // Test area_element_sphere
-        amrex::Real area_element       = r * sqrt(rho2);
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
+        amrex::Real area_element = r * sqrt(rho2);
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real area_element_check = area_element_sphere(Mij_spher);
         CHECK(area_element ==
               doctest::Approx(area_element_check).epsilon(ulp * real_epsilon));
@@ -275,19 +281,22 @@ void run_coordinate_transformations_test()
                      "rotation_matrix (0 degrees)");
 
         // rotation about a generic axis leaves the axis unchanged
-        const amrex::Real norm_123 = std::sqrt(14.);
+        const amrex::Real norm_123 =
+            std::sqrt(14.); // NOLINT(cppcoreguidelines-init-variables)
         Tensor::Rank1 axis_123 = {1. / norm_123, 2. / norm_123, 3. / norm_123};
         check_rotation(rotation_matrix(axis_123, 0.3), axis_123, axis_123,
                        "rotation_matrix (generic axis)");
 
         // Test rotation_matrix(origin, destination)
-        auto check_rotation_between = [](const Tensor::Rank1 &origin,
-                                         const Tensor::Rank1 &destination,
-                                         const std::string &test_name)
+        auto check_rotation_between =
+            // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+            [](const Tensor::Rank1 &origin, const Tensor::Rank1 &destination,
+               const std::string &test_name)
         {
             check_rotation(rotation_matrix(origin, destination), origin,
                            destination, test_name);
         };
+        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         // KerrBH default spin direction onto the z axis
         check_rotation_between({0.1, 0.1, 0.}, {0., 0., 1.},

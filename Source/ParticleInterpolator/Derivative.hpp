@@ -14,7 +14,8 @@
 class Derivative : public std::array<int, AMREX_SPACEDIM>
 {
   private:
-    constexpr Derivative(int dir) noexcept : array{AMREX_D_DECL(0, 0, 0)}
+    constexpr explicit Derivative(int dir) noexcept
+        : array{AMREX_D_DECL(0, 0, 0)}
     {
         (*this)[dir] = 1;
     }
@@ -27,6 +28,7 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
     }
 
   public:
+    // NOLINTNEXTLINE(modernize-use-equals-default)
     constexpr Derivative() noexcept : array{AMREX_D_DECL(0, 0, 0)} {}
 
     // Ordering for std::map
@@ -104,7 +106,7 @@ class Derivative : public std::array<int, AMREX_SPACEDIM>
     static const Derivative dxdz;
     static const Derivative dydz;
 
-    static std::string name(const Derivative &deriv)
+    static std::string_view name(const Derivative &deriv)
     {
         if (deriv == dx)
         {

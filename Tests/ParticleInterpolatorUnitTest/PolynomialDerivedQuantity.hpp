@@ -20,7 +20,8 @@ class PolynomialDerivedQuantity
   public:
 
     static inline amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_center{
-        AMREX_D_DECL(0., 0., 0.)}; // some random default here
+        AMREX_D_DECL(0., 0., 0.),
+    }; // some random default here
 
     // read in the center which will be used to populating the polynomial
     // properly
@@ -113,7 +114,7 @@ class PolynomialDerivedQuantity
     }
 
     // Constructor
-    PolynomialDerivedQuantity(int a_c_poly) : m_c_poly(a_c_poly) {}
+    explicit PolynomialDerivedQuantity(int a_c_poly) : m_c_poly(a_c_poly) {}
 
   private:
     int m_c_poly; // destination comp

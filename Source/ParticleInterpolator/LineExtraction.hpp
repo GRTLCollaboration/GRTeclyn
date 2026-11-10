@@ -56,23 +56,23 @@ template <int num_components> class LineExtraction
         {
             interp_x[i] =
                 m_params.start_coords[0] +
-                (amrex::ParticleReal(i) /
-                 amrex::ParticleReal(m_num_points - 1)) *
+                (static_cast<amrex::ParticleReal>(i) /
+                 static_cast<amrex::ParticleReal>(m_num_points - 1)) *
                     (m_params.end_coords[0] - m_params.start_coords[0]);
             interp_y[i] =
                 m_params.start_coords[1] +
-                (amrex::ParticleReal(i) /
-                 amrex::ParticleReal(m_num_points - 1)) *
+                (static_cast<amrex::ParticleReal>(i) /
+                 static_cast<amrex::ParticleReal>(m_num_points - 1)) *
                     (m_params.end_coords[1] - m_params.start_coords[1]);
             interp_z[i] =
                 m_params.start_coords[2] +
-                (amrex::ParticleReal(i) /
-                 amrex::ParticleReal(m_num_points - 1)) *
+                (static_cast<amrex::ParticleReal>(i) /
+                 static_cast<amrex::ParticleReal>(m_num_points - 1)) *
                     (m_params.end_coords[2] - m_params.start_coords[2]);
         }
 
         std::vector<amrex::ParticleReal> interp_var_data(
-            m_num_points * num_components, 0.0);
+            static_cast<std::size_t>(m_num_points) * num_components, 0.0);
 
         InterpolationQueryParticle query(m_num_points);
         query.setCoords(0, interp_x.data())
@@ -82,7 +82,8 @@ template <int num_components> class LineExtraction
         for (int component = 0; component < num_components; ++component)
         {
             amrex::ParticleReal *out =
-                interp_var_data.data() + component * m_num_points;
+                interp_var_data.data() +
+                static_cast<std::size_t>(component) * m_num_points;
             query.addComp(m_start_comp + component, out, a_variable_type,
                           a_derived_vars.parities[component]);
         }
@@ -109,7 +110,8 @@ template <int num_components> class LineExtraction
             const std::vector<amrex::Real> coordinates{
                 static_cast<amrex::Real>(interp_x[point]),
                 static_cast<amrex::Real>(interp_y[point]),
-                static_cast<amrex::Real>(interp_z[point])};
+                static_cast<amrex::Real>(interp_z[point]),
+            };
             output_file.write_data_line(data_line, coordinates);
         }
     }

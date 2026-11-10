@@ -21,7 +21,7 @@ class FourthOrderDerivatives : protected DerivativeBase
 {
   public:
     AMREX_GPU_HOST_DEVICE
-    FourthOrderDerivatives(amrex::Real dx) : DerivativeBase(dx) {}
+    explicit FourthOrderDerivatives(amrex::Real dx) : DerivativeBase(dx) {}
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 
@@ -133,8 +133,10 @@ class FourthOrderDerivatives : protected DerivativeBase
     {
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.stride.a[0]),
-            static_cast<int>(state.stride.a[1])};
+            1,
+            static_cast<int>(state.stride.a[0]),
+            static_cast<int>(state.stride.a[1]),
+        };
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         amrex::Array2D<amrex::Real, 0, num_diff_vars - 1, 0, AMREX_SPACEDIM - 1>

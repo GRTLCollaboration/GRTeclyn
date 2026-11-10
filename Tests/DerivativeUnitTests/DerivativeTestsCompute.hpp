@@ -7,6 +7,7 @@
 #define DERIVATIVETESTSCOMPUTE_HPP_
 
 #include "Tensor.hpp"
+#include "AMReX_Array4.H"
 
 enum
 {
@@ -43,7 +44,7 @@ enum
     c_diss,
     c_advec_up,
     c_advec_down,
-    NUM_DERIVATIVES_VARS
+    NUM_DERIVATIVES_VARS,
 };
 
 template <class deriv_t> class DerivativeTestsCompute
@@ -53,8 +54,8 @@ template <class deriv_t> class DerivativeTestsCompute
 
   public:
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    DerivativeTestsCompute(amrex::Real dx)
+    AMREX_GPU_HOST_DEVICE
+    AMREX_FORCE_INLINE explicit DerivativeTestsCompute(amrex::Real dx)
         : m_deriv(dx)
     {
     }

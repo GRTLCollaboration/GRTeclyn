@@ -15,11 +15,12 @@ namespace
 {
 // NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const std::map<std::string, int> boundary_conditions_by_name = {
-    {"UNSET_BC",                     BoundaryConditions::UNSET_BC     },
-    {"FIRST_ORDER_EXTRAPOLATION_BC",
-     BoundaryConditions::FIRST_ORDER_EXTRAPOLATION_BC                 },
-    {"SOMMERFELD_BC",                BoundaryConditions::SOMMERFELD_BC},
-    {"REFLECTIVE_BC",                BoundaryConditions::REFLECTIVE_BC}
+    {"UNSET_BC", BoundaryConditions::UNSET_BC},
+    {
+     "FIRST_ORDER_EXTRAPOLATION_BC", BoundaryConditions::FIRST_ORDER_EXTRAPOLATION_BC,
+     },
+    {"SOMMERFELD_BC", BoundaryConditions::SOMMERFELD_BC},
+    {"REFLECTIVE_BC", BoundaryConditions::REFLECTIVE_BC},
 };
 
 } // namespace
@@ -121,8 +122,8 @@ void BoundaryConditions::params_t::check_params()
          &is_periodic_int](const char *a_name,
                            const std::array<int, AMREX_SPACEDIM> &a_conditions)
     {
-        std::string ignored_directions;
-        std::string unset_directions;
+        std::string ignored_directions{};
+        std::string unset_directions{};
         FOR (idir)
         {
             if (is_periodic_int[idir] == 1 && a_conditions[idir] != UNSET_BC)
