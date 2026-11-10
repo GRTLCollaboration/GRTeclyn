@@ -43,3 +43,9 @@ Doxygen/html
 log*
 *.patch
 *.log
+
+# Local lint tool output
+compile_commands.json
+Tools/Lint/.venv/
+venv/
+__pycache__/
