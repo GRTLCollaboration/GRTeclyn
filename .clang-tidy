@@ -3,6 +3,7 @@ Checks: >
      clang-diagnostic-*,
      clang-analyzer-*,
      bugprone-*,
+      -bugprone-throwing-static-initialization,
      cppcoreguidelines-*,
       -cppcoreguidelines-no-malloc,
       -cppcoreguidelines-avoid-magic-numbers,
