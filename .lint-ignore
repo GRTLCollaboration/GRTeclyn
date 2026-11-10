@@ -7,6 +7,9 @@
 
 # These files don't make sense on their own
 lint-only: **/*.impl.hpp
+
+# Generated build files
+**/tmp_build_dir/*
 Tests/CCZ4GeometryUnitTests/CCZ4GeometryExpectedValues.hpp
 external/*
 
