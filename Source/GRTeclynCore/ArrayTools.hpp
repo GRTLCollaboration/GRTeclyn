@@ -30,11 +30,10 @@ std::array<T, N + M> concatenate(const std::array<T, N> &first,
 
 /// This can concatenate two std::vectors or amrex::Vectors
 template <template <typename, typename> class vec_t, typename elem_t,
-          typename alloc_t,
-          typename = std::enable_if_t<std::is_base_of_v<
-              std::vector<elem_t, alloc_t>, vec_t<elem_t, alloc_t>>>>
-vec_t<elem_t, alloc_t> concatenate(const vec_t<elem_t, alloc_t> &first,
-                                   const vec_t<elem_t, alloc_t> &second)
+          typename alloc_t>
+requires std::is_base_of_v<std::vector<elem_t, alloc_t>, vec_t<elem_t, alloc_t>>
+    vec_t<elem_t, alloc_t> concatenate(const vec_t<elem_t, alloc_t> &first,
+                                       const vec_t<elem_t, alloc_t> &second)
 {
     vec_t<elem_t, alloc_t> out(first.size() + second.size());
     std::copy(first.cbegin(), first.cend(), out.begin());
@@ -42,9 +41,8 @@ vec_t<elem_t, alloc_t> concatenate(const vec_t<elem_t, alloc_t> &first,
     return out;
 }
 
-template <typename T, size_t N,
-          std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
-T norm2(const std::array<T, N> &a_array)
+template <typename T, size_t N>
+requires std::is_arithmetic_v<T> T norm2(const std::array<T, N> &a_array)
 {
     T out = 0;
     for (auto &elem : a_array)
@@ -54,9 +52,9 @@ T norm2(const std::array<T, N> &a_array)
     return out;
 }
 
-template <typename T, size_t N,
-          std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
-std::string to_string(const std::array<T, N> a_array)
+template <typename T, size_t N>
+requires std::is_arithmetic_v<T> std::string
+to_string(const std::array<T, N> a_array)
 {
     std::string out;
     for (auto x : a_array)

@@ -40,7 +40,7 @@ class CCZ4RHSWithMatter : public CCZ4RHS<deriv_t>
        default-constructed matter object supplies stress-energy sources with
        their gravitational coupling already applied.
     */
-    CCZ4RHSWithMatter(amrex::Real a_dx);
+    explicit CCZ4RHSWithMatter(amrex::Real a_dx);
 
     //! Add stress-energy terms to the CCZ4 RHS, including the Gamma RHS.
     /** Call this before a gauge update that derives the B-field RHS from the

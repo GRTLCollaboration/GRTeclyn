@@ -50,7 +50,7 @@ enum
     c_B2,
     c_B3,
 
-    NUM_CCZ4_VARS
+    NUM_CCZ4_VARS,
 };
 
 namespace CCZ4StateVariables

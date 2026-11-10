@@ -30,10 +30,10 @@ struct surface_extraction_params_t
     std::string extraction_path, extraction_file_prefix;
 
     [[nodiscard]]
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     int min_extraction_level() const
     {
-        return *(std::min_element(extraction_levels.begin(),
-                                  extraction_levels.end()));
+        return *std::ranges::min_element(extraction_levels);
     }
 
     void fill_params() {}

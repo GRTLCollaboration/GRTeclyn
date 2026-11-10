@@ -32,7 +32,7 @@ class GRAmr : public amrex::Amr
 
   public:
 
-    GRAmr(amrex::LevelBld *a_levelbld);
+    explicit GRAmr(amrex::LevelBld *a_levelbld);
     ~GRAmr() override;
 
     void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override;

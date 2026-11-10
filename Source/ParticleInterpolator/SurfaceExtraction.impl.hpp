@@ -464,7 +464,7 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
             // Write headers
             std::vector<std::string> header1_strings = {
                 "time = " + std::to_string(m_time) + ",",
-                m_geom.param_name() + " = " +
+                std::string(m_geom.param_name()) + " = " +
                     std::to_string(m_params.surface_param_values[isurface])};
             extraction_file.write_header_line(header1_strings, "");
             std::vector<std::string> components(m_vars.size());
@@ -475,7 +475,8 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
 
                 if (var.deriv != Derivative::LOCAL)
                 {
-                    components[ivar] = Derivative::name(var.deriv) + "_";
+                    components[ivar] =
+                        std::string(Derivative::name(var.deriv)) + "_";
                 }
                 else
                 {
@@ -493,8 +494,8 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_extraction(
                 }
             }
 
-            std::vector<std::string> coords = {m_geom.u_name(),
-                                               m_geom.v_name()};
+            std::vector<std::string> coords = {std::string(m_geom.u_name()),
+                                               std::string(m_geom.v_name())};
             extraction_file.write_header_line(components, coords);
 
             // Now the data
@@ -579,7 +580,8 @@ void SurfaceExtraction<SurfaceGeometry, num_components>::write_integrals(
                         std::to_string(m_params.surface_param_values[isurface]);
                 }
             }
-            std::string pre_header2_string = m_geom.param_name() + " = ";
+            std::string pre_header2_string =
+                std::string(m_geom.param_name()) + " = ";
 
             // write headers
             integral_file.write_header_line(header1_strings);

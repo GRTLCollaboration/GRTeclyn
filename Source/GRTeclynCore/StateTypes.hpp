@@ -14,7 +14,7 @@
 enum StateType
 {
     state_index = 0,
-    NUM_STATE_TYPE
+    NUM_STATE_TYPE,
 };
 
 #endif /* STATE_TYPES_HPP_ */

@@ -25,6 +25,7 @@ template <class matter_t> class Weyl4WithMatter : public Weyl4
     //! the grid
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    // NOLINTNEXTLINE(bugprone-derived-method-shadowing-base-method)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &weyl_scalars,

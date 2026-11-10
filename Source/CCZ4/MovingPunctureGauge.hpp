@@ -35,8 +35,9 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
         amrex::Real lapse_advec_coeff{1.0}; //!< Switches advection terms in
                                             //! the lapse condition on/off
         amrex::Real lapse_power{
-            1.0}; //!< The power p in \f$\partial_t \alpha = - c
-                  //!\alpha^p(K-2\Theta)\f$
+            1.0,
+        }; //!< The power p in \f$\partial_t \alpha = - c
+           //!\alpha^p(K-2\Theta)\f$
         amrex::Real lapse_coeff{2.0}; //!< The coefficient c in \f$\partial_t
                                       //!\alpha = -c \alpha^p(K-2\Theta)\f$
         // shift params:
@@ -57,7 +58,7 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
             amrex::Real lapse_advec_coeff = 1.;
             gauge_pp.queryAdd("lapse_advec_coeff", lapse_advec_coeff);
             if (std::min(std::abs(lapse_advec_coeff),
-                         std::abs(lapse_advec_coeff - amrex::Real(1.0))) >
+                         std::abs(lapse_advec_coeff - amrex::Real{1.0})) >
                 std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("lapse_advec_coeff",
@@ -92,7 +93,7 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
             amrex::Real shift_advec_coeff = 0.0;
             gauge_pp.queryAdd("shift_advec_coeff", shift_advec_coeff);
             if (std::min(std::abs(shift_advec_coeff),
-                         std::abs(shift_advec_coeff - amrex::Real(1.0))) >
+                         std::abs(shift_advec_coeff - amrex::Real{1.0})) >
                 std::numeric_limits<amrex::Real>::epsilon())
             {
                 gauge_pp.warning("shift_advec_coeff",
@@ -147,7 +148,7 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
     amrex::Real m_dx;
 
   public:
-    MovingPunctureGauge(amrex::Real a_dx) : m_deriv(a_dx), m_dx(a_dx)
+    explicit MovingPunctureGauge(amrex::Real a_dx) : m_deriv(a_dx), m_dx(a_dx)
     {
         m_params.fill_params();
     }

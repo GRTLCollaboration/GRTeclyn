@@ -34,7 +34,8 @@ void run_ccz4_rhs_test()
     {
         constexpr int num_cells  = 32;
         constexpr int num_ghosts = 3;
-        constexpr amrex::Real dx = 0.5 / ((amrex::Real)num_cells - 1.0);
+        constexpr amrex::Real dx =
+            0.5 / (static_cast<amrex::Real>(num_cells) - 1.0);
 
         amrex::Box box(
             amrex::IntVect(0, 0, 0),
@@ -43,8 +44,11 @@ void run_ccz4_rhs_test()
         amrex::Box ghosted_box = box;
         ghosted_box.grow(num_ghosts);
 
-        amrex::FArrayBox in_fab{ghosted_box, NUM_CCZ4_VARS,
-                                amrex::The_Managed_Arena()};
+        amrex::FArrayBox in_fab{
+            ghosted_box,
+            NUM_CCZ4_VARS,
+            amrex::The_Managed_Arena(),
+        };
 
         const amrex::Array4<amrex::Real> &in_array = in_fab.array();
         amrex::ParallelFor(ghosted_box,
@@ -93,12 +97,21 @@ void run_ccz4_rhs_test()
         Old::CCZ4RHS<Old::MovingPunctureGauge, Old::FourthOrderDerivatives>
             old_ccz4_rhs{old_ccz4_params, dx, sigma};
 
-        amrex::FArrayBox current_out_fab{box, NUM_CCZ4_VARS,
-                                         amrex::The_Managed_Arena()};
-        amrex::FArrayBox old_out_fab{box, NUM_CCZ4_VARS,
-                                     amrex::The_Managed_Arena()};
-        amrex::FArrayBox diff_fab{box, NUM_CCZ4_VARS,
-                                  amrex::The_Managed_Arena()};
+        amrex::FArrayBox current_out_fab{
+            box,
+            NUM_CCZ4_VARS,
+            amrex::The_Managed_Arena(),
+        };
+        amrex::FArrayBox old_out_fab{
+            box,
+            NUM_CCZ4_VARS,
+            amrex::The_Managed_Arena(),
+        };
+        amrex::FArrayBox diff_fab{
+            box,
+            NUM_CCZ4_VARS,
+            amrex::The_Managed_Arena(),
+        };
 
         const auto &in_c_array        = in_fab.const_array();
         const auto &current_out_array = current_out_fab.array();

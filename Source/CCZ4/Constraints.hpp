@@ -32,19 +32,25 @@ class Constraints
     static inline const std::string name = "constraints";
 
     /// Variable names
-    static inline const amrex::Vector<std::string> var_names = {"Ham", "Mom1",
-                                                                "Mom2", "Mom3"};
+    static inline const amrex::Vector<std::string> var_names = {
+        "Ham",
+        "Mom1",
+        "Mom2",
+        "Mom3",
+    };
 
-    static inline const amrex::Vector<std::string> var_names_norm = {"Ham",
-                                                                     "Mom"};
+    static inline const amrex::Vector<std::string> var_names_norm = {
+        "Ham",
+        "Mom",
+    };
 
     /// Struct for Constraints
     struct constraints_t
     {
         amrex::Real Ham{};
         amrex::Real Ham_abs_terms{};
-        Tensor::Rank1 Mom{};
-        Tensor::Rank1 Mom_abs_terms{};
+        Tensor::Rank1 Mom;
+        Tensor::Rank1 Mom_abs_terms;
     };
 
     // Constructor which allows specifying Ham and Mom vars
