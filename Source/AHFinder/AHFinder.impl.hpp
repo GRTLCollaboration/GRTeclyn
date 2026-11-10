@@ -23,9 +23,9 @@
 
 inline void AHFinder::init(GRAmr *gramr_ptr)
 {
-    // tolerance, r, initial_dt, max_iter and max_stall_iter come
-    // from the "ah_finder" scope of the input file; see
-    // AHFinderParameters.hpp for defaults and meaning.
+    // tolerance, r, initial_dt, max_iter, backtrack_factor and
+    // max_backtracks come from the "ah_finder" scope of the input file;
+    // see AHFinderParameters.hpp for defaults and meaning.
     m_params.fill_params();
 
     m_min_dt    = 1e-4;
@@ -101,9 +101,6 @@ inline void AHFinder::find()
     std::vector<double> jacobian(static_cast<std::size_t>(m_ldab) *
                                  m_num_particles);
 
-    // Number of consecutive iterations with dt at its minimum
-    int n_stall = 0;
-
     while (theta_old > m_params.tolerance && n_iter < m_params.max_iter)
     {
         // One pseudo-transient continuation step of h_dot = -Theta:
@@ -116,31 +113,78 @@ inline void AHFinder::find()
             break;
         }
 
-        for (int id = 0; id < m_num_particles; ++id)
+        // Backtracking line search along delta_h: try h_old + alpha * delta_h,
+        // shortening alpha until the inf-norm of Theta decreases, without
+        // re-solving.
+        const std::vector<double> h_old = m_h;
+        amrex::Real alpha               = 1.0;
+        double theta_new                = theta_old;
+        bool accepted                   = false;
+        bool stalled                    = false;
+
+        for (int n_backtrack = 0; n_backtrack <= m_params.max_backtracks;
+             ++n_backtrack)
         {
-            m_h[id] += delta_h[id];
+            for (int id = 0; id < m_num_particles; ++id)
+            {
+                m_h[id] = h_old[id] + alpha * delta_h[id];
+            }
+
+            // Evaluate Theta at the trial state
+            this->set_particle_positions(m_h);
+            interp_metric();
+            theta_from_metric(m_h, m_theta_vals);
+
+            theta_new = inf_norm(m_theta_vals);
+
+            if (theta_new < theta_old)
+            {
+                accepted = true;
+                break;
+            }
+
+            amrex::Print() << "\n AHFinder: step with alpha = " << alpha
+                           << " gave theta = " << theta_new
+                           << ", backtracking\n";
+
+            alpha *= m_params.backtrack_factor;
         }
-
-        // Evaluate Theta at the new state
-        this->set_particle_positions(m_h);
-        interp_metric();
-        theta_from_metric(m_h, m_theta_vals);
-
-        double theta_new = inf_norm(m_theta_vals);
 
         amrex::Print() << "\n theta_old = " << theta_old << "\n";
 
-        amrex::Print() << "\n theta_new = " << theta_new << "\n";
+        if (accepted)
+        {
+            amrex::Print() << "\n theta_new = " << theta_new
+                           << " (alpha = " << alpha << ")\n";
+
+            // A shortened step suggests dt was too large, so scale it by
+            // alpha before adapting it for the next step.
+            dt = update_dt(alpha * dt, theta_old, theta_new);
+
+            theta_old = theta_new;
+        }
+        else
+        {
+            // Backtracking was exhausted with dt already at its minimum, so
+            // no smaller step can be tried
+            stalled = (dt <= m_min_dt);
+
+            amrex::Print() << "\n AHFinder: no step reduced theta after "
+                           << m_params.max_backtracks
+                           << " backtracks, reverting h and shrinking dt\n";
+
+            // Restore h, and the metric and Theta at h, which the next
+            // Jacobian assembly relies on
+            m_h = h_old;
+            this->set_particle_positions(m_h);
+            interp_metric();
+            theta_from_metric(m_h, m_theta_vals);
+
+            dt = std::max(dt * m_dt_shrink, m_min_dt);
+        }
 
         amrex::Print() << "-------------------------\n";
-
-        // Adapt the global timestep for the next step.
-        dt = update_dt(dt, theta_old, theta_new);
         amrex::Print() << "dt = " << dt << "\n";
-
-        n_stall = (dt <= m_min_dt) ? n_stall + 1 : 0;
-
-        theta_old = theta_new;
 
         n_iter++;
 
@@ -151,12 +195,11 @@ inline void AHFinder::find()
         }
         write_particles(n_iter);
 
-        if (n_stall >= m_params.max_stall_iter)
+        if (stalled)
         {
-            amrex::Print()
-                << "\n AHFinder stalled: dt has been at its minimum ("
-                << m_min_dt << ") for " << n_stall
-                << " consecutive iterations\n";
+            amrex::Print() << "\n AHFinder stalled: backtracking failed with "
+                              "dt at its minimum ("
+                           << m_min_dt << ")\n";
             break;
         }
     }

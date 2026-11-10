@@ -20,9 +20,16 @@
 // continuation of h_dot = -Theta, with Theta the expansion: each step solves
 //   (J + I/dt) delta_h = -Theta,   J = dTheta/dh,
 // with a banded LU solve, and dt grows as Theta falls so the step tends to a
-// Newton step. This continues until the inf-norm of Theta drops below
-// `tolerance`, `max_iter` iterations have been taken, or the pseudo-timestep
-// has sat at its minimum for `max_stall_iter` consecutive iterations. The
+// Newton step.
+//
+// If a step does not reduce the inf-norm of Theta, it is backtracked along the
+// same direction, trying alpha * delta_h with alpha = backtrack_factor^k for
+// k = 1..max_backtracks, without re-solving. If none of these reduce Theta, h
+// is left unchanged for that iteration and dt is shrunk.
+//
+// This continues until the inf-norm of Theta drops below `tolerance`,
+// `max_iter` iterations have been taken, or backtracking fails with dt
+// already at its minimum, so no smaller step can be tried. The
 // remaining timestepping bounds (m_min_dt, m_dt_shrink)
 // and the finite-difference scale m_fd_sigma are still
 // hard-coded in AHFinder::init().
@@ -44,10 +51,14 @@ struct ah_finder_params_t
     // without convergence.
     int max_iter{};
 
-    // Maximum number of consecutive iterations the pseudo-timestep may sit at
-    // its minimum (m_min_dt) before find() treats the solve as stalled and
-    // gives up without convergence.
-    int max_stall_iter{};
+    // Factor by which the step length alpha is reduced after each rejected
+    // trial step.
+    amrex::Real backtrack_factor{};
+
+    // Maximum number of shortened trial steps after a rejected full step
+    // before the iteration is abandoned (h reverted, dt shrunk). 0 disables
+    // backtracking, so a step that does not reduce Theta is simply rejected.
+    int max_backtracks{};
 
     static void check_params()
     {
@@ -82,11 +93,18 @@ struct ah_finder_params_t
             ah_finder_pp.error("max_iter", "must be > 0");
         }
 
-        int max_stall_iter = 50;
-        ah_finder_pp.queryAdd("max_stall_iter", max_stall_iter);
-        if (max_stall_iter <= 0)
+        amrex::Real backtrack_factor = 0.5;
+        ah_finder_pp.queryAdd("backtrack_factor", backtrack_factor);
+        if (backtrack_factor <= 0.0 || backtrack_factor >= 1.0)
         {
-            ah_finder_pp.error("max_stall_iter", "must be > 0");
+            ah_finder_pp.error("backtrack_factor", "must be in (0, 1)");
+        }
+
+        int max_backtracks = 5;
+        ah_finder_pp.queryAdd("max_backtracks", max_backtracks);
+        if (max_backtracks < 0)
+        {
+            ah_finder_pp.error("max_backtracks", "must be >= 0");
         }
     }
 
@@ -98,7 +116,8 @@ struct ah_finder_params_t
         ah_finder_pp.get("r", r);
         ah_finder_pp.get("initial_dt", initial_dt);
         ah_finder_pp.get("max_iter", max_iter);
-        ah_finder_pp.get("max_stall_iter", max_stall_iter);
+        ah_finder_pp.get("backtrack_factor", backtrack_factor);
+        ah_finder_pp.get("max_backtracks", max_backtracks);
     }
 };
 

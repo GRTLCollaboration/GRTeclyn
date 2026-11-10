@@ -59,8 +59,9 @@ particle_interpolator.verbosity = false
 # The surface radius h is evolved by implicit pseudo-transient continuation of
 #   h_dot = -Theta,  i.e. (J + I/dt) delta_h = -Theta each step,
 # until the inf-norm of the expansion Theta falls below the tolerance (or
-# max_iter iterations have been taken, or dt has sat at its minimum for
-# max_stall_iter consecutive iterations).
+# max_iter iterations have been taken, or backtracking fails with dt already
+# at its minimum). A step that does not reduce Theta is backtracked along the
+# same direction before being rejected.
 
 # Convergence threshold on the inf-norm of Theta
 ah_finder.tolerance = 1e-4
@@ -71,6 +72,8 @@ ah_finder.r = 1.15
 ah_finder.initial_dt = 1e-2
 # Maximum number of pseudo-time iterations before giving up
 ah_finder.max_iter = 1000
-# Maximum number of consecutive iterations at the minimum pseudo-timestep
-# before the solve is treated as stalled
-ah_finder.max_stall_iter = 50
+# Factor by which the step is shortened after each rejected trial step
+ah_finder.backtrack_factor = 0.5
+# Maximum number of shortened trial steps before the step is rejected, h is
+# reverted and dt is shrunk
+ah_finder.max_backtracks = 5
