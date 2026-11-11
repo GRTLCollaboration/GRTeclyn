@@ -162,6 +162,11 @@ class AHGeometry
         return m_center;
     }
 
+    void set_center(const std::array<double, AMREX_SPACEDIM> &center)
+    {
+        m_center = center;
+    }
+
     [[nodiscard]] double guess_radius() const { return m_guess_radius; }
 
     // Unit direction from the centre to the ring-grid point at flat index

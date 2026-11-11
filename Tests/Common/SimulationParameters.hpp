@@ -12,6 +12,7 @@
 #include "BoostedBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
 #include "GRParmParse.hpp"
+#include "MovingPunctureGauge.hpp"
 #include "PunctureTagger.hpp"
 #include "PunctureTracker.hpp"
 #include "SphericalExtractionParameters.hpp"
@@ -40,6 +41,8 @@ class SimulationParameters
         {
             BoostedBHInitialData::params_t::check_params(1);
             BoostedBHInitialData::params_t::check_params(2);
+            MovingPunctureGauge<
+                FourthOrderDerivatives>::params_t::check_params();
         }
 
         GRParmParse test_pp("test");

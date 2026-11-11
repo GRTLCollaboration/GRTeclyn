@@ -7,6 +7,8 @@
 #include <AMReX_Particles.H>
 #include <algorithm>
 #include <array>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "AHFinderParameters.hpp"
@@ -56,6 +58,25 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     // need h from other particles to compute its derivative, and this cannot
     // be accessed from another particle if they are not on the same tile
     std::vector<double> m_h{};
+
+    // h of the last converged surface. The next call to find() starts
+    // from this
+    std::vector<double> m_h_last_good{};
+
+    // Used to name the time series file, so several
+    // finders can run in the same simulation.
+    std::string m_name;
+
+    // Number of completed find() calls
+    int m_num_finds{0};
+
+    // Pseudo-timestep and inf-norm of Theta at the end of the last converged
+    // find()
+    amrex::Real m_last_dt{0.0};
+    double m_last_theta{0.0};
+
+    // Irreducible mass of the last converged surface
+    amrex::Real m_mass{0.0};
 
     // Owns the ring (latitude x longitude) grid: the per-particle
     // directions, the finite-difference stencil, the derivatives of h, and
@@ -129,6 +150,13 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
 
     void init_particle_vals();
 
+    // Append the result of a find() at the given time to the time series
+    // file <output_path>/<name>.dat
+    void write_time_series(amrex::Real time, amrex::Real dt,
+                           amrex::Real restart_time, bool converged, int n_iter,
+                           double theta_norm, amrex::Real area,
+                           amrex::Real mass);
+
     // Set particles' coordinates according to their distance from the centre
     void set_particle_positions(const std::vector<double> &h);
 
@@ -183,11 +211,12 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
 
     AHFinder(int num_particles,
              const std::array<double, AMREX_SPACEDIM> &center,
-             double guess_radius = 1.0)
+             double guess_radius = 1.0, std::string name = "ah")
         : m_num_particles(num_particles), m_n_local(local_count(num_particles)),
           m_start(local_start(num_particles)), interp_coords_x(num_particles),
           interp_coords_y(num_particles), interp_coords_z(num_particles),
-          m_h(num_particles), m_geometry(num_particles, center, guess_radius),
+          m_h(num_particles), m_name(std::move(name)),
+          m_geometry(num_particles, center, guess_radius),
           m_gamma_LL(num_particles), m_metric_query(m_n_local),
           m_theta_vals(num_particles)
     {
@@ -195,7 +224,19 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
 
     void init(GRAmr *gramr_ptr);
 
-    void find();
+    bool find(amrex::Real time = 0.0, amrex::Real dt_evolution = 1.0,
+              amrex::Real restart_time = 0.0);
+
+    void set_center(const std::array<double, AMREX_SPACEDIM> &center)
+    {
+        m_geometry.set_center(center);
+    }
+
+    // Surface radius h at every point
+    [[nodiscard]] const std::vector<double> &h() const { return m_h; }
+
+    // Irreducible mass of the last converged surface
+    [[nodiscard]] amrex::Real mass() const { return m_mass; }
 };
 
 #include "AHFinder.impl.hpp"

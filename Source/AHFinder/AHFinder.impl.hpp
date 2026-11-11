@@ -12,13 +12,13 @@
 #include "CCZ4StateVariables.hpp"
 #include "DefaultLevelBld.hpp"
 #include "Derivative.hpp"
+#include "FilesystemTools.hpp"
 #include "GRAmr.hpp"
 #include "ParticleInterpolator.hpp"
+#include "SmallDataIO.hpp"
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include <cmath>
-#include <filesystem>
-#include <fstream>
 #include <limits>
 
 inline void AHFinder::init(GRAmr *gramr_ptr)
@@ -43,10 +43,14 @@ inline void AHFinder::init(GRAmr *gramr_ptr)
 
     // Initialise h for particles, then place the particles
     this->init_particle_vals();
+    m_h_last_good = m_h;
     this->set_particle_positions(m_h);
+
+    FilesystemTools::ensure_directory_exists(m_params.output_path);
 }
 
-inline void AHFinder::find()
+inline bool AHFinder::find(amrex::Real time, amrex::Real dt_evolution,
+                           amrex::Real restart_time)
 {
     int n_iter = 0;
 
@@ -60,42 +64,17 @@ inline void AHFinder::find()
 
     double theta_old = inf_norm(m_theta_vals);
 
-    // Global pseudo-timestep
+    // Global pseudo-timestep carried over from the last converged find()
+    // and scaled by theta at new position
     amrex::Real dt = m_params.initial_dt;
-
-    const bool io_proc = amrex::ParallelDescriptor::IOProcessor();
-
-    // Temp logging
-    amrex::Print() << "\n AHFinder expansion Theta inf "
-                      "norm = "
-                   << theta_old << "\n";
-
-    std::ofstream theta_log;
-    std::ofstream dt_log;
-
-    if (io_proc)
+    if (m_last_dt > 0.0)
     {
-        theta_log.open("theta_vs_iter.csv");
-        dt_log.open("dt_vs_iter.csv");
-        std::filesystem::create_directory("particles");
-
-        theta_log << n_iter << "," << theta_old << std::endl;
-        dt_log << n_iter << "," << dt << std::endl;
+        const double ratio = std::min(1.0, m_last_theta / theta_old);
+        dt                 = std::max(m_last_dt * ratio, m_min_dt);
     }
 
-    auto write_particles = [&](int iter)
-    {
-        if (!io_proc)
-            return;
-
-        std::ofstream pfile("particles/particles_" + std::to_string(iter) +
-                            ".csv");
-        pfile << "x,y,z\n";
-        for (int ip = 0; ip < m_num_particles; ++ip)
-            pfile << interp_coords_x[ip] << "," << interp_coords_y[ip] << ","
-                  << interp_coords_z[ip] << "\n";
-    };
-    write_particles(n_iter);
+    amrex::Print() << "\n AHFinder " << m_name << " at time " << time
+                   << ": expansion Theta inf norm = " << theta_old << "\n";
 
     std::vector<double> delta_h(m_num_particles);
     std::vector<double> jacobian(static_cast<std::size_t>(m_ldab) *
@@ -143,20 +122,11 @@ inline void AHFinder::find()
                 break;
             }
 
-            amrex::Print() << "\n AHFinder: step with alpha = " << alpha
-                           << " gave theta = " << theta_new
-                           << ", backtracking\n";
-
             alpha *= m_params.backtrack_factor;
         }
 
-        amrex::Print() << "\n theta_old = " << theta_old << "\n";
-
         if (accepted)
         {
-            amrex::Print() << "\n theta_new = " << theta_new
-                           << " (alpha = " << alpha << ")\n";
-
             // A shortened step suggests dt was too large, so scale it by
             // alpha before adapting it for the next step.
             dt = update_dt(alpha * dt, theta_old, theta_new);
@@ -169,10 +139,6 @@ inline void AHFinder::find()
             // no smaller step can be tried
             stalled = (dt <= m_min_dt);
 
-            amrex::Print() << "\n AHFinder: no step reduced theta after "
-                           << m_params.max_backtracks
-                           << " backtracks, reverting h and shrinking dt\n";
-
             // Restore h, and the metric and Theta at h, which the next
             // Jacobian assembly relies on
             m_h = h_old;
@@ -183,17 +149,7 @@ inline void AHFinder::find()
             dt = std::max(dt * m_dt_shrink, m_min_dt);
         }
 
-        amrex::Print() << "-------------------------\n";
-        amrex::Print() << "dt = " << dt << "\n";
-
         n_iter++;
-
-        if (io_proc)
-        {
-            theta_log << n_iter << "," << theta_old << std::endl;
-            dt_log << n_iter << "," << dt << std::endl;
-        }
-        write_particles(n_iter);
 
         if (stalled)
         {
@@ -204,30 +160,79 @@ inline void AHFinder::find()
         }
     }
 
-    if (io_proc)
-    {
-        theta_log.close();
-        dt_log.close();
-    }
+    const bool converged = (theta_old <= m_params.tolerance);
+    amrex::Real area     = 0.0;
+    amrex::Real mass     = 0.0;
 
-    if (theta_old > m_params.tolerance)
+    if (converged)
     {
-        amrex::Print() << "\n AHFinder failed to converge in " << n_iter
+        amrex::Print() << "\n AHFinder " << m_name
+                       << " converged with inf norm of theta = " << theta_old
+                       << " in " << n_iter << " iterations\n";
+
+        area = m_geometry.area(m_start, m_n_local);
+        amrex::Print() << " AHFinder surface area = " << area << "\n";
+
+        mass = std::sqrt(area / (16.0 * M_PI));
+        amrex::Print() << " AHFinder irreducible mass = " << mass << "\n";
+
+        m_h_last_good = m_h;
+        m_last_dt     = dt;
+        m_last_theta  = theta_old;
+        m_mass        = mass;
+    }
+    else
+    {
+        amrex::Print() << "\n AHFinder " << m_name << " failed to converge in "
+                       << n_iter
                        << " iterations, inf norm of theta = " << theta_old
-                       << "\n";
-        return;
+                       << "; reverting to the last converged surface\n";
+
+        // Only use surface from converged find()
+        m_h = m_h_last_good;
+
+        // Reset dt on failure
+        m_last_dt = 0.0;
     }
 
-    amrex::AllPrint() << "\n AHFinder converged with inf norm of theta = "
-                      << theta_old << " in " << n_iter << " iterations\n";
+    write_time_series(time, dt_evolution, restart_time, converged, n_iter,
+                      theta_old, area, mass);
 
-    // Report the converged surface's area and irreducible mass
-    // (Christodoulou formula: M = sqrt(A / 16 pi)).
-    const amrex::Real area = m_geometry.area(m_start, m_n_local);
-    amrex::Print() << " AHFinder surface area = " << area << "\n";
+    ++m_num_finds;
 
-    const amrex::Real mass = std::sqrt(area / (16.0 * M_PI));
-    amrex::Print() << " AHFinder irreducible mass = " << mass << "\n";
+    return converged;
+}
+
+inline void AHFinder::write_time_series(amrex::Real time, amrex::Real dt,
+                                        amrex::Real restart_time,
+                                        bool converged, int n_iter,
+                                        double theta_norm, amrex::Real area,
+                                        amrex::Real mass)
+{
+    // The first call of a run starts a new file, unless this is a restart,
+    // in which case data after the restart time is removed instead
+    const bool first_step = (m_num_finds == 0 && restart_time <= 0.0);
+
+    SmallDataIO time_series(m_params.output_path + "/" + m_name, dt, time,
+                            restart_time, SmallDataIO::APPEND, first_step);
+
+    if (m_num_finds == 0)
+    {
+        time_series.remove_duplicate_time_data();
+    }
+
+    if (first_step)
+    {
+        time_series.write_header_line({"converged", "iterations", "theta_norm",
+                                       "area", "mass", "center_x", "center_y",
+                                       "center_z"});
+    }
+
+    const std::array<double, AMREX_SPACEDIM> &center = m_geometry.center();
+
+    time_series.write_time_data_line(std::vector<amrex::Real>{
+        converged ? 1.0 : 0.0, static_cast<amrex::Real>(n_iter), theta_norm,
+        area, mass, center[0], center[1], center[2]});
 }
 
 inline void AHFinder::init_particle_vals()

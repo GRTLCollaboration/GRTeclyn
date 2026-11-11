@@ -21,7 +21,8 @@ GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
 # Name all directories for relevant source and header files
 # Don't forget the dot! (i.e., example specific files are in current directory)
-src_dirs := $(GRTECLYN_SOURCE)/BlackHoles \
+src_dirs := $(GRTECLYN_SOURCE)/AHFinder \
+            $(GRTECLYN_SOURCE)/BlackHoles \
             $(GRTECLYN_SOURCE)/CCZ4 \
             $(GRTECLYN_SOURCE)/Grids \
             $(GRTECLYN_SOURCE)/GRTeclynCore \

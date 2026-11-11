@@ -25,11 +25,13 @@ bh2.momentum = 0.0 0.0 0.0
 #################################################
 # Grid parameters
 
-amr.n_cell = 256 256 256
-geometry.prob_extent = 8.0 8.0 8.0
+# Small enough to evolve a few steps cheaply, while keeping dx = 1/32 and the
+# punctures at least 1 from the outer boundaries
+amr.n_cell = 128 128 128
+geometry.prob_extent = 4.0 4.0 4.0
 
-# We only need the first timestep's data, so never regrid
-amr.max_level = 1
+# Only a few steps are taken, so a single level that is never regridded
+amr.max_level = 0
 amr.regrid_int = 0
 
 #################################################
@@ -48,12 +50,12 @@ boundary.nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 #################################################
 # Evolution parameters
 
-evolution.max_steps = 1
+# The AH finder is called on the initial data and after each step
+evolution.max_steps = 3
 
 #################################################
 # AH finder parameters
 
-test.num_particles = 2048
 particle_interpolator.verbosity = false
 
 # The surface radius h is evolved by implicit pseudo-transient continuation of
@@ -63,12 +65,20 @@ particle_interpolator.verbosity = false
 # at its minimum). A step that does not reduce Theta is backtracked along the
 # same direction before being rejected.
 
+# BHAmr creates one finder per puncture, centred on bh1 and bh2 (the domain
+# centre is (2, 2, 0)), each starting from the sphere r = 0.5 * mass
+ah_finder.enabled = true
+ah_finder.num_particles = 2048
+ah_finder.centers = 1.0 2.0 0.0  3.0 2.0 0.0
+ah_finder.guess_radii = 0.25 0.25
+
 # Convergence threshold on the inf-norm of Theta
 ah_finder.tolerance = 1e-4
 # Target growth factor of the adaptive pseudo-timestep: dt is scaled each step
 # by r * theta_old / theta_new
 ah_finder.r = 1.15
-# Pseudo-timestep for the first step; adapted thereafter
+# Pseudo-timestep for the first step of the first find(); later finds start
+# from the last converged find's dt. Adapted thereafter
 ah_finder.initial_dt = 1e-2
 # Maximum number of pseudo-time iterations before giving up
 ah_finder.max_iter = 1000

@@ -10,6 +10,8 @@
 
 #include <AMReX_REAL.H>
 
+#include <string>
+
 // The knobs of AHFinder's pseudo-time evolution that are worth varying between
 // runs, read from the "ah_finder" scope of the input file. Defaults are
 // registered (and validated) by check_params(), which runs from
@@ -27,6 +29,10 @@
 // k = 1..max_backtracks, without re-solving. If none of these reduce Theta, h
 // is left unchanged for that iteration and dt is shrunk.
 //
+// find() may be called repeatedly (e.g. every few evolution steps): each call
+// starts from the last converged surface, and appends a line with the
+// surface's area and mass to a time series file in output_path.
+//
 // This continues until the inf-norm of Theta drops below `tolerance`,
 // `max_iter` iterations have been taken, or backtracking fails with dt
 // already at its minimum, so no smaller step can be tried. The
@@ -43,8 +49,9 @@ struct ah_finder_params_t
     // m_dt_shrink. Growth is unbounded.
     amrex::Real r{};
 
-    // Pseudo-timestep used for the first step of each find(). Subsequent
-    // steps adapt it as above.
+    // Pseudo-timestep used for the first step of finding. After the first call
+    // find() starts from the final dt of the last converged find().
+    // Subsequent steps adapt it as above.
     amrex::Real initial_dt{};
 
     // Maximum number of pseudo-time iterations before find() gives up
@@ -59,6 +66,10 @@ struct ah_finder_params_t
     // before the iteration is abandoned (h reverted, dt shrunk). 0 disables
     // backtracking, so a step that does not reduce Theta is simply rejected.
     int max_backtracks{};
+
+    // Directory for the time series output: the
+    // "ah_finder_output" subdirectory of grteclyn.output_path.
+    std::string output_path{};
 
     static void check_params()
     {
@@ -106,6 +117,18 @@ struct ah_finder_params_t
         {
             ah_finder_pp.error("max_backtracks", "must be >= 0");
         }
+
+        // Used by BHAmr to create one finder per puncture, rather than by
+        // AHFinder itself.
+        bool enabled = false;
+        ah_finder_pp.queryAdd("enabled", enabled);
+
+        int num_particles = 2048;
+        ah_finder_pp.queryAdd("num_particles", num_particles);
+        if (num_particles <= 0)
+        {
+            ah_finder_pp.error("num_particles", "must be > 0");
+        }
     }
 
     void fill_params()
@@ -118,6 +141,10 @@ struct ah_finder_params_t
         ah_finder_pp.get("max_iter", max_iter);
         ah_finder_pp.get("backtrack_factor", backtrack_factor);
         ah_finder_pp.get("max_backtracks", max_backtracks);
+
+        GRParmParse pp;
+        pp.get("grteclyn.output_path", output_path);
+        output_path += "/ah_finder_output";
     }
 };
 

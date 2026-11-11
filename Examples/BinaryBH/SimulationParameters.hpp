@@ -7,6 +7,7 @@
 #define SIMULATIONPARAMETERS_HPP
 
 // General includes
+#include "AHFinderParameters.hpp"
 #include "BaseParameterChecker.hpp"
 
 // Problem specific includes:
@@ -45,6 +46,7 @@ class SimulationParameters
 #endif
 
         spherical_extraction_params_t::check_params("weyl_extraction");
+        ah_finder_params_t::check_params();
     }
 };
 
