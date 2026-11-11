@@ -26,14 +26,14 @@ class BoostedBHInitialData
         std::array<amrex::Real, AMREX_SPACEDIM> momentum{};
         int id{};
 
-        AMREX_FORCE_INLINE params_t(int a_id) : id(a_id) {};
+        AMREX_FORCE_INLINE explicit params_t(int a_id) : id(a_id){};
 
         inline static void check_params(int a_id);
 
         inline void fill_params();
     };
 
-    AMREX_FORCE_INLINE BoostedBHInitialData(int a_id);
+    AMREX_FORCE_INLINE explicit BoostedBHInitialData(int a_id);
 
     // conformal factor
     [[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_DEVICE amrex::Real

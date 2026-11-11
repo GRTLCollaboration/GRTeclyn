@@ -33,7 +33,7 @@ class MPILayoutParticle
   private:
     friend class MPIContextParticle;
 
-    MPILayoutParticle(int num_process);
+    explicit MPILayoutParticle(int num_process);
 
     int m_num_process;         // number of processes/ranks
     std::vector<int> m_counts; // how many items/points per rank

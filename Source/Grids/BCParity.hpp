@@ -20,7 +20,7 @@ enum class BCParity
     odd_xy,
     odd_yz,
     odd_xz,
-    odd_xyz
+    odd_xyz,
 };
 
 static inline const std::map<BCParity, amrex::IntVect> bc_parity_map = {

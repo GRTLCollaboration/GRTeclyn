@@ -20,9 +20,9 @@
 
 namespace
 {
-void check_tensor(const Tensor::Rank2 &tensor,
-                  const Tensor::Rank2 &correct_tensor,
-                  const std::string &test_name)
+void check_tensor(
+    const Tensor::Rank2 &tensor, // NOLINT(bugprone-easily-swappable-parameters)
+    const Tensor::Rank2 &correct_tensor, const std::string &test_name)
 {
     FOR (i, j)
     {
@@ -31,9 +31,9 @@ void check_tensor(const Tensor::Rank2 &tensor,
     }
 }
 
-void check_tensor(const Tensor::Rank3 &tensor,
-                  const Tensor::Rank3 &correct_tensor,
-                  const std::string &test_name)
+void check_tensor(
+    const Tensor::Rank3 &tensor, // NOLINT(bugprone-easily-swappable-parameters)
+    const Tensor::Rank3 &correct_tensor, const std::string &test_name)
 {
     FOR (i, j, k)
     {
@@ -43,9 +43,9 @@ void check_tensor(const Tensor::Rank3 &tensor,
     }
 }
 
-void check_tensor(const Tensor::Rank4 &tensor,
-                  const Tensor::Rank4 &correct_tensor,
-                  const std::string &test_name)
+void check_tensor(
+    const Tensor::Rank4 &tensor, // NOLINT(bugprone-easily-swappable-parameters)
+    const Tensor::Rank4 &correct_tensor, const std::string &test_name)
 {
     FOR (i, j, k, l)
     {

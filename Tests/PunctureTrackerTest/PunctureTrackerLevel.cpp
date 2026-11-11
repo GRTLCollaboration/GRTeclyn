@@ -46,7 +46,7 @@ void PunctureTrackerLevel::initData()
         // need to set the puncture coordinates as we use it for the puncture
         // tagging
         GRParmParse puncture_tracking_pp("puncture_tracking");
-        std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_puncture_coords;
+        std::array<amrex::Real, AMREX_SPACEDIM * 2UL> initial_puncture_coords{};
         puncture_tracking_pp.get("initial_coords", initial_puncture_coords);
 
         get_puncture_tracker().set_puncture_coords(initial_puncture_coords);
@@ -137,8 +137,10 @@ void PunctureTrackerLevel::check_puncture_tagging()
     test_pp.get("fake_bh1_mass", fake_bh1_mass);
     test_pp.get("fake_bh2_mass", fake_bh2_mass);
 
-    std::array<amrex::Real, num_punctures> fake_masses{fake_bh1_mass,
-                                                       fake_bh2_mass};
+    std::array<amrex::Real, num_punctures> fake_masses{
+        fake_bh1_mass,
+        fake_bh2_mass,
+    };
     GRParmParse puncture_tagging_pp("puncture_tagging");
     amrex::Real level_separation{};
     puncture_tagging_pp.get("level_separation", level_separation);
@@ -191,8 +193,11 @@ void PunctureTrackerLevel::check_puncture_tagging()
                 for (int ibox = 0; ibox < box_array.size(); ++ibox)
                 {
                     const auto &box = box_array[ibox];
-                    amrex::RealBox real_box{box, Geom().CellSize(),
-                                            Geom().ProbLo()};
+                    amrex::RealBox real_box{
+                        box,
+                        Geom().CellSize(),
+                        Geom().ProbLo(),
+                    };
                     if (real_box.contains(sphere_coords))
                     {
                         point_covered_by_level = true;
@@ -235,7 +240,7 @@ void PunctureTrackerLevel::specific_post_timestep()
         get_puncture_tracker().track(cur_time, dt, write_punctures);
 
         GRParmParse puncture_tracking_pp("puncture_tracking");
-        std::array<amrex::Real, AMREX_SPACEDIM * 2UL> correct_puncture_coords;
+        std::array<amrex::Real, AMREX_SPACEDIM * 2UL> correct_puncture_coords{};
         puncture_tracking_pp.get("initial_coords", correct_puncture_coords);
 
         for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
@@ -245,7 +250,7 @@ void PunctureTrackerLevel::specific_post_timestep()
         }
         auto puncture_coords = get_puncture_tracker().get_puncture_coords();
         constexpr int cout_precision = 16;
-        for (int icoord = 0; icoord < num_puncture_coords; ++icoord)
+        for (unsigned int icoord = 0; icoord < num_puncture_coords; ++icoord)
         {
             INFO("puncture_coords["
                  << icoord << "] = " << std::setprecision(cout_precision)

@@ -148,9 +148,14 @@ void BinaryBHLevel::initData()
         bh2_params.fill_params();
 #endif
 
-        get_puncture_tracker().set_puncture_coords(
-            {bh1_params.center[0], bh1_params.center[1], bh1_params.center[2],
-             bh2_params.center[0], bh2_params.center[1], bh2_params.center[2]});
+        get_puncture_tracker().set_puncture_coords({
+            bh1_params.center[0],
+            bh1_params.center[1],
+            bh1_params.center[2],
+            bh2_params.center[0],
+            bh2_params.center[1],
+            bh2_params.center[2],
+        });
         // can't call start_from_initial_punctures() because we need the full
         // AMR grid first
     }

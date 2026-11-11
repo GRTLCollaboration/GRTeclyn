@@ -35,7 +35,7 @@ class SmallDataIO
     {
         APPEND, // data is APPENDed to the same file at each timestep
         NEW,    // data is written to a NEW file at each timestep
-        READ    // read data
+        READ,   // read data
     };
 
     // A struct for information about the structure of a SmallDataIO file
@@ -43,14 +43,14 @@ class SmallDataIO
     {
         int num_blocks{0}; // a block is separated by 2 blank lines
         std::vector<std::streamoff>
-            block_starts{}; // position offsets from the beginning of the file
+            block_starts; // position offsets from the beginning of the file
 
-        std::vector<int> num_header_rows{};  // the number of header rows in
-                                             // each block
-        std::vector<int> num_data_rows{};    // the number of data rows in each
-                                             // block
-        std::vector<int> num_data_columns{}; // number of data columns in each
-                                             // block
+        std::vector<int> num_header_rows;  // the number of header rows in
+                                           // each block
+        std::vector<int> num_data_rows;    // the number of data rows in each
+                                           // block
+        std::vector<int> num_data_columns; // number of data columns in each
+                                           // block
         void clear();
     };
 
@@ -92,22 +92,24 @@ class SmallDataIO
 
   public:
     //! The full constructor (reading and writing)
-    SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
-                amrex::Real a_time, amrex::Real a_restart_time, Mode a_mode,
-                bool a_first_step, const file_structure_t *a_file_structure,
-                const std::string &a_file_extension = s_default_file_extension,
-                int a_data_precision                = s_default_data_precision,
-                int a_coords_precision     = s_default_coords_precision,
-                int a_filename_steps_width = s_default_filename_steps_width);
+    explicit SmallDataIO(
+        const std::string &a_filename_prefix, amrex::Real a_dt,
+        amrex::Real a_time, amrex::Real a_restart_time, Mode a_mode,
+        bool a_first_step, const file_structure_t *a_file_structure,
+        const std::string &a_file_extension = s_default_file_extension,
+        int a_data_precision                = s_default_data_precision,
+        int a_coords_precision              = s_default_coords_precision,
+        int a_filename_steps_width          = s_default_filename_steps_width);
 
     //! Constructors for writing (opens file)
-    SmallDataIO(const std::string &a_filename_prefix, amrex::Real a_dt,
-                amrex::Real a_time, amrex::Real a_restart_time, Mode a_mode,
-                bool a_first_step,
-                const std::string &a_file_extension = s_default_file_extension,
-                int a_data_precision                = s_default_data_precision,
-                int a_coords_precision     = s_default_coords_precision,
-                int a_filename_steps_width = s_default_filename_steps_width);
+    explicit SmallDataIO(
+        const std::string &a_filename_prefix, amrex::Real a_dt,
+        amrex::Real a_time, amrex::Real a_restart_time, Mode a_mode,
+        bool a_first_step,
+        const std::string &a_file_extension = s_default_file_extension,
+        int a_data_precision                = s_default_data_precision,
+        int a_coords_precision              = s_default_coords_precision,
+        int a_filename_steps_width          = s_default_filename_steps_width);
 
     //! Old constructor which assumes SmallDataIO is called in
     //! specific_post_timestep
@@ -120,10 +122,11 @@ class SmallDataIO
 
     //! Constructors for reading, when m_time, m_dt, m_restart_time are
     //! irrelevant
-    SmallDataIO(const std::string &a_filename_prefix,
-                const std::string &a_file_extension = s_default_file_extension,
-                int a_data_precision                = s_default_data_precision,
-                int a_coords_precision = s_default_coords_precision);
+    explicit SmallDataIO(
+        const std::string &a_filename_prefix,
+        const std::string &a_file_extension = s_default_file_extension,
+        int a_data_precision                = s_default_data_precision,
+        int a_coords_precision              = s_default_coords_precision);
 
     // This version accepts an argument for the file structure as well (if
     // known)

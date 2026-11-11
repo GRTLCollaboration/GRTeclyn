@@ -25,11 +25,13 @@ struct NullBCFill
     }
 };
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void null_bc_fill(const amrex::Box &box, amrex::FArrayBox &data,
                   const int dcomp, const int numcomp,
                   const amrex::Geometry &geom, const amrex::Real time,
                   const amrex::Vector<amrex::BCRec> &bcr, const int bcomp,
                   const int scomp)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::GpuBndryFuncFab<NullBCFill> bndry_func(NullBCFill{});
     bndry_func(box, data, dcomp, numcomp, geom, time, bcr, bcomp, scomp);

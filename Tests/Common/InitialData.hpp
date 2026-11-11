@@ -18,15 +18,19 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
                          const amrex::Array4<amrex::Real> &a_array,
                          const amrex::RealVect &a_coords)
 {
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     amrex::Real x = a_coords[0];
     amrex::Real y = a_coords[1];
     amrex::Real z = a_coords[2];
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
     // NOLINTNEXTLINE(readability-identifier-length)
     amrex::Real g[3][3];
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     amrex::Real g_UU[3][3];
-    amrex::Real chi; // NOLINT(cppcoreguidelines-init-variables)
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
+    amrex::Real chi;
     {
         g[0][0] = 1.36778 + 2.39731 * x + 4.53541 * x * x +
                   19.9771 * x * y * y * y + 6.13801 * y * z + 5.65185 * z * z +
@@ -53,7 +57,8 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
         const amrex::Real detg =
             g[0][0] * g[1][1] * g[2][2] + 2 * g[0][1] * g[0][2] * g[1][2] -
             g[0][0] * g[1][2] * g[1][2] - g[1][1] * g[0][2] * g[0][2] -
-            g[2][2] * g[0][1] * g[0][1];
+            g[2][2] * g[0][1] *
+                g[0][1]; // NOLINT(cppcoreguidelines-init-variables),
         g_UU[0][0] = (g[1][1] * g[2][2] - g[1][2] * g[1][2]) / detg;
         g_UU[0][1] = (g[0][2] * g[1][2] - g[0][1] * g[2][2]) / detg;
         g_UU[0][2] = (g[0][1] * g[1][2] - g[0][2] * g[1][1]) / detg;
@@ -100,7 +105,7 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
         K[2][0] = K[0][2];
         K[2][1] = K[1][2];
 
-        amrex::Real trK = 0;
+        amrex::Real trK = 0; // NOLINT(cppcoreguidelines-init-variables)
         FOR (i, j)
         {
             trK += g_UU[i][j] * K[i][j];
@@ -157,9 +162,11 @@ random_matter_bssn_initial_data(const amrex::IntVect &a_iv,
                                 const amrex::Array4<amrex::Real> &a_array,
                                 const amrex::RealVect &a_coords)
 {
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     amrex::Real x = a_coords[0];
     amrex::Real y = a_coords[1];
     amrex::Real z = a_coords[2];
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     // Theta is zero in BSSN
     a_array(a_iv, c_Theta) = 0.0;

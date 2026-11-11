@@ -26,16 +26,16 @@ static_assert(GR_SPACEDIM == 3, "GR_SPACEDIM must be 3");
 //! Struct for the E and B fields
 struct EBFields_t
 {
-    Tensor::Rank2 E{}; //!< Electric component of Weyltensor
-    Tensor::Rank2 B{}; //!< Magnetic component of Weyltensor
+    Tensor::Rank2 E; //!< Electric component of Weyltensor
+    Tensor::Rank2 B; //!< Magnetic component of Weyltensor
 };
 
 //! Struct for the null tetrad
 struct Tetrad_t
 {
-    Tensor::Rank1 u{}; //!< the vector u^i
-    Tensor::Rank1 v{}; //!< the vector v^i
-    Tensor::Rank1 w{}; //!< the vector w^i
+    Tensor::Rank1 u; //!< the vector u^i
+    Tensor::Rank1 v; //!< the vector v^i
+    Tensor::Rank1 w; //!< the vector w^i
 };
 
 //! Struct for the Newman Penrose scalar
@@ -60,8 +60,10 @@ class Weyl4
     static inline const std::string name = "Weyl4";
 
     /// Variable names
-    static inline const amrex::Vector<std::string> var_names = {"Weyl4_Re",
-                                                                "Weyl4_Im"};
+    static inline const amrex::Vector<std::string> var_names = {
+        "Weyl4_Re",
+        "Weyl4_Im",
+    };
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Constructor of class Weyl4
@@ -95,8 +97,8 @@ class Weyl4
                amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/);
 
   protected:
-    std::array<amrex::Real, AMREX_SPACEDIM> m_center; //!< The grid center
-    amrex::Real m_dx;                                 //!< the grid spacing
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center{}; //!< The grid center
+    amrex::Real m_dx;                                   //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
     int m_dcomp; //!< Which component to store Weyl4_Re (Weyl4_Im will be
                  //!< m_dcomp + 1)

@@ -36,6 +36,7 @@ template <class matter_t> class ConstraintsWithMatter : public Constraints
 
     //! The compute member which calculates the constraints at each point in the
     //! box
+    // NOLINTNEXTLINE(bugprone-derived-method-shadowing-base-method)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &constraints,

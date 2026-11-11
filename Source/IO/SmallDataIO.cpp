@@ -236,7 +236,8 @@ void SmallDataIO::remove_duplicate_time_data(const bool keep_m_time_data)
         m_file.seekg(0);
         std::string line;
         // adding a random integer might make this a little more robust...
-        const unsigned long random_int = std::default_random_engine()();
+        const unsigned long random_int =
+            std::default_random_engine{std::random_device{}()}();
         std::string temp_filename =
             m_filename + ".temp" + std::to_string(random_int);
         std::ofstream temp_file(temp_filename);
@@ -317,7 +318,7 @@ void SmallDataIO::determine_file_structure()
     std::string line;
     int block_counter        = 0; // assume we always have one block
     auto current_position    = file_stream.tellg();
-    int block_start_position = current_position;
+    int block_start_position = static_cast<int>(current_position);
     int header_row_counter   = 0;
     int data_row_counter     = 0;
 
@@ -326,11 +327,11 @@ void SmallDataIO::determine_file_structure()
         if (!line.empty())
         {
             // header rows start with '#'
-            if (line.find('#') == 0)
+            if (line.starts_with('#'))
             {
                 if (header_row_counter == 0)
                 {
-                    block_start_position = current_position;
+                    block_start_position = static_cast<int>(current_position);
                 }
 
                 ++header_row_counter;
@@ -566,8 +567,9 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
             {
                 std::string error_message{
                     "SmallDataIO: " + column_names[input_column] +
-                    " could not be read. Please double check "
-                    "your inputs to SmallDataIO::get_columns"};
+                        " could not be read. Please double check "
+                        "your inputs to SmallDataIO::get_columns",
+                };
                 amrex::Abort(error_message);
             }
         }
@@ -787,7 +789,7 @@ std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
     // append step number to filename (pad to make it
     // a_filename_steps_width digits).
     std::string step_string = std::to_string(step);
-    if (a_filename_steps_width < static_cast<int>(step_string.length()))
+    if (std::cmp_less(a_filename_steps_width, step_string.size()))
     {
         amrex::Abort("SmallDataIO: a_filename_steps_width too small "
                      "for step number");
@@ -826,8 +828,8 @@ void SmallDataIO::broadcast_data(std::vector<SmallDataIO::column_t> &data)
 
     if (amrex::ParallelDescriptor::IOProcessor())
     {
-        nrows = data[0].size();
-        ncols = data.size();
+        nrows = static_cast<int>(data[0].size());
+        ncols = static_cast<int>(data.size());
     }
     amrex::ParallelDescriptor::Bcast(
         &ncols, 1, amrex::ParallelDescriptor::IOProcessorNumber());

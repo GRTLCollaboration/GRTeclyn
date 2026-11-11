@@ -33,7 +33,7 @@ class BoundaryConditions
         UNSET_BC, // sentinel used where physical boundaries do not apply
         FIRST_ORDER_EXTRAPOLATION_BC, // AMReX foextrap
         SOMMERFELD_BC,
-        REFLECTIVE_BC
+        REFLECTIVE_BC,
     };
 
     /// Structure containing the boundary condition params
@@ -60,7 +60,7 @@ class BoundaryConditions
     params_t m_params;        // the boundary params
     amrex::RealVect m_center; // the position of the center of the grid
     amrex::Geometry m_geom;   // the problem domain (excludes boundary cells)
-    mutable amrex::Gpu::DeviceVector<amrex::Real> m_asymptotic_values{};
+    mutable amrex::Gpu::DeviceVector<amrex::Real> m_asymptotic_values;
 
   public:
     /// Default constructor - need to call define afterwards

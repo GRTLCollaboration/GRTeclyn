@@ -21,7 +21,7 @@ class DerivativeBase
     amrex::Real m_one_over_dx2;
 
     AMREX_GPU_HOST_DEVICE
-    DerivativeBase(amrex::Real dx)
+    explicit DerivativeBase(amrex::Real dx)
         : m_dx(dx), m_one_over_dx(1 / dx), m_one_over_dx2(1 / (dx * dx))
     {
     }
@@ -41,8 +41,12 @@ class DerivativeBase
         int k_stride = static_cast<int>(state.stride.a[1]);
         int n_stride = static_cast<int>(state.stride.a[2]);
 
-        amrex::GpuArray<int, AMREX_SPACEDIM + 1> strides{1, j_stride, k_stride,
-                                                         n_stride};
+        amrex::GpuArray<int, AMREX_SPACEDIM + 1> strides{
+            1,
+            j_stride,
+            k_stride,
+            n_stride,
+        };
 
         return strides;
     }
