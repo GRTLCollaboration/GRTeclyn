@@ -88,18 +88,12 @@ void TeukolskyWaveLevel::initData()
         amrex::Print() << "TeukolskyWaveLevel::initData " << Level() << "\n";
     }
 
-    // Load the parity and magnetic number from the parameters file.
-    int magnetic{};
-    std::string parity{};
-    amrex::ParmParse pp;
-    pp.get("teukolsky_wave.magnetic", magnetic);
-    pp.get("teukolsky_wave.parity", parity);
-
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
 
-    TeukolskyWaveInitialData initial_data(Geom().CellSize(0));
-    initial_data.initialize_eppley_packet(magnetic, parity);
+    // Reads the parameters of the wave, including its parity and azimuthal
+    // number
+    const TeukolskyWaveInitialData initial_data(Geom().CellSize(0));
 
     static_assert(std::is_trivially_copyable_v<TeukolskyWaveInitialData>,
                   "TeukolskyWaveInitialData must be device copyable");

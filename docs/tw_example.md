@@ -3,7 +3,7 @@
 This documentation is about the Teukolsky wave example in GRTeclyn.
 It simulates the evolution of a Teukolsky wave (defined in [Teukolsky, 1982](https://journals.aps.org/prd/pdf/10.1103/PhysRevD.26.745)), a linearized quadrupolar gravitational wave in the TT gauge.
 
-Multiple choices exist for the parity of the wave (even or odd) and its azimuthal quantum number M. Note that only the combinations (even, 0), (even, 2) and (odd, 2) are implemented for (parity, M).
+Multiple choices exist for the parity of the wave (even or odd) and its azimuthal quantum number M, set by `teukolsky_wave.parity` and `teukolsky_wave.azimuthal_number` in the parameter files. Note that only the combinations (even, 0), (even, 2) and (odd, 2) are implemented for (parity, M).
 
 
 ## Physical scenario
@@ -37,14 +37,27 @@ where $f_{ij}$ and $d_{ij}$ are angular functions of $\theta,\phi$, and the func
 
 $$ F(x;\mathcal{A},\sigma,r_0) = \frac{\mathcal{A} x}{2}  \left( e^{-((x + r_0)/ \sigma)^2} + e^{-((x - r_0)/ \sigma)^2} \right).$$
 
-As this seed function is not regular at the origin (see [Hilditch, 2015](https://inspirehep.net/literature/1362166)), the initial data is regularized near the origin by evaluating the seed function at
+The metric coefficients A, B and C (K and L) contain inverse powers of $r$ up to $r^{-5}$ ($r^{-4}$), so they cannot be evaluated directly at the origin (see also [Hilditch, 2015](https://inspirehep.net/literature/1362166)). To avoid this, the code evaluates them at the regularized radius
 
 $$ r_{reg} = r + \rho e^{-(r / \rho)^2} \,, $$
 
-where $\rho$ is a regularization parameter, called `regularize_r` in the parameter files.
+where $\rho$ is a regularization parameter, called `regularize_r` in the parameter files. Note that this is a numerical safeguard chosen for this example, not a regularization taken from the literature. It only changes the radius for $r \lesssim \rho$, and for $\rho \ll \sigma \ll r_0$ the wave packets, which are centred at $r = r_0$, are exponentially small there at $t = 0$.
 The parameters in `params.txt` and in `params_light.txt` are such that $\rho \ll \sigma \ll r_0$. The example has not been tested for parameters that do not respect the above condition.
 
-Finally, the metric coefficients are converted to Cartesian coordinates through a standard coordinate transformation, resulting in the expressions given in [`EppleyPacket.impl.hpp`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/TeukolskyWave/EppleyPacket.impl.hpp).
+Finally, the metric coefficients are converted to Cartesian coordinates through a standard coordinate transformation, resulting in the expressions given in [`EppleyPacket.impl.hpp`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/TeukolskyWave/EppleyPacket.impl.hpp). These expressions in Cartesian coordinates will be published in an appendix in an upcoming paper, after which this page will be updated.
+
+### Constraints and validity
+
+The Teukolsky waves are solutions of the *linearized* Einstein equations. Since the initial data are time symmetric (the extrinsic curvature vanishes), the momentum constraint is satisfied exactly. The Hamiltonian constraint, however, is only satisfied to linear order: the violation of the full non-linear constraint on the initial time slice is of second order in the amplitude $\mathcal{A}$. For example, doubling `teukolsky_wave.amplitude` from 0.01 to 0.02 in `params_light.txt` multiplies the initial Hamiltonian constraint `Ham` by approximately 4. The evolution is therefore only meaningful for small amplitudes, which is why the example uses $\mathcal{A} = 0.01$. Once the calculation of the constraint norms is implemented in the main branch, this will be easy to check, and this page will be updated.
+
+In summary, the example currently supports:
+
+- even parity with M = 0 or 2, and odd parity with M = 2;
+- a time-symmetric superposition of an in- and outgoing packet, centred at $r_0>0$;
+- small amplitudes, where the linearized solution is a good approximation;
+- reduced domains using reflective boundaries: an octant for the even-parity cases, and a quadrant (with the reflection in the $xy$-plane turned off) for the odd-parity case.
+
+It does not (yet) support initial data that solve the non-linear constraints (e.g. for larger amplitudes), other combinations of parity and M, or packets centred on the origin, for which the current regularization is not sufficient.
 
 
 ## Computational set up
@@ -71,7 +84,7 @@ For the $M=0$ ($M=2$) case, the Weyl component(s) $\psi_{20}$ ($\psi_{22}$ and $
 See [**Visualising Outputs**](visualising_outputs.md) for details on visualising. Note that checkpoint files are not viewable, only plot files are.
 
 Variables that are interesting to plot are the real part of the Weyl scalar `Weyl4_Re`, and potentially its imaginary part `Weyl4_Im`.
-Additionally, the constraint norms can be useful for checking the accuracy of the run: `Ham`, `Mom1`, `Mom2` and `Mom3`.
+Additionally, the constraint violations stored in the plot files can be useful for checking the accuracy of the run: `Ham`, `Mom1`, `Mom2` and `Mom3`.
 
 ### Plots from data files
 

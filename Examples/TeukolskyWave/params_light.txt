@@ -26,9 +26,9 @@ amr.derive_plot_vars = constraints Weyl4
 # Teukolsky Wave parameters
 
 # Initial Data is provided via the Eppley packet construction.
-# Implemented (parity, magnetic) pairs: (even, 0), (even, 2), (odd, 2)
+# Implemented (parity, azimuthal_number) pairs: (even, 0), (even, 2), (odd, 2)
 teukolsky_wave.parity = even
-teukolsky_wave.magnetic = 0
+teukolsky_wave.azimuthal_number = 0
 # Control parameters for the seed function
 # The code has been designed for the scenario
 # regularize_r << sigma << radial_offset.

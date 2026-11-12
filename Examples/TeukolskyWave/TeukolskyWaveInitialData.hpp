@@ -8,7 +8,6 @@
 
 #include "Coordinates.hpp"
 #include "EppleyPacket.hpp"
-#include "GRParmParse.hpp"
 #include "StateVariables.hpp"
 #include "Tensor.hpp"
 
@@ -16,74 +15,26 @@
 #include <AMReX_REAL.H>
 
 #include <array>
-#include <cstddef>
-#include <set>
 #include <string>
-#include <utility>
 
 // See the docs for further details on these initial conditions
 class TeukolskyWaveInitialData
 {
   public:
-    //! Pure validator: the actual parameter values are owned and read by
-    //! EppleyPacket::params_t, which is what TeukolskyWaveInitialData
-    //! actually uses.
+    //! The parameters of the Teukolsky wave initial data
     struct params_t
     {
-        static void check_params()
-        {
-            // Check that the particular choice of parity and M is implemented
-            GRParmParse tw_pp("teukolsky_wave");
+        EppleyPacket::params_t packet; //!< parameters of the wave packet
+        std::array<amrex::Real, AMREX_SPACEDIM>
+            center{}; //!< center of the wave packet
 
-            int magnetic{0};
-            std::string parity{"even"};
-            tw_pp.queryAdd("magnetic", magnetic);
-            tw_pp.queryAdd("parity", parity);
-            const std::set<std::pair<std::string, int>>
-                implemented_combinations = {
-                    {"even", 0},
-                    {"even", 2},
-                    {"odd",  2}
-            };
-            if (!implemented_combinations.contains({parity, magnetic}))
-            {
-                amrex::Abort("Combination of magnetic/parity not implemented."
-                             " Must be (even, 0), (even, 2) or (odd, 2).");
-            }
-
-            // These are parameters for the seed function
-            amrex::Real sigma{};
-            tw_pp.queryAdd("sigma", sigma);
-            if (sigma <= 0.0)
-            {
-                tw_pp.error("sigma", "must be > 0");
-            }
-            amrex::Real amplitude{};
-            tw_pp.queryAdd("amplitude", amplitude);
-            if (amplitude <= 0.0)
-            {
-                tw_pp.error("amplitude", "must be > 0");
-            }
-            amrex::Real radial_offset{};
-            tw_pp.queryAdd("radial_offset", radial_offset);
-            if (radial_offset <= 0.0)
-            {
-                tw_pp.error("radial_offset", "must be > 0");
-            }
-            amrex::Real regularize_r{};
-            tw_pp.queryAdd("regularize_r", regularize_r);
-            if (regularize_r <= 0.0)
-            {
-                tw_pp.error("regularize_r", "must be > 0");
-            }
-        }
+        static void check_params();
+        void fill_params();
     };
 
+    //! Reads the parameters, and constructs the wave packet from them
     AMREX_FORCE_INLINE
     explicit TeukolskyWaveInitialData(amrex::Real a_dx);
-
-    AMREX_FORCE_INLINE
-    void initialize_eppley_packet(int magnetic, const std::string &parity);
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
@@ -93,8 +44,20 @@ class TeukolskyWaveInitialData
 
   protected:
     amrex::Real m_dx;
-    std::array<amrex::Real, AMREX_SPACEDIM> m_center{};
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
     EppleyPacket m_eppley_packet; //!< The Eppley packet object
+
+  private:
+    AMREX_FORCE_INLINE
+    TeukolskyWaveInitialData(amrex::Real a_dx, const params_t &a_params);
+
+    //! Returns the parameters read from the parameter file
+    static params_t read_params();
+
+    //! Converts the parity and azimuthal number m to the type of the packet,
+    //! aborting if that combination is not implemented
+    static EppleyPacket::Type get_packet_type(const std::string &a_parity,
+                                              int a_azimuthal_number);
 };
 
 #include "TeukolskyWaveInitialData.impl.hpp"
