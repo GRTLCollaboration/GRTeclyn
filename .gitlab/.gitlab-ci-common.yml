@@ -1,15 +1,23 @@
 workflow:
-# Only run GitLab CI on changes in the following paths
   rules:
-    - changes:
-        - Examples/**
-        - external/**
-        - Source/**
-        - Tests/**
-        - Tools/GNUMake/**
-        - .gitlab-ci.yml
-        - .gitlab/**
+    # Pushes to the default branch always run
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: always
+    # Pushes to any other branch: run if the branch differs from the
+    # default branch in relevant files.
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        compare_to: "refs/heads/$CI_DEFAULT_BRANCH"
+        paths:
+          - Examples/**
+          - external/**
+          - Source/**
+          - Tests/**
+          - Tools/GNUMake/**
+          - .gitlab-ci.yml
+          - .gitlab/**
+      when: always
+    # Don't run pipelines for other triggers
     - when: never
 
 stages:
