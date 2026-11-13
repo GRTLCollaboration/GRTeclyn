@@ -38,7 +38,7 @@ csd3-a100-build:
     - >
       mv ${HOME}/${CI_PROJECT_DIR}/Examples/KerrBH/KerrBH3d.gnu.DEBUG.MPI.CUDA.ex
       ${BINARY_DIR}/
-    - mv ${HOME}/${CI_PROJECT_DIR}/Tests/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
+    - cp ${HOME}/${CI_PROJECT_DIR}/Tests/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
 
 csd3-a100-test:
   stage: test
