@@ -62,6 +62,9 @@ class BinaryBHLevel : public GRAmrLevel
     //! Things to do after writing a checkpoint
     void specific_post_checkpoint(const std::string &a_dir,
                                   std::ostream & /*a_os*/) override;
+
+    //! Do our analysis post timestep and post init
+    void do_analysis(bool a_post_init = false);
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */

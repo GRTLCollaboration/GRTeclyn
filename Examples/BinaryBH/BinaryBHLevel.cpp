@@ -355,6 +355,14 @@ void BinaryBHLevel::specific_post_init()
     {
         get_puncture_tracker().start_from_initial_punctures();
     }
+
+    // We need the WeylInterpolator set up here so that we can do WeylExtraction
+    // in do_analysis()
+    auto bh_amr_ptr = get_bh_amr_ptr();
+    bh_amr_ptr->m_weyl_interpolator.setup(bh_amr_ptr);
+
+    bool post_init = true;
+    do_analysis(post_init);
 }
 
 void BinaryBHLevel::specific_post_restart()
@@ -392,6 +400,14 @@ void BinaryBHLevel::specific_post_timestep()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_timestep");
 
+    bool post_init = false;
+    do_analysis(post_init);
+}
+
+void BinaryBHLevel::do_analysis(bool a_post_init)
+{
+    BL_PROFILE("BinaryBHLevel::do_analysis()");
+
     if (get_bh_amr_ptr()->puncture_tracking_enabled())
     {
         GRParmParse puncture_tracking_pp("puncture_tracking");
@@ -401,8 +417,10 @@ void BinaryBHLevel::specific_post_timestep()
         puncture_tracking_pp.get("writeout_level",
                                  puncture_tracking_writeout_level);
 
-        // do puncture tracking on requested level
-        if (Level() == puncture_tracking_level)
+        // track punctures on requested level
+        // no need to do post_init as the initial punctures are written when
+        // start_from_initial_punctures() is called in specific_post_init()
+        if (Level() == puncture_tracking_level && !a_post_init)
         {
             BL_PROFILE("PunctureTracking");
 
@@ -429,7 +447,7 @@ void BinaryBHLevel::specific_post_timestep()
             amrex::Real m_time       = get_state_data(state_index).curTime();
             amrex::Real m_dt         = get_gr_amr_ptr()->dtLevel(Level());
             amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
-            bool first_step          = (m_time <= m_dt);
+            bool first_step          = a_post_init;
 
             WeylExtraction my_extraction(extraction_params, m_dt, m_time,
                                          first_step, restart_time);
