@@ -1,14 +1,24 @@
+# Paths that should trigger a pipeline (used by the workflow rules below)
+.relevant-paths: &relevant_paths
+  - Examples/**
+  - external/**
+  - Source/**
+  - Tests/**
+  - Tools/GNUMake/**
+  - .gitlab-ci.yml
+  - .gitlab/**
+
 workflow:
 # Only run GitLab CI on changes in the following paths
   rules:
-    - changes:
-        - Examples/**
-        - external/**
-        - Source/**
-        - Tests/**
-        - Tools/GNUMake/**
-        - .gitlab-ci.yml
-        - .gitlab/**
+    # GitHub pull requests: run if the PR as a whole touches relevant files
+    - if: '$CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      changes: *relevant_paths
+      when: always
+    # Pushes to the default branch only, so that pull request pipelines do
+    # not duplicate the pipeline for pushes to the pull request branch
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes: *relevant_paths
       when: always
     - when: never
 
