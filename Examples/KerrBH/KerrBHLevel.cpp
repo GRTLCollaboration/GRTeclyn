@@ -8,12 +8,11 @@
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHS.hpp"
 #include "Constraints.hpp"
+#include "Derivatives.hpp"
 #include "FixedGridsTagger.hpp"
-#include "FourthOrderDerivatives.hpp"
 #include "GammaCalculator.hpp"
 #include "KerrBHInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
-#include "SixthOrderDerivatives.hpp"
 
 BHAmr<KerrBHLevel::num_punctures> *KerrBHLevel::get_bh_amr_ptr()
 {
