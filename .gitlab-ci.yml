@@ -1,13 +1,37 @@
 include: '.gitlab/.gitlab-ci-common.yml'
 
+.relevant-paths: &relevant-paths
+  - Examples/**
+  - external/**
+  - Source/**
+  - Tests/**
+  - Tools/GNUMake/**
+  - .gitlab-ci.yml
+  - .gitlab/**
+
+# Jobs run on any branch push, but skip if the branch does not differ from
+# main in relevant files. Comparing against main (not the previous push)
+# means intermediate commits that only touched unrelated files still
+# trigger once the branch as a whole touches relevant paths
+.job-rules: &job-rules
+  rules:
+    # Scheduled pipelines only run the sweep job. This must be the first
+    # rule: scheduled pipelines have $CI_COMMIT_BRANCH set, so later
+    # branch rules would otherwise match and run this job too
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        compare_to: 'refs/heads/main'
+        paths: *relevant-paths
+    - when: never
+
 csd3-a100-build:
   stage: build
   tags:
     - csd3
-  rules:
-    # Scheduled pipelines only run the sweep job, skip the build
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-      when: never
+  <<: *job-rules
   script:
     - cd ${AMREX_HOME}/Tools/Plotfile
     # Build fcompare tool
@@ -51,10 +75,7 @@ csd3-a100-test:
   stage: test
   tags:
     - csd3
-  rules:
-    # Scheduled pipelines only run the sweep job, skip the test
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-      when: never
+  <<: *job-rules
   dependencies:
     - csd3-a100-build
   script:
@@ -114,10 +135,7 @@ csd3-a100-cleanup:
   stage: cleanup
   tags:
     - csd3
-  rules:
-    # Scheduled pipelines only run the sweep job, skip the cleanup job
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-      when: never
+  <<: *job-rules
   needs:
     - job: csd3-a100-test
       optional: true
