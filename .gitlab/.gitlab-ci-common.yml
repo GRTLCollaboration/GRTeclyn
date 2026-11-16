@@ -7,7 +7,7 @@ workflow:
     # default branch in relevant files.
     - if: '$CI_COMMIT_BRANCH'
       changes:
-        compare_to: "refs/heads/$CI_DEFAULT_BRANCH"
+        compare_to: 'refs/heads/main'
         paths:
           - Examples/**
           - external/**
