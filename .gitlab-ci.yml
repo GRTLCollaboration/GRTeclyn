@@ -4,6 +4,10 @@ csd3-a100-build:
   stage: build
   tags:
     - csd3
+  rules:
+    # Scheduled pipelines only run the sweep job, skip the build
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
   script:
     - cd ${AMREX_HOME}/Tools/Plotfile
     # Build fcompare tool
@@ -27,16 +31,19 @@ csd3-a100-build:
       if [[ ! -d ${BINARY_DIR} ]]; then
         mkdir ${BINARY_DIR}
       fi
-    - mv ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${BINARY_DIR}
-    - mv ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${BINARY_DIR}
+    # Copy the built tools and binaries into BINARY_DIR. Copying (rather than
+    # moving) keeps the originals in place so that retrying this job after a
+    # failure simply overwrites the copies
+    - cp ${AMREX_HOME}/Tools/Plotfile/fcompare.gnu.ex ${BINARY_DIR}
+    - cp ${AMREX_HOME}/Tools/Postprocessing/C_Src/particle_compare.exe ${BINARY_DIR}
     - >
-      mv ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/BinaryBH3d.gnu.DEBUG.MPI.CUDA.ex
+      cp ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH/BinaryBH3d.gnu.DEBUG.MPI.CUDA.ex
       ${BINARY_DIR}/
     - >
-      mv ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon/KleinGordon3d.gnu.DEBUG.MPI.CUDA.ex
+      cp ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon/KleinGordon3d.gnu.DEBUG.MPI.CUDA.ex
       ${BINARY_DIR}/
     - >
-      mv ${HOME}/${CI_PROJECT_DIR}/Examples/KerrBH/KerrBH3d.gnu.DEBUG.MPI.CUDA.ex
+      cp ${HOME}/${CI_PROJECT_DIR}/Examples/KerrBH/KerrBH3d.gnu.DEBUG.MPI.CUDA.ex
       ${BINARY_DIR}/
     - mv ${HOME}/${CI_PROJECT_DIR}/Tests/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${BINARY_DIR}
 
@@ -44,19 +51,25 @@ csd3-a100-test:
   stage: test
   tags:
     - csd3
+  rules:
+    # Scheduled pipelines only run the sweep job, skip the test
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
   dependencies:
     - csd3-a100-build
   script:
-    # Move binaries back into their original directories
-    - mv ${BINARY_DIR}/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${HOME}/${CI_PROJECT_DIR}/Tests
+    # Copy binaries back into their original directories. Copying (rather
+    # than moving) keeps the build directory intact so that retrying this
+    # job after a failure simply overwrites the copies
+    - cp ${BINARY_DIR}/Tests3d.gnu.DEBUG.MPI.CUDA.ex ${HOME}/${CI_PROJECT_DIR}/Tests
     - >
-      mv ${BINARY_DIR}/BinaryBH3d.gnu.DEBUG.MPI.CUDA.ex
+      cp ${BINARY_DIR}/BinaryBH3d.gnu.DEBUG.MPI.CUDA.ex
       ${HOME}/${CI_PROJECT_DIR}/Examples/BinaryBH
     - >
-      mv ${BINARY_DIR}/KleinGordon3d.gnu.DEBUG.MPI.CUDA.ex
+      cp ${BINARY_DIR}/KleinGordon3d.gnu.DEBUG.MPI.CUDA.ex
       ${HOME}/${CI_PROJECT_DIR}/Examples/KleinGordon
     - >
-      mv ${BINARY_DIR}/KerrBH3d.gnu.DEBUG.MPI.CUDA.ex
+      cp ${BINARY_DIR}/KerrBH3d.gnu.DEBUG.MPI.CUDA.ex
       ${HOME}/${CI_PROJECT_DIR}/Examples/KerrBH
     - > # Prepare the output directory - there is a single directory for ALL examples
       if [[ ! -d ${OUTPUT_DIR} ]]; then
@@ -94,12 +107,38 @@ csd3-a100-test:
     - >
       ${BINARY_DIR}/particle_compare.exe ${ERR_TOL_FLAGS}
       ${OUTPUT_DIR}/BinaryBH_00008/ ${COMPARE_DIR}/BinaryBH/plt00008_compare/ particles
-  after_script:
-    # This deletes BINARY_DIR but because it was defined in
-    # the before_script, there is no way to access that
-    # environment variable in the after_script
+
+# Automatic cleanup after a successful pipeline: the test artifacts are no
+# longer needed once the test stage has passed
+csd3-a100-cleanup:
+  stage: cleanup
+  tags:
+    - csd3
+  rules:
+    # Scheduled pipelines only run the sweep job, skip the cleanup job
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+  needs:
+    - job: csd3-a100-test
+      optional: true
+  when: on_success
+  script:
     - rm -rf ${HOME}/a100-build-${CI_PIPELINE_ID}
+    - rm -rf ${OUTPUT_DIR}
+
+# On failure the build directory is deliberately kept so the test stage can
+# be retried on its own. Leftover artifacts from failed pipelines are
+# removed by the weekly sweep job below (older than 14 days)
+csd3-a100-sweep:
+  stage: cleanup
+  tags:
+    - csd3
+  rules:
+    # Only ever runs from a scheduled pipeline
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  script:
+    - find ${HOME} -maxdepth 1 -type d -name 'a100-build-*' -mtime +14 -exec rm -rf {} +
     - >
-      if [[ -d ${OUTPUT_DIR} ]]; then
-        rm -rf ${OUTPUT_DIR}
-      fi
+      find /rds/project/rds-YVo7YUJF2mk/grteclyn-ci-svc
+      -maxdepth 1 -type d -name 'a100-test-*' -mtime +14 -exec rm -rf {} +
+    - echo "Sweep complete"
