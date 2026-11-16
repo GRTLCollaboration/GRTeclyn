@@ -1,21 +1,8 @@
 workflow:
   rules:
-    # Pushes to the default branch always run
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: always
-    # Pushes to any other branch: run if the branch differs from the
-    # default branch in relevant files.
+    # Pushes to any branch run at the workflow level; the per-job rules
+    # below filter on whether the branch differs from main in relevant files
     - if: '$CI_COMMIT_BRANCH'
-      changes:
-        compare_to: 'refs/heads/main'
-        paths:
-          - Examples/**
-          - external/**
-          - Source/**
-          - Tests/**
-          - Tools/GNUMake/**
-          - .gitlab-ci.yml
-          - .gitlab/**
       when: always
     # Don't run pipelines for other triggers
     - when: never
