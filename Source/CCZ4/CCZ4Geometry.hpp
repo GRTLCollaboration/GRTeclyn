@@ -43,7 +43,6 @@ namespace CCZ4Geometry
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_metric_determinant(const CCZ4Vars &vars)
 {
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     amrex::Real det = vars.h(0, 0) * vars.h(1, 1) * vars.h(2, 2) +
                       2 * vars.h(0, 1) * vars.h(0, 2) * vars.h(1, 2) -
                       vars.h(0, 0) * vars.h(1, 2) * vars.h(1, 2) -
@@ -56,9 +55,7 @@ compute_metric_determinant(const CCZ4Vars &vars)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 compute_inverse_metric(const CCZ4Vars &vars)
 {
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-    amrex::Real det_h = compute_metric_determinant(vars);
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
+    amrex::Real det_h         = compute_metric_determinant(vars);
     amrex::Real det_h_inverse = 1. / det_h;
     Tensor::Rank2 h_UU{};
 
@@ -101,7 +98,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_trace_A(const CCZ4Vars &vars)
 {
     Tensor::Rank2 inverse_metric = compute_inverse_metric(vars);
-    amrex::Real trace_A = 0.0; // NOLINT(cppcoreguidelines-init-variables)
+    amrex::Real trace_A          = 0.0;
     FOR (i, j)
     {
         trace_A += inverse_metric(i, j) * vars.A(i, j);
@@ -113,7 +110,7 @@ compute_trace_A(const CCZ4Vars &vars)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_Aij_squared(const CCZ4Vars &vars, const Tensor::Rank2 &inverse_metric)
 {
-    amrex::Real Aij_squared = 0.0; // NOLINT(cppcoreguidelines-init-variables)
+    amrex::Real Aij_squared = 0.0;
     FOR (i, j, k, l)
     {
         Aij_squared += inverse_metric(i, k) * inverse_metric(j, l) *
@@ -126,7 +123,7 @@ compute_Aij_squared(const CCZ4Vars &vars, const Tensor::Rank2 &inverse_metric)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_Aij_squared_with_A_UU(const CCZ4Vars &vars, const Tensor::Rank2 &A_UU)
 {
-    amrex::Real Aij_squared = 0.0; // NOLINT(cppcoreguidelines-init-variables)
+    amrex::Real Aij_squared = 0.0;
     FOR (i, j)
     {
         Aij_squared += A_UU(i, j) * vars.A(i, j);
@@ -198,7 +195,7 @@ compute_phys_chris(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_divshift(Tensor::Rank2 &d1_shift)
 {
-    amrex::Real divshift = 0.; // NOLINT(cppcoreguidelines-init-variables)
+    amrex::Real divshift = 0.;
     FOR (i)
         divshift += d1_shift(i, i);
     return divshift;
@@ -211,7 +208,6 @@ make_trace_free(Tensor::Rank2 &tensor_LL, const CCZ4Vars vars,
                 const Tensor::Rank2 &inverse_metric)
 {
     auto trace = TensorAlgebra::compute_trace(tensor_LL, inverse_metric);
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     amrex::Real one_over_gr_spacedim =
         1. / (static_cast<amrex::Real>(GR_SPACEDIM));
     FOR (i, j)
@@ -226,7 +222,7 @@ compute_z_terms(const int i,
                 const Tensor::Rank1 &Z_over_chi, const CCZ4Vars &vars,
                 const Tensor::Rank1 &d1_chi)
 {
-    amrex::Real out = 0.; // NOLINT(cppcoreguidelines-init-variables)
+    amrex::Real out = 0.;
     FOR (k)
     {
         out += Z_over_chi(k) *
@@ -245,7 +241,7 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
 // NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
-    amrex::Real ricci_hat = 0; // NOLINT(cppcoreguidelines-init-variables)
+    amrex::Real ricci_hat = 0;
 
     FOR (k)
     {
@@ -259,11 +255,8 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
 
         FOR (l)
         {
-            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
             amrex::Real chris_LLU_jkl = 0.0;
-            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
             amrex::Real chris_LLU_ikl = 0.0;
-            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
             amrex::Real chris_LLU_kjl = 0.0;
 
             FOR (m)
@@ -307,9 +300,7 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
             covdtilde2chi(k, l) -= chris.ULL(m, k, l) * d1_chi(m);
         }
     }
-
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-    amrex::Real boxtildechi   = 0.; // NOLINT(cppcoreguidelines-init-variables)
+    amrex::Real boxtildechi   = 0.;
     amrex::Real dchi_dot_dchi = 0.;
     FOR (i, j)
     {
@@ -319,20 +310,14 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
 
     FOR (i, j)
     {
-
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real ricci_hat =
             compute_ricci_hat(i, j, vars, d1_Gamma, d1_h, d2_h, h_UU, chris);
-
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real ricci_chi =
             0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi(i, j) +
                    vars.h(i, j) * boxtildechi -
                    ((GR_SPACEDIM - 2) * d1_chi(i) * d1_chi(j) +
                     GR_SPACEDIM * vars.h(i, j) * dchi_dot_dchi) /
                        (2 * vars.chi()));
-
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real z_terms = compute_z_terms(i, j, Z_over_chi, vars, d1_chi);
 
         out.LL(i, j) =
@@ -359,7 +344,6 @@ compute_d1_chris_contracted(const Tensor::Rank2 &h_UU,
 
         FOR (m, n, p)
         {
-            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
             amrex::Real d1_terms = 0.0;
             FOR (q, r)
             {
@@ -413,7 +397,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
                  vars.h(m, j) * (d1_chris_contracted(m, i) - d1_Gamma(m, i)) +
                  (chris.contracted(m) - vars.Gamma(m)) * d1_h(i, j, m));
         }
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real z_terms  = compute_z_terms(i, j, Z_over_chi, vars, d1_chi);
         ricci.LL(i, j)      += 0.5 * dZ_coeff * z_terms / vars.chi();
     }

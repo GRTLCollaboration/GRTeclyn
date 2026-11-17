@@ -172,8 +172,6 @@ void run_spherical_extraction_test()
         for (int iradius = 0; iradius < num_extraction_radii; ++iradius)
         {
             amrex::ParticleReal r = extraction_radii[iradius];
-
-            // NOLINTBEGIN(cppcoreguidelines-init-variables)
             amrex::ParticleReal integral_re_lo_trapezium =
                 integral_lo_trapezium.first[iradius];
             amrex::ParticleReal integral_re_hi_trapezium =
@@ -186,7 +184,6 @@ void run_spherical_extraction_test()
                 integral_lo_boole.first[iradius];
             amrex::ParticleReal integral_re_hi_boole =
                 integral_hi_boole.first[iradius];
-            // NOLINTEND(cppcoreguidelines-init-variables)
 
             amrex::ParticleReal analytic_integral = 1.0;
 

@@ -150,7 +150,6 @@ amrex::Real GRAmrLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
     BL_PROFILE("GRAmrLevel::advance()");
     if (get_gr_amr_ptr()->Verbose() > 0)
     {
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         amrex::Real seconds_per_hour = 3600.;
         amrex::Real evolution_speed =
             (time - get_gr_amr_ptr()->get_restart_time()) * seconds_per_hour /
@@ -193,8 +192,7 @@ void GRAmrLevel::post_timestep(int /*iteration*/)
         auto &fine_level              = parent->getLevel(Level() + 1);
         amrex::MultiFab &state_fine   = fine_level.get_new_data(state_index);
         amrex::MultiFab &state_coarse = this->get_new_data(state_index);
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-        amrex::Real t = get_state_data(state_index).curTime();
+        amrex::Real t                 = get_state_data(state_index).curTime();
 
         amrex::IntVect ratio = parent->refRatio(lev);
         AMREX_ASSERT(ratio == 2 || ratio == 4);
@@ -254,13 +252,10 @@ void GRAmrLevel::post_restart()
 void GRAmrLevel::init(amrex::AmrLevel &old)
 {
     BL_PROFILE("GRAmrLevel::init()");
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-    amrex::Real dt_new = parent->dtLevel(level);
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
+    amrex::Real dt_new    = parent->dtLevel(level);
     amrex::Real cur_time  = old.get_state_data(state_index).curTime();
     amrex::Real prev_time = old.get_state_data(state_index).prevTime();
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-    amrex::Real dt_old = cur_time - prev_time;
+    amrex::Real dt_old    = cur_time - prev_time;
     setTimeLevel(cur_time, dt_old, dt_new);
 
     amrex::MultiFab &S_new = get_new_data(state_index);
@@ -270,7 +265,6 @@ void GRAmrLevel::init(amrex::AmrLevel &old)
 void GRAmrLevel::init()
 {
     BL_PROFILE("GRAmrLevel::init()");
-    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     amrex::Real dt = parent->dtLevel(level);
     const auto &coarse_state =
         parent->getLevel(level - 1).get_state_data(state_index);
@@ -280,7 +274,6 @@ void GRAmrLevel::init()
         (cur_time - prev_time) /
         static_cast<amrex::Real>(parent->MaxRefRatio(level - 1));
     setTimeLevel(cur_time, dt_old, dt);
-    // NOLINTEND(cppcoreguidelines-init-variables)
 
     amrex::MultiFab &S_new = get_new_data(state_index);
     FillCoarsePatch(S_new, 0, cur_time, state_index, 0, S_new.nComp());
@@ -299,7 +292,6 @@ void GRAmrLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
     amrex::Vector<double> regrid_thresholds;
     GRParmParse pp;
     pp.getarr("tagging.thresholds", regrid_thresholds);
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     amrex::Real regrid_threshold = regrid_thresholds[Level()];
     tag_cells(a_tag_box_array, regrid_threshold);
 }

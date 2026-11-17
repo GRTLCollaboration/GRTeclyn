@@ -573,8 +573,6 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
                 amrex::Abort(error_message);
             }
         }
-
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         const int ncols = m_file_structure.num_data_columns[a_block];
 
         // To avoid calling std::map::find for each row of data,
@@ -622,7 +620,6 @@ void SmallDataIO::get_all_data_columns(std::vector<SmallDataIO::column_t> &out,
 {
     assert(m_structure_defined);
     int min_data_column = 0;
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     int max_data_column = m_file_structure.num_data_columns[a_block];
     get_columns(out, min_data_column, max_data_column, a_block);
 }
@@ -688,7 +685,6 @@ void SmallDataIO::get_header_strings(std::vector<std::string> &header,
         header.resize(m_file_structure.num_data_columns[0]);
 
         std::istringstream file_stream(m_file_contents);
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         int nlines_to_skip = m_file_structure.num_header_rows[a_block] - 1;
         skip_ahead(file_stream, nlines_to_skip, a_block);
 

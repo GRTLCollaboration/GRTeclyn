@@ -70,7 +70,6 @@ class FixedGridsTagger
                                        m_dx, m_center[direction]);
 
             // clang-tidy incorrectly treats this initializer as missing.
-            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
             amrex::Real distance_to_boundary =
                 m_domain_lengths[direction] - m_center[direction];
             if (coordinate_from_center < 0.0)
