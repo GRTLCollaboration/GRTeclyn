@@ -22,13 +22,13 @@ KleinGordonRHS<model_t, deriv_t>::operator()(
     amrex::Array1D<amrex::Real, 0, AMREX_SPACEDIM>
         d2_phi{}; // no cross second order derivatives needed
     amrex::Array1D<int, 0, AMREX_SPACEDIM> strides{
-        AMREX_D_DECL(1, static_cast<int>(state.stride.a[0]),
-                     static_cast<int>(state.stride.a[1]))};
+        AMREX_D_DECL(1, static_cast<int>(state.template get_stride<1>()),
+                     static_cast<int>(state.template get_stride<2>()))};
 
     FOR (i)
     {
-        d2_phi(i) = m_deriv.diff2(state_ptr_ijk + c_phi * state.stride.a[2],
-                                  strides(i));
+        d2_phi(i) = m_deriv.diff2(
+            state_ptr_ijk + c_phi * state.template get_stride<3>(), strides(i));
     }
 
     rhs_equation(rhs_state.cellData(ix, iy, iz), state.cellData(ix, iy, iz),
