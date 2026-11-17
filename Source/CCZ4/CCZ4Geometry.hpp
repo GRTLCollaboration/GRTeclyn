@@ -349,11 +349,10 @@ compute_d1_chris_contracted(const Tensor::Rank2 &h_UU,
 // This function allows adding arbitrary multiples of D_{(i}Z_{j)}
 // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
-    const CCZ4Vars &vars,
-    const Tensor::Rank1 &d1_chi const Tensor::Rank2 &d1_Gamma,
-    const Tensor::Sym12Rank3 &d1_h, const Tensor::Sym12Rank2 &d2_chi,
-    const Tensor::Sym12Sym34Rank4 &d2_h, const Tensor::Rank2 &h_UU,
-    const chris_t &chris, const amrex::Real dZ_coeff)
+    const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
+    const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
+    const Tensor::Sym12Rank2 &d2_chi, const Tensor::Sym12Sym34Rank4 &d2_h,
+    const Tensor::Rank2 &h_UU, const chris_t &chris, const amrex::Real dZ_coeff)
 {
     // get contributions from conformal metric and factor with zero Z vector
     Tensor::Rank1 zero_Z{};
@@ -394,12 +393,11 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
 
 // This function returns the pure Ricci scalar with no contribution from the
 // Z vector - used e.g. in the constraint calculations.
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t
-compute_ricci(const CCZ4Vars &vars,
-              const Tensor::Rank1 &d1_chi const Tensor::Rank2 &d1_Gamma,
-              const Tensor::Sym12Rank3 &d1_h, const Tensor::Sym12Rank2 &d2_chi,
-              const Tensor::Sym12Sym34Rank4 &d2_h, const Tensor::Rank2 &h_UU,
-              const chris_t &chris)
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci(
+    const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
+    const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
+    const Tensor::Sym12Rank2 &d2_chi, const Tensor::Sym12Sym34Rank4 &d2_h,
+    const Tensor::Rank2 &h_UU, const chris_t &chris)
 {
     return compute_ricci_Z_general(vars, d1_chi, d1_Gamma, d1_h, d2_chi, d2_h,
                                    h_UU, chris, 0.0);

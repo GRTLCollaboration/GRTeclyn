@@ -41,7 +41,8 @@ class ParticleInterpolatorLevel : public GRAmrLevel
         const int c_polystate2 = c_phi;
 
         std::array<amrex::Real, AMREX_SPACEDIM> center{
-            AMREX_D_DECL(0., 0., 0.)};
+            AMREX_D_DECL(0., 0., 0.),
+        };
         GRParmParse pp;
         pp.query("geometry.center", center);
 

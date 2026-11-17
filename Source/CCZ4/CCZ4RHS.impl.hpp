@@ -295,6 +295,5 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<deriv_t>::apply_dissipation(
     m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state, m_sigma,
                             NUM_CCZ4_VARS);
 }
-// NOLINTEND(readability-function-cognitive-complexity)
 
 #endif /* CCZ4RHS_IMPL_HPP_ */
