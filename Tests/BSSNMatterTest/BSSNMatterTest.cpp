@@ -71,11 +71,9 @@ void run_bssn_matter_test()
 
         const auto &in_array = in_mf.arrays();
 
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             in_mf, in_mf.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int ibox, int i, int j, int k)
-            // NOLINTEND(bugprone-easily-swappable-parameters)
             {
                 const amrex::IntVect iv{i, j, k};
                 const amrex::RealVect coords = amrex::RealVect{iv} * dx;
@@ -129,7 +127,6 @@ void run_bssn_matter_test()
 
         // calculate the vacuum solution
 
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             out_mf,
             [=] AMREX_GPU_DEVICE(int ibox, int ix, int iy, int iz)
@@ -162,7 +159,6 @@ void run_bssn_matter_test()
                     ix, iy, iz, out_mf_array[ibox], in_c_array[ibox]);
             });
 
-        // NOLINTEND(bugprone-easily-swappable-parameters)
         amrex::Real time = 0.0;
         int *bcrec       = nullptr;
         int level        = 0;

@@ -65,7 +65,6 @@ class Weyl4
         "Weyl4_Im",
     };
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Constructor of class Weyl4
     /*!
         Takes in the centre for the calculation of the tetrads, grid spacing and
@@ -80,7 +79,6 @@ class Weyl4
         extraction_pp.get("center", m_center);
         pp.get("ccz4.formulation", m_formulation);
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     //! Computes Weyl4 in a cell
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void

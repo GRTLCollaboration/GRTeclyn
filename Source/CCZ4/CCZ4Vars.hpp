@@ -26,8 +26,7 @@ class CCZ4Vars
     }
 
     [[nodiscard]]
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &
-    h(int i, int j) const // NOLINT(bugprone-easily-swappable-parameters)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &h(int i, int j) const
     {
         return cell_data[sym_var_idx(c_h11, i, j)];
     }
@@ -39,8 +38,7 @@ class CCZ4Vars
     }
 
     [[nodiscard]]
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &
-    A(int i, int j) const // NOLINT(bugprone-easily-swappable-parameters)
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE const amrex::Real &A(int i, int j) const
     {
         return cell_data[sym_var_idx(c_A11, i, j)];
     }

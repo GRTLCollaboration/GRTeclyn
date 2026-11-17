@@ -117,7 +117,6 @@ template <int num_components> class LineExtraction
     }
 
   public:
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     LineExtraction(const std::string &a_param_scope, int a_start_comp,
                    amrex::Real a_dt, amrex::Real a_time,
                    amrex::Real a_restart_time, bool a_first_step)
@@ -137,7 +136,6 @@ template <int num_components> class LineExtraction
             }
         }
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     ~LineExtraction() = default;
 

@@ -23,7 +23,6 @@ struct Y_lm_t
     amrex::Real magnitude;
 };
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 // Calculates the spin weight es, el, em spherical harmonic
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Y_lm_t
 spin_Y_lm(const amrex::Real x, const amrex::Real y, const amrex::Real z,
@@ -65,7 +64,6 @@ spin_Y_lm(const amrex::Real x, const amrex::Real y, const amrex::Real z,
 
     return Y_lm;
 }
-// NOLINTEND(bugprone-easily-swappable-parameters)
 
 } // namespace SphericalHarmonics
 

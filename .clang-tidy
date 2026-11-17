@@ -4,6 +4,7 @@ Checks: >
      clang-analyzer-*,
      bugprone-*,
       -bugprone-throwing-static-initialization,
+      -bugprone-easily-swappable-parameters,
      cppcoreguidelines-*,
       -cppcoreguidelines-no-malloc,
       -cppcoreguidelines-avoid-magic-numbers,

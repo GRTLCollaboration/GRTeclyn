@@ -23,8 +23,6 @@ class FourthOrderDerivatives : protected DerivativeBase
     AMREX_GPU_HOST_DEVICE
     explicit FourthOrderDerivatives(amrex::Real dx) : DerivativeBase(dx) {}
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     diff1(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
     {
@@ -495,7 +493,6 @@ class FourthOrderDerivatives : protected DerivativeBase
         }
     }
     // NOLINTEND(readability-convert-member-functions-to-static)
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 };
 
 #endif /* FOURTHORDERDERIVATIVES_HPP_ */

@@ -29,7 +29,6 @@ void PunctureTrackerLevel::initData()
     amrex::MultiFab &state = get_new_data(state_index);
     const auto &arrs       = state.arrays();
     amrex::ParallelFor(state, state.nGrowVect(),
-                       // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
                            const auto &array = arrs[box_no];
@@ -56,7 +55,6 @@ void PunctureTrackerLevel::initData()
 }
 
 // Calculate RHS during RK4 substeps
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void PunctureTrackerLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                              amrex::MultiFab &a_rhs,
                                              const amrex::Real /*a_time*/)
@@ -108,7 +106,6 @@ void PunctureTrackerLevel::specific_post_restart()
     get_puncture_tracker().restart(restart_checkpoint);
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void PunctureTrackerLevel::specific_post_regrid(int a_lbase, int a_new_finest)
 {
     // During initial data construction, we expect the finest level to increment

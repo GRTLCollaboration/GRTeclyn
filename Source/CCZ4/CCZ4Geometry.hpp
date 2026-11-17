@@ -133,10 +133,8 @@ compute_Aij_squared_with_A_UU(const CCZ4Vars &vars, const Tensor::Rank2 &A_UU)
 
 /// Computes the conformal christoffel symbol - using tensors
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t
 compute_christoffel(const Tensor::Sym12Rank3 &d1_h, const Tensor::Rank2 &h_UU)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     chris_t out{};
 
@@ -168,12 +166,10 @@ compute_christoffel(const Tensor::Sym12Rank3 &d1_h, const Tensor::Rank2 &h_UU)
 
 /// Computes the conformal christoffel symbol
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE Tensor::Rank3
 compute_phys_chris(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
                    const Tensor::Rank2 &h_UU, const Tensor::Rank3 &chris_ULL)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     using namespace TensorAlgebra;
     Tensor::Rank3 chris_phys{};
@@ -217,10 +213,8 @@ make_trace_free(Tensor::Rank2 &tensor_LL, const CCZ4Vars vars,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-compute_z_terms(const int i,
-                const int j, // NOLINT(bugprone-easily-swappable-parameters)
-                const Tensor::Rank1 &Z_over_chi, const CCZ4Vars &vars,
-                const Tensor::Rank1 &d1_chi)
+compute_z_terms(const int i, const int j, const Tensor::Rank1 &Z_over_chi,
+                const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi)
 {
     amrex::Real out = 0.;
     FOR (k)
@@ -232,13 +226,11 @@ compute_z_terms(const int i,
     return out;
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
                   const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
                   const Tensor::Sym12Sym34Rank4 &d2_h,
                   const Tensor::Rank2 &h_UU, const chris_t &chris)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
     amrex::Real ricci_hat = 0;
@@ -280,14 +272,12 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
 
     return ricci_hat;
 }
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t
 compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
                 const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
                 const Tensor::Sym12Sym34Rank4 &d2_h,
                 const Tensor::Sym12Rank2 &d2_chi, const Tensor::Rank2 &h_UU,
                 const chris_t &chris, const Tensor::Rank1 &Z_over_chi)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     ricci_t out;
 
@@ -329,12 +319,10 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
     return out;
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 compute_d1_chris_contracted(const Tensor::Rank2 &h_UU,
                             const Tensor::Sym12Rank3 &d1_h,
                             const Tensor::Sym12Sym34Rank4 &d2_h)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank2 d1_chris_contracted{};
 
@@ -362,10 +350,10 @@ compute_d1_chris_contracted(const Tensor::Rank2 &h_UU,
 // to the Ricci scalar rather than the default of 2 in compute_ricci_Z
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
     const CCZ4Vars &vars,
-    const Tensor::Rank1 &d1_chi, // NOLINT(bugprone-easily-swappable-parameters)
-    const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
-    const Tensor::Sym12Rank2 &d2_chi, const Tensor::Sym12Sym34Rank4 &d2_h,
-    const Tensor::Rank2 &h_UU, const chris_t &chris, const amrex::Real dZ_coeff)
+    const Tensor::Rank1 &d1_chi const Tensor::Rank2 &d1_Gamma,
+    const Tensor::Sym12Rank3 &d1_h, const Tensor::Sym12Rank2 &d2_chi,
+    const Tensor::Sym12Sym34Rank4 &d2_h, const Tensor::Rank2 &h_UU,
+    const chris_t &chris, const amrex::Real dZ_coeff)
 {
     // get contributions from conformal metric and factor with zero Z vector
     Tensor::Rank1 zero_Z{};
@@ -406,12 +394,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci_Z_general(
 
 // This function returns the pure Ricci scalar with no contribution from the
 // Z vector - used e.g. in the constraint calculations.
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t compute_ricci(
-    const CCZ4Vars &vars,
-    const Tensor::Rank1 &d1_chi, // NOLINT(bugprone-easily-swappable-parameters)
-    const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
-    const Tensor::Sym12Rank2 &d2_chi, const Tensor::Sym12Sym34Rank4 &d2_h,
-    const Tensor::Rank2 &h_UU, const chris_t &chris)
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t
+compute_ricci(const CCZ4Vars &vars,
+              const Tensor::Rank1 &d1_chi const Tensor::Rank2 &d1_Gamma,
+              const Tensor::Sym12Rank3 &d1_h, const Tensor::Sym12Rank2 &d2_chi,
+              const Tensor::Sym12Sym34Rank4 &d2_h, const Tensor::Rank2 &h_UU,
+              const chris_t &chris)
 {
     return compute_ricci_Z_general(vars, d1_chi, d1_Gamma, d1_h, d2_chi, d2_h,
                                    h_UU, chris, 0.0);

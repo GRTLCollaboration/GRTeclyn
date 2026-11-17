@@ -32,7 +32,6 @@ constexpr int ulp = 15; // units in the last place
 constexpr amrex::Real real_epsilon =
     std::numeric_limits<amrex::Real>::epsilon();
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void check_tensor(const Tensor::Rank2 &tensor,
                   const Tensor::Rank2 &correct_tensor,
                   const std::string &test_name)
@@ -76,7 +75,6 @@ void check_vector(const Tensor::Rank1 &vector,
 void check_rotation(const Tensor::Rank2 &rotation, const Tensor::Rank1 &origin,
                     const Tensor::Rank1 &destination,
                     const std::string &test_name)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real norm_origin = std::sqrt(
         origin(0) * origin(0) + origin(1) * origin(1) + origin(2) * origin(2));
@@ -281,15 +279,13 @@ void run_coordinate_transformations_test()
                        "rotation_matrix (generic axis)");
 
         // Test rotation_matrix(origin, destination)
-        auto check_rotation_between =
-            // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-            [](const Tensor::Rank1 &origin, const Tensor::Rank1 &destination,
-               const std::string &test_name)
+        auto check_rotation_between = [](const Tensor::Rank1 &origin,
+                                         const Tensor::Rank1 &destination,
+                                         const std::string &test_name)
         {
             check_rotation(rotation_matrix(origin, destination), origin,
                            destination, test_name);
         };
-        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         // KerrBH default spin direction onto the z axis
         check_rotation_between({0.1, 0.1, 0.}, {0., 0., 1.},

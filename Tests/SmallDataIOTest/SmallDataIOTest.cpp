@@ -22,10 +22,8 @@ std::vector<amrex::Real> generate_random_numbers(const int Npts)
 
     return data_host;
 }
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 bool check_almost_equal(std::vector<amrex::Real> vector_1,
                         std::vector<amrex::Real> vector_2, amrex::Real err_tol)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // Check that the vector_1 is equal to vector_2 within err_tol
 
@@ -45,10 +43,8 @@ bool check_almost_equal(std::vector<amrex::Real> vector_1,
 
     return true;
 }
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void test_small_data_io_writer(const std::vector<SmallDataIO::column_t> &col,
                                const int data_precision)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     const std::string filename_prefix{"test_"};
     amrex::Real dt{0.1};
@@ -93,7 +89,6 @@ test_small_data_io_reader(const std::vector<std::string> &column_names)
     return data;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 std::vector<SmallDataIO::column_t>
 test_small_data_io_reader(const int a_min_col, const int a_max_col)
 {

@@ -13,12 +13,10 @@
 #include "DimensionDefinitions.hpp"
 #include "GRInterval.hpp"
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class deriv_t>
 inline CCZ4RHS<deriv_t>::CCZ4RHS(amrex::Real a_dx,
                                  amrex::Real a_cosmological_constant)
     : m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     m_params.fill_params();
 

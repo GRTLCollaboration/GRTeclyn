@@ -46,7 +46,6 @@ class Wave
     params_t m_params;
     amrex::Real m_t0{0.0};
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     Wave()
     {
         amrex::ParmParse pp;
@@ -55,11 +54,9 @@ class Wave
         m_params.fill_params();
     }
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate(const amrex::Real x, const amrex::Real y, const amrex::Real z,
               const amrex::Real t) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         amrex::Real omega = m_params.k_r;
 
@@ -70,11 +67,9 @@ class Wave
         return std::cos(m_params.k_r * rr2 - omega * (t + m_t0));
     };
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate_time_derivative(const amrex::Real x, const amrex::Real y,
                               const amrex::Real z, const amrex::Real t) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         amrex::Real omega = m_params.k_r;
 
@@ -85,11 +80,9 @@ class Wave
         return omega * std::sin(m_params.k_r * rr2 - omega * (t + m_t0));
     };
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
                       const amrex::Real &phi) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
         V_of_phi =

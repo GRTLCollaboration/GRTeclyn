@@ -43,7 +43,6 @@ class SphericalExtraction
     {
     }
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     SphericalExtraction(const params_t &a_params,
                         const std::vector<vars_t> &a_vars, amrex::Real a_dt,
                         amrex::Real a_time, bool a_first_step,
@@ -53,9 +52,7 @@ class SphericalExtraction
     {
         this->add_vars(a_vars);
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     SphericalExtraction(const params_t &a_params,
                         const std::vector<int> &a_state_vars, amrex::Real a_dt,
                         amrex::Real a_time, bool a_first_step,
@@ -65,7 +62,6 @@ class SphericalExtraction
     {
         this->add_state_vars(a_state_vars);
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // alias this long type used for complex functions defined on the surface
     // and dependent on the interpolated data

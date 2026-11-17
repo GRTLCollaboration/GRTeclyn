@@ -184,11 +184,9 @@ class SmallDataIO
     //! Writes a data line
     //! Use this for 1D or 2D data when the first two or more columns are
     //! coordinates.
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <typename T_Data, typename T_Coord>
     void write_data_line(const std::vector<T_Data> &a_data,
                          const std::vector<T_Coord> &a_coords)
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         if (amrex::ParallelDescriptor::IOProcessor())
         {

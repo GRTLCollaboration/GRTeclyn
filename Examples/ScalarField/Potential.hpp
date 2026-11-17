@@ -60,7 +60,6 @@ class Potential
     {
     }
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
                       const ScalarFieldVars &vars) const
@@ -69,7 +68,6 @@ class Potential
         V_of_phi = 0.5 * mass_times_phi * mass_times_phi;
         dVdphi   = m_params.scalar_mass * m_params.scalar_mass * vars.phi();
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
   private:
     params_t m_params{};

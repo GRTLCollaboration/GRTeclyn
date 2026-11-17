@@ -18,7 +18,6 @@ class WeylExtraction : public SphericalExtraction<2>
   public:
 
     //! The constructor
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     WeylExtraction(const spherical_extraction_params_t &a_params,
                    amrex::Real a_dt, amrex::Real a_time, bool a_first_step,
                    amrex::Real a_restart_time = 0.0)
@@ -28,7 +27,6 @@ class WeylExtraction : public SphericalExtraction<2>
         amrex::Vector<BCParity> parities = {BCParity::even, BCParity::odd_xyz};
         this->add_derived_vars({0, 1}, parities, "Weyl4");
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     amrex::Vector<BCParity> parities = {BCParity::even, BCParity::odd_xyz};
 
@@ -59,7 +57,6 @@ class WeylExtraction : public SphericalExtraction<2>
             mode_integrals(m_num_modes);
 
         // note that this is normalised by multiplying by radius
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         auto normalised_Weyl4_complex =
             [](std::vector<amrex::ParticleReal> Weyl4_reim_parts,
                amrex::ParticleReal r, amrex::ParticleReal, amrex::ParticleReal)
@@ -70,7 +67,6 @@ class WeylExtraction : public SphericalExtraction<2>
             return std::make_pair(r * Weyl4_reim_parts[0],
                                   r * Weyl4_reim_parts[1]);
         };
-        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         // add the modes that will be integrated
         for (int imode = 0; imode < this->m_num_modes; ++imode)

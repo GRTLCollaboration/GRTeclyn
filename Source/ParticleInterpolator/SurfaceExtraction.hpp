@@ -83,7 +83,6 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
 
     //! returns the flattened index for m_interp_data and m_interp_coords
     //! associated to given surface, u and v indices
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     [[nodiscard]] int index(int a_isurface, int a_iu, int a_iv) const
     {
         return a_isurface * m_params.num_points_u * m_params.num_points_v +
@@ -120,7 +119,6 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
                           const amrex::Vector<BCParity> &a_parities,
                           const std::string &a_name_derived);
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
     SurfaceExtraction(const params_t &a_params,
@@ -133,7 +131,6 @@ template <class SurfaceGeometry, int num_components> class SurfaceExtraction
     SurfaceExtraction(const params_t &a_params, const std::vector<int> &a_vars,
                       amrex::Real a_dt, amrex::Real a_time, bool a_first_step,
                       amrex::Real a_restart_time = 0.0);
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     //! Do the extraction
     void extract(ParticleInterpolator<num_components> *a_interpolator);

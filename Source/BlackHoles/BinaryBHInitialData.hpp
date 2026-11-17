@@ -29,11 +29,9 @@ class BinaryBHInitialData
     int m_initial_lapse;
 
   public:
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_FORCE_INLINE
     explicit BinaryBHInitialData(amrex::Real a_dx,
                                  int a_initial_lapse = Lapse::PRE_COLLAPSED);
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,

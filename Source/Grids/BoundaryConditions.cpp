@@ -189,7 +189,6 @@ void BoundaryConditions::set_vars_asymptotic_values(
 
 /// The function which returns the parity of each of the vars in
 /// StateVariables.hpp (It is only required for reflective boundary conditions.)
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int BoundaryConditions::get_state_var_parity(int a_comp, int a_dir)
 {
     BCParity comp_parity = StateVariables::parities[a_comp];

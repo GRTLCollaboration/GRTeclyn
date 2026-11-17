@@ -12,7 +12,6 @@
 
 #include <utility>
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 //! Normal constructor which requires vars to be added after construction
 //! using add_var or add_vars
 template <class SurfaceGeometry, int num_components>
@@ -30,7 +29,6 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
     amrex::Real a_time, bool a_first_step, amrex::Real a_restart_time)
     : m_geom(std::move(a_geom)), m_params(std::move(a_params)), m_dt(a_dt),
       m_time(a_time), m_first_step(a_first_step), m_restart_time(a_restart_time)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     m_num_interp_points = (amrex::ParallelDescriptor::MyProc() == 0)
                               ? m_params.num_surfaces * m_params.num_points_u *
@@ -82,13 +80,11 @@ SurfaceExtraction<SurfaceGeometry, num_components>::SurfaceExtraction(
 }
 
 //! add a single variable or derivative of variable
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class SurfaceGeometry, int num_components>
 void SurfaceExtraction<SurfaceGeometry, num_components>::add_var(
     int a_var, const VariableType a_var_type, const Derivative &a_deriv,
     const amrex::Vector<BCParity> &a_parities,
     const std::string &a_derived_name)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     AMREX_ASSERT(!m_done_extraction);
 

@@ -53,7 +53,6 @@ class ExtractionTagger
     }
 
     // a_params must outlive the tagger and any GPU kernel which captures it.
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     ExtractionTagger(const amrex::Real dx, const int a_level,
                      const spherical_extraction_params_t &a_params)
         : m_dx(dx), m_level(a_level), m_center(a_params.center)

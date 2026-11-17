@@ -43,12 +43,10 @@ template <class matter_t, enum EMTensorOptions em_tensor_options> class EMTensor
     //! Constructor
     EMTensor(amrex::Real dx, int a_dcomp);
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &emtensor_out,
                const amrex::Array4<const amrex::Real> &state) const;
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // Set do_all_components to true to calculate the momentum density
     // and stress energy tensors as well

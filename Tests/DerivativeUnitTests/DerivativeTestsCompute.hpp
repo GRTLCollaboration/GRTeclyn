@@ -60,11 +60,9 @@ template <class deriv_t> class DerivativeTestsCompute
     {
     }
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &out,
                const amrex::Array4<amrex::Real const> &in) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         Tensor::Rank1 out_d1 = m_deriv.d1_scalar(ix, iy, iz, in, c_d1);
 

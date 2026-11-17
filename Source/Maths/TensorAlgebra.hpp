@@ -109,10 +109,8 @@ compute_inverse(const Tensor::Rank2 &matrix)
 
 /// Computes the trace of a 2-Tensor with lower indices given an inverse metric.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 compute_trace(const Tensor::Rank2 &tensor_LL,
               const Tensor::Rank2 &inverse_metric)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real trace = 0.;
     FOR (i, j)
@@ -123,10 +121,8 @@ compute_trace(const Tensor::Rank2 &tensor_LL,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 compute_trace(const Tensor::Rank2 &tensor_LL,
               const Tensor::Sym12Rank2 &sym_inverse_metric)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real trace = 0.;
     FOR (i, j)
@@ -148,10 +144,8 @@ compute_trace(const Tensor::Rank2 &tensor_UL)
 
 /// Computes dot product of a vector and a covector (no metric required)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 compute_dot_product(const Tensor::Rank1 &vector_U,
                     const Tensor::Rank1 &covector_L)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real dot_product = 0.;
     FOR (i)
@@ -162,11 +156,9 @@ compute_dot_product(const Tensor::Rank1 &vector_U,
 /// Computes dot product of two covectors given an inverse metric or
 /// the dot product of two vectors given a metric.
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 compute_dot_product(const Tensor::Rank1 &covector1_L,
                     const Tensor::Rank1 &covector2_L,
                     const Tensor::Rank2 &inverse_metric)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real dot_product = 0.;
     FOR (m, n)
@@ -178,12 +170,10 @@ compute_dot_product(const Tensor::Rank1 &covector1_L,
 
 /// Computes dot product of two covectors given an inverse metric or
 /// the dot product of two vectors given a (symmetric) metric.
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_dot_product(const Tensor::Rank1 &covector1_L,
                     const Tensor::Rank1 &covector2_L,
                     const Tensor::Sym12Rank2 &inverse_metric_sym)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real dot_product = 0.;
     FOR (m, n)
@@ -294,9 +284,7 @@ make_general_from_symmetric(const Tensor::Sym12Sym34Rank4 &tensor_sym)
 
 /// Raises the index of a covector
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 raise_all(const Tensor::Rank1 &tensor_L, const Tensor::Rank2 &inverse_metric)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank1 tensor_U{};
 
@@ -314,9 +302,7 @@ raise_all(const Tensor::Rank1 &tensor_L, const Tensor::Rank2 &inverse_metric)
 
 /// Raises the indices of a 2-Tensor
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 raise_all(const Tensor::Rank2 &tensor_LL, const Tensor::Rank2 &inverse_metric)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank2 tensor_UU{};
 
@@ -336,10 +322,8 @@ raise_all(const Tensor::Rank2 &tensor_LL, const Tensor::Rank2 &inverse_metric)
 /// Lowers the indices of a vector
 /// Note: same functionality as raise; included to improve readability
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 lower_all(const Tensor::Rank1 &tensor_U, const Tensor::Rank2 &metric)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_U, metric);
 }
@@ -347,20 +331,16 @@ lower_all(const Tensor::Rank1 &tensor_U, const Tensor::Rank2 &metric)
 /// Lowers the indices of a 2-Tensor
 /// Note: same functionality as raise; included to improve readability
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 lower_all(const Tensor::Rank2 &tensor_UU, const Tensor::Rank2 &metric)
 
-// NOLINTEND(bugprone-easily-swappable-parameters)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_UU, metric);
 }
 
 /// Computes the (i,j) component of the Kronecker delta
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
-// NOLINTEND(bugprone-easily-swappable-parameters)
 
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank3 epsilon()
 {
@@ -416,10 +396,8 @@ epsilon4D()
 
 /// Computes the conformal christoffel symbol
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t
 compute_christoffel(const Tensor::Rank3 &d1_metric, const Tensor::Rank2 &h_UU)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     chris_t out{};
 

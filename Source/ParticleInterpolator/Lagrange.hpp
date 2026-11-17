@@ -29,12 +29,10 @@ template <int N> class Lagrange
     int j0{};
     int k0{};
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     build_stencil(amrex::Real grid_pos, int &base_idx, amrex::Real *weights,
                   bool lo_reflective, bool hi_reflective, int ncell,
                   int deriv_order)
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Build interpolation stencil for a particular derivative:
         // 0 = no derivative
@@ -210,7 +208,6 @@ template <int N> class Lagrange
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Lagrange() = default;
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     template <typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_weights(const P &par,
@@ -222,7 +219,6 @@ template <int N> class Lagrange
                     amrex::GpuArray<int, AMREX_SPACEDIM> const domain_ncell,
                     amrex::GpuArray<bool, AMREX_SPACEDIM> const need_d1,
                     amrex::GpuArray<bool, AMREX_SPACEDIM> const need_d2)
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Compute the grid index of the position
         AMREX_D_TERM(
@@ -284,14 +280,12 @@ template <int N> class Lagrange
     }
 
     // Function to perform the interpolation
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     interpolate(const amrex::Array4<amrex::Real const> *data_arr,
                 amrex::ParticleReal *val, const Derivative *derivs,
                 InterpolationQueryParticle::out_t *const *comps_arr,
                 const int *comp_counts, int n_deriv,
                 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const &dxi) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
 
         int counter      = 0;

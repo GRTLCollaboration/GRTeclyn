@@ -87,7 +87,6 @@ class PolynomialDerivedQuantity
     }
 
     // Compute function
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE
     void
     compute(int i, int j, int k, const amrex::Array4<amrex::Real> &a_array,
@@ -95,7 +94,6 @@ class PolynomialDerivedQuantity
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &plo,
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx,
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &center) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // set up the coords
         const amrex::Real x = plo[0] + (i + 0.5) * dx[0] - center[0];

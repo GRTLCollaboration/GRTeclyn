@@ -126,7 +126,6 @@ void run_ccz4_rhs_test()
 
         // The RHS is split into three different kernels
 
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(box,
                            [=] AMREX_GPU_DEVICE(int ix, int iy, int iz)
                            {
@@ -164,8 +163,6 @@ void run_ccz4_rhs_test()
                                        old_out_array(ix, iy, iz, ivar));
                                }
                            });
-
-        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         // GPU barrier
         amrex::Gpu::streamSynchronize();

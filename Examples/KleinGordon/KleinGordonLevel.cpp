@@ -109,7 +109,6 @@ void KleinGordonLevel::initData()
     // NOLINTEND(bugprone-branch-clone)
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void KleinGordonLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                          amrex::MultiFab &a_rhs,
                                          const amrex::Real a_time)
@@ -134,11 +133,9 @@ void KleinGordonLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
     amrex::Gpu::streamSynchronize();
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class model_t>
 void KleinGordonLevel::eval_model_specific_rhs(amrex::MultiFab &a_soln,
                                                amrex::MultiFab &a_rhs)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
     const auto dx                 = Geom().CellSize(0);

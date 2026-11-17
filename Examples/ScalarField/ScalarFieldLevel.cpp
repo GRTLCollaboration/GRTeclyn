@@ -149,7 +149,6 @@ void ScalarFieldLevel::initData()
     amrex::Gpu::streamSynchronize();
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                          amrex::MultiFab &a_rhs,
                                          const amrex::Real /*a_time*/)
@@ -195,7 +194,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                               const_soln_arrays[box_no]);
             });
 
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -203,7 +201,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                 ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
             });
-        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         amrex::ParallelFor(
             a_rhs,
@@ -235,7 +232,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                               const_soln_arrays[box_no]);
             });
 
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -243,7 +239,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                 ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
             });
-        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         amrex::ParallelFor(
             a_rhs,

@@ -25,11 +25,9 @@ class OscillatonInitialData
     AMREX_FORCE_INLINE
     explicit OscillatonInitialData(amrex::Real a_dx);
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const;
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
   protected:
     amrex::Real m_dx;
