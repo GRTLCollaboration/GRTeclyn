@@ -150,6 +150,79 @@ mpirun -n ${SLURM_NTASKS} ${exec} ${args}
 
 ---
 
+## MareNostrum 5 (CPUs)
+
+The modules used (Intel MPI is already loaded by default)
+```
+module load gcc/13.2.0
+```
+NB: Loading `gcc/13.2.0` also switches the Intel MPI wrappers to GCC (it sets `I_MPI_CXX=g++` and `I_MPI_CC=gcc`).
+
+In the `Make.local-pre` file we have
+```
+COMP = gnu
+USE_MPI = TRUE
+
+# Options you might want to turn on
+#USE_OMP = TRUE
+#TINY_PROFILE=TRUE
+#PROFILE=FALSE
+```
+NB: `COMP = gnu` and `USE_MPI = TRUE` are already the GRTeclyn defaults. So for this pure MPI build you can also skip `Make.local-pre` and just run `make -j 8`.
+
+And the jobscript:
+
+```
+#!/bin/bash -l
+
+# number of nodes
+#SBATCH --nodes=2
+#! How many tasks per node
+#! The GPP nodes have 112 cores, so we use one MPI task per core
+#SBATCH --ntasks-per-node=112
+#! How many CPUs per task should be allocated (for OpenMP threading)
+#! The product of this and ntasks-per-node should be 112
+#SBATCH --cpus-per-task=1
+#SBATCH --job-name=GRTLTest1
+#! %x is the job name and %j the job ID
+#SBATCH --output=%x_%j.out
+#SBATCH --error=%x_%j.err
+#! Your project account
+#SBATCH --account=ehpcXXXX
+#! The QOS (queue): gp_debug for short tests, gp_ehpc for production runs
+#SBATCH --qos=gp_ehpc
+#SBATCH --time=03:00:00
+#SBATCH --mail-type=END,FAIL                     # notifications for job done & fail
+#SBATCH --mail-user=xxx@university.ac.uk
+
+#! load the required modules (Intel MPI is already loaded by default)
+module load gcc/13.2.0
+
+#! Print info
+module list
+pwd
+date
+
+#! Are you using OpenMP? (only matters if you built with USE_OMP = TRUE)
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+#! Full path to application executable:
+application="./BinaryBH3d.gnu.MPI.ex"
+
+#! Run options for the application:
+options="params.txt"
+
+#! Work directory (i.e. where the job will run):
+#! Submit the job from a run directory in /gpfs/scratch, not from your home
+workdir="$SLURM_SUBMIT_DIR"
+
+# Run the program
+
+srun --cpu-bind=cores $application $options
+```
+
+---
+
 ## LUMI-G
 
 The modules used
