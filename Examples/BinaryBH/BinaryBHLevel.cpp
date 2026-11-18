@@ -483,12 +483,35 @@ void BinaryBHLevel::specific_post_timestep()
         // for the shared horizon
         AHFinder &shared_ah_finder = bh_amr->get_ah_finder(2);
 
+        // Move the finders with the punctures
+        const auto &puncture_coords =
+            get_puncture_tracker().get_puncture_coords();
+        std::array<std::array<double, AMREX_SPACEDIM>, num_punctures>
+            puncture_centers{};
+        std::array<double, AMREX_SPACEDIM> midpoint{};
+        for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
+        {
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            {
+                puncture_centers[ipuncture][i] =
+                    puncture_coords[AMREX_SPACEDIM * ipuncture + i];
+                midpoint[i] += puncture_centers[ipuncture][i] / num_punctures;
+            }
+        }
+        for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
+        {
+            AHFinder &ah_finder = bh_amr->get_ah_finder(ipuncture);
+            if (ah_finder.is_enabled())
+            {
+                ah_finder.set_center(puncture_centers[ipuncture]);
+            }
+        }
+        shared_ah_finder.set_center(midpoint);
+
         // Enable the shared horizon finder once both punctures are within its
         // guess radius
         if (!shared_ah_finder.is_enabled())
         {
-            const auto &puncture_coords =
-                get_puncture_tracker().get_puncture_coords();
             const auto &shared_center = shared_ah_finder.center();
 
             bool punctures_inside = true;
