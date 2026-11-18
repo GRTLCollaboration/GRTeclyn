@@ -172,3 +172,19 @@ weyl_extraction.num_points_theta = 37
 
 puncture_tracking.enabled = true
 # puncture_tracking.level = 0 # defaults to amr.max_level
+
+#################################################
+# Apparent horizon finder parameters
+# Requires puncture tracking. One finder is centred on each black hole, and a
+# third (shared horizon) finder at their midpoint, with guess radius equal to
+# the sum of guess_radii, is enabled once both punctures are inside it.
+
+ah_finder.enabled = true
+ah_finder.num_particles = 512
+ah_finder.guess_radii = 0.5 0.5 # one per black hole
+# ah_finder.tolerance = 1e-4 # convergence threshold on inf norm of Theta
+# ah_finder.r = 1.15 # pseudo-timestep growth factor
+# ah_finder.initial_dt = 1e-2 # initial pseudo-timestep
+# ah_finder.max_iter = 200
+# ah_finder.backtrack_factor = 0.5
+# ah_finder.max_backtracks = 5

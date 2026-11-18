@@ -5,6 +5,7 @@
 
 #include "BinaryBHLevel.hpp"
 
+#include "AHFinder.hpp"
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "BinaryBHInitialData.hpp"
 #include "CCZ4RHS.hpp"
@@ -19,6 +20,11 @@
 #include "TwoPuncturesInitialData.hpp"
 #include "Weyl4.hpp"
 #include "WeylExtraction.hpp"
+
+#include <array>
+#include <memory>
+#include <string>
+#include <vector>
 
 BHAmr<BinaryBHLevel::num_punctures> *BinaryBHLevel::get_bh_amr_ptr()
 {
@@ -153,6 +159,48 @@ void BinaryBHLevel::initData()
              bh2_params.center[0], bh2_params.center[1], bh2_params.center[2]});
         // can't call start_from_initial_punctures() because we need the full
         // AMR grid first
+
+        GRParmParse ah_finder_pp("ah_finder");
+
+        bool ah_finder_enabled{};
+        ah_finder_pp.get("enabled", ah_finder_enabled);
+        if (ah_finder_enabled)
+        {
+            int num_particles{};
+            ah_finder_pp.get("num_particles", num_particles);
+
+            std::vector<amrex::Real> guess_radii;
+            ah_finder_pp.getarr("guess_radii", guess_radii);
+
+            if (guess_radii.size() != 2)
+            {
+                ah_finder_pp.error("guess_radii",
+                                   "must have one value for each of the two "
+                                   "black holes");
+            }
+
+            // One apparent horizon finder per black hole
+            get_bh_amr_ptr()->add_ah_finder(std::make_unique<AHFinder>(
+                num_particles, bh1_params.center, guess_radii[0], "ah1"));
+            get_bh_amr_ptr()->add_ah_finder(std::make_unique<AHFinder>(
+                num_particles, bh2_params.center, guess_radii[1], "ah2"));
+
+            // Midpoint of the two black holes
+            std::array<double, AMREX_SPACEDIM> shared_center{};
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            {
+                shared_center[i] =
+                    0.5 * (bh1_params.center[i] + bh2_params.center[i]);
+            }
+            const amrex::Real shared_guess_radius =
+                guess_radii[0] + guess_radii[1];
+
+            // Extra finder for the shared horizon
+            get_bh_amr_ptr()
+                ->add_ah_finder(std::make_unique<AHFinder>(
+                    num_particles, shared_center, shared_guess_radius, "ah3"))
+                .disable();
+        }
     }
 }
 
@@ -377,6 +425,14 @@ void BinaryBHLevel::specific_post_plotfile(const std::string &a_dir,
     {
         get_puncture_tracker().write_plotfile(a_dir);
     }
+
+    if (get_bh_amr_ptr()->ah_finder_enabled() && Level() == 0)
+    {
+        for (int iah = 0; iah < get_bh_amr_ptr()->num_ah_finders(); ++iah)
+        {
+            get_bh_amr_ptr()->get_ah_finder(iah).write_plotfile(a_dir);
+        }
+    }
 }
 
 void BinaryBHLevel::specific_post_checkpoint(const std::string &a_chk_dir,
@@ -413,6 +469,76 @@ void BinaryBHLevel::specific_post_timestep()
             amrex::Real current_time = get_state_data(state_index).curTime();
             amrex::Real dt           = get_gr_amr_ptr()->dtLevel(Level());
             get_puncture_tracker().track(current_time, dt, write_punctures);
+        }
+    }
+
+    // Do apparent horizon finding once per coarse timestep, when all levels
+    // are at the same time
+    if (get_bh_amr_ptr()->ah_finder_enabled() && Level() == 0)
+    {
+        BL_PROFILE("AHFinding");
+
+        BHAmr<num_punctures> *bh_amr = get_bh_amr_ptr();
+        // Finders 0 and 1 are around the individual black holes, finder 2 is
+        // for the shared horizon
+        AHFinder &shared_ah_finder = bh_amr->get_ah_finder(2);
+
+        // Enable the shared horizon finder once both punctures are within its
+        // guess radius
+        if (!shared_ah_finder.is_enabled())
+        {
+            const auto &puncture_coords =
+                get_puncture_tracker().get_puncture_coords();
+            const auto &shared_center = shared_ah_finder.center();
+
+            bool punctures_inside = true;
+            for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
+            {
+                amrex::Real dist2 = 0.0;
+                for (int i = 0; i < AMREX_SPACEDIM; ++i)
+                {
+                    const amrex::Real dx =
+                        puncture_coords[AMREX_SPACEDIM * ipuncture + i] -
+                        shared_center[i];
+                    dist2 += dx * dx;
+                }
+                punctures_inside =
+                    punctures_inside &&
+                    (dist2 < shared_ah_finder.guess_radius() *
+                                 shared_ah_finder.guess_radius());
+            }
+
+            if (punctures_inside)
+            {
+                shared_ah_finder.enable();
+            }
+        }
+
+        const amrex::Real current_time = get_state_data(state_index).curTime();
+        const amrex::Real dt           = get_gr_amr_ptr()->dtLevel(Level());
+        const amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
+
+        bool shared_horizon_found = false;
+        for (int iah = 0; iah < bh_amr->num_ah_finders(); ++iah)
+        {
+            AHFinder &ah_finder = bh_amr->get_ah_finder(iah);
+            if (ah_finder.is_enabled())
+            {
+                const bool converged =
+                    ah_finder.find(current_time, dt, restart_time);
+                if (&ah_finder == &shared_ah_finder)
+                {
+                    shared_horizon_found = converged;
+                }
+            }
+        }
+
+        // Once the shared horizon has been found, stop looking for the
+        // individual horizons. Keep them if the shared horizon finder fails
+        if (shared_horizon_found)
+        {
+            bh_amr->get_ah_finder(0).disable();
+            bh_amr->get_ah_finder(1).disable();
         }
     }
 

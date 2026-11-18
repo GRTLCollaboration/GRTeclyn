@@ -36,6 +36,7 @@ inline void AHFinder::init(GRAmr *gramr_ptr)
 
     // Set up interpolator
     this->setup(gramr_ptr);
+    m_surface_pc.Define(gramr_ptr->GetParGDB());
 
     m_geometry.set_surface_data(&m_h, &m_gamma_LL);
 
@@ -233,6 +234,47 @@ inline void AHFinder::write_time_series(amrex::Real time, amrex::Real dt,
     time_series.write_time_data_line(std::vector<amrex::Real>{
         converged ? 1.0 : 0.0, static_cast<amrex::Real>(n_iter), theta_norm,
         area, mass, center[0], center[1], center[2]});
+}
+
+inline void AHFinder::write_plotfile(const std::string &a_dir)
+{
+    m_surface_pc.clearParticles();
+
+    // m_h is the same on every rank, so add all the particles on the
+    // IOProcessor and let Redistribute() move them to the right rank
+    if (m_enabled && amrex::ParallelDescriptor::IOProcessor())
+    {
+        auto &particle_tile = m_surface_pc.DefineAndReturnParticleTile(0, 0, 0);
+        const std::array<double, AMREX_SPACEDIM> &center = m_geometry.center();
+        const amrex::RealBox &prob_domain = m_gr_amr_ptr->Geom(0).ProbDomain();
+
+        for (int id = 0; id < m_num_particles; ++id)
+        {
+            const Tensor::Rank1 dir = m_geometry.direction(id);
+            amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> coords = {
+                center[0] + m_h[id] * dir(0), center[1] + m_h[id] * dir(1),
+                center[2] + m_h[id] * dir(2)};
+            // Only write the part of the surface inside the domain (e.g.
+            // the upper half with a reflective boundary at z = 0)
+            if (!prob_domain.contains(coords.data()))
+            {
+                continue;
+            }
+
+            amrex::ParticleContainer<1, 0>::ParticleType particle;
+            particle.id()  = id + 1;
+            particle.cpu() = amrex::ParallelDescriptor::MyProc();
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            {
+                particle.pos(d) = coords[d];
+            }
+            particle.rdata(0) = m_h[id];
+            particle_tile.push_back(particle);
+        }
+    }
+
+    m_surface_pc.Redistribute();
+    m_surface_pc.WritePlotFile(a_dir, m_name, {"h"}, {});
 }
 
 inline void AHFinder::init_particle_vals()

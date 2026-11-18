@@ -21,10 +21,10 @@ extern "C" void dgbsv_(const int *n, const int *kl, const int *ku,
                        const int *nrhs, double *ab, const int *ldab, int *ipiv,
                        double *b, const int *ldb, int *info);
 
-// Number of components (including derivatives) the AHFinder needs to
+// Number of components the AHFinder needs to
 // interpolate to calculate the expansion
 // (values of chi, h_ij, K, A_ij: 14; first derivatives of chi, h_ij: 7 * 3 =
-// 21), all fetched in a single query
+// 21)
 static constexpr int ah_finder_num_components = 35;
 
 class AHFinder : public ParticleInterpolator<ah_finder_num_components>
@@ -34,13 +34,12 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     int m_n_local;
     int m_start;
 
+    bool m_enabled{true};
+
     // Pseudo-timestepping parameters read from the "ah_finder" scope of the
-    // input file (tolerance, r, initial_dt, max_iter, backtrack_factor,
-    // max_backtracks).
-    // Filled by init().
+    // input file
     ah_finder_params_t m_params{};
 
-    // trusted, and the
     // Smallest permitted pseudo-timestep
     amrex::Real m_min_dt{};
     // Largest allowed per-iteration reduction in dt
@@ -54,17 +53,14 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     std::vector<double> interp_coords_y{};
     std::vector<double> interp_coords_z{};
 
-    // Surface radius h for all particles. Stored off particles since we
-    // need h from other particles to compute its derivative, and this cannot
-    // be accessed from another particle if they are not on the same tile
+    // Surface radius h for all particles
     std::vector<double> m_h{};
 
     // h of the last converged surface. The next call to find() starts
     // from this
     std::vector<double> m_h_last_good{};
 
-    // Used to name the time series file, so several
-    // finders can run in the same simulation.
+    // Name of output file
     std::string m_name;
 
     // Number of completed find() calls
@@ -78,16 +74,16 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     // Irreducible mass of the last converged surface
     amrex::Real m_mass{0.0};
 
-    // Owns the ring (latitude x longitude) grid: the per-particle
-    // directions, the finite-difference stencil, the derivatives of h, and
-    // the surface diagnostics (area)
+    // Owns the ring grid of particles and performs operations on it
     AHGeometry m_geometry;
 
     // Physical 3-metric gamma_ij at each particle (flat-indexed as
-    // i * m_geometry.ring_size() + j), computed each step in
-    // theta_from_metric(). AHGeometry is given a pointer to this in init(), so
-    // it always reads the latest values without a separate copy.
+    // i * m_geometry.ring_size() + j)
     std::vector<Tensor::Rank2> m_gamma_LL{};
+
+    // Particles at the surface points, only used to write the surface to
+    // plotfiles. Each particle stores h.
+    amrex::ParticleContainer<1, 0> m_surface_pc;
 
     // Output arrays for interpolation queries
     std::array<std::vector<double>, 14> m_metric_state{};
@@ -95,8 +91,7 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     std::array<std::vector<double>, 7> m_metric_dy{};
     std::array<std::vector<double>, 7> m_metric_dz{};
 
-    // Single query for all metric values and derivatives; its total
-    // (comp, derivative) entry count must equal ah_finder_num_components.
+    // Interpolation query for all metric values and derivatives
     InterpolationQueryParticle m_metric_query;
 
     std::vector<double> m_theta_vals{};
@@ -126,8 +121,7 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     int m_ldab{};
 
     // Whether the state's ghost cells have been filled during the current
-    // find(). The grid is frozen while find() runs, so FillPatch is only
-    // needed for the first interpolation of each find().
+    // find().
     bool m_fill_ghosts{true};
 
     static int local_count(int num_particles)
@@ -188,16 +182,12 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
         return m_kl + m_ku + r - c + c * m_ldab;
     }
 
-    // Fill jacobian (LAPACK band storage, m_ldab x m_num_particles,
-    // column-major) with J = dTheta/dh at m_h by coloured finite
-    // differences. Leaves the particles, the interpolated metric and
-    // m_gamma_LL at the perturbed positions m_h + eps, so reposition and
-    // reinterpolate before evaluating Theta again.
+    // Fill jacobian with J = dTheta/dh at m_h by coloured finite
+    // differences.
     void assemble_jacobian(std::vector<double> &jacobian);
 
     // Solve (J + I/dt) delta_h = -Theta for the pseudo-transient
-    // continuation step, using m_theta_vals. dgbsv factorises jacobian in
-    // place, so it must be reassembled before the next solve.
+    // continuation step, using m_theta_vals
     bool lapack_solve(std::vector<double> &jacobian, amrex::Real dt,
                       std::vector<double> &delta_h);
     double inf_norm(std::vector<double>);
@@ -230,6 +220,29 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     void set_center(const std::array<double, AMREX_SPACEDIM> &center)
     {
         m_geometry.set_center(center);
+    }
+
+    void enable() { m_enabled = true; }
+
+    void disable() { m_enabled = false; }
+
+    [[nodiscard]] bool is_enabled() const { return m_enabled; }
+
+    // Write the current surface points as particles to the plotfile a_dir,
+    // in the subdirectory <name>. No particles are written if the finder is
+    // disabled.
+    void write_plotfile(const std::string &a_dir);
+
+    // Centre the surface is parameterised about
+    [[nodiscard]] const std::array<double, AMREX_SPACEDIM> &center() const
+    {
+        return m_geometry.center();
+    }
+
+    // Radius of the initial spherical guess for the surface
+    [[nodiscard]] double guess_radius() const
+    {
+        return m_geometry.guess_radius();
     }
 
     // Surface radius h at every point
