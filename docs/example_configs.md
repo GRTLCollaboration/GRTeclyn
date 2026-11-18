@@ -152,11 +152,13 @@ mpirun -n ${SLURM_NTASKS} ${exec} ${args}
 
 ## MareNostrum 5 (CPUs)
 
-The modules used (Intel MPI is already loaded by default)
+The modules used 
+
 ```
-module load gcc/13.2.0
+module purge
+module load compenv-gpp/gnu12.3.0-ompi
 ```
-NB: Loading `gcc/13.2.0` also switches the Intel MPI wrappers to GCC (it sets `I_MPI_CXX=g++` and `I_MPI_CC=gcc`).
+NB: The default modules loaded at login include Intel MPI, which conflicts with OpenMPI, so run `module purge` first.
 
 In the `Make.local-pre` file we have
 ```
@@ -167,6 +169,7 @@ USE_MPI = TRUE
 #USE_OMP = TRUE
 #TINY_PROFILE=TRUE
 #PROFILE=FALSE
+#USE_HDF5 = FALSE
 ```
 NB: `COMP = gnu` and `USE_MPI = TRUE` are already the GRTeclyn defaults. So for this pure MPI build you can also skip `Make.local-pre` and just run `make -j 8`.
 
@@ -195,15 +198,16 @@ And the jobscript:
 #SBATCH --mail-type=END,FAIL                     # notifications for job done & fail
 #SBATCH --mail-user=xxx@university.ac.uk
 
-#! load the required modules (Intel MPI is already loaded by default)
-module load gcc/13.2.0
+#! load the required modules
+module purge
+module load compenv-gpp/gnu12.3.0-ompi
 
 #! Print info
 module list
 pwd
 date
 
-#! Are you using OpenMP? (only matters if you built with USE_OMP = TRUE)
+#! Are you using OpenMP? 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 #! Full path to application executable:
