@@ -30,19 +30,25 @@ class DerivativeBase
     get_var_ptr(const int ivar, const amrex::Real *state_ptr_xyz,
                 const amrex::GpuArray<int, AMREX_SPACEDIM + 1> strides) noexcept
     {
-        return state_ptr_xyz + static_cast<std::ptrdiff_t>(ivar) * strides[3];
+        return state_ptr_xyz +
+               static_cast<std::ptrdiff_t>(ivar) * strides[AMREX_SPACEDIM];
     }
 
     [[nodiscard]] AMREX_GPU_DEVICE
         AMREX_FORCE_INLINE static amrex::GpuArray<int, AMREX_SPACEDIM + 1>
         get_strides(const amrex::Array4<const amrex::Real> &state) noexcept
     {
-        int j_stride = static_cast<int>(state.stride.a[0]);
-        int k_stride = static_cast<int>(state.stride.a[1]);
-        int n_stride = static_cast<int>(state.stride.a[2]);
+        const int i_stride = static_cast<int>(state.template get_stride<0>());
+        const int j_stride = static_cast<int>(state.template get_stride<1>());
+        const int k_stride = static_cast<int>(state.template get_stride<2>());
+        const int n_stride = static_cast<int>(state.template get_stride<3>());
 
-        amrex::GpuArray<int, AMREX_SPACEDIM + 1> strides{1, j_stride, k_stride,
-                                                         n_stride};
+        amrex::GpuArray<int, AMREX_SPACEDIM + 1> strides{
+            i_stride,
+            j_stride,
+            k_stride,
+            n_stride,
+        };
 
         return strides;
     }
