@@ -1,0 +1,21 @@
+# Python dependencies for Tools/Lint/run_lint.py, the local equivalent of
+# the lint GitHub action (.github/workflows/lint.yml). CI installs these
+# unpinned, so run_lint.py checks at startup that the installed versions
+# match the latest on PyPI. The versions below are minimums known to work.
+# Install into a virtual environment (Tools/Lint/.venv by default, located
+# via $VIRTUAL_ENV when activated) and activate it:
+#   python3 -m venv Tools/Lint/.venv
+#   source Tools/Lint/.venv/bin/activate
+#   pip install -r Tools/Lint/requirements.txt
+#
+# clang-tools installs the versioned clang-tidy-<ver>/clang-format-<ver>
+# executables that cpp-linter looks for. After installing the requirements,
+# install the clang tools matching the LLVM_VERSION in
+# .github/workflows/lint.yml into the venv's bin directory with e.g.:
+#   clang-tools install clang-format clang-tidy --version 23 --directory $VIRTUAL_ENV/bin
+# (on Linux, --directory is needed so the versioned executables land in the
+# venv, which run_lint.py searches; without it they go to ~/.local/bin.)
+clang-tools>=2.0.0
+compiledb>=0.10.7
+compdb>=0.2.0
+cpp-linter>=1.13.0
