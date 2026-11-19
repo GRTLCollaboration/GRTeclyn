@@ -33,7 +33,7 @@ struct puncture_tracker_params_t
 //!  The class tracks the puncture locations by advecting them in the reverse
 //!  direction to the shift. It is an amrex AoS ParticleContainer.
 template <unsigned int num_punctures>
-class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
+class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM + 1, 1>
 {
   public:
 
@@ -41,16 +41,23 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 
     static constexpr unsigned int num_puncture_coords =
         num_punctures * AMREX_SPACEDIM;
+    using puncture_masses_t = amrex::Array<amrex::ParticleReal, num_punctures>;
+    using puncture_coords_t =
+        amrex::Array<amrex::ParticleReal, num_puncture_coords>;
 
   private:
 
+    static constexpr int mass_component = AMREX_SPACEDIM;
+
     params_t m_params{};
 
-    amrex::Array<amrex::ParticleReal, num_puncture_coords> m_puncture_coords{};
+    puncture_masses_t m_puncture_masses{};
+    puncture_coords_t m_puncture_coords{};
 
     GRAmr *m_gr_amr{nullptr};
 
     bool m_initialized{false};
+    bool m_puncture_masses_set{false};
     bool m_puncture_coords_set{false};
     bool m_started{false};
 
@@ -58,7 +65,7 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
 
   public:
     //! The constructor
-    using amrex::ParticleContainer<AMREX_SPACEDIM, 1>::ParticleContainer;
+    using amrex::ParticleContainer<AMREX_SPACEDIM + 1, 1>::ParticleContainer;
 
     //! Load the puncture tracker parameters
     void configure();
@@ -87,14 +94,16 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
                const bool a_write_punctures = true);
 
     //! Set the puncture coordinates (for the initial coordinates)
-    void set_puncture_coords(
-        const amrex::Array<amrex::ParticleReal, num_puncture_coords>
-            &a_puncture_coords);
+    void set_puncture_coords(const puncture_coords_t &a_puncture_coords);
+
+    //! Set the puncture masses
+    void set_puncture_masses(const puncture_masses_t &a_puncture_masses);
 
     //! Get the puncture coordinates
-    [[nodiscard]]
-    const amrex::Array<amrex::ParticleReal, num_puncture_coords> &
-    get_puncture_coords() const;
+    [[nodiscard]] const puncture_coords_t &get_puncture_coords() const;
+
+    //! Get the puncture masses
+    [[nodiscard]] const puncture_masses_t &get_puncture_masses() const;
 
 #ifndef AMREX_USE_CUDA
   private: // CUDA doesn't allow lambdas in private functions
@@ -103,8 +112,8 @@ class PunctureTracker : public amrex::ParticleContainer<AMREX_SPACEDIM, 1>
     //! set the initial punctures in the particle container
     void set_initial_punctures_pc();
 
-    //! update m_puncture_coords from the particle locations
-    void update_puncture_coords();
+    //! Update puncture coordinates and masses from the particle data
+    void update_puncture_data();
 
     //! return the linear index of the coord in the idir direction for the
     //! ipuncture puncture in m_puncture_coords

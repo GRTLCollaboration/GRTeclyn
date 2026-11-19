@@ -122,8 +122,9 @@ template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::start_from_initial_punctures()
 {
     AMREX_ASSERT(m_initialized);
-    // must call set_puncture_coords for the initial punctures first
+    // must set the initial puncture data first
     AMREX_ASSERT(m_puncture_coords_set);
+    AMREX_ASSERT(m_puncture_masses_set);
 
     // Define the particle container
     Define(dynamic_cast<amrex::ParGDBBase *>(m_gr_amr->GetParGDB()));
@@ -153,9 +154,9 @@ void PunctureTracker<num_punctures>::restart(
 
     m_restart_time = m_gr_amr->get_restart_time();
 
-    // The above Restart function will only set the punctures in the underlying
-    // ParticleContainer so let's update our own m_puncture_coords
-    update_puncture_coords();
+    // Restart only restores the underlying ParticleContainer, so recover the
+    // puncture data cached by this class.
+    update_puncture_data();
 }
 
 template <unsigned int num_punctures>
@@ -166,9 +167,11 @@ void PunctureTracker<num_punctures>::write_plotfile(const std::string &a_dir)
 
     std::string plotfile_subdir = "particles"; // this is what ParaView expects
 
-    amrex::Vector<std::string> real_comp_names{AMREX_D_DECL(
-        StateVariables::names[c_shift1], StateVariables::names[c_shift2],
-        StateVariables::names[c_shift3])};
+    amrex::Vector<std::string> real_comp_names{
+        AMREX_D_DECL(StateVariables::names[c_shift1],
+                     StateVariables::names[c_shift2],
+                     StateVariables::names[c_shift3]),
+        "mass"};
 
     amrex::Vector<std::string> int_comp_names({"puncture_index"});
 
@@ -207,20 +210,25 @@ void PunctureTracker<num_punctures>::set_initial_punctures_pc()
             d_puncture_coords;
         std::copy(m_puncture_coords.begin(), m_puncture_coords.end(),
                   d_puncture_coords.begin());
+        amrex::GpuArray<amrex::ParticleReal, num_punctures> d_puncture_masses;
+        std::copy(m_puncture_masses.begin(), m_puncture_masses.end(),
+                  d_puncture_masses.begin());
 
         amrex::ParallelFor(
             num_punctures,
             [=] AMREX_GPU_DEVICE(int ipuncture)
             {
+                auto &puncture_particle = particle_tile_data[ipuncture];
                 FOR1 (idir)
                 {
-                    auto &puncture_particle = particle_tile_data[ipuncture];
                     puncture_particle.pos(idir) =
                         d_puncture_coords[linear_idx(ipuncture, idir)];
-                    puncture_particle.id()     = ipuncture + 1;
-                    puncture_particle.idata(0) = ipuncture + 1;
-                    puncture_particle.cpu()    = 0;
                 }
+                puncture_particle.rdata(mass_component) =
+                    d_puncture_masses[ipuncture];
+                puncture_particle.id()     = ipuncture + 1;
+                puncture_particle.idata(0) = ipuncture + 1;
+                puncture_particle.cpu()    = 0;
             });
         amrex::Gpu::streamSynchronize();
     }
@@ -228,8 +236,7 @@ void PunctureTracker<num_punctures>::set_initial_punctures_pc()
 
 template <unsigned int num_punctures>
 void PunctureTracker<num_punctures>::set_puncture_coords(
-    const amrex::Array<amrex::ParticleReal,
-                       PunctureTracker<num_punctures>::num_puncture_coords>
+    const typename PunctureTracker<num_punctures>::puncture_coords_t
         &a_puncture_coords)
 {
     m_puncture_coords = a_puncture_coords;
@@ -238,12 +245,29 @@ void PunctureTracker<num_punctures>::set_puncture_coords(
 }
 
 template <unsigned int num_punctures>
-const amrex::Array<amrex::ParticleReal,
-                   PunctureTracker<num_punctures>::num_puncture_coords> &
+void PunctureTracker<num_punctures>::set_puncture_masses(
+    const typename PunctureTracker<num_punctures>::puncture_masses_t
+        &a_puncture_masses)
+{
+    m_puncture_masses = a_puncture_masses;
+
+    m_puncture_masses_set = true;
+}
+
+template <unsigned int num_punctures>
+const typename PunctureTracker<num_punctures>::puncture_coords_t &
 PunctureTracker<num_punctures>::get_puncture_coords() const
 {
     AMREX_ASSERT(m_puncture_coords_set);
     return m_puncture_coords;
+}
+
+template <unsigned int num_punctures>
+const typename PunctureTracker<num_punctures>::puncture_masses_t &
+PunctureTracker<num_punctures>::get_puncture_masses() const
+{
+    AMREX_ASSERT(m_puncture_masses_set);
+    return m_puncture_masses;
 }
 
 template <unsigned int num_punctures>
@@ -392,9 +416,8 @@ void PunctureTracker<num_punctures>::track(amrex::Real a_time, amrex::Real a_dt,
         } // ipass
     } // ilevel
 
-    // update m_puncture_coords with the updated locations of the puncture
-    // particles
-    update_puncture_coords();
+    // Update the cached puncture data from the puncture particles.
+    update_puncture_data();
 
     // write them out
     if (a_write_punctures && !m_params.disable_writeout)
@@ -411,20 +434,24 @@ void PunctureTracker<num_punctures>::track(amrex::Real a_time, amrex::Real a_dt,
 }
 
 template <unsigned int num_punctures>
-void PunctureTracker<num_punctures>::update_puncture_coords()
+void PunctureTracker<num_punctures>::update_puncture_data()
 {
-    BL_PROFILE("PunctureTracker::update_puncture_coords");
+    BL_PROFILE("PunctureTracker::update_puncture_data");
     AMREX_ASSERT(m_initialized);
     AMREX_ASSERT(m_started);
 
     // We will perform an MPI sum reduction to get the coords so set them to
     // zero by default
     m_puncture_coords.fill(0.0);
+    m_puncture_masses.fill(0.0);
 
     amrex::Gpu::DeviceVector<amrex::ParticleReal> d_puncture_coords(
         num_puncture_coords, 0.0);
+    amrex::Gpu::DeviceVector<amrex::ParticleReal> d_puncture_masses(
+        num_punctures, 0.0);
 
     auto d_puncture_coords_ptr = d_puncture_coords.data();
+    auto d_puncture_masses_ptr = d_puncture_masses.data();
 
     for (int ilevel = 0; ilevel <= m_gr_amr->finestLevel(); ilevel++)
     {
@@ -452,16 +479,24 @@ void PunctureTracker<num_punctures>::update_puncture_coords()
                         d_puncture_coords_ptr[linear_idx(punc_idx, idir)] +=
                             p.pos(idir);
                     }
+                    d_puncture_masses_ptr[punc_idx] += p.rdata(mass_component);
                 });
         }
     } // ilevel
 
     amrex::Gpu::copy(amrex::Gpu::deviceToHost, d_puncture_coords.begin(),
                      d_puncture_coords.end(), m_puncture_coords.data());
+    amrex::Gpu::copy(amrex::Gpu::deviceToHost, d_puncture_masses.begin(),
+                     d_puncture_masses.end(), m_puncture_masses.data());
 
     // MPI sum over all ranks
     amrex::ParallelAllReduce::Sum(m_puncture_coords.data(), num_puncture_coords,
                                   amrex::ParallelContext::CommunicatorAll());
+    amrex::ParallelAllReduce::Sum(m_puncture_masses.data(), num_punctures,
+                                  amrex::ParallelContext::CommunicatorAll());
+
+    m_puncture_coords_set = true;
+    m_puncture_masses_set = true;
 }
 
 #endif

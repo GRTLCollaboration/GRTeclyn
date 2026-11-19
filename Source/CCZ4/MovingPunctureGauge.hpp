@@ -186,6 +186,19 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
     calculate_rhs(int ix, int iy, int iz, const amrex::Array4<amrex::Real> &rhs,
                   const amrex::Array4<const amrex::Real> &state) const
     {
+        amrex::Real eta_of_x{};
+        compute_eta(eta_of_x, ix, iy, iz);
+        calculate_rhs_with_eta(ix, iy, iz, rhs, state, eta_of_x);
+    }
+
+  protected:
+    /// Calculate the common gauge RHS for an already evaluated eta.
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    calculate_rhs_with_eta(int ix, int iy, int iz,
+                           const amrex::Array4<amrex::Real> &rhs,
+                           const amrex::Array4<const amrex::Real> &state,
+                           const amrex::Real eta_of_x) const
+    {
         const amrex::CellData<amrex::Real> &rhs_cell_data =
             rhs.cellData(ix, iy, iz);
         const amrex::CellData<const amrex::Real> &state_cell_data =
@@ -207,9 +220,6 @@ template <class deriv_t = FourthOrderDerivatives> class MovingPunctureGauge
 
         Tensor::Rank1 advec_Gamma =
             m_deriv.advec_vector(ix, iy, iz, state, shift_vector, c_Gamma1);
-
-        amrex::Real eta_of_x{};
-        compute_eta(eta_of_x, ix, iy, iz);
 
         rhs_cell_data[c_lapse] = m_params.lapse_advec_coeff * advec_lapse -
                                  m_params.lapse_coeff *
