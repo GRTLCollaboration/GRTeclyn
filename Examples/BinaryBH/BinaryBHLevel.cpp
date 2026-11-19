@@ -508,32 +508,37 @@ void BinaryBHLevel::specific_post_timestep()
         }
         shared_ah_finder.set_center(midpoint);
 
-        // Enable the shared horizon finder once both punctures are within its
-        // guess radius
+        // Enable the shared horizon finder once the punctures are close
+        // enough, relative to the masses of the individual horizons
         if (!shared_ah_finder.is_enabled())
         {
-            const auto &shared_center = shared_ah_finder.center();
+            AHFinder &ah1_finder = bh_amr->get_ah_finder(0);
+            AHFinder &ah2_finder = bh_amr->get_ah_finder(1);
 
-            bool punctures_inside = true;
-            for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
+            if (ah1_finder.mass() > 0.0 && ah2_finder.mass() > 0.0)
             {
-                amrex::Real dist2 = 0.0;
+                amrex::Real separation2 = 0.0;
                 for (int i = 0; i < AMREX_SPACEDIM; ++i)
                 {
                     const amrex::Real dx =
-                        puncture_coords[AMREX_SPACEDIM * ipuncture + i] -
-                        shared_center[i];
-                    dist2 += dx * dx;
+                        puncture_centers[0][i] - puncture_centers[1][i];
+                    separation2 += dx * dx;
                 }
-                punctures_inside =
-                    punctures_inside &&
-                    (dist2 < shared_ah_finder.guess_radius() *
-                                 shared_ah_finder.guess_radius());
-            }
 
-            if (punctures_inside)
-            {
-                shared_ah_finder.enable();
+                GRParmParse ah_finder_pp("ah_finder");
+                amrex::Real shared_horizon_mass_factor = 2.0;
+                ah_finder_pp.query("shared_horizon_mass_factor",
+                                   shared_horizon_mass_factor);
+
+                const amrex::Real total_mass =
+                    ah1_finder.mass() + ah2_finder.mass();
+                const amrex::Real threshold =
+                    shared_horizon_mass_factor * total_mass;
+
+                if (separation2 < threshold * threshold)
+                {
+                    shared_ah_finder.enable();
+                }
             }
         }
 
