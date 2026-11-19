@@ -24,21 +24,17 @@
 #include <string>
 #include <vector>
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 bool check_almost_equal(std::vector<amrex::Real> vector_1,
                         std::vector<amrex::Real> vector_2, amrex::Real err_tol);
 
 std::vector<amrex::Real> generate_random_numbers(const int Npts);
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void test_small_data_io_writer(const std::vector<SmallDataIO::column_t> &col,
                                const int data_precision);
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 std::vector<SmallDataIO::column_t>
 test_small_data_io_reader(const std::vector<std::string> &column_names);
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 std::vector<SmallDataIO::column_t>
 test_small_data_io_reader(const int a_min_col, const int a_max_col);
 

@@ -105,7 +105,6 @@ void KerrBHLevel::initData()
 }
 
 // Calculate RHS during RK4 substeps
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void KerrBHLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                     amrex::MultiFab &a_rhs,
                                     const amrex::Real /*a_time*/)

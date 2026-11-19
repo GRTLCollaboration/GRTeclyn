@@ -40,13 +40,11 @@ EMTensor<matter_t, em_tensor_options>::EMTensor(amrex::Real a_dx, int a_dcomp)
 {
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class matter_t, enum EMTensorOptions em_tensor_options>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 EMTensor<matter_t, em_tensor_options>::operator()(
     int ix, int iy, int iz, const amrex::Array4<amrex::Real> &emtensor_out,
     const amrex::Array4<const amrex::Real> &state) const
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
     const amrex::CellData<const amrex::Real> &state_cell_data =

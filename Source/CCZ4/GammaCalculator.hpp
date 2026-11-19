@@ -19,7 +19,6 @@ template <class deriv_t = FourthOrderDerivatives> class GammaCalculator
     AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE explicit GammaCalculator(double a_dx) : m_deriv(a_dx) {}
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
@@ -40,7 +39,6 @@ template <class deriv_t = FourthOrderDerivatives> class GammaCalculator
             state_cell_data[c_Gamma1 + i] = chris.contracted(i);
         }
     }
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
   private:
     deriv_t m_deriv;

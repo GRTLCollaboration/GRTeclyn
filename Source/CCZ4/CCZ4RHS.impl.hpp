@@ -13,12 +13,10 @@
 #include "DimensionDefinitions.hpp"
 #include "GRInterval.hpp"
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 template <class deriv_t>
 inline CCZ4RHS<deriv_t>::CCZ4RHS(amrex::Real a_dx,
                                  amrex::Real a_cosmological_constant)
     : m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     m_params.fill_params();
 
@@ -139,7 +137,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
                    vars.h(k, l) * dlapse_dot_dchi);
     }
 
-    auto A_UU = CCZ4Geometry::compute_A_UU(state_cell_data, h_UU);
+    auto A_UU = CCZ4Geometry::compute_A_UU(vars, h_UU);
 
     Tensor::Rank2 Adot_TF;
     FOR (i, j)
@@ -147,7 +145,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
         Adot_TF(i, j) =
             -covd2lapse(i, j) + vars.chi() * vars.lapse() * ricci.LL(i, j);
     }
-    CCZ4Geometry::make_trace_free(Adot_TF, state_cell_data, h_UU);
+    CCZ4Geometry::make_trace_free(Adot_TF, vars, h_UU);
 
     Tensor::Rank1 shift_vector({vars.shift(0), vars.shift(1), vars.shift(2)});
 
@@ -175,7 +173,7 @@ CCZ4RHS<deriv_t>::compute_A_ij_and_Theta_and_Gamma(
     // Theta specific parts
 
     amrex::Real Aij_squared =
-        CCZ4Geometry::compute_Aij_squared_with_A_UU(state_cell_data, A_UU);
+        CCZ4Geometry::compute_Aij_squared_with_A_UU(vars, A_UU);
 
     amrex::Real advec_K =
         m_deriv.advection(ix, iy, iz, state, shift_vector, c_K);
@@ -297,6 +295,5 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void CCZ4RHS<deriv_t>::apply_dissipation(
     m_deriv.add_dissipation(ix, iy, iz, rhs_cell_data, state, m_sigma,
                             NUM_CCZ4_VARS);
 }
-// NOLINTEND(readability-function-cognitive-complexity)
 
 #endif /* CCZ4RHS_IMPL_HPP_ */

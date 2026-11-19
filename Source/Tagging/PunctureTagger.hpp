@@ -68,12 +68,10 @@ template <unsigned int num_punctures> class PunctureTagger
     }
 
     // The constructor
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     PunctureTagger(
         const amrex::Real a_dx, const int a_level, const int a_max_level,
         const std::array<amrex::Real, num_puncture_coords> &a_puncture_coords,
         const std::array<amrex::Real, num_punctures> &a_puncture_masses)
-        // NOLINTEND(bugprone-easily-swappable-parameters)
         : m_dx(a_dx), m_level(a_level), m_max_level(a_max_level),
           m_puncture_masses(a_puncture_masses),
           m_puncture_coords(a_puncture_coords)
@@ -84,10 +82,8 @@ template <unsigned int num_punctures> class PunctureTagger
     };
 
     AMREX_GPU_DEVICE void
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::TagBox::TagType> &tags) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // ensure that the horizons of the punctures are covered
         // by the max level - for this we need
@@ -106,10 +102,10 @@ template <unsigned int num_punctures> class PunctureTagger
         for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
         {
             std::array<amrex::Real, AMREX_SPACEDIM> current_puncture_coords = {
-                AMREX_D_DECL(
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 0],
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 1],
-                    m_puncture_coords[ipuncture * AMREX_SPACEDIM + 2])};
+                AMREX_D_DECL(m_puncture_coords[ipuncture * AMREX_SPACEDIM + 0],
+                             m_puncture_coords[ipuncture * AMREX_SPACEDIM + 1],
+                             m_puncture_coords[ipuncture * AMREX_SPACEDIM + 2]),
+            };
 
             const Coordinates coords(current_cell, m_dx,
                                      current_puncture_coords);

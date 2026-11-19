@@ -89,7 +89,7 @@ class BaseParameterChecker
         {
             std::string restart_file;
             amr_pp.get("restart", restart_file);
-            if (access((restart_file).c_str(), R_OK) != 0)
+            if (access(restart_file.c_str(), R_OK) != 0)
             {
                 amr_pp.error("restart", "file cannot be opened for reading");
             }
@@ -143,7 +143,7 @@ class BaseParameterChecker
         }
 
         // For n_cell and prob_extent, must factor in reflective boundaries
-        std::array<int, AMREX_SPACEDIM> n_cell;
+        std::array<int, AMREX_SPACEDIM> n_cell{};
         amr_pp.get("n_cell", n_cell);
 
         GRParmParse geom_pp("geometry");

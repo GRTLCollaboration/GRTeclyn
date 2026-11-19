@@ -13,13 +13,11 @@ struct Interval
 {
     Interval() = default;
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     Interval(int a_firstComp, int a_lastComp)
         : m_begin(a_firstComp), m_end(a_lastComp)
     {
     }
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void define(int a_firstComp, int a_lastComp)
     {
         m_begin = a_firstComp;

@@ -72,11 +72,9 @@ void check_vector(const Tensor::Rank1 &vector,
 
 // Check that rotation is a proper rotation (R^T R = I and det R = 1) which
 // maps the direction of origin onto the direction of destination
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void check_rotation(const Tensor::Rank2 &rotation, const Tensor::Rank1 &origin,
                     const Tensor::Rank1 &destination,
                     const std::string &test_name)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real norm_origin = std::sqrt(
         origin(0) * origin(0) + origin(1) * origin(1) + origin(2) * origin(2));

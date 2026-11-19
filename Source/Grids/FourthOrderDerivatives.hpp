@@ -21,9 +21,7 @@ class FourthOrderDerivatives : protected DerivativeBase
 {
   public:
     AMREX_GPU_HOST_DEVICE
-    FourthOrderDerivatives(amrex::Real dx) : DerivativeBase(dx) {}
-
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    explicit FourthOrderDerivatives(amrex::Real dx) : DerivativeBase(dx) {}
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     diff1(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
@@ -132,9 +130,7 @@ class FourthOrderDerivatives : protected DerivativeBase
                     int first_var = 0) const
     {
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
-        amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.stride.a[0]),
-            static_cast<int>(state.stride.a[1])};
+        const auto strides        = get_strides(state);
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         amrex::Array2D<amrex::Real, 0, num_diff_vars - 1, 0, AMREX_SPACEDIM - 1>
@@ -142,7 +138,11 @@ class FourthOrderDerivatives : protected DerivativeBase
 
         for (int ivar = first_var; ivar < (first_var + num_diff_vars); ++ivar)
         {
-            const auto *var_ptr = state_ptr_xyz + ivar * state.stride.a[2];
+            const auto *var_ptr =
+                state_ptr_xyz +
+                static_cast<std::ptrdiff_t>(ivar) *
+                    static_cast<std::ptrdiff_t>(
+                        state.template get_stride<AMREX_SPACEDIM>());
 
             FOR (idir)
             {
@@ -493,7 +493,6 @@ class FourthOrderDerivatives : protected DerivativeBase
         }
     }
     // NOLINTEND(readability-convert-member-functions-to-static)
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 };
 
 #endif /* FOURTHORDERDERIVATIVES_HPP_ */

@@ -43,7 +43,6 @@ class FixedGridsTagger
         }
     }
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     FixedGridsTagger(amrex::Real a_dx, int a_level)
         : m_dx(a_dx), m_level(a_level)
     {
@@ -55,7 +54,6 @@ class FixedGridsTagger
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::TagBox::TagType> &tags) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Refine half the simulated domain length on level 0, then halve the
         // refined length again on each subsequent level.
@@ -70,7 +68,6 @@ class FixedGridsTagger
                                        m_dx, m_center[direction]);
 
             // clang-tidy incorrectly treats this initializer as missing.
-            // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
             amrex::Real distance_to_boundary =
                 m_domain_lengths[direction] - m_center[direction];
             if (coordinate_from_center < 0.0)

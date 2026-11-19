@@ -20,11 +20,9 @@ namespace CoordinateTransformations
 
 // Jacobian transformation matrix
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 spherical_jacobian(const amrex::Real x, const amrex::Real y,
                    const amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // calculate useful position quantities
     amrex::Real rho2 = x * x + y * y;
@@ -54,11 +52,9 @@ spherical_jacobian(const amrex::Real x, const amrex::Real y,
 
 // Inverse Jacobian
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 inverse_spherical_jacobian(const amrex::Real x, const amrex::Real y,
                            const amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // calculate useful position quantities
     amrex::Real rho2 = x * x + y * y;
@@ -87,10 +83,8 @@ inverse_spherical_jacobian(const amrex::Real x, const amrex::Real y,
 }
 
 // transform a vector according to a given jacobian
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 transform_vector(const Tensor::Rank1 &vec_U, const Tensor::Rank2 &jacobian)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank1 transformed_U{0.0, 0.0, 0.0};
     FOR (i)
@@ -104,10 +98,8 @@ transform_vector(const Tensor::Rank1 &vec_U, const Tensor::Rank2 &jacobian)
 }
 
 // transform a covector according to a given jacobian
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 transform_covector(const Tensor::Rank1 &vec_L, const Tensor::Rank2 &jacobian)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank1 transformed_L{0.0, 0.0, 0.0};
     FOR (i)
@@ -121,11 +113,9 @@ transform_covector(const Tensor::Rank1 &vec_L, const Tensor::Rank2 &jacobian)
 }
 
 // transform a full tensor with two raised indices
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 transform_tensor_UU(const Tensor::Rank2 &tensor_UU,
                     const Tensor::Rank2 &jacobian)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank2 transformed_UU{0.0};
     FOR (i, j)
@@ -140,11 +130,9 @@ transform_tensor_UU(const Tensor::Rank2 &tensor_UU,
 }
 
 // transform a full tensor with two lowered indices
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 transform_tensor_LL(const Tensor::Rank2 &tensor_LL,
                     const Tensor::Rank2 &jacobian)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank2 transformed_LL{0.0};
     FOR (i, j)
@@ -159,11 +147,9 @@ transform_tensor_LL(const Tensor::Rank2 &tensor_LL,
 }
 
 // transform a *symmetric* tensor with two raised indices
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
 transform_sym_tensor_UU(const Tensor::Sym12Rank2 &tensor_UU,
                         const Tensor::Rank2 &jacobian)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Sym12Rank2 transformed_UU{0.0};
     FOR2_SYM(i, j)
@@ -178,11 +164,9 @@ transform_sym_tensor_UU(const Tensor::Sym12Rank2 &tensor_UU,
 }
 
 // transform a *symmetric* tensor with two lowered indices
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
 transform_sym_tensor_LL(const Tensor::Sym12Rank2 &tensor_LL,
                         const Tensor::Rank2 &jacobian)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Sym12Rank2 transformed_LL{0.0};
     FOR2_SYM(i, j)
@@ -199,12 +183,10 @@ transform_sym_tensor_LL(const Tensor::Sym12Rank2 &tensor_LL,
 // Convert a Tensor (with two lower indices) in spherical coords to cartesian
 // coords
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
 spherical_to_cartesian_LL(const Tensor::Sym12Rank2 &spherical_g,
                           const amrex::Real x, const amrex::Real y,
                           const amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     return transform_sym_tensor_LL(spherical_g, spherical_jacobian(x, y, z));
 }
@@ -212,12 +194,10 @@ spherical_to_cartesian_LL(const Tensor::Sym12Rank2 &spherical_g,
 // Convert a Tensor (with two upper indices) in spherical coords to cartesian
 // coords
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
 spherical_to_cartesian_UU(const Tensor::Sym12Rank2 &spherical_g_UU,
                           const amrex::Real x, const amrex::Real y,
                           const amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     return transform_sym_tensor_UU(spherical_g_UU,
                                    inverse_spherical_jacobian(x, y, z));
@@ -226,12 +206,10 @@ spherical_to_cartesian_UU(const Tensor::Sym12Rank2 &spherical_g_UU,
 // Convert a Tensor (with two lower indices) in cartesian coords to spherical
 // coords
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
 cartesian_to_spherical_LL(const Tensor::Sym12Rank2 &cartesian_g,
                           const amrex::Real x, const amrex::Real y,
                           const amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     return transform_sym_tensor_LL(cartesian_g,
                                    inverse_spherical_jacobian(x, y, z));
@@ -240,11 +218,9 @@ cartesian_to_spherical_LL(const Tensor::Sym12Rank2 &cartesian_g,
 // Convert a Tensor (with two upper indices) in cartesian coords to spherical
 // coords
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
 cartesian_to_spherical_UU(const Tensor::Sym12Rank2 &cartesian_g_UU,
                           amrex::Real x, amrex::Real y, amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     return transform_sym_tensor_UU(cartesian_g_UU, spherical_jacobian(x, y, z));
 }
@@ -252,11 +228,9 @@ cartesian_to_spherical_UU(const Tensor::Sym12Rank2 &cartesian_g_UU,
 // Convert a vector (with one upper index) in spherical coords to cartesian
 // coords
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 spherical_to_cartesian_U(const Tensor::Rank1 &spherical_v_U, amrex::Real x,
                          amrex::Real y, amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     return transform_vector(spherical_v_U, inverse_spherical_jacobian(x, y, z));
 }
@@ -264,11 +238,9 @@ spherical_to_cartesian_U(const Tensor::Rank1 &spherical_v_U, amrex::Real x,
 // Convert a vector (with one lower index) in spherical coords to cartesian
 // coords
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 spherical_to_cartesian_L(const Tensor::Rank1 &spherical_v_L, amrex::Real x,
                          amrex::Real y, amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     return transform_covector(spherical_v_L, spherical_jacobian(x, y, z));
 }
@@ -276,11 +248,9 @@ spherical_to_cartesian_L(const Tensor::Rank1 &spherical_v_L, amrex::Real x,
 // Convert a vector (with one upper index) in cartesian coords to spherical
 // coords
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 cartesian_to_spherical_U(const Tensor::Rank1 &cartesian_v_U, amrex::Real x,
                          amrex::Real y, amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     return transform_vector(cartesian_v_U, spherical_jacobian(x, y, z));
 }
@@ -288,11 +258,9 @@ cartesian_to_spherical_U(const Tensor::Rank1 &cartesian_v_U, amrex::Real x,
 // Convert a vector (with one lower index) in cartesian coords to spherical
 // coords
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 cartesian_to_spherical_L(const Tensor::Rank1 &cartesian_v_L, amrex::Real x,
                          amrex::Real y, amrex::Real z)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     return transform_covector(cartesian_v_L,
                               inverse_spherical_jacobian(x, y, z));
@@ -308,10 +276,8 @@ area_element_sphere(const Tensor::Sym12Rank2 &spherical_g)
 
 // cartesian coordinates rotation matrix
 // axis must be normalized to 1
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 rotation_matrix(const Tensor::Rank1 &axis, amrex::Real cos_angle)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     amrex::Real sine = std::sqrt(std::max(0._rt, 1. - cos_angle * cos_angle));
     amrex::Real one_minus_cos = 1. - cos_angle;
@@ -332,10 +298,8 @@ rotation_matrix(const Tensor::Rank1 &axis, amrex::Real cos_angle)
 
 // cartesian coordinates rotation matrix from origin vector to destination
 // vector
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 rotation_matrix(const Tensor::Rank1 &origin, const Tensor::Rank1 &destination)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // Calculate axis of rotation:
     Tensor::Rank1 axis = {

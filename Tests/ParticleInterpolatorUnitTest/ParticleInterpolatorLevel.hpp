@@ -41,31 +41,31 @@ class ParticleInterpolatorLevel : public GRAmrLevel
         const int c_polystate2 = c_phi;
 
         std::array<amrex::Real, AMREX_SPACEDIM> center{
-            AMREX_D_DECL(0., 0., 0.)};
+            AMREX_D_DECL(0., 0., 0.),
+        };
         GRParmParse pp;
         pp.query("geometry.center", center);
 
         // Fill the state
-        amrex::ParallelFor(
-            state, state.nGrowVect(),
-            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-            {
-                const auto &array = arrs[box_no];
+        amrex::ParallelFor(state, state.nGrowVect(),
+                           [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                           {
+                               const auto &array = arrs[box_no];
 
-                // compute coordinates
-                amrex::Real y = prob_lo[1] + (j + 0.5) * dx[1] - center[1];
-                amrex::Real z = prob_lo[2] + (k + 0.5) * dx[2] - center[2];
+                               // compute coordinates
+                               amrex::Real y =
+                                   prob_lo[1] + (j + 0.5) * dx[1] - center[1];
+                               amrex::Real z =
+                                   prob_lo[2] + (k + 0.5) * dx[2] - center[2];
 
-                // write in
-                array(i, j, k, c_polystate)  = z * z * z;
-                array(i, j, k, c_polystate2) = y * y * y;
-            });
+                               // write in
+                               array(i, j, k, c_polystate)  = z * z * z;
+                               array(i, j, k, c_polystate2) = y * y * y;
+                           });
 
         amrex::Gpu::streamSynchronize();
     }
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
                            const amrex::Real a_time) override
     {
@@ -84,7 +84,6 @@ class ParticleInterpolatorLevel : public GRAmrLevel
 
         FixedGridsTagger my_tagging_criterion{dx, current_level};
 
-        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             a_tag_box_array,
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)

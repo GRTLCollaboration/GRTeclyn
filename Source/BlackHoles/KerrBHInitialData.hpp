@@ -40,10 +40,8 @@ class KerrBHInitialData
     Tensor::Rank2 m_inverse_rotation_matrix;
 
   public:
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_FORCE_INLINE
     explicit KerrBHInitialData(amrex::Real a_dx);
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,

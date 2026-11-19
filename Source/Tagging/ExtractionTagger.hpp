@@ -24,7 +24,7 @@ class ExtractionTagger
     int m_num_extraction_radii{};
     const amrex::Real *m_extraction_radii_ptr{nullptr};
     const int *m_extraction_levels_ptr{nullptr};
-    std::array<amrex::Real, AMREX_SPACEDIM> m_center;
+    std::array<amrex::Real, AMREX_SPACEDIM> m_center{};
     int m_level;
     amrex::Real m_level_separation{1.5};
 
@@ -53,12 +53,10 @@ class ExtractionTagger
     }
 
     // a_params must outlive the tagger and any GPU kernel which captures it.
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     ExtractionTagger(const amrex::Real dx, const int a_level,
                      const spherical_extraction_params_t &a_params)
-        : m_dx(dx), m_level(a_level)
+        : m_dx(dx), m_level(a_level), m_center(a_params.center)
     {
-        m_center = a_params.center;
         if (a_params.enabled)
         {
             m_num_extraction_radii  = a_params.num_extraction_radii();

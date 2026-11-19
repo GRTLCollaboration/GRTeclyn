@@ -322,10 +322,8 @@ raise_all(const Tensor::Rank2 &tensor_LL, const Tensor::Rank2 &inverse_metric)
 /// Lowers the indices of a vector
 /// Note: same functionality as raise; included to improve readability
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank1
 lower_all(const Tensor::Rank1 &tensor_U, const Tensor::Rank2 &metric)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_U, metric);
 }
@@ -333,20 +331,16 @@ lower_all(const Tensor::Rank1 &tensor_U, const Tensor::Rank2 &metric)
 /// Lowers the indices of a 2-Tensor
 /// Note: same functionality as raise; included to improve readability
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 lower_all(const Tensor::Rank2 &tensor_UU, const Tensor::Rank2 &metric)
 
-// NOLINTEND(bugprone-easily-swappable-parameters)
 { // The code for lowering is exactly the same as for raising
     return raise_all(tensor_UU, metric);
 }
 
 /// Computes the (i,j) component of the Kronecker delta
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 constexpr int delta(int i, int j) { return static_cast<int>(i == j); }
-// NOLINTEND(bugprone-easily-swappable-parameters)
 
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Tensor::Rank3 epsilon()
 {
@@ -402,10 +396,8 @@ epsilon4D()
 
 /// Computes the conformal christoffel symbol
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE chris_t
 compute_christoffel(const Tensor::Rank3 &d1_metric, const Tensor::Rank2 &h_UU)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     chris_t out{};
 

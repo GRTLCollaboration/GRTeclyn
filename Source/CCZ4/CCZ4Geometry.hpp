@@ -16,8 +16,8 @@
 //! 3+1D
 struct emtensor_t
 {
-    Tensor::Rank2 S{}; //!< S_ij = T_ij
-    Tensor::Rank1 j{}; //!< j_i = T_ia_n^a
+    Tensor::Rank2 S;   //!< S_ij = T_ij
+    Tensor::Rank1 j;   //!< j_i = T_ia_n^a
     amrex::Real trS{}; //!< trS = S^i_i
     amrex::Real rho{}; //!< rho = T_ab n^a n^b
 };
@@ -25,15 +25,15 @@ struct emtensor_t
 //! Stress-energy sources including the gravitational coupling, 8 pi G T_ab.
 struct einstein_sources_t
 {
-    Tensor::Rank2 S{}; //!< 8 pi G S_ij
-    Tensor::Rank1 j{}; //!< 8 pi G j_i
+    Tensor::Rank2 S;   //!< 8 pi G S_ij
+    Tensor::Rank1 j;   //!< 8 pi G j_i
     amrex::Real trS{}; //!< 8 pi G S^i_i
     amrex::Real rho{}; //!< 8 pi G rho
 };
 
 struct ricci_t
 {
-    Tensor::Rank2 LL{};   // Ricci with two indices down
+    Tensor::Rank2 LL;     // Ricci with two indices down
     amrex::Real scalar{}; // Ricci scalar
 };
 
@@ -133,10 +133,8 @@ compute_Aij_squared_with_A_UU(const CCZ4Vars &vars, const Tensor::Rank2 &A_UU)
 
 /// Computes the conformal christoffel symbol - using tensors
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE chris_t
 compute_christoffel(const Tensor::Sym12Rank3 &d1_h, const Tensor::Rank2 &h_UU)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     chris_t out{};
 
@@ -168,12 +166,10 @@ compute_christoffel(const Tensor::Sym12Rank3 &d1_h, const Tensor::Rank2 &h_UU)
 
 /// Computes the conformal christoffel symbol
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE Tensor::Rank3
 compute_phys_chris(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
                    const Tensor::Rank2 &h_UU, const Tensor::Rank3 &chris_ULL)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     using namespace TensorAlgebra;
     Tensor::Rank3 chris_phys{};
@@ -208,7 +204,8 @@ make_trace_free(Tensor::Rank2 &tensor_LL, const CCZ4Vars vars,
                 const Tensor::Rank2 &inverse_metric)
 {
     auto trace = TensorAlgebra::compute_trace(tensor_LL, inverse_metric);
-    amrex::Real one_over_gr_spacedim = 1. / ((amrex::Real)GR_SPACEDIM);
+    amrex::Real one_over_gr_spacedim =
+        1. / (static_cast<amrex::Real>(GR_SPACEDIM));
     FOR (i, j)
     {
         tensor_LL(i, j) -= one_over_gr_spacedim * vars.h(i, j) * trace;
@@ -229,13 +226,11 @@ compute_z_terms(const int i, const int j, const Tensor::Rank1 &Z_over_chi,
     return out;
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
                   const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
                   const Tensor::Sym12Sym34Rank4 &d2_h,
                   const Tensor::Rank2 &h_UU, const chris_t &chris)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
     amrex::Real ricci_hat = 0;
@@ -277,14 +272,12 @@ compute_ricci_hat(const int i, const int j, const CCZ4Vars &vars,
 
     return ricci_hat;
 }
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE ricci_t
 compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
                 const Tensor::Rank2 &d1_Gamma, const Tensor::Sym12Rank3 &d1_h,
                 const Tensor::Sym12Sym34Rank4 &d2_h,
                 const Tensor::Sym12Rank2 &d2_chi, const Tensor::Rank2 &h_UU,
                 const chris_t &chris, const Tensor::Rank1 &Z_over_chi)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     ricci_t out;
 
@@ -297,7 +290,6 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
             covdtilde2chi(k, l) -= chris.ULL(m, k, l) * d1_chi(m);
         }
     }
-
     amrex::Real boxtildechi   = 0.;
     amrex::Real dchi_dot_dchi = 0.;
     FOR (i, j)
@@ -308,17 +300,14 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
 
     FOR (i, j)
     {
-
         amrex::Real ricci_hat =
             compute_ricci_hat(i, j, vars, d1_Gamma, d1_h, d2_h, h_UU, chris);
-
         amrex::Real ricci_chi =
             0.5 * ((GR_SPACEDIM - 2) * covdtilde2chi(i, j) +
                    vars.h(i, j) * boxtildechi -
                    ((GR_SPACEDIM - 2) * d1_chi(i) * d1_chi(j) +
                     GR_SPACEDIM * vars.h(i, j) * dchi_dot_dchi) /
                        (2 * vars.chi()));
-
         amrex::Real z_terms = compute_z_terms(i, j, Z_over_chi, vars, d1_chi);
 
         out.LL(i, j) =
@@ -330,12 +319,10 @@ compute_ricci_Z(const CCZ4Vars &vars, const Tensor::Rank1 &d1_chi,
     return out;
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Rank2
 compute_d1_chris_contracted(const Tensor::Rank2 &h_UU,
                             const Tensor::Sym12Rank3 &d1_h,
                             const Tensor::Sym12Sym34Rank4 &d2_h)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     Tensor::Rank2 d1_chris_contracted{};
 

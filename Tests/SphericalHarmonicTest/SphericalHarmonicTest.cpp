@@ -22,7 +22,7 @@
 enum
 {
     c_phi,
-    NUM_SPHERICAL_HARMONICS_VARS
+    NUM_SPHERICAL_HARMONICS_VARS,
 };
 
 void run_spherical_harmonic_test()
@@ -49,8 +49,11 @@ void run_spherical_harmonic_test()
         auto out_array           = out_fab.array();
         auto diff_array          = diff_fab.array();
 
-        std::array<amrex::Real, AMREX_SPACEDIM> center_vector = {center, center,
-                                                                 center};
+        std::array<amrex::Real, AMREX_SPACEDIM> center_vector = {
+            center,
+            center,
+            center,
+        };
         HarmonicTest harmonic_test(center_vector, dx);
 
         amrex::ParallelFor(

@@ -10,7 +10,7 @@
 enum class VariableType
 {
     state,
-    derived
+    derived,
 };
 
 #endif /* VARIABLETYPE_HPP */
