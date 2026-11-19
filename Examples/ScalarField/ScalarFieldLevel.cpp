@@ -9,11 +9,13 @@
 #include "CCZ4RHSWithMatter.hpp"
 #include "ConstraintsWithMatter.hpp"
 #include "EMTensor.hpp"
+#include "ADMQuantities.hpp"
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "GammaCalculator.hpp"
 #include "IntegratedMovingPunctureGauge.hpp"
 #include "LineExtraction.hpp"
+#include "SphericalExtraction.hpp"
 #include "OscillatonInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
@@ -38,6 +40,7 @@ void ScalarFieldLevel::variableSetUp()
     state_variable_set_up();
     ScalarFieldConstraints::set_up(state_index);
     ScalarFieldEnergyDensity::set_up(state_index);
+    ADMQuantities::set_up(state_index);
 }
 
 void ScalarFieldLevel::specific_advance()
@@ -64,6 +67,9 @@ void ScalarFieldLevel::specific_post_timestep()
 {
     BL_PROFILE("ScalarFieldLevel::specific_post_timestep()");
 
+    spherical_extraction_params_t params("madm_sphere_extraction");
+    params.fill_params();
+
     if (Level() == 0)
     {
         const amrex::Real time         = get_state_data(state_index).curTime();
@@ -83,6 +89,16 @@ void ScalarFieldLevel::specific_post_timestep()
 
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);
+
+        SphericalExtraction<1> madm_extraction(params, dt, time, first_step, restart_time);
+        madm_extraction.add_derived_vars({0}, {BCParity::even}, ADMQuantities::name);
+        madm_extraction.extract(&get_scalar_field_amr_ptr()->adm_interpolator);
+        std::vector<amrex::ParticleReal> adm_integrals;
+        madm_extraction.add_var_integrand(0,adm_integrals,IntegrationMethod::simpson,IntegrationMethod::trapezium);
+        madm_extraction.integrate();
+        
+        madm_extraction.write_integral(params.integral_file_prefix,
+            adm_integrals,"M_adm");
     }
 }
 

@@ -15,6 +15,7 @@ class ScalarFieldAmr : public GRAmr
   public:
     ParticleInterpolator<1> phi_interpolator;
     ParticleInterpolator<1> rho_interpolator;
+    ParticleInterpolator<1> adm_interpolator;
 
     explicit ScalarFieldAmr(amrex::LevelBld *a_level_bld) : GRAmr(a_level_bld)
     {
@@ -26,6 +27,7 @@ class ScalarFieldAmr : public GRAmr
 
         phi_interpolator.setup(this);
         rho_interpolator.setup(this);
+        adm_interpolator.setup(this);
     }
 };
 
