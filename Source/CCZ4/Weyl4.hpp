@@ -9,7 +9,7 @@
 #include "CCZ4Geometry.hpp"
 #include "CCZ4RHS.hpp"
 #include "Coordinates.hpp"
-#include "FourthOrderDerivatives.hpp"
+#include "Derivatives.hpp"
 #include "GRParmParse.hpp"
 #include "StateVariables.hpp" //This files needs c_NUM - total number of components
 #include "Tensor.hpp"
