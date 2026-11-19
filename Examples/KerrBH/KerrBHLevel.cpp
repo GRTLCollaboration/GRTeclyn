@@ -5,15 +5,19 @@
 
 #include "KerrBHLevel.hpp"
 
+#include "AMRReductions.hpp"
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHS.hpp"
 #include "Constraints.hpp"
+#include "FilesystemTools.hpp"
 #include "FixedGridsTagger.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "GRParmParse.hpp"
 #include "GammaCalculator.hpp"
 #include "KerrBHInitialData.hpp"
 #include "PositiveChiAndLapse.hpp"
 #include "SixthOrderDerivatives.hpp"
+#include "SmallDataIO.hpp"
 
 BHAmr<KerrBHLevel::num_punctures> *KerrBHLevel::get_bh_amr_ptr()
 {
@@ -242,5 +246,56 @@ void KerrBHLevel::specific_post_timestep()
 {
     BL_PROFILE("KerrBHLevel::specific_post_timestep");
 
-    // Add post-timestep diagnostics here
+    if (Level() == 0)
+    {
+        GRParmParse pp;
+        bool store_constraint_norms = false;
+        pp.query("diagnostic.store_constraint_norms", store_constraint_norms);
+        if (store_constraint_norms)
+        {
+            write_constraint_norms();
+        }
+    }
+}
+
+void KerrBHLevel::write_constraint_norms()
+{
+    BL_PROFILE("KerrBHLevel::write_constraint_norms()");
+
+    const amrex::Real time         = get_state_data(state_index).curTime();
+    const amrex::Real dt           = get_gr_amr_ptr()->dtLevel(0);
+    const amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
+    const bool first_step          = (time <= dt);
+
+    // Only one derived quantity is reduced, so it can be derived on all levels
+    // directly (to reduce several quantities in one pass over the grid, derive
+    // them together with an AMRReductions::DerivedHierarchy instead).
+    // Component 0 is Ham and components 1 to AMREX_SPACEDIM are Mom1-3 (see
+    // Constraints::var_names); the latter are combined into a single Mom norm.
+    auto &amr              = *get_gr_amr_ptr();
+    const auto constraints = amr.derive(Constraints::name, time, 0);
+
+    const AMRReductions::AMRReducer reducer(amr);
+    const auto [ham_l2_norm, mom_l2_norm] = reducer.compute(
+        amrex::GetVecOfConstPtrs(constraints), AMRReductions::L2Norm{.comp = 0},
+        AMRReductions::L2Norm{
+            .comp      = 1,
+            .num_comps = AMREX_SPACEDIM,
+        });
+
+    GRParmParse pp;
+    std::string output_path;
+    pp.get("grteclyn.output_path", output_path);
+    const std::string diagnostics_path = output_path + "/diagnostics";
+    FilesystemTools::ensure_directory_exists(diagnostics_path);
+
+    SmallDataIO constraints_file(diagnostics_path + "/constraint_norms", dt,
+                                 time, restart_time, SmallDataIO::APPEND,
+                                 first_step);
+    if (first_step)
+    {
+        constraints_file.write_header_line({"L2_Ham", "L2_Mom"});
+    }
+    constraints_file.write_time_data_line(
+        std::vector<amrex::Real>{ham_l2_norm, mom_l2_norm});
 }

@@ -40,6 +40,11 @@ class ScalarFieldLevel : public GRAmrLevel
 
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;
+
+  private:
+    //! Computes and writes the requested reductions
+    void write_reductions(amrex::Real a_time, amrex::Real a_dt,
+                          amrex::Real a_restart_time, bool a_first_step);
 };
 
 #endif /* SCALARFIELDLEVEL_HPP_ */
