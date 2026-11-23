@@ -61,6 +61,16 @@ void validate_derivatives(const amrex::Box &box,
                     doctest::Approx(2. * x * (z - 0.5)).epsilon(test_threshold),
                 "Failed diff1 tensor (", order_name, ") at ", iv);
 
+            CHECK_MESSAGE(
+                cell_data[c_d1_state1] ==
+                    doctest::Approx(x * (2. * z - 1.)).epsilon(test_threshold),
+                "Failed diff1 state z component (", order_name, ") at ", iv);
+
+            CHECK_MESSAGE(
+                cell_data[c_d1_state2] ==
+                    doctest::Approx(z * (z - 1.)).epsilon(test_threshold),
+                "Failed diff1 state x component (", order_name, ") at ", iv);
+
             // Second order derivative tests
             CHECK_MESSAGE(cell_data[c_d2] ==
                               doctest::Approx(2. * x).epsilon(test_threshold),
