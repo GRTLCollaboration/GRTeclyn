@@ -451,9 +451,9 @@ template <Stencil stencil_t> class Derivatives
     template <int num_diff_vars>
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         amrex::Array2D<amrex::Real, 0, num_diff_vars - 1, 0, AMREX_SPACEDIM - 1>
-        diff1_state(int ix, int iy, int iz,
-                    const amrex::Array4<const amrex::Real> &state,
-                    int first_var = 0) const
+        d1_state(int ix, int iy, int iz,
+                 const amrex::Array4<const amrex::Real> &state,
+                 int first_var = 0) const
     {
         const auto *state_ptr_xyz = state.ptr(ix, iy, iz);
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
@@ -464,22 +464,20 @@ template <Stencil stencil_t> class Derivatives
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         amrex::Array2D<amrex::Real, 0, num_diff_vars - 1, 0, AMREX_SPACEDIM - 1>
-            d1_state{};
+            d1{};
 
         for (int ivar = first_var; ivar < (first_var + num_diff_vars); ++ivar)
         {
             const auto *var_ptr =
-                state_ptr_xyz +
-                static_cast<std::ptrdiff_t>(ivar) *
-                    state.template get_stride<AMREX_SPACEDIM>();
+                state_ptr_xyz + static_cast<std::ptrdiff_t>(ivar) *
+                                    state.template get_stride<AMREX_SPACEDIM>();
 
             FOR (idir)
             {
-                d1_state(ivar - first_var, idir) =
-                    diff1(var_ptr, strides[idir]);
+                d1(ivar - first_var, idir) = diff1(var_ptr, strides[idir]);
             }
         }
-        return d1_state;
+        return d1;
     }
 
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor::Sym12Rank2
