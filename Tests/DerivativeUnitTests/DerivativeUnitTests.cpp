@@ -49,51 +49,55 @@ void validate_derivatives(const amrex::Box &box,
             CHECK_MESSAGE(
                 cell_data[c_d1] ==
                     doctest::Approx(2. * x * (z - 0.5)).epsilon(test_threshold),
-                "Failed diff1 scalar (", order_name, ") at ", iv);
+                "Failed first derivative scalar (", order_name, ") at ", iv);
 
             CHECK_MESSAGE(
                 cell_data[c_d1_v3] ==
                     doctest::Approx(2. * x * (z - 0.5)).epsilon(test_threshold),
-                "Failed diff1 vector (", order_name, ") at ", iv);
+                "Failed first derivative vector (", order_name, ") at ", iv);
 
             CHECK_MESSAGE(
                 cell_data[c_d1_t33] ==
                     doctest::Approx(2. * x * (z - 0.5)).epsilon(test_threshold),
-                "Failed diff1 tensor (", order_name, ") at ", iv);
+                "Failed first derivative tensor (", order_name, ") at ", iv);
 
             CHECK_MESSAGE(
                 cell_data[c_d1_state1] ==
                     doctest::Approx(x * (2. * z - 1.)).epsilon(test_threshold),
-                "Failed diff1 state z component (", order_name, ") at ", iv);
+                "Failed first derivative state z component (", order_name,
+                ") at ", iv);
 
             CHECK_MESSAGE(
                 cell_data[c_d1_state2] ==
                     doctest::Approx(z * (z - 1.)).epsilon(test_threshold),
-                "Failed diff1 state x component (", order_name, ") at ", iv);
+                "Failed first derivative state x component (", order_name,
+                ") at ", iv);
 
             // Second order derivative tests
             CHECK_MESSAGE(cell_data[c_d2] ==
                               doctest::Approx(2. * x).epsilon(test_threshold),
-                          "Failed diff2 scalar (", order_name, ") at ", iv);
+                          "Failed second derivative scalar (", order_name,
+                          ") at ", iv);
 
             CHECK_MESSAGE(cell_data[c_d2_v3] ==
                               doctest::Approx(2. * x).epsilon(test_threshold),
-                          "Failed diff2 vector (", order_name, ") at ", iv);
+                          "Failed second derivative vector (", order_name,
+                          ") at ", iv);
 
             CHECK_MESSAGE(
                 cell_data[c_d2_t31] ==
                     doctest::Approx(2. * (z - 0.5)).epsilon(test_threshold),
-                "Failed diff2 tensor (", order_name, ") at ", iv);
+                "Failed second derivative tensor (", order_name, ") at ", iv);
 
             CHECK_MESSAGE(cell_data[c_d2_sym_t33] ==
                               doctest::Approx(2. * x).epsilon(test_threshold),
-                          "Failed diff2 symmetric tensor (", order_name,
-                          ") at ", iv);
+                          "Failed second derivative symmetric tensor (",
+                          order_name, ") at ", iv);
 
             CHECK_MESSAGE(
                 cell_data[c_d2_mixed] ==
                     doctest::Approx(2. * (z - 0.5)).epsilon(test_threshold),
-                "Failed mixed diff2 (", order_name, ") at ", iv);
+                "Failed mixed second derivative (", order_name, ") at ", iv);
 
             // Advection and dissipation tests
             // The order of Kreiss-Oliger (KO) dissipation used in the

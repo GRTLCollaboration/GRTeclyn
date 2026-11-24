@@ -27,7 +27,7 @@ KleinGordonRHS<model_t, deriv_t>::operator()(
 
     FOR (i)
     {
-        d2_phi(i) = m_deriv.diff2(
+        d2_phi(i) = m_deriv.second_derivative(
             state_ptr_ijk + c_phi * state.template get_stride<3>(), strides(i));
     }
 

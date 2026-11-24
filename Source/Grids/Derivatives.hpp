@@ -336,20 +336,22 @@ template <Stencil stencil_t> class Derivatives
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    diff1(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
+    first_derivative(const amrex::Real *in_ptr, const int stride,
+                     const int idx = 0) const
     {
         return stencil_t::diff1(in_ptr, stride, idx) * m_one_over_dx;
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    diff2(const amrex::Real *in_ptr, const int stride, const int idx = 0) const
+    second_derivative(const amrex::Real *in_ptr, const int stride,
+                      const int idx = 0) const
     {
         return stencil_t::diff2(in_ptr, stride, idx) * m_one_over_dx2;
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    mixed_diff2(const amrex::Real *in_ptr, const int stride1, const int stride2,
-                const int idx = 0) const
+    mixed_second_derivative(const amrex::Real *in_ptr, const int stride1,
+                            const int stride2, const int idx = 0) const
     {
         return stencil_t::mixed_diff2(in_ptr, stride1, stride2, idx) *
                m_one_over_dx2;
@@ -374,7 +376,7 @@ template <Stencil stencil_t> class Derivatives
         const auto *var_ptr       = get_var_ptr(ivar, state_ptr_xyz, strides);
         FOR (idir)
         {
-            d1(idir) = diff1(var_ptr, strides[idir]);
+            d1(idir) = first_derivative(var_ptr, strides[idir]);
         }
         return d1;
     }
@@ -395,7 +397,7 @@ template <Stencil stencil_t> class Derivatives
             const auto *var_ptr = get_var_ptr(ivar, state_ptr_xyz, strides);
             FOR (idir)
             {
-                d1(icomp, idir) = diff1(var_ptr, strides[idir]);
+                d1(icomp, idir) = first_derivative(var_ptr, strides[idir]);
             }
         }
         return d1;
@@ -418,7 +420,7 @@ template <Stencil stencil_t> class Derivatives
 
             FOR (idir)
             {
-                d1(ivar, idir) = diff1(var_ptr, strides[idir]);
+                d1(ivar, idir) = first_derivative(var_ptr, strides[idir]);
             }
         }
         return d1;
@@ -440,7 +442,8 @@ template <Stencil stencil_t> class Derivatives
             const auto *var_ptr = get_var_ptr(ivar, state_ptr_xyz, strides);
             FOR (idir)
             {
-                d1(icomp, jcomp, idir) = diff1(var_ptr, strides[idir]);
+                d1(icomp, jcomp, idir) =
+                    first_derivative(var_ptr, strides[idir]);
             }
             ++ivar;
         }
@@ -474,7 +477,8 @@ template <Stencil stencil_t> class Derivatives
 
             FOR (idir)
             {
-                d1(ivar - first_var, idir) = diff1(var_ptr, strides[idir]);
+                d1(ivar - first_var, idir) =
+                    first_derivative(var_ptr, strides[idir]);
             }
         }
         return d1;
@@ -492,13 +496,13 @@ template <Stencil stencil_t> class Derivatives
         auto strides              = get_strides(state);
         const auto *var_ptr       = get_var_ptr(ivar, state_ptr_xyz, strides);
 
-        d2(0, 0) = diff2(var_ptr, strides[0]);
-        d2(1, 1) = diff2(var_ptr, strides[1]);
-        d2(2, 2) = diff2(var_ptr, strides[2]);
+        d2(0, 0) = second_derivative(var_ptr, strides[0]);
+        d2(1, 1) = second_derivative(var_ptr, strides[1]);
+        d2(2, 2) = second_derivative(var_ptr, strides[2]);
 
-        d2(0, 1) = mixed_diff2(var_ptr, strides[0], strides[1]);
-        d2(0, 2) = mixed_diff2(var_ptr, strides[0], strides[2]);
-        d2(1, 2) = mixed_diff2(var_ptr, strides[1], strides[2]);
+        d2(0, 1) = mixed_second_derivative(var_ptr, strides[0], strides[1]);
+        d2(0, 2) = mixed_second_derivative(var_ptr, strides[0], strides[2]);
+        d2(1, 2) = mixed_second_derivative(var_ptr, strides[1], strides[2]);
 
         return d2;
     }
@@ -518,13 +522,16 @@ template <Stencil stencil_t> class Derivatives
             const int ivar      = ivar_0 + icomp;
             const auto *var_ptr = get_var_ptr(ivar, state_ptr_xyz, strides);
 
-            d2(icomp, 0, 0) = diff2(var_ptr, strides[0]);
-            d2(icomp, 1, 1) = diff2(var_ptr, strides[1]);
-            d2(icomp, 2, 2) = diff2(var_ptr, strides[2]);
+            d2(icomp, 0, 0) = second_derivative(var_ptr, strides[0]);
+            d2(icomp, 1, 1) = second_derivative(var_ptr, strides[1]);
+            d2(icomp, 2, 2) = second_derivative(var_ptr, strides[2]);
 
-            d2(icomp, 0, 1) = mixed_diff2(var_ptr, strides[0], strides[1]);
-            d2(icomp, 0, 2) = mixed_diff2(var_ptr, strides[0], strides[2]);
-            d2(icomp, 1, 2) = mixed_diff2(var_ptr, strides[1], strides[2]);
+            d2(icomp, 0, 1) =
+                mixed_second_derivative(var_ptr, strides[0], strides[1]);
+            d2(icomp, 0, 2) =
+                mixed_second_derivative(var_ptr, strides[0], strides[2]);
+            d2(icomp, 1, 2) =
+                mixed_second_derivative(var_ptr, strides[1], strides[2]);
         }
         return d2;
     }
@@ -545,16 +552,16 @@ template <Stencil stencil_t> class Derivatives
             {
                 const auto *var_ptr = get_var_ptr(ivar, state_ptr_xyz, strides);
 
-                d2(icomp, jcomp, 0, 0) = diff2(var_ptr, strides[0]);
-                d2(icomp, jcomp, 1, 1) = diff2(var_ptr, strides[1]);
-                d2(icomp, jcomp, 2, 2) = diff2(var_ptr, strides[2]);
+                d2(icomp, jcomp, 0, 0) = second_derivative(var_ptr, strides[0]);
+                d2(icomp, jcomp, 1, 1) = second_derivative(var_ptr, strides[1]);
+                d2(icomp, jcomp, 2, 2) = second_derivative(var_ptr, strides[2]);
 
                 d2(icomp, jcomp, 0, 1) =
-                    mixed_diff2(var_ptr, strides[0], strides[1]);
+                    mixed_second_derivative(var_ptr, strides[0], strides[1]);
                 d2(icomp, jcomp, 0, 2) =
-                    mixed_diff2(var_ptr, strides[0], strides[2]);
+                    mixed_second_derivative(var_ptr, strides[0], strides[2]);
                 d2(icomp, jcomp, 1, 2) =
-                    mixed_diff2(var_ptr, strides[1], strides[2]);
+                    mixed_second_derivative(var_ptr, strides[1], strides[2]);
 
                 ++ivar;
             }
@@ -578,16 +585,16 @@ template <Stencil stencil_t> class Derivatives
                 const int ivar      = sym_var_idx(ivar_0, icomp, jcomp);
                 const auto *var_ptr = get_var_ptr(ivar, state_ptr_xyz, strides);
 
-                d2(icomp, jcomp, 0, 0) = diff2(var_ptr, strides[0]);
-                d2(icomp, jcomp, 1, 1) = diff2(var_ptr, strides[1]);
-                d2(icomp, jcomp, 2, 2) = diff2(var_ptr, strides[2]);
+                d2(icomp, jcomp, 0, 0) = second_derivative(var_ptr, strides[0]);
+                d2(icomp, jcomp, 1, 1) = second_derivative(var_ptr, strides[1]);
+                d2(icomp, jcomp, 2, 2) = second_derivative(var_ptr, strides[2]);
 
                 d2(icomp, jcomp, 0, 1) =
-                    mixed_diff2(var_ptr, strides[0], strides[1]);
+                    mixed_second_derivative(var_ptr, strides[0], strides[1]);
                 d2(icomp, jcomp, 0, 2) =
-                    mixed_diff2(var_ptr, strides[0], strides[2]);
+                    mixed_second_derivative(var_ptr, strides[0], strides[2]);
                 d2(icomp, jcomp, 1, 2) =
-                    mixed_diff2(var_ptr, strides[1], strides[2]);
+                    mixed_second_derivative(var_ptr, strides[1], strides[2]);
             }
 
         return d2;
