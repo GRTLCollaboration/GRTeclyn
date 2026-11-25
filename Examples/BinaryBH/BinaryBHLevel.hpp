@@ -62,6 +62,9 @@ class BinaryBHLevel : public GRAmrLevel
     //! Things to do after writing a checkpoint
     void specific_post_checkpoint(const std::string &a_dir,
                                   std::ostream & /*a_os*/) override;
+
+  private:
+    void find_apparent_horizons();
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */

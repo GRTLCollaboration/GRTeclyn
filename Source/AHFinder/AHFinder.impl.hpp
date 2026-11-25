@@ -165,6 +165,8 @@ inline bool AHFinder::find(amrex::Real time, amrex::Real dt_evolution,
     amrex::Real area     = 0.0;
     amrex::Real mass     = 0.0;
 
+    m_last_find_converged = converged;
+
     if (converged)
     {
         amrex::Print() << "\n AHFinder " << m_name
@@ -241,8 +243,9 @@ inline void AHFinder::write_plotfile(const std::string &a_dir)
     m_surface_pc.clearParticles();
 
     // m_h is the same on every rank, so add all the particles on the
-    // IOProcessor and let Redistribute() move them to the right rank
-    if (m_enabled && amrex::ParallelDescriptor::IOProcessor())
+    // IOProcessor and let Redistribute() move them to the right rank.
+    if (m_enabled && m_last_find_converged &&
+        amrex::ParallelDescriptor::IOProcessor())
     {
         auto &particle_tile = m_surface_pc.DefineAndReturnParticleTile(0, 0, 0);
         const std::array<double, AMREX_SPACEDIM> &center = m_geometry.center();

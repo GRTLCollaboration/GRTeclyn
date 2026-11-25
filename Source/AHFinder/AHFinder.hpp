@@ -74,6 +74,10 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
     // Irreducible mass of the last converged surface
     amrex::Real m_mass{0.0};
 
+    // Whether the most recent find() converged. Surfaces are only written to
+    // plotfiles if it did.
+    bool m_last_find_converged{false};
+
     // Owns the ring grid of particles and performs operations on it
     AHGeometry m_geometry;
 
@@ -230,7 +234,7 @@ class AHFinder : public ParticleInterpolator<ah_finder_num_components>
 
     // Write the current surface points as particles to the plotfile a_dir,
     // in the subdirectory <name>. No particles are written if the finder is
-    // disabled.
+    // disabled, or if its most recent find() did not converge
     void write_plotfile(const std::string &a_dir);
 
     // Centre the surface is parameterised about
