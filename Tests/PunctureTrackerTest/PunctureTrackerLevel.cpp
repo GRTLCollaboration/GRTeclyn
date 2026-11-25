@@ -95,6 +95,9 @@ void PunctureTrackerLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 void PunctureTrackerLevel::specific_post_init()
 {
     get_puncture_tracker().start_from_initial_punctures();
+
+    bool post_init = true;
+    do_analysis(post_init);
 }
 
 void PunctureTrackerLevel::specific_post_restart()
@@ -225,21 +228,34 @@ void PunctureTrackerLevel::specific_post_checkpoint(
 
 void PunctureTrackerLevel::specific_post_timestep()
 {
+    bool post_init = false;
+    do_analysis(post_init);
+}
+
+void PunctureTrackerLevel::do_analysis(bool a_post_init)
+{
     GRParmParse puncture_tracking_pp("puncture_tracking");
     int puncture_tracking_level{};
     puncture_tracking_pp.get("level", puncture_tracking_level);
 
     if (Level() == puncture_tracking_level)
     {
-        bool write_punctures = false;
-        amrex::Real cur_time = get_state_data(state_index).curTime();
-        amrex::Real dt       = get_gr_amr_ptr()->dtLevel(Level());
-        get_puncture_tracker().track(cur_time, dt, write_punctures);
+        // no need to do the tracking post_init as the initial punctures are
+        // written when start_from_initial_punctures() is called in
+        // specific_post_init()
+        if (!a_post_init)
+        {
+            bool write_punctures = false;
+            amrex::Real cur_time = get_state_data(state_index).curTime();
+            amrex::Real dt       = get_gr_amr_ptr()->dtLevel(Level());
+            get_puncture_tracker().track(cur_time, dt, write_punctures);
+        }
 
         GRParmParse puncture_tracking_pp("puncture_tracking");
         std::array<amrex::Real, AMREX_SPACEDIM * 2UL> correct_puncture_coords{};
         puncture_tracking_pp.get("initial_coords", correct_puncture_coords);
 
+        amrex::Real cur_time = get_state_data(state_index).curTime();
         for (int ipuncture = 0; ipuncture < num_punctures; ++ipuncture)
         {
             correct_puncture_coords[ipuncture * AMREX_SPACEDIM + 1] -=

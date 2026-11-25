@@ -55,6 +55,9 @@ class PunctureTrackerLevel : public GRAmrLevel
     void specific_post_checkpoint(const std::string &a_chk_dir,
                                   std::ostream & /*a_os*/) override;
 
+    //! Do our analysis post timestep and post init
+    void do_analysis(bool a_post_init = false);
+
   private:
     void check_puncture_tagging();
 };
