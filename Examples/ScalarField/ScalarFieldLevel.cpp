@@ -64,17 +64,40 @@ void ScalarFieldLevel::specific_post_timestep()
 {
     BL_PROFILE("ScalarFieldLevel::specific_post_timestep()");
 
+    bool post_init = false;
+    do_analysis(post_init);
+}
+
+void ScalarFieldLevel::specific_post_init()
+{
+    BL_PROFILE("ScalarFieldLevel::specific_post_init()");
+
+    bool post_init = true;
+    do_analysis(post_init);
+}
+
+void ScalarFieldLevel::do_analysis(bool a_post_init)
+{
+    BL_PROFILE("ScalarFieldLevel::do_analysis()");
+
+    // The interpolators need to be set up before we can use them for the
+    // line extractions below. setup() is idempotent so it is safe that this
+    // is called on every level and every timestep.
+    auto *scalar_field_amr_ptr = get_scalar_field_amr_ptr();
+    scalar_field_amr_ptr->phi_interpolator.setup(scalar_field_amr_ptr);
+    scalar_field_amr_ptr->rho_interpolator.setup(scalar_field_amr_ptr);
+
     if (Level() == 0)
     {
-        const amrex::Real time         = get_state_data(state_index).curTime();
-        const amrex::Real dt           = get_gr_amr_ptr()->dtLevel(0);
-        const amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
-        const bool first_step          = (time <= dt);
+        const amrex::Real time = get_state_data(state_index).curTime();
+        const amrex::Real dt   = scalar_field_amr_ptr->dtLevel(0);
+        const amrex::Real restart_time =
+            scalar_field_amr_ptr->get_restart_time();
+        const bool first_step = a_post_init;
 
         const LineExtraction<1> phi_extraction("phi_line_extraction", c_phi, dt,
                                                time, restart_time, first_step);
-        phi_extraction.execute_query(
-            &get_scalar_field_amr_ptr()->phi_interpolator);
+        phi_extraction.execute_query(&scalar_field_amr_ptr->phi_interpolator);
 
         const LineExtraction<1> rho_extraction("rho_line_extraction", 0, dt,
                                                time, restart_time, first_step);
@@ -84,8 +107,8 @@ void ScalarFieldLevel::specific_post_timestep()
             .parities        = {BCParity::even},
         };
 
-        rho_extraction.execute_query(
-            &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);
+        rho_extraction.execute_query(&scalar_field_amr_ptr->rho_interpolator,
+                                     rho_vars);
     }
 }
 

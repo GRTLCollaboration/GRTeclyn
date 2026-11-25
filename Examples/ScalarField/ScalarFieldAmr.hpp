@@ -19,14 +19,6 @@ class ScalarFieldAmr : public GRAmr
     explicit ScalarFieldAmr(amrex::LevelBld *a_level_bld) : GRAmr(a_level_bld)
     {
     }
-
-    void init(amrex::Real a_start_time, amrex::Real a_stop_time) override
-    {
-        GRAmr::init(a_start_time, a_stop_time);
-
-        phi_interpolator.setup(this);
-        rho_interpolator.setup(this);
-    }
 };
 
 #endif /* SCALARFIELDAMR_HPP_ */
