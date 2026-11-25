@@ -37,13 +37,6 @@ template <int num_punctures> class BHAmr : public GRAmr
         }
     }
 
-    void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
-    {
-        GRAmr::init(a_strt_time, a_stop_time);
-
-        m_weyl_interpolator.setup(this);
-    }
-
     PunctureTracker<num_punctures> &get_puncture_tracker()
     {
         return m_puncture_tracker;

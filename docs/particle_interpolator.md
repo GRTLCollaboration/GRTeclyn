@@ -90,24 +90,26 @@ Once the query has been defined, create and setup a `ParticleInterpolator`:
 
 ```cpp
 constexpr int num_components = 1;
-int verbosity = 1;
 
 ParticleInterpolator<num_components> my_interpolator;
 
-my_interpolator.setup(&gr_amr, sim_params.boundary_params, verbosity);
+my_interpolator.setup(&gr_amr);
 ```
 
 Here:
 
 * `gr_amr` is the AMR object that you would have already created
-* `sim_params.boundary_params` contains the information on the boundary conditions
-* `verbosity` controls the amount of diagnostic output.
+
+The setup reads the boundary condition parameters and the verbosity level from the input file automatically. It is also idempotent, i.e. calling `setup()` multiple times is safe and only the first call has any effect; subsequent calls return immediately.
 
 The template parameter `num_components` must correspond to the number of components that will be interpolated. In this example, `num_components = 1`.
 
 !!! note
     If you wish to interpolate derivatives they count as
     their own component: for example, if you want to interpolate $\chi$, the first derivative of $\chi$ and $h_{11}$ the value of ```num_components``` should be 3.
+
+!!! warning
+    You must call `setup()` before calling `interp()`, otherwise the code will abort with an error message.
 
 ### Performing the interpolation
 
