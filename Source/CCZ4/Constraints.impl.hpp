@@ -15,7 +15,6 @@
 // AMReX includes
 #include <AMReX_AmrLevel.H>
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 AMREX_FORCE_INLINE
 Constraints::Constraints(amrex::Real dx, int a_c_Ham, const Interval &a_c_Moms,
                          int a_c_Ham_abs_terms /*defaulted*/,
@@ -40,7 +39,6 @@ Constraints::Constraints(amrex::Real dx, int a_c_Ham, const Interval &a_c_Moms,
         AMREX_ALWAYS_ASSERT(moms_interval.size() == (s_calc_mom_norm ? 1 : 3));
     }
 }
-// NOLINTEND(bugprone-easily-swappable-parameters)
 
 AMREX_GPU_DEVICE void
 Constraints::operator()(int ix, int iy, int iz,

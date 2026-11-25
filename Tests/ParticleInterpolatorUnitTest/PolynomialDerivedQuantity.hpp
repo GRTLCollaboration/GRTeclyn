@@ -20,7 +20,8 @@ class PolynomialDerivedQuantity
   public:
 
     static inline amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> m_center{
-        AMREX_D_DECL(0., 0., 0.)}; // some random default here
+        AMREX_D_DECL(0., 0., 0.),
+    }; // some random default here
 
     // read in the center which will be used to populating the polynomial
     // properly
@@ -86,7 +87,6 @@ class PolynomialDerivedQuantity
     }
 
     // Compute function
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE
     void
     compute(int i, int j, int k, const amrex::Array4<amrex::Real> &a_array,
@@ -94,10 +94,8 @@ class PolynomialDerivedQuantity
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &plo,
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx,
             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &center) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // set up the coords
-        // NOLINTBEGIN(cppcoreguidelines-init-variables)
         const amrex::Real x = plo[0] + (i + 0.5) * dx[0] - center[0];
         const amrex::Real y = plo[1] + (j + 0.5) * dx[1] - center[1];
 #if AMREX_SPACEDIM == 3
@@ -105,7 +103,6 @@ class PolynomialDerivedQuantity
 #else
         const amrex::Real z = 0.0;
 #endif
-        // NOLINTEND(cppcoreguidelines-init-variables)
 
         // write via cell data
         auto cell      = a_array.cellData(i, j, k);
@@ -113,7 +110,7 @@ class PolynomialDerivedQuantity
     }
 
     // Constructor
-    PolynomialDerivedQuantity(int a_c_poly) : m_c_poly(a_c_poly) {}
+    explicit PolynomialDerivedQuantity(int a_c_poly) : m_c_poly(a_c_poly) {}
 
   private:
     int m_c_poly; // destination comp

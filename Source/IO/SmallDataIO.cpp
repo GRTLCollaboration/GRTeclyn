@@ -21,7 +21,6 @@
 
 // ------------ Constructors -----------------
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 // This has to be initialised outside the class declaration in C++14
 const std::string SmallDataIO::s_default_file_extension = ".dat";
 
@@ -170,8 +169,6 @@ SmallDataIO::~SmallDataIO()
     }
 }
 
-// NOLINTEND(bugprone-easily-swappable-parameters)
-
 // ------------ Writing Functions ------------
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
@@ -187,11 +184,9 @@ void SmallDataIO::write_header_line(
     write_header_line(a_header_strings, pre_header_strings);
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void SmallDataIO::write_header_line(
     const std::vector<std::string> &a_header_strings,
     const std::vector<std::string> &a_pre_header_strings)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     if (amrex::ParallelDescriptor::IOProcessor())
     {
@@ -236,7 +231,8 @@ void SmallDataIO::remove_duplicate_time_data(const bool keep_m_time_data)
         m_file.seekg(0);
         std::string line;
         // adding a random integer might make this a little more robust...
-        const unsigned long random_int = std::default_random_engine()();
+        const unsigned long random_int =
+            std::default_random_engine{std::random_device{}()}();
         std::string temp_filename =
             m_filename + ".temp" + std::to_string(random_int);
         std::ofstream temp_file(temp_filename);
@@ -317,7 +313,7 @@ void SmallDataIO::determine_file_structure()
     std::string line;
     int block_counter        = 0; // assume we always have one block
     auto current_position    = file_stream.tellg();
-    int block_start_position = current_position;
+    int block_start_position = static_cast<int>(current_position);
     int header_row_counter   = 0;
     int data_row_counter     = 0;
 
@@ -326,11 +322,11 @@ void SmallDataIO::determine_file_structure()
         if (!line.empty())
         {
             // header rows start with '#'
-            if (line.find('#') == 0)
+            if (line.starts_with('#'))
             {
                 if (header_row_counter == 0)
                 {
-                    block_start_position = current_position;
+                    block_start_position = static_cast<int>(current_position);
                 }
 
                 ++header_row_counter;
@@ -458,10 +454,8 @@ void SmallDataIO::print_file_structure() const
 }
 
 // Get an interval of columns (inclusive) from a block
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
                               int a_min_column, int a_max_column, int a_block)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     if (amrex::ParallelDescriptor::IOProcessor())
     {
@@ -507,11 +501,9 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
 }
 
 // Get columns from a block based on their names in the header
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
                               const std::vector<std::string> &column_names,
                               const int a_block)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
     if (amrex::ParallelDescriptor::IOProcessor())
@@ -566,13 +558,12 @@ void SmallDataIO::get_columns(std::vector<SmallDataIO::column_t> &out,
             {
                 std::string error_message{
                     "SmallDataIO: " + column_names[input_column] +
-                    " could not be read. Please double check "
-                    "your inputs to SmallDataIO::get_columns"};
+                        " could not be read. Please double check "
+                        "your inputs to SmallDataIO::get_columns",
+                };
                 amrex::Abort(error_message);
             }
         }
-
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         const int ncols = m_file_structure.num_data_columns[a_block];
 
         // To avoid calling std::map::find for each row of data,
@@ -620,26 +611,21 @@ void SmallDataIO::get_all_data_columns(std::vector<SmallDataIO::column_t> &out,
 {
     assert(m_structure_defined);
     int min_data_column = 0;
-    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     int max_data_column = m_file_structure.num_data_columns[a_block];
     get_columns(out, min_data_column, max_data_column, a_block);
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void SmallDataIO::get_column(std::vector<SmallDataIO::column_t> &out,
                              int a_column, int a_block)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     get_columns(out, a_column, a_column, a_block);
 }
 
 // Returns a vector of numeric values from a header row
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void SmallDataIO::get_data_from_header(std::vector<amrex::Real> &out,
                                        int a_header_row_number,
                                        int a_block) const
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     if (amrex::ParallelDescriptor::IOProcessor())
     {
@@ -672,10 +658,8 @@ void SmallDataIO::get_data_from_header(std::vector<amrex::Real> &out,
     }
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void SmallDataIO::get_header_strings(std::vector<std::string> &header,
                                      int a_block) const
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
 
     if (amrex::ParallelDescriptor::IOProcessor())
@@ -686,7 +670,6 @@ void SmallDataIO::get_header_strings(std::vector<std::string> &header,
         header.resize(m_file_structure.num_data_columns[0]);
 
         std::istringstream file_stream(m_file_contents);
-        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         int nlines_to_skip = m_file_structure.num_header_rows[a_block] - 1;
         skip_ahead(file_stream, nlines_to_skip, a_block);
 
@@ -700,11 +683,9 @@ void SmallDataIO::get_header_strings(std::vector<std::string> &header,
     }
 }
 // Helper function to skip lines e.g. header lines
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SmallDataIO::skip_ahead(std::istringstream &file_stream,
                              int nlines_to_skip, int a_block) const
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     // rewind to the beginning of the block
     file_stream.seekg(m_file_structure.block_starts[a_block], std::ios::beg);
@@ -774,12 +755,10 @@ void SmallDataIO::get_specific_data_line(std::vector<amrex::Real> &a_out_data,
 
 // ------------ Other Functions --------------
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
                                           amrex::Real a_dt, amrex::Real a_time,
                                           const std::string &a_file_extension,
                                           int a_filename_steps_width)
-// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     AMREX_ASSERT(a_dt > 0);
     const int step = static_cast<int>(std::round(a_time / a_dt));
@@ -787,7 +766,7 @@ std::string SmallDataIO::get_new_filename(const std::string &a_file_prefix,
     // append step number to filename (pad to make it
     // a_filename_steps_width digits).
     std::string step_string = std::to_string(step);
-    if (a_filename_steps_width < static_cast<int>(step_string.length()))
+    if (std::cmp_less(a_filename_steps_width, step_string.size()))
     {
         amrex::Abort("SmallDataIO: a_filename_steps_width too small "
                      "for step number");
@@ -826,8 +805,8 @@ void SmallDataIO::broadcast_data(std::vector<SmallDataIO::column_t> &data)
 
     if (amrex::ParallelDescriptor::IOProcessor())
     {
-        nrows = data[0].size();
-        ncols = data.size();
+        nrows = static_cast<int>(data[0].size());
+        ncols = static_cast<int>(data.size());
     }
     amrex::ParallelDescriptor::Bcast(
         &ncols, 1, amrex::ParallelDescriptor::IOProcessorNumber());

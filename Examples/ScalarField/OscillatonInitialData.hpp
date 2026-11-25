@@ -25,11 +25,9 @@ class OscillatonInitialData
     AMREX_FORCE_INLINE
     explicit OscillatonInitialData(amrex::Real a_dx);
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const;
-    // NOLINTEND(bugprone-easily-swappable-parameters)
 
   protected:
     amrex::Real m_dx;
@@ -53,7 +51,8 @@ class OscillatonInitialData
             -1.2773355073195884e-04_rt, -1.0740930032253914e-04_rt,
             -5.9245056266891001e-05_rt, -1.1536669472411421e-05_rt,
             -5.4379421632360992e-06_rt, 5.0832422596546345e-06_rt,
-            -1.4123119616337690e-06_rt};
+            -1.4123119616337690e-06_rt,
+    };
 
     std::array<amrex::Real, num_lapse_correction_coefficients>
         m_lapse_correction_coefficients{
@@ -62,7 +61,8 @@ class OscillatonInitialData
             -3.7118770954652227e-04_rt, 1.9275458497198111e-03_rt,
             9.4289642098836898e-04_rt,  2.2891955428106675e-04_rt,
             -3.5029665945347518e-05_rt, -7.1034651695464193e-05_rt,
-            -3.3347291268122290e-05_rt};
+            -3.3347291268122290e-05_rt,
+    };
 
     std::array<amrex::Real, num_scalar_exponent_coefficients>
         m_scalar_exponent_coefficients{
@@ -72,7 +72,8 @@ class OscillatonInitialData
             4.8276770778464026e-02_rt, 3.0232533883913594e-02_rt,
             1.8394483397716436e-02_rt, 9.3598232915395006e-03_rt,
             4.5638233137690540e-03_rt, 1.5222932582614564e-03_rt,
-            4.9664880641856293e-04_rt};
+            4.9664880641856293e-04_rt,
+    };
 
     template <std::size_t N>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real

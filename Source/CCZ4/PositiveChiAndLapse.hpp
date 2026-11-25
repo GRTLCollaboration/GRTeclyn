@@ -25,11 +25,9 @@ class PositiveChiAndLapse
         pp.get("ccz4.min_chi", m_min_chi);
         pp.get("ccz4.min_lapse", m_min_lapse);
     }
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Create non-const CellData for writing into
         const amrex::CellData<amrex::Real> &state_cell_data =

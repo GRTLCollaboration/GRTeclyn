@@ -26,8 +26,9 @@ class IntegrationMethod
 
   public:
     //! Constructor
-    IntegrationMethod(const std::vector<amrex::ParticleReal> &a_weights,
-                      bool a_is_closed = true)
+    explicit IntegrationMethod(
+        const std::vector<amrex::ParticleReal> &a_weights,
+        bool a_is_closed = true)
         : m_weights(a_weights), m_num_weights(a_weights.size()),
           m_is_closed(a_is_closed)
     {

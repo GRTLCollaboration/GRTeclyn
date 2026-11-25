@@ -19,7 +19,6 @@ class KleinGordonRHS
 {
   public:
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     KleinGordonRHS(amrex::Real a_dx, model_t a_model)
         : m_deriv(a_dx), m_model(a_model)
     {

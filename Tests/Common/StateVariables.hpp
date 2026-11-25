@@ -21,7 +21,7 @@ enum
     c_phi_Im, // Im(Y_{20}) = 0 in here
     c_polystate,
 
-    NUM_VARS
+    NUM_VARS,
 };
 
 namespace StateVariables
@@ -30,14 +30,16 @@ static constexpr int num_user_variables =
     static_cast<int>(NUM_VARS) - static_cast<int>(NUM_CCZ4_VARS);
 
 static const amrex::Vector<std::string> additional_names = {
-    "phi", "Pi", "phi_Re", "phi_Im", "polystate"};
+    "phi", "Pi", "phi_Re", "phi_Im", "polystate",
+};
 
 static const amrex::Vector<std::string> names =
     ArrayTools::concatenate(CCZ4StateVariables::names, additional_names);
 
 static const std::array<BCParity, num_user_variables> user_variable_parities = {
-    BCParity::even, BCParity::even, BCParity::even, BCParity::even,
-    BCParity::odd_z};
+    BCParity::even, BCParity::even,  BCParity::even,
+    BCParity::even, BCParity::odd_z,
+};
 
 static const std::array<BCParity, NUM_VARS> parities = ArrayTools::concatenate(
     CCZ4StateVariables::parities, user_variable_parities);

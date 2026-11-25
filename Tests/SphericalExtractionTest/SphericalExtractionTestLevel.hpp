@@ -48,31 +48,28 @@ class SphericalExtractionTestLevel : public GRAmrLevel
         pp.get("geometry.center", center);
 
         // Fill the state
-        amrex::ParallelFor(
-            state, state.nGrowVect(),
-            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-            {
-                const auto &array = arrs[box_no];
+        amrex::ParallelFor(state, state.nGrowVect(),
+                           [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
+                           {
+                               const auto &array = arrs[box_no];
 
-                const amrex::Real x =
-                    prob_lo[0] + (i + 0.5) * dx[0] - center[0];
-                const amrex::Real y =
-                    prob_lo[1] + (j + 0.5) * dx[1] - center[1];
-                const amrex::Real z =
-                    prob_lo[2] + (k + 0.5) * dx[2] - center[2];
+                               const amrex::Real x =
+                                   prob_lo[0] + (i + 0.5) * dx[0] - center[0];
+                               const amrex::Real y =
+                                   prob_lo[1] + (j + 0.5) * dx[1] - center[1];
+                               const amrex::Real z =
+                                   prob_lo[2] + (k + 0.5) * dx[2] - center[2];
 
-                const auto Y_lm =
-                    SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
+                               const auto Y_lm = SphericalHarmonics::spin_Y_lm(
+                                   x, y, z, es, el, em);
 
-                array(i, j, k, c_phi_Re) = Y_lm.Real;
-                array(i, j, k, c_phi_Im) = Y_lm.Im;
-            });
+                               array(i, j, k, c_phi_Re) = Y_lm.Real;
+                               array(i, j, k, c_phi_Im) = Y_lm.Im;
+                           });
 
         amrex::Gpu::streamSynchronize();
     }
 
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
                            const amrex::Real a_time) override
     {
@@ -91,7 +88,6 @@ class SphericalExtractionTestLevel : public GRAmrLevel
 
         FixedGridsTagger my_tagging_criterion{dx, current_level};
 
-        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             a_tag_box_array,
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)

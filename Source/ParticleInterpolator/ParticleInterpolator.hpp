@@ -40,8 +40,8 @@ class ParticleInterpolator
   private:
     GRAmr *m_gr_amr_ptr{nullptr};
 
-    bool m_initialized{
-        false}; // a guard to make sure we do not uninitialised GRAmr
+    // a guard to make sure we do not uninitialised GRAmr
+    bool m_initialized{false};
 
     // physical domain corners on level 0 for parity logic
     amrex::GpuArray<amrex::ParticleReal, AMREX_SPACEDIM> m_prob_lo{};

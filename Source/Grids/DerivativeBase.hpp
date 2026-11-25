@@ -21,7 +21,7 @@ class DerivativeBase
     amrex::Real m_one_over_dx2;
 
     AMREX_GPU_HOST_DEVICE
-    DerivativeBase(amrex::Real dx)
+    explicit DerivativeBase(amrex::Real dx)
         : m_dx(dx), m_one_over_dx(1 / dx), m_one_over_dx2(1 / (dx * dx))
     {
     }

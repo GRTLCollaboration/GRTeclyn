@@ -26,7 +26,7 @@ random_ccz4_initial_data(const amrex::IntVect &a_iv,
     // NOLINTNEXTLINE(readability-identifier-length)
     amrex::Real g[3][3];
     amrex::Real g_UU[3][3];
-    amrex::Real chi; // NOLINT(cppcoreguidelines-init-variables)
+    amrex::Real chi{};
     {
         g[0][0] = 1.36778 + 2.39731 * x + 4.53541 * x * x +
                   19.9771 * x * y * y * y + 6.13801 * y * z + 5.65185 * z * z +

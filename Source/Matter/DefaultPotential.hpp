@@ -18,7 +18,6 @@ class DefaultPotential
 
     //! Set the potential function for the scalar field here to zero
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
                       const ScalarFieldVars &vars)
     {

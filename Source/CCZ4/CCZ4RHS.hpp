@@ -55,7 +55,7 @@ template <class deriv_t = FourthOrderDerivatives> class CCZ4RHS
     enum formulations : int
     {
         USE_CCZ4 = 0,
-        USE_BSSN = 1
+        USE_BSSN = 1,
     };
 
     using params_t = CCZ4_params_t;
@@ -68,9 +68,9 @@ template <class deriv_t = FourthOrderDerivatives> class CCZ4RHS
 
   public:
     /// Constructor
-    CCZ4RHS(amrex::Real a_dx, //!< The grid spacing
-            amrex::Real a_cosmological_constant =
-                0 //!< Value of the cosmological const.
+    explicit CCZ4RHS(amrex::Real a_dx, //!< The grid spacing
+                     amrex::Real a_cosmological_constant =
+                         0 //!< Value of the cosmological const.
     );
 
     /// Compute function

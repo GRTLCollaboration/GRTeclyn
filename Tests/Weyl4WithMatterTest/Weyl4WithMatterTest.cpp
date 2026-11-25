@@ -70,11 +70,9 @@ void run_matter_weyl4_test()
 
         const auto &in_arrays = in_mf.arrays();
 
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             in_mf, in_mf.nGrowVect(),
             [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
-            // NOLINTEND(bugprone-easily-swappable-parameters)
             {
                 const amrex::IntVect iv{i, j, k};
                 const amrex::RealVect coords = amrex::RealVect{iv} * dx;

@@ -128,8 +128,11 @@ void run_ccz4_geometry_unit_tests()
         const amrex::IntVect iv_zeros(0, 0, 0);
         const amrex::Box box(iv_zeros, iv_zeros);
         amrex::FArrayBox in_fab{box, NUM_CCZ4_VARS, amrex::The_Managed_Arena()};
-        amrex::FArrayBox geometry_fab{box, NUM_GEOMETRY_TEST_VARS,
-                                      amrex::The_Managed_Arena()};
+        amrex::FArrayBox geometry_fab{
+            box,
+            NUM_GEOMETRY_TEST_VARS,
+            amrex::The_Managed_Arena(),
+        };
         const amrex::Array4<amrex::Real> &in_array = in_fab.array();
         const auto &geometry_array                 = geometry_fab.array();
 

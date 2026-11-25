@@ -25,18 +25,15 @@ class ChiTagger
     amrex::Real m_threshold;
 
   public:
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     ChiTagger(const amrex::Real dx, const amrex::Real a_threshold)
         : m_dx(dx), m_deriv(dx), m_threshold(a_threshold)
     {
     }
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int i, int j, int k,
                const amrex::Array4<amrex::TagBox::TagType> &tags,
                const amrex::Array4<amrex::Real const> &state) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         const auto d2_chi      = m_deriv.d2_scalar(i, j, k, state, c_chi);
         amrex::Real mod_d2_chi = 0;

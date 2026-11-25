@@ -21,11 +21,9 @@ class AlgebraicConstraintsEnforcer
 
     // Compute function
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE void
     operator()(int ix, int iy, int iz,
                const amrex::Array4<amrex::Real> &state) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         const amrex::CellData<amrex::Real> &state_cell_data =
             state.cellData(ix, iy, iz);
@@ -47,7 +45,7 @@ class AlgebraicConstraintsEnforcer
         // Enforce A to be trace-free
         const auto trace_A = compute_trace_A(vars);
         const amrex::Real one_over_gr_spacedim =
-            1. / ((amrex::Real)GR_SPACEDIM);
+            1. / (static_cast<amrex::Real>(GR_SPACEDIM));
         FOR2_SYM(i, j)
         {
             state_cell_data[sym_var_idx(c_A11, i, j)] -=

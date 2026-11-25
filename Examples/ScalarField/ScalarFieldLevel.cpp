@@ -79,7 +79,10 @@ void ScalarFieldLevel::specific_post_timestep()
         const LineExtraction<1> rho_extraction("rho_line_extraction", 0, dt,
                                                time, restart_time, first_step);
         const LineExtraction<1>::derived_vars_t rho_vars{
-            ScalarFieldEnergyDensity::name, {"rho"}, {BCParity::even}};
+            .name            = ScalarFieldEnergyDensity::name,
+            .component_names = {"rho"},
+            .parities        = {BCParity::even},
+        };
 
         rho_extraction.execute_query(
             &get_scalar_field_amr_ptr()->rho_interpolator, rho_vars);
@@ -149,7 +152,6 @@ void ScalarFieldLevel::initData()
     amrex::Gpu::streamSynchronize();
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                          amrex::MultiFab &a_rhs,
                                          const amrex::Real /*a_time*/)
@@ -195,7 +197,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                               const_soln_arrays[box_no]);
             });
 
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -203,7 +204,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                 ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
             });
-        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         amrex::ParallelFor(
             a_rhs,
@@ -235,7 +235,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                               const_soln_arrays[box_no]);
             });
 
-        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         amrex::ParallelFor(
             a_rhs,
             [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz)
@@ -243,7 +242,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                 ccz4_rhs.compute_A_ij_and_Theta_and_Gamma(
                     ix, iy, iz, rhs_arrays[box_no], const_soln_arrays[box_no]);
             });
-        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         amrex::ParallelFor(
             a_rhs,

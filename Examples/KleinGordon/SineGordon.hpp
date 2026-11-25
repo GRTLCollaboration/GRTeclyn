@@ -52,10 +52,8 @@ class SineGordon
         m_params.fill_params();
     };
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate(const amrex::Real x, const amrex::Real t) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         // Sine Gordon 1D breather solution
         amrex::Real beta = std::sqrt(1.0 - m_params.alpha * m_params.alpha);
@@ -64,7 +62,6 @@ class SineGordon
                                m_params.alpha / std::cosh(beta * x));
     };
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     calculate_time_derivative(const amrex::Real x, const amrex::Real t) const
     {
         amrex::Real beta = std::sqrt(1.0 - m_params.alpha * m_params.alpha);
@@ -85,11 +82,9 @@ class SineGordon
         return -4.0 * m_params.alpha * beta * numerator / denominator;
     };
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate(const amrex::Real x, const amrex::Real y, const amrex::Real z,
               const amrex::Real t) const
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         amrex::Real beta = std::sqrt(1.0 - m_params.alpha * m_params.alpha);
 
@@ -104,11 +99,9 @@ class SineGordon
                std::atan(numerator / std::cosh(m_params.alpha * z));
     };
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
     calculate_time_derivative(const amrex::Real x, const amrex::Real y,
                               const amrex::Real z, const amrex::Real t) const
-    // NOLINTEND(bugprone-easily-swappable-parameters
     {
         // Sine Gordon 3D psuedo-breather solution
 
@@ -148,10 +141,8 @@ class SineGordon
                 x_term * y_term * dzdt_term);
     };
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void static compute_potential(
         amrex::Real &V_of_phi, amrex::Real &dVdphi, const amrex::Real &phi)
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     {
         V_of_phi = std::sin(phi);
 

@@ -14,7 +14,8 @@ class ScalarFieldVars : public CCZ4Vars
 {
   public:
     AMREX_GPU_DEVICE
-    ScalarFieldVars(const amrex::CellData<const amrex::Real> &input_cell_data)
+    explicit ScalarFieldVars(
+        const amrex::CellData<const amrex::Real> &input_cell_data)
         : CCZ4Vars(input_cell_data)
     {
     }
