@@ -22,6 +22,10 @@ amr.plot_int = 50
 amr.plot_vars = chi lapse phi Pi
 amr.derive_plot_vars = constraints
 
+# Write the volume-weighted L2 norms of the Hamiltonian and momentum
+# constraints, and the maximum of |phi|, every coarse timestep.
+diagnostic.store_reductions = true
+
 #################################################
 # Scalar-field parameters
 

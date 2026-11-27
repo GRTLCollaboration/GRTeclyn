@@ -43,6 +43,11 @@ class KerrBHLevel : public GRAmrLevel
     /// Tag cells for regridding
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;
+
+  private:
+    //! Writes the L2 norms of the Hamiltonian and momentum constraints over
+    //! the whole AMR hierarchy to <grteclyn.output_path>/diagnostics
+    void write_constraint_norms();
 };
 
 #endif /* KERRBHLEVEL_HPP_ */
