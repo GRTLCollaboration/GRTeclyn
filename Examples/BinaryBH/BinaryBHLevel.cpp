@@ -359,6 +359,9 @@ void BinaryBHLevel::specific_post_init()
     {
         get_puncture_tracker().start_from_initial_punctures();
     }
+
+    bool post_init = true;
+    do_analysis(post_init);
 }
 
 void BinaryBHLevel::specific_post_restart()
@@ -396,7 +399,19 @@ void BinaryBHLevel::specific_post_timestep()
 {
     BL_PROFILE("BinaryBHLevel::specific_post_timestep");
 
-    if (get_bh_amr_ptr()->puncture_tracking_enabled())
+    bool post_init = false;
+    do_analysis(post_init);
+}
+
+void BinaryBHLevel::do_analysis(bool a_post_init)
+{
+    BL_PROFILE("BinaryBHLevel::do_analysis()");
+
+    auto *bh_amr_ptr = get_bh_amr_ptr();
+    // setup is idempotent
+    bh_amr_ptr->m_weyl_interpolator.setup(bh_amr_ptr);
+
+    if (bh_amr_ptr->puncture_tracking_enabled())
     {
         GRParmParse puncture_tracking_pp("puncture_tracking");
         int puncture_tracking_level{};
@@ -405,8 +420,10 @@ void BinaryBHLevel::specific_post_timestep()
         puncture_tracking_pp.get("writeout_level",
                                  puncture_tracking_writeout_level);
 
-        // do puncture tracking on requested level
-        if (Level() == puncture_tracking_level)
+        // track punctures on requested level
+        // no need to do post_init as the initial punctures are written when
+        // start_from_initial_punctures() is called in specific_post_init()
+        if (Level() == puncture_tracking_level && !a_post_init)
         {
             BL_PROFILE("PunctureTracking");
 
@@ -415,7 +432,7 @@ void BinaryBHLevel::specific_post_timestep()
             bool write_punctures =
                 at_level_timestep_multiple(puncture_tracking_writeout_level);
             amrex::Real current_time = get_state_data(state_index).curTime();
-            amrex::Real dt           = get_gr_amr_ptr()->dtLevel(Level());
+            amrex::Real dt           = bh_amr_ptr->dtLevel(Level());
             get_puncture_tracker().track(current_time, dt, write_punctures);
         }
     }
@@ -431,13 +448,13 @@ void BinaryBHLevel::specific_post_timestep()
         if (calculate_weyl && Level() == min_level)
         {
             amrex::Real m_time       = get_state_data(state_index).curTime();
-            amrex::Real m_dt         = get_gr_amr_ptr()->dtLevel(Level());
-            amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
-            bool first_step          = (m_time <= m_dt);
+            amrex::Real m_dt         = bh_amr_ptr->dtLevel(Level());
+            amrex::Real restart_time = bh_amr_ptr->get_restart_time();
+            bool first_step          = a_post_init;
 
             WeylExtraction my_extraction(extraction_params, m_dt, m_time,
                                          first_step, restart_time);
-            my_extraction.execute_query(&get_bh_amr_ptr()->m_weyl_interpolator);
+            my_extraction.execute_query(&bh_amr_ptr->m_weyl_interpolator);
         }
     }
 }

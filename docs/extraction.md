@@ -74,7 +74,7 @@ We then provide the instruction to the class on what to do, i.e. how we want to 
 
 In this section we will explain how to link your extraction method to your particlar example. We will use the BinaryBH as an example.
 
-As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the `ParticleInterpolator` only once. We therefore store it as part of the AMR object and set it up during AMR initialisation. For example, for black holes (BHs) we have `BHAmr` class. Hence, we directly add the interpolator as its public member:
+As already noted in the blue box at the beginning of this chapter, we should ideally instantiate the `ParticleInterpolator` only once. We therefore store it as part of the AMR object. For example, for black holes (BHs) we have `BHAmr` class. Hence, we directly add the interpolator as its public member:
 
 ```cpp
 // example for interpolator object for Psi4 extraction
@@ -82,19 +82,22 @@ As already noted in the blue box at the beginning of this chapter, we should ide
     ParticleInterpolator<weyl_num_components> m_weyl_interpolator; // interpolator object
 ```
 
-and set up the interpolator in `BHAmr::init()`:
+and set up the interpolator before it is first used. Note that `ParticleInterpolator::setup()` is idempotent, i.e. it is safe to call it multiple times, so it suffices to call it at the start of your analysis routine. For example, in the binary BH example we do this at the beginning of `BinaryBHLevel::do_analysis()` (which is called from both `specific_post_init()` and `specific_post_timestep()`):
 
 ```cpp
-void init(amrex::Real a_strt_time, amrex::Real a_stop_time) override
-    {
-        GRAmr::init(a_strt_time, a_stop_time);
+void BinaryBHLevel::do_analysis(bool a_post_init)
+{
+    // The Weyl interpolator needs to be set up before we can use it for
+    // WeylExtraction below. setup() is idempotent so it is safe that this is
+    // called on every level and every timestep.
+    auto bh_amr_ptr = get_bh_amr_ptr();
+    bh_amr_ptr->m_weyl_interpolator.setup(bh_amr_ptr);
 
-        const auto &params = get_simulation_parameters();
-        m_weyl_interpolator.setup(this);
-    }
+    // ... rest of the analysis, e.g. the Weyl extraction below
+}
 ```
 
-In our binary BH example, we can then switch on the extraction in `BinaryBHLevel::specific_post_timestep` using:
+In our binary BH example, we can then switch on the extraction in `BinaryBHLevel::do_analysis` using:
 
 ```cpp
 // Weyl extraction
@@ -108,7 +111,7 @@ In our binary BH example, we can then switch on the extraction in `BinaryBHLevel
             amrex::Real m_time       = get_state_data(state_index).curTime();
             amrex::Real m_dt         = get_gr_amr_ptr()->dtLevel(Level());
             amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
-            bool first_step          = (m_time <= m_dt);
+            bool first_step          = a_post_init;
 
             WeylExtraction my_extraction(extraction_params, m_dt,
                                          m_time, first_step, restart_time);

@@ -241,5 +241,25 @@ void KerrBHLevel::specific_post_timestep()
 {
     BL_PROFILE("KerrBHLevel::specific_post_timestep");
 
-    // Add post-timestep diagnostics here
+    bool post_init = false;
+    do_analysis(post_init);
+}
+
+void KerrBHLevel::specific_post_init()
+{
+    BL_PROFILE("KerrBHLevel::specific_post_init");
+
+    bool post_init = true;
+    do_analysis(post_init);
+}
+
+// Empty for now, but kept as a non-static member function for consistency
+// with the other examples where the analysis uses the level's state
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+void KerrBHLevel::do_analysis(bool /*a_post_init*/)
+{
+    BL_PROFILE("KerrBHLevel::do_analysis()");
+
+    // Add analysis here, e.g. puncture tracking or Weyl extraction as in the
+    // BinaryBH example
 }

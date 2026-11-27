@@ -26,6 +26,11 @@
 template <int num_components>
 void ParticleInterpolator<num_components>::setup(GRAmr *gramr_ptr)
 {
+    if (m_initialized)
+    {
+        return;
+    }
+
     // is GRAmr properly set?
     AMREX_ASSERT(gramr_ptr != nullptr);
     m_gr_amr_ptr = gramr_ptr;
@@ -353,7 +358,10 @@ void ParticleInterpolator<num_components>::interp(
     const InterpolationQueryParticle &query, bool a_refresh_particles,
     const std::string &name_derived, amrex::Real time_derived /*=0.0*/)
 {
-    AMREX_ASSERT(m_initialized);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_initialized,
+        "ParticleInterpolator::interp() called before setup(). Please call "
+        "setup() on the interpolator first.");
 
     if (query.numComps() != num_components)
     {

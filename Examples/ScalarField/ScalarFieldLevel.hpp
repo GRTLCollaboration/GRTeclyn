@@ -38,6 +38,12 @@ class ScalarFieldLevel : public GRAmrLevel
 
     void specific_post_timestep() override;
 
+    //! Things to do after init
+    void specific_post_init() override;
+
+    //! Do our analysis post timestep and post init
+    void do_analysis(bool a_post_init = false);
+
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;
 };
