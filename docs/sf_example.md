@@ -58,7 +58,7 @@ Typically, on an old M1 Macbook laptop with no MPI, we obtain a speed of 650 M/h
 
 ### Viewing 3D data and 2D slices
 
-See [**Visualising Ouputs**](visualising_outputs.md) for details on visualising. Note that checkpoint files are not viewable with AMReX, only plot files are.
+See [**Visualising Outputs**](visualising_outputs.md) for details on visualising. Note that checkpoint files are not viewable with AMReX, only plot files are.
 
 You probably want to look at the scalar profile `phi`, and perhaps also the conformal factor `chi`. Both should oscillate during the evolution.
 
