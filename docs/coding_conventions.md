@@ -57,6 +57,49 @@ pre-commit install
 ```
 The next time you try to commit a change, it will configure the pre-commit hook environment which may take a minute or two but subsequently it should be much faster. If there are any staged changes which do not conform to the style, it will not allow you to commit and will make the necessary changes to format the code correctly. Note that these changes will not be staged and you will have to manually do this with `git add`.
 
+## Linting
+
+Linting is the automated checking of source code for potential problems. A linter parses the code (or, in the case of clang-tidy, compiles it far enough to understand it) and reports issues such as bugs, undefined behaviour, style violations, or code that can be modernised — without running the program. [clang-tidy](https://clang.llvm.org/extra/clang-tidy/) is such a linter for C++: it runs a configurable set of checks (we configure them in [`.clang-tidy`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.clang-tidy)) over each file and can suggest or even apply fixes. [clang-format](https://clang.llvm.org/docs/ClangFormat.html) is a related but purely formatting tool.
+
+In addition to the clang-format pre-commit hook described above, a lint workflow ([`.github/workflows/lint.yml`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.github/workflows/lint.yml)) runs in CI on every push and pull request. It checks the whole repository with:
+
+- **clang-format**, using the style in [`.clang-format`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.clang-format) (the same as the pre-commit hook) to check that the code is formatted correctly, and
+- **clang-tidy**, with the checks configured in [`.clang-tidy`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.clang-tidy) to find bugs, performance problems and outdated constructs. Files and directories listed in [`.lint-ignore`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.lint-ignore) are excluded.
+
+To run clang-tidy, the workflow first builds a compilation database (`compile_commands.json`) from the build commands of the examples and tests, and installs the clang tools version given by `LLVM_VERSION` in the workflow. The job fails if any check fails, and on pull requests the results are posted as a summary and PR comments.
+
+### Running the full lint checks locally
+
+To run the same checks locally before opening a pull request, use the [`run_lint.py`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Tools/Lint/run_lint.py) script:
+
+```bash
+Tools/Lint/run_lint.py
+```
+
+This generates a compilation database (the same way as CI, so AMReX is expected next to the GRTeclyn directory or `AMREX_HOME` must be set), and then runs `cpp-linter` with the same clang tools version as CI (read from the workflow file). Set up a single virtual environment next to the script with all the required Python packages, including the clang tools matching the `LLVM_VERSION` in [`.github/workflows/lint.yml`](https://github.com/GRTLCollaboration/GRTeclyn/blob/main/.github/workflows/lint.yml):
+
+```bash
+python3 -m venv Tools/Lint/.venv
+source Tools/Lint/.venv/bin/activate
+pip install -r Tools/Lint/requirements.txt
+clang-tools install clang-format clang-tidy --version 23 --directory $VIRTUAL_ENV/bin
+```
+
+(Replace `23` with the `LLVM_VERSION` in the lint workflow. Activate the venv first so the commands above work without paths, and use `$VIRTUAL_ENV/bin` as the `--directory` so the versioned `clang-tidy-23`/`clang-format-23` executables are installed into the venv's `bin` directory. The script finds the venv via `$VIRTUAL_ENV` when activated, or `Tools/Lint/.venv` by default, even when the venv is not activated.) The script exits with an error if those versioned executables are not found (pass `--ignore-llvm-version` to skip the check).
+
+Since CI installs the Python packages unpinned (i.e. always the latest), the script warns at startup if your installed versions are not the latest on PyPI.
+
+By default the script lints only the files you changed, for faster iteration:
+
+```bash
+Tools/Lint/run_lint.py                  # changed relative to HEAD
+Tools/Lint/run_lint.py --base origin/main  # changed on this branch
+Tools/Lint/run_lint.py Source/CCZ4/CCZ4.hpp  # specific files
+Tools/Lint/run_lint.py --all-files      # lint the whole repository
+```
+
+Use `--all-files` to check the whole repository. Run `Tools/Lint/run_lint.py --help` for all options, e.g. `--skip-db` to reuse a previously generated compilation database.
+
 
 ---
 
