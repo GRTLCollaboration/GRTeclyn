@@ -1,20 +1,16 @@
 workflow:
-# Only run GitLab CI on changes in the following paths
   rules:
-    - changes:
-        - Examples/**
-        - external/**
-        - Source/**
-        - Tests/**
-        - Tools/GNUMake/**
-        - .gitlab-ci.yml
-        - .gitlab/**
+    # Pushes to any branch run at the workflow level; the per-job rules
+    # below filter on whether the branch differs from main in relevant files
+    - if: '$CI_COMMIT_BRANCH'
       when: always
+    # Don't run pipelines for other triggers
     - when: never
 
 stages:
   - build
   - test
+  - cleanup
 
 variables:
   MODULES_A100: >
