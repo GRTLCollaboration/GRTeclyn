@@ -21,6 +21,8 @@ enum
     c_d1_t22,
     c_d1_t23,
     c_d1_t33,
+    c_d1_state1,
+    c_d1_state2,
     c_d2,
     c_d2_v1,
     c_d2_v2,
@@ -70,6 +72,11 @@ template <class deriv_t> class DerivativeTestsCompute
 
         Tensor::Rank3 out_d1_t = m_deriv.d1_tensor(ix, iy, iz, in, c_d1_t11);
 
+        // Derivatives of 3 consecutive vars starting at c_d1_state1
+        // (which overlap the c_d1_state1 and c_d1_state2 components)
+        auto out_d1_state =
+            m_deriv.template d1_state<3>(ix, iy, iz, in, c_d1_state1);
+
         Tensor::Sym12Rank2 out_d2 = m_deriv.d2_scalar(ix, iy, iz, in, c_d2);
 
         Tensor::Sym23Rank3 out_d2_v =
@@ -99,6 +106,8 @@ template <class deriv_t> class DerivativeTestsCompute
         out_cell_data[c_d1]         = out_d1(2);
         out_cell_data[c_d1_v3]      = out_d1_v(2, 2);
         out_cell_data[c_d1_t33]     = out_d1_t(2, 2, 2);
+        out_cell_data[c_d1_state1]  = out_d1_state(0, 2);
+        out_cell_data[c_d1_state2]  = out_d1_state(1, 0);
         out_cell_data[c_d2]         = out_d2(2, 2);
         out_cell_data[c_d2_v3]      = out_d2_v(2, 2, 2);
         out_cell_data[c_d2_t31]     = out_d2_t(2, 0, 0, 2);

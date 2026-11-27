@@ -8,8 +8,8 @@
 #define CCZ4GEOMETRY_HPP_
 
 #include "CCZ4Vars.hpp"
+#include "Derivatives.hpp"
 #include "DimensionDefinitions.hpp"
-#include "FourthOrderDerivatives.hpp"
 #include "TensorAlgebra.hpp"
 
 //! A structure for the decomposed elements of the Energy Momentum Tensor in
